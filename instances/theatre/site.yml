@@ -1,0 +1,51 @@
+# General theatre notes — practice that is not tied to one building.
+#
+# Renamed from `oph` on 2026-08-03. Worth knowing why, because it changes what
+# the site is FOR: a venue-specific site documents one operation, while this one
+# documents the craft, which is the thing URITP pages will want to reference
+# rather than restate.
+
+name: Theatre Notes
+description: General professional theatre practice, standards and procedure.
+slug: theatre
+base_url: https://mawizorek.github.io/theatre-docs/
+
+content_repo: mawizorek/theatre-docs
+content_branch: main
+
+theme: base
+
+palette:
+  dark:
+    primary: black
+    accent: deep purple
+  light:
+    primary: blue grey
+    accent: deep purple
+
+sections:
+  practice:
+    title: Practice
+    order: 10
+  reference:
+    title: Reference
+    order: 20
+
+peers:
+  template: https://mawizorek.github.io/doc-render-engine/
+
+# ⚠️ LEAK SCAN DISABLED, and this is a REAL LIMITATION rather than a
+# convenience -- read before copying this line into a new instance.
+#
+# The scan fails the build if the engine mentions the site it is rendering.
+# That works when a slug is a proper noun. This slug is the word "theatre",
+# which legitimately appears in the engine's own object declarations (see
+# objects/procedure.yml, which uses it to explain what a non-theatre page is).
+# Scanning would fail every build on a correct file.
+#
+# So: THE LEAK SCAN ONLY PROTECTS SITES WITH DISTINCTIVE NAMES. Two of three
+# instances now opt out (`template`, `theatre`), which means `uritp` is
+# currently the only site actually proving the engine is site-agnostic. If it
+# ever opts out too, the check is decorative and should be redesigned rather
+# than quietly kept.
+leak_tokens: []

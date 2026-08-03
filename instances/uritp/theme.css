@@ -1,0 +1,11 @@
+/* URITP's own look. Loaded last, so this file has the final word.
+ *
+ * Keep it small. Anything here another site would also want belongs in
+ * theme/*.tsv as a shared token, or it gets copied into three stylesheets that
+ * then drift apart.
+ */
+
+.md-typeset .dr-spec {
+  border-left: 2px solid var(--dr-accent);
+  padding-left: 0.9rem;
+}
