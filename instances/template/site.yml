@@ -12,7 +12,17 @@
 name: Doc Family Template
 description: The executable gold standard for every doc site in this family.
 slug: template
-base_url: https://maw-agents.github.io/template-docs/
+
+# ⚠️ THIS SITE IS THE ONE EXCEPTION TO THE HOSTING RULE, AND IT IS DELIBERATE.
+#
+# Every real site publishes to its own content repo's gh-pages branch, at its
+# own address, via the app matrix in build.yml. That needs a cross-repo PAT.
+#
+# The template publishes to the ENGINE's own Pages instead, because it must be
+# live without waiting on a human to mint a secret. A gold standard that is
+# merely buildable proves nothing anybody can click on. It also costs the
+# template nothing: it has no readers to give a pretty URL to.
+base_url: https://maw-agents.github.io/doc-render-engine/
 
 content_repo: maw-agents/template-docs
 content_branch: main

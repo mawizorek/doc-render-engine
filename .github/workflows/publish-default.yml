@@ -1,0 +1,106 @@
+name: Publish the default site
+
+# WHY THIS EXISTS SEPARATELY FROM build.yml.
+#
+# build.yml is the app matrix: it renders each site and pushes the result into
+# THAT site's own content repo, which is a cross-repository write and therefore
+# needs a PAT a human has to mint. Until that secret exists the whole family is
+# buildable and none of it is live, and "buildable" is not a claim anybody can
+# check.
+#
+# The gold standard has to be LIVE, because that is the entire premise: a
+# written specification rots, an executable one cannot. So the default instance
+# publishes to THIS repository's own Pages, which the built-in GITHUB_TOKEN can
+# do with no secret and no human setup at all. If this URL is up and correct,
+# the contract is true today.
+#
+# Real sites keep using build.yml, because they must live at their own address
+# under their own name. The template does not need a pretty address; it needs to
+# be undeniable.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Same rhythm as the matrix. The content repo holds no workflow of its own
+    # -- that is the purity rule -- so it cannot tell us it changed.
+    - cron: "23 7 * * *"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never two deployments at once, and never cancel one halfway: a half-published
+# site is worse than a stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      DOCRENDER_INSTANCE: template
+    steps:
+      - name: Check out the engine
+        uses: actions/checkout@v4
+        with:
+          path: engine
+
+      - name: Check out the content
+        uses: actions/checkout@v4
+        with:
+          repository: maw-agents/template-docs
+          path: content
+          # Two commits so the build stamp can name the change it rendered.
+          fetch-depth: 2
+
+      - name: Configure Pages
+        # enablement turns Pages on via the API on the first run, so this repo
+        # needs no click in Settings before its own site exists.
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: engine/requirements.txt
+
+      - name: Install the renderer
+        working-directory: engine
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Render
+        env:
+          DOCRENDER_CONTENT: ${{ github.workspace }}/content
+          DOCRENDER_OUTPUT: ${{ github.workspace }}/site
+          DOCRENDER_ENGINE_REF: ${{ github.sha }}
+        run: |
+          cd "${{ github.workspace }}/content"
+          echo "DOCRENDER_COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          {
+            echo "DOCRENDER_COMMIT_SUBJECT<<EOF"
+            git log -1 --pretty=%s
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+          cd "${{ github.workspace }}/engine"
+          mkdocs build --config-file mkdocs.yml
+
+      - name: Upload
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4
