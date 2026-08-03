@@ -1,0 +1,52 @@
+# HML_LLC — the sibling with NO VENUES, which is the entire reason it exists.
+#
+# URITP and Theatre are both theatre-shaped, so a green build on either one
+# proves the engine can be pointed somewhere else and not much more. This site
+# has no buildings, no rooms, no `parent` chain that terminates in a physical
+# space, no capacity and no grid height. Whatever theatre-shaped assumption is
+# still quietly baked into the object model gets exposed HERE, in week one
+# rather than month six -- and gets fixed in the ENGINE rather than worked
+# around locally. A painful build in this instance is the test working.
+
+name: HML_LLC
+description: Standard operating procedures.
+slug: hml
+base_url: https://mawizorek.github.io/hml-docs/
+
+content_repo: mawizorek/hml-docs
+content_branch: main
+
+# ⭐ ONE LINE, same as every other site. `utility` is dense and low-chrome,
+# built for pages that are WORKED FROM rather than read, which is what a
+# procedure is. It is also the one named theme no site had claimed yet, so this
+# instance exercises a third skin instead of re-proving one of the other two.
+theme: utility
+
+# 🔀 One quiet "Edit this page on GitHub" at the foot; nothing else in the site
+# mentions a repository. This is the site most likely to want `false` first --
+# its only reader has no reason to ever see git.
+edit_links: true
+
+palette:
+  dark:
+    primary: black
+    accent: light green
+  light:
+    primary: blue grey
+    accent: light green
+
+# 🚫 NO `sections:` BLOCK, AND THE ABSENCE IS DELIBERATE.
+#
+# Section titles and order are a FALLBACK for folders that have no index page.
+# This content tree is one landing page. Declaring venues/production/safety
+# here to match the siblings would be guessing at a shape these pages have not
+# taken yet, and a guessed structure is the thing that gets worked around later
+# instead of fixed. Write the pages, see what they actually are, then declare.
+
+peers:
+  template: https://mawizorek.github.io/doc-render-engine/
+
+# Full leak scan, no opt-out. `hml` appears nowhere in the engine's code,
+# objects, theme or assets, so the check is meaningful here for the same reason
+# it is meaningful on `uritp` -- and was not, under the old design, on the two
+# sites whose slugs are ordinary English words.
