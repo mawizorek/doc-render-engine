@@ -43,10 +43,11 @@ THREE JOBS, all of which want to run last.
    block, at the end. Warnings scattered through 400 lines of MkDocs output are
    warnings nobody reads.
 
-   ⭐ The `markers` section is not a complaint, and it is the most useful thing
-   here. Every `[text]{.tbc}` and friend on the site, listed with its page. A
-   marker you cannot enumerate is decoration; a marker you can enumerate turns
-   "what is still unconfirmed" into a question with an answer.
+   ⭐ Two sections are INVENTORY rather than complaints, and they are the most
+   useful things here. `markers` lists every tbc / verify / gap / est / was on
+   the site; `routers` lists every router and how many routes it carries.
+   Neither counts against a clean build. A thing you cannot enumerate is
+   decoration; a thing you can enumerate is a worklist.
 """
 
 from __future__ import annotations
@@ -67,6 +68,10 @@ GUIDE_KB = 12
 
 _SCAN_SUFFIXES = {".py", ".css", ".js", ".yml", ".yaml", ".tsv", ".json", ".txt"}
 
+# Buckets that are inventory, not defects. Present in the report, ignored when
+# deciding whether the build was clean.
+_INVENTORY = {"markers", "routers"}
+
 _LABELS = {
     "leaks": "SITE NAME LEAKED INTO ENGINE CODE (build will fail)",
     "missing_status": "Pages with no usable status (NOT BUILT)",
@@ -75,7 +80,8 @@ _LABELS = {
     "duplicate_id": "Duplicate ids",
     "dead_links": "Broken references (rendered as struck-through markers)",
     "stale_xref": "Cross-site index problems",
-    "markers": "Marked unresolved -- every tbc / verify / gap / est / was",
+    "markers": "Marked unresolved -- every tbc / verify / gap / conf / est / was",
+    "routers": "Routers on this site",
     "oversize": "Over the size budget",
     "notes": "Notes",
 }
@@ -207,9 +213,7 @@ def on_post_build(config):
         entries = state.REPORT.get(bucket) or []
         if not entries:
             continue
-        # Markers are inventory, not a defect, so a page full of them still
-        # counts as a clean build.
-        if bucket != "markers":
+        if bucket not in _INVENTORY:
             clean = False
         print("")
         print(label + " (" + str(len(entries)) + ")")

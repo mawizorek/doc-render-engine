@@ -1,0 +1,9 @@
+# ROUTE TABLES for the gold-standard site.
+#
+# Deliberately empty. The template demonstrates things every site should copy,
+# and a router is not that -- it is a tool for a specific situation (hand one
+# person a code, keep a casual reader out of a work-in-progress corner). A
+# demo router here would teach "every site has one of these," which is wrong.
+#
+# The FEATURE is documented in the authoring guide; the mechanism is documented
+# in docrender/router.py. Neither needs a live example to be true.

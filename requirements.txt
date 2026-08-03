@@ -4,16 +4,17 @@
 # every former Insiders feature to everyone. Below it several things we use do
 # not exist, and an unknown option is a hard build failure.
 #
-# NOT here, and each absence is a decision:
+# NOT here, and the absence is a decision:
 #   mkdocs-awesome-nav  -- needs a .nav.yml INSIDE the content tree, which
 #                          breaks the purity rule. Nav order is frontmatter
 #                          (`order:`) plus instance config instead. Dropping
 #                          this dependency is what made a pure content repo
 #                          possible at all.
-#   cryptography        -- was v1's AES for `status: gated`. The gate is NOT
-#                          implemented in engine v1 (see docrender/visibility.py).
-#                          A dependency for a feature that does not exist is a
-#                          lie in the lockfile.
 
 mkdocs-material>=9.7,<10
 PyYAML>=6
+
+# AES-GCM for docrender/router.py. Was dropped from this file when `gated` was
+# not implemented, on the rule that a dependency for a feature that does not
+# exist is a lie in the lockfile. Routers exist, so it is back.
+cryptography>=42
