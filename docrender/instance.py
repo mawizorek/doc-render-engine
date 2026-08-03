@@ -54,6 +54,24 @@ def on_config(config):
 
     inst["slug"] = slug
     inst["dir"] = str(inst_dir)
+
+    # ADDRESS IS A PROPERTY OF THE PUBLISHING PATH, NOT OF THE SITE.
+    #
+    # The same instance can be published to more than one address: the matrix
+    # pushes it to its own content repo's Pages, while the default-publish
+    # workflow serves it from the engine's Pages at an entirely different URL.
+    # site.yml can only state one of those, so whichever it states is wrong for
+    # the other path -- and a wrong base_url is not cosmetic. It is written
+    # into doc-index.json, which is the one file every SIBLING site reads to
+    # resolve cross-site links, so a stale value sends other people's readers
+    # somewhere that does not exist.
+    #
+    # The publishing path knows its own address, so it passes it in. site.yml
+    # keeps the canonical one for humans reading the config.
+    override = os.environ.get("DOCRENDER_BASE_URL", "").strip()
+    if override:
+        inst["base_url"] = override
+
     state.INSTANCE = inst
 
     # Object declarations are shared across every site by design: a `space`
