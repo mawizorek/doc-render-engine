@@ -19,6 +19,18 @@ content_branch: main
 # Named themes live in theme/themes.tsv.
 theme: eos
 
+# 🔀 THE LAST DOOR BACK TO THE SOURCE.
+#
+# `true` keeps ONE quiet line at the foot of each page: "Edit this page on
+# GitHub". Nothing else in the rendered site mentions a repository -- the
+# header widget is gone and `repo_url` is never set.
+#
+# Set this to `false` and the site stops referring to git entirely. That is the
+# intended end state once these go out to designers, guest artists and
+# students: the line is scaffolding for now, not a feature of a finished site.
+# One word, per site, no code change, no rebuild of anything else.
+edit_links: true
+
 # Chrome (header + sidebar) is Material's `palette`, NOT a CSS variable, and it
 # has to be set here. Setting --md-primary-fg-color in an unscoped :root looks
 # like it works, hits both colour schemes at once, and silently breaks the dark
@@ -31,18 +43,17 @@ palette:
     primary: blue grey
     accent: amber
 
+# Titles here are a FALLBACK. A folder that contains an index.md takes that
+# page's own title instead, so `venues/spac/` shows as "Swan Auditorium" rather
+# than "Spac". Only folders with no index page need naming here.
 sections:
   venues:
-    title: Venues
     order: 10
   production:
-    title: Production
     order: 20
   safety:
-    title: Safety
     order: 30
   reference:
-    title: Reference
     order: 40
 
 # The cross-site contract, pointed at a site that is ACTUALLY LIVE. This is the

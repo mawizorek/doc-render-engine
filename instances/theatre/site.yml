@@ -16,6 +16,12 @@ content_branch: main
 # for a site whose first real pages are 130-row circuit schedules.
 theme: database
 
+# 🔀 One quiet "Edit this page on GitHub" at the foot, and nothing else in the
+# site mentions a repository. Set to `false` to remove even that -- the
+# intended end state once these pages have outside readers. See the same block
+# in instances/uritp/site.yml.
+edit_links: true
+
 palette:
   dark:
     primary: black
@@ -24,15 +30,13 @@ palette:
     primary: blue grey
     accent: teal
 
+# Fallback only: a folder with an index.md takes that page's title instead.
 sections:
   venues:
-    title: Venues
     order: 10
   practice:
-    title: Practice
     order: 20
   reference:
-    title: Reference
     order: 30
 
 peers:
