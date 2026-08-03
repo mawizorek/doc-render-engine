@@ -7,23 +7,45 @@
 # and not decoration. A marker that does not change how a reader should weigh a
 # fact does not belong in this table.
 #
-# ADDING ONE IS A ROW HERE. No code change, no CSS change if you reuse a style.
-# Before adding, the test: could a reader confuse this with an existing marker?
-# Five distinguishable markers beat twelve that all mean 'careful'.
+# ADDING ONE IS A ROW HERE. No code change, no CSS change.
 #
 # EVERY USE IS COUNTED IN THE BUILD REPORT, grouped by marker. That is the
 # actual point -- a marker nobody can list is just a colour. It means you can
 # ask 'what is unconfirmed across this whole site' and get an answer.
 #
-# style:  flag   amber, boxed. Something is missing or unverified.
-#         stale  struck through. Superseded; kept so the old value is findable.
-#         quiet  grey, small. True but soft -- an estimate, an approximation.
+# ---------------------------------------------------------------------------
+# COLUMNS
 #
-# label:   shown when the marker is used bare, with no text of its own.
-# tooltip: hover text. Say what the READER should DO about it.
-marker	label	style	tooltip
-tbc	To be confirmed	flag	Not yet verified against a source. Do not rely on this without checking.
-verify	Verify on site	flag	Recorded once and never re-checked. Measure it before you build to it.
-gap	Not recorded	flag	This fact should exist and does not. The absence is known, not overlooked.
-est	Estimate	quiet	Approximate. Close enough to plan with, not close enough to cut to.
-was	Superseded	stale	The old value, kept so paperwork quoting it can still be matched up.
+# marker   the token you type: {.tbc}
+# label    shown when used bare, with no text of its own
+# shape    HOW IT IS DRAWN. Four options, and this is a closed set on purpose
+#          (see below): box · plain · strike · soft
+# color    WHAT COLOUR IT IS DRAWN IN. Any theme token from colors.tsv --
+#          accent, warn, danger, ink-muted, rule -- or a literal value like
+#          #7c9c5a or oklch(72% 0.12 150). Blank inherits the body colour.
+# tooltip  hover text. Say what the READER should DO about it.
+#
+# ⭐ SHAPE AND COLOUR ARE SEPARATE, and that split is the whole flexibility.
+# Shape is structural -- does this thing have a border, is it struck out --
+# and there are only four because a reader can distinguish four shapes at a
+# glance and cannot distinguish nine. Colour is free. Any shape works with any
+# colour, so a boxed green confirmation and a boxed amber warning are the same
+# mechanism wearing different paint.
+#
+#   box     bordered chip, tinted background. Demands attention.
+#   plain   coloured text, no chrome. Present but not shouting.
+#   strike  struck through. Superseded, kept findable.
+#   soft    italic, prefixed with ~. Approximate rather than doubtful.
+#
+# ⚠️ PREFER A TOKEN OVER A HEX. A token follows the theme into light mode and
+# into every other site; a hex is frozen where you typed it and will be wrong
+# on the scheme you were not looking at. Hex is supported because you asked for
+# it and it is genuinely useful for a one-off, not because it is the good path.
+# ---------------------------------------------------------------------------
+marker	label	shape	color	tooltip
+tbc	To be confirmed	box	warn	Not yet verified against a source. Do not rely on this without checking.
+verify	Verify on site	box	warn	Recorded once and never re-checked. Measure it before you build to it.
+gap	Not recorded	box	danger	This fact should exist and does not. The absence is known, not overlooked.
+conf	Confirmed	box	ok	Double-checked against the real thing. Trust it.
+est	Estimate	soft	ink-muted	Approximate. Close enough to plan with, not close enough to cut to.
+was	Superseded	strike	ink-muted	The old value, kept so paperwork quoting it can still be matched up.
