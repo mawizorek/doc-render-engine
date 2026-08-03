@@ -19,8 +19,24 @@ name: Publish a site
 #
 # PREVIEW MODE renders the site, diffs it against what is actually being
 # served, prints new / disappearing / renamed pages to the run summary, and
-# deploys NOTHING. Run it before every publish. It is the answer to 'what is
-# about to change that I have forgotten about'.
+# deploys NOTHING. Run it before every publish.
+#
+# =============================================================================
+# ⚠️ RE-RUN IS NOT THE SAME AS RUN (fixed 2026-08-03)
+# =============================================================================
+# GitHub's "Re-run jobs" button replays a run AT ITS ORIGINAL COMMIT. For a
+# workflow that builds a site out of THIS repository, that means re-running an
+# earlier publish rebuilds the site with an OLD ENGINE -- and because deploys
+# are last-writer-wins, it silently overwrites a newer, correct build.
+#
+# It happened for real: three consecutive publishes all shipped engine 74ee551
+# while HEAD was cf35bda, each one stamping over a good build. The symptom is
+# the worst kind available -- a green run, a fresh timestamp, and none of your
+# changes on the page.
+#
+# Two defences below. The engine checkout is pinned to `main` EXPLICITLY rather
+# than to the triggering SHA, and the run summary prints the engine commit it
+# actually used, so a stale build is visible instead of inferred.
 
 on:
   workflow_dispatch:
@@ -63,12 +79,22 @@ jobs:
       - name: Check out the engine
         uses: actions/checkout@v4
         with:
+          # EXPLICITLY `main`, not the triggering SHA. See the RE-RUN note at
+          # the top of this file: without it, re-running an old run publishes
+          # an old engine over a newer build and looks completely healthy.
+          ref: main
           path: engine
+
+      - name: Note which engine is actually building this
+        id: engine
+        working-directory: engine
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Check out the content
         uses: actions/checkout@v4
         with:
           repository: ${{ steps.site.outputs.repo }}
+          ref: main
           path: content
           fetch-depth: 2
 
@@ -100,7 +126,7 @@ jobs:
           DOCRENDER_INSTANCE: ${{ inputs.site }}
           DOCRENDER_CONTENT: ${{ github.workspace }}/content
           DOCRENDER_OUTPUT: ${{ github.workspace }}/site
-          DOCRENDER_ENGINE_REF: ${{ github.sha }}
+          DOCRENDER_ENGINE_REF: ${{ steps.engine.outputs.sha }}
           DOCRENDER_DRY_RUN: ${{ inputs.mode == 'preview' && '1' || '0' }}
         run: |
           # Exported inline: $GITHUB_ENV only reaches LATER steps, so setting
@@ -121,7 +147,7 @@ jobs:
           publish_branch: gh-pages
           publish_dir: ./site
           enable_jekyll: false
-          commit_message: "publish: ${{ inputs.site }} from engine ${{ github.sha }}"
+          commit_message: "publish: ${{ inputs.site }} from engine ${{ steps.engine.outputs.sha }}"
 
       - name: What happens next
         if: always()
@@ -129,6 +155,8 @@ jobs:
           {
             echo ""
             echo "---"
+            echo "Built with engine \`${{ steps.engine.outputs.sha }}\` (main)."
+            echo ""
             if [ "${{ inputs.mode }}" = "preview" ]; then
               echo "**Nothing was deployed.** This was a preview. Run again with"
               echo "mode \`publish\` to push the diff above to the live site."
