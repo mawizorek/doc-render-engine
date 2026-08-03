@@ -26,16 +26,23 @@ not this renderer -- and the engine draws them.
       - where-dimmers-run.tsv
     ---
 
-PLACEMENT. By default each table renders at the end of the page, in the order
-declared. To put one somewhere specific -- with prose either side of it, which
-is usually what you want -- drop a marker where it belongs:
+PLACEMENT. **`data:` says WHICH files. A marker in the body says WHERE.**
 
     <!-- dr:table circuits-and-dimmers.tsv -->
 
-An HTML comment is used deliberately: it is invisible in every other markdown
-renderer, on GitHub, and in a plain text editor. A page keeps working as a
-document even where this engine is not involved, which is the same promise the
-content repo itself makes.
+That line is the entire placement mechanism -- the hook finds it and swaps the
+rendered table in on the spot. Without one, a declared table lands at the end
+of the page in the order declared, which is a fallback and not the intended
+way to use it: prose about a table almost always belongs above it.
+
+An HTML comment on purpose: invisible on GitHub, in any other markdown
+renderer, and in a text editor. A page keeps working as a document where this
+engine is not involved, which is the same promise the content repo makes.
+
+The filename in the marker must match one in `data:`. A marker naming
+something undeclared renders a visible error rather than doing nothing
+quietly, because a table silently landing at the bottom of a long page is the
+kind of failure nobody notices for a month.
 
 WHAT IT UNDERSTANDS ABOUT REAL SPREADSHEETS, because exported ones are messy:
 
@@ -52,8 +59,16 @@ WHAT IT UNDERSTANDS ABOUT REAL SPREADSHEETS, because exported ones are messy:
 It does NOT sort, filter, total, or reinterpret. The sheet is the source of
 truth and the renderer's job is to show it, not to have opinions about it.
 
-The raw file is also published beside the page, so every table offers a
-download link back to the exact TSV it was drawn from.
+The raw file is published beside the page, so every table offers a download
+link back to the exact TSV it was drawn from.
+
+⚠️ THE TABLE CARRIES A CLASS AND THAT IS LOAD-BEARING (fixed 2026-08-03).
+Material styles `.md-typeset table:not([class])` with `display: block` so wide
+tables can scroll. `display: block` on a table destroys the internal table
+layout, and a `position: sticky` cell inside a non-table has no row context to
+stick within -- so the frozen header and frozen first column silently did
+nothing, which is exactly how it shipped and exactly how Michael found it.
+The class makes `:not([class])` stop matching. Do not remove it.
 """
 
 from __future__ import annotations
@@ -110,7 +125,12 @@ def _render(path: Path, href: str) -> str:
     header, body = rows[0], rows[1:]
     span = len(header)
 
-    out = ['<div class="dr-data" markdown="0">', "<table>", "<thead><tr>"]
+    out = [
+        '<div class="dr-data">',
+        # The class is required, not decorative -- see the module docstring.
+        '<table class="dr-data__table">',
+        "<thead><tr>",
+    ]
     for cell in header:
         label = "" if _JUNK_HEADER.match(cell) else html.escape(cell)
         out.append("<th>" + label + "</th>")

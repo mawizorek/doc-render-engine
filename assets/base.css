@@ -152,6 +152,24 @@
  * 2. THE FIRST COLUMN AND THE HEADER STICK. Column one is the identifier you
  *    are tracing (R1zAA) and the header is what the cell you land on MEANS.
  *    Scroll far enough right without them and every value is an orphan.
+ *
+ * 🐛 BOTH OF THOSE WERE FALSE UNTIL 2026-08-03, and the reason is worth the
+ * paragraph because it will come back if anyone reverts these three rules.
+ *
+ * Material styles `.md-typeset table:not([class])` with `display: block` plus
+ * its own `overflow: auto`, so wide tables get their own scrollbar. Our table
+ * shipped with no class, so it was caught by that rule, and:
+ *
+ *   - `display: block` stops the element being a table. A `position: sticky`
+ *     cell needs a table row to stick WITHIN; inside a block it has no
+ *     containing context and simply does nothing. No error, no warning, just
+ *     a header that scrolls away.
+ *   - the table then owned a SECOND scroll container nested inside `.dr-data`,
+ *     so even correct sticky rules would have been measuring the wrong box.
+ *
+ * Three defences, because one is not enough: the table now carries a class so
+ * `:not([class])` cannot match it, `display: table` is forced anyway, and
+ * Material's JS scroll wrapper is neutralised if it ever appears around one.
  * ------------------------------------------------------------------------ */
 .dr-data {
   margin: 1.4rem 0;
@@ -161,17 +179,36 @@
   border-radius: 3px;
   background: var(--dr-surface);
 }
-.dr-data table {
+
+/* Defence three: if Material's table JS wraps ours, the wrapper must not
+ * become a scroll container of its own -- a sticky cell can only stick to the
+ * NEAREST scrolling ancestor, and that has to be .dr-data. */
+.dr-data .md-typeset__scrollwrap,
+.dr-data .md-typeset__table {
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  max-width: none;
+}
+
+.md-typeset .dr-data__table,
+.dr-data__table {
+  display: table;          /* defence two: never a block, whatever Material says */
   border-collapse: separate;
   border-spacing: 0;
   width: max-content;
   min-width: 100%;
+  max-width: none;
+  margin: 0;
+  overflow: visible;
   font-family: var(--dr-data-font, var(--dr-font-body));
   font-size: var(--dr-data-size);
   line-height: 1.35;
 }
-.dr-data th,
-.dr-data td {
+.md-typeset .dr-data__table th,
+.md-typeset .dr-data__table td,
+.dr-data__table th,
+.dr-data__table td {
   padding: var(--dr-data-pad);
   border-bottom: 1px solid var(--dr-rule);
   border-right: 1px solid var(--dr-rule);
@@ -179,7 +216,7 @@
   text-align: left;
   vertical-align: top;
 }
-.dr-data thead th {
+.dr-data__table thead th {
   position: sticky;
   top: 0;
   z-index: 3;
@@ -193,8 +230,9 @@
   min-width: 6rem;
   max-width: 12rem;
 }
-.dr-data tbody td:first-child,
-.dr-data tbody th:first-child {
+/* Column one is the identifier, so it survives a horizontal scroll. It needs
+ * an opaque background or the scrolled cells show through underneath it. */
+.dr-data__table tbody td:first-child {
   position: sticky;
   left: 0;
   z-index: 2;
@@ -202,14 +240,18 @@
   font-weight: 600;
   color: var(--dr-accent);
 }
-.dr-data thead th:first-child {
+/* The corner cell sits above both, so it needs the highest layer of the four. */
+.dr-data__table thead th:first-child {
   position: sticky;
   left: 0;
   z-index: 4;
 }
-.dr-data__section th {
+/* A section row (RACK 2, ML PANEL 1) is a heading inside the sheet, not a
+ * record. It spans, and it stays put on the left like the identifiers do. */
+.dr-data__table .dr-data__section th {
   position: sticky;
   left: 0;
+  z-index: 2;
   background: var(--dr-surface-raised);
   color: var(--dr-ink);
   font-weight: 700;
@@ -218,7 +260,7 @@
   text-transform: uppercase;
   border-top: 2px solid var(--dr-accent);
 }
-.dr-data tbody tr:hover td {
+.dr-data__table tbody tr:hover td {
   background: var(--dr-surface-raised);
 }
 .dr-data__source {
