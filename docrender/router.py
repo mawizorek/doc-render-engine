@@ -1,26 +1,50 @@
 """Stage 04b -- ROUTERS. A pause, or a door to somewhere else.
 
 =============================================================================
-THE THREE FRONTMATTER KEYS, and how they relate to `status:`
+THE FRONTMATTER KEYS, and how they relate to `status:`
 =============================================================================
 
-    status:         REQUIRED on every page, and NOTHING to do with routers.
-                    It decides whether the page is BUILT and whether it is
-                    LISTED. There is no default: a page with no status is not
-                    built at all. See docrender/visibility.py.
+    status:          REQUIRED on every page, and NOTHING to do with routers.
+                     It decides whether the page is BUILT and whether it is
+                     LISTED. There is no default: a page with no status is not
+                     built at all. See docrender/visibility.py.
 
-    router:         name of a table in instances/<slug>/routes.yml (REMOTE)
-    router_code:    a code, or a list of them, written right here (LOCAL)
-    router_prompt:  the label above the field. Optional. Does NOTHING on its
-                    own -- it is decoration for a router, not a router.
+    router:          name of a table in instances/<slug>/routes.yml (REMOTE)
+    router_code:     a code, or a list of them, written right here (LOCAL)
+    router_prompt:   the label above the field. Optional, and does NOTHING on
+                     its own -- decoration for a router, not a router.
+    router_inherit:  `false` on a page opts it out of a folder's cascade.
 
 A router does not gate anything and `status:` does not know it exists. They
-operate on different questions: status decides what REACHES the site, a router
+answer different questions: status decides what REACHES the site, a router
 decides what a reader sees FIRST once they are there. A `hidden` page with a
 router is still not built; a `public` page with a curtain is still fully public.
 
-Use `unlisted` for a curtain destination you do not want in the sidebar. Use
-`public` when the page should be findable and you just want the pause.
+=============================================================================
+A ROUTER ON A FOLDER'S index.md CASCADES TO EVERYTHING UNDER IT
+=============================================================================
+    production/staff/index.md      router: pm     <- declared once
+    production/staff/props.md                     <- inherits it
+    production/staff/notes/x.md                   <- inherits it too
+
+The NEAREST ancestor wins, so a subfolder can redeclare and override rather
+than stack. A page opts out with `router_inherit: false`.
+
+Why cascade at all: a folder is the unit people actually think in -- "the staff
+notes" -- and a pause that only applies to the folder's front page is a pause a
+reader steps around by clicking any child in the sidebar. It also costs the
+reader nothing extra, because an unlock is remembered for the session: one code
+at the index and the whole folder opens as they navigate.
+
+⚠️ AND IT IS STILL NOT PROTECTION. A direct link to a child page shows the
+curtain, but the body is in that page's source either way. Cascading makes the
+PAUSE consistent across a folder. It does not make the folder private, and
+nothing here ever will -- the content repo is public.
+
+This is deliberately the OPPOSITE emphasis from publication states, which
+cascade so that the most PROTECTIVE statement wins. Access should be hard to
+weaken by accident; a pause should be easy to reason about. Same direction, very
+different stakes.
 
 =============================================================================
 LOCAL VS REMOTE
@@ -44,9 +68,9 @@ send somebody to a DIFFERENT page:
     pm:
       maw:                          # PORTABLE curtain -- see below
 
-Both may be present on one page; the keys pool. The split is deliberate: a code
-you are trying for an afternoon should not require touching the engine, and a
-code people are actually given should not sit in a public content repo.
+Both may be present on one page; the keys pool. A code you are trying for an
+afternoon should not require touching the engine, and a code people are actually
+given should not sit in a public content repo.
 
 ⚠️ A LOCAL CODE IS IN A PUBLIC REPO. Fine for a pause, wrong for anything you
 would mind a stranger typing. Local is for trash; remote is for real.
@@ -59,21 +83,19 @@ THREE KINDS OF ENTRY, and the destination decides which -- never a mode flag
                                means "curtain on whatever page declares this
                                table." One entry, reusable on any number of
                                pages, and it never needs to know their ids.
+                               This is the form that makes a cascade useful.
 
     staff26: staff          -> PINNED CURTAIN. Names the id of the page it is
-                               used on. Identical behaviour, but tied to that
-                               one page -- which is what you want when a table
-                               mixes curtains for several different pages.
+                               used on. Identical behaviour, tied to that one
+                               page -- what you want when one table mixes
+                               curtains for several different pages.
 
     loadin24: crew-sheet    -> REDIRECT. Names a different page; sends you there.
 
-The portable form is the useful default for a role-shaped table (`pm`, `crew`,
-`shop`): the table says who the code is FOR, and each page decides whether to
-use it. Michael's read on arriving at this, which is the right one: *"if
-router=pm then the entrance code can be maw."*
-
-Nothing is inferred from a flag because "send me to the page I am on" has
-exactly one sensible meaning, and a redirect to your own URL is never it.
+⚠️ A PINNED curtain does NOT cascade usefully: inherited by a child page, its
+id no longer matches, so it is read as a redirect BACK to the folder index.
+That is coherent but rarely wanted. Use the portable form on any table you
+expect to inherit.
 
 =============================================================================
 A CURTAIN IS A PAUSE. THE PAGE SOURCE PROVES IT.
@@ -156,6 +178,30 @@ def _as_list(value) -> list[str]:
     return [str(value)] if str(value).strip() else []
 
 
+def _declares_router(meta: dict) -> bool:
+    return bool(meta.get("router") or _as_list(meta.get("router_code")))
+
+
+def _inherited(src_uri: str) -> tuple[dict, str] | tuple[None, None]:
+    """Nearest ancestor folder index that declares a router, if any.
+
+    Walks UP one folder at a time and stops at the first hit, so a subfolder
+    that redeclares overrides rather than stacking. Stacking would mean two
+    fields on one page, which is not a thing anybody wants.
+    """
+    parts = Path(src_uri).parts
+    # Start above this page's own folder: its own index is a sibling, not an
+    # ancestor, and a folder index does not inherit from itself.
+    for depth in range(len(parts) - 1, 0, -1):
+        candidate = "/".join(parts[:depth - 1] + ("index.md",)) if depth > 1 else "index.md"
+        if candidate == src_uri:
+            continue
+        meta = state.BY_SRC.get(candidate)
+        if meta and _declares_router(meta):
+            return meta, candidate
+    return None, None
+
+
 def _field(mode: str, payload: list, prompt: str) -> str:
     return (
         '<form class="dr-router" data-mode="' + mode + '"'
@@ -175,22 +221,29 @@ def _field(mode: str, payload: list, prompt: str) -> str:
 
 
 def on_page_content(html, page, config, files):
-    meta = state.BY_SRC.get(page.file.src_uri, {})
-    table_name = meta.get("router")
-    local = _as_list(meta.get("router_code"))
+    src = page.file.src_uri
+    meta = state.BY_SRC.get(src, {})
 
-    if not table_name and not local:
-        # `router_prompt` alone is a real mistake and used to be a silent one:
-        # the page renders normally and the author is left wondering where their
-        # field went. A label with nothing to label is worth one line of report.
-        if meta.get("router_prompt"):
-            state.note(
-                "missing_required",
-                page.file.src_uri + ": has `router_prompt` but no `router:` or "
-                + "`router_code:`, so there is no field for it to label and "
-                + "nothing is rendered.",
-            )
+    inherited_from = None
+    if _declares_router(meta):
+        source_meta = meta
+    elif meta.get("router_inherit") is False:
         return html
+    else:
+        source_meta, inherited_from = _inherited(src)
+        if source_meta is None:
+            # `router_prompt` alone used to fail silently: the page renders
+            # normally and the author is left wondering where the field went.
+            if meta.get("router_prompt"):
+                state.note(
+                    "missing_required",
+                    src + ": has `router_prompt` but no `router:` or "
+                    + "`router_code:`, so there is no field for it to label.",
+                )
+            return html
+
+    table_name = source_meta.get("router")
+    local = _as_list(source_meta.get("router_code"))
 
     own_id = str(meta.get("id") or "")
     depth = page.file.url.count("/")
@@ -205,7 +258,7 @@ def on_page_content(html, page, config, files):
         if table is None:
             state.note(
                 "missing_required",
-                page.file.src_uri + ": declares router '" + str(table_name)
+                src + ": declares router '" + str(table_name)
                 + "', which is not in instances/"
                 + str(state.INSTANCE.get("slug")) + "/routes.yml. Known: "
                 + (", ".join(sorted(tables)) or "none"),
@@ -214,8 +267,7 @@ def on_page_content(html, page, config, files):
 
         for key, target in (table or {}).items():
             # PORTABLE CURTAIN: no destination means "this page, whichever page
-            # is asking". One table entry, usable on any number of pages,
-            # without the table needing to know their ids. See the docstring.
+            # is asking". The form that makes a cascade work.
             if target is None or not str(target).strip():
                 curtain.append(_check(str(key)))
                 continue
@@ -231,10 +283,10 @@ def on_page_content(html, page, config, files):
             if not hit:
                 state.note(
                     "dead_links",
-                    page.file.src_uri + ": router '" + str(table_name) + "' has a "
-                    + "key pointing at '" + target + "', which is not a page on "
-                    + "this site. That key will never route anywhere. (Leave the "
-                    + "value blank for a curtain on this page.)",
+                    src + ": router '" + str(table_name) + "' has a key pointing "
+                    + "at '" + target + "', which is not a page on this site. "
+                    + "That key will never route anywhere. (Leave the value "
+                    + "blank for a curtain on whichever page uses the table.)",
                 )
                 continue
 
@@ -245,22 +297,28 @@ def on_page_content(html, page, config, files):
     if not curtain and not redirects:
         state.note(
             "notes",
-            page.file.src_uri + ": a router is declared but produced no working "
-            + "keys, so no field is rendered.",
+            src + ": a router is declared but produced no working keys, so no "
+            + "field is rendered.",
         )
         return html
 
-    prompt = str(meta.get("router_prompt") or "Enter your code")
+    prompt = str(
+        meta.get("router_prompt")
+        or source_meta.get("router_prompt")
+        or "Enter your code"
+    )
     mode = "curtain" if curtain else "redirect"
     if local and table_name:
-        source = "local+remote"
+        origin = "local+remote"
     elif local:
-        source = "local"
+        origin = "local"
     else:
-        source = "remote"
+        origin = "remote"
+    if inherited_from:
+        origin += " (inherited from " + inherited_from + ")"
     state.note(
         "routers",
-        page.file.src_uri + " · " + mode + " · " + source + " · "
+        src + " · " + mode + " · " + origin + " · "
         + str(len(curtain) + len(redirects)) + " keys",
     )
 
