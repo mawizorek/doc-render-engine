@@ -60,44 +60,66 @@
 }
 
 /* ---------------------------------------------------------------------------
- * TOP-LEVEL NAV SECTIONS
+ * TOP-LEVEL NAV: CAPS, RULED, AND COLLAPSED
  *
- *     URITP PRODUCTION RESOURCES
- *     PRODUCTION
- *     SAFETY
- *     DOC SPECS
+ *   PRODUCTION
+ *   ─────────────
+ *   SAFETY
+ *   ─────────────
+ *   DOC SPECS
  *
- * Caps + letterspacing on the FIRST level only, so the sidebar reads as a
- * short list of departments rather than an undifferentiated outline. Nested
- * levels stay sentence case, which is what makes the contrast do any work --
- * caps everywhere would just be shouting.
+ * The sidebar's job is to answer "what kinds of thing are on this site" before
+ * it answers "which page." Caps and a rule give the top level a different
+ * WEIGHT from everything nested under it, so the shape of the site is legible
+ * at a glance instead of being one undifferentiated list of links.
  *
- * `text-transform` rather than uppercasing the titles themselves: the page
- * `title:` stays the sentence-case string everything else uses (search
- * results, browser tab, the H1, the prev/next bar), and only this one
- * presentation of it changes. Uppercasing in the data would mean the nav and
- * the page disagreed about the name of the thing.
+ * ⚠️ THE RULE IS A BORDER, NOT AN UNDERLINE, and that distinction is the whole
+ * reason it is safe. Michael asked for these underlined; a `text-decoration`
+ * underline on a web page reads as a link, and these are labels. A bottom
+ * BORDER on the row gives the same separation and does not lie about being
+ * clickable. Restored 2026-08-03 after I removed it and argued the point --
+ * the objection was to underlined TEXT, and this was never that.
+ *
+ * ⚠️ `text-transform` ONLY -- the underlying titles are untouched. A page still
+ * knows itself as "Doc Specs", search still matches it, and doc-index.json
+ * still publishes the real title for sibling sites to resolve against.
+ * Shouting is a presentation choice and it stops at the stylesheet.
+ *
+ * Depth is targeted with `> .md-nav__list > .md-nav__item`, i.e. direct
+ * children of the PRIMARY nav only. A descendant selector would cap every
+ * nested folder too and the distinction would be lost.
+ *
+ * The collapse is not here: it comes from NOT enabling `navigation.sections`
+ * in mkdocs.yml, which is where that note lives.
  * ------------------------------------------------------------------------ */
 .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link,
 .md-nav--primary > .md-nav__list > .md-nav__item > label.md-nav__link {
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  font-size: 0.76rem;
   font-weight: 700;
   color: var(--dr-ink);
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--dr-rule);
+  margin-bottom: 0.2rem;
 }
 
-/* A collapsed section and an expanded one need to be told apart at a glance,
- * or a collapsed sidebar reads as a dead end. */
+/* Nested items stay sentence case at normal weight. Stated explicitly rather
+ * than left to inheritance, because the rule above is a big enough hammer that
+ * the next person should be able to see exactly where it stops. */
+.md-nav--primary .md-nav .md-nav__link {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  border-bottom: 0;
+}
+
+/* The section a reader is inside gets the accent, so the caps row doubles as a
+ * position indicator rather than only a label. */
 .md-nav--primary > .md-nav__list > .md-nav__item--active > .md-nav__link,
 .md-nav--primary > .md-nav__list > .md-nav__item--active > label.md-nav__link {
   color: var(--dr-accent);
-}
-
-/* Room to breathe between departments, since they are now the primary
- * structure a reader scans rather than one indent level among several. */
-.md-nav--primary > .md-nav__list > .md-nav__item {
-  margin-top: 0.55rem;
+  border-bottom-color: var(--dr-accent);
 }
 
 /* The lede.
