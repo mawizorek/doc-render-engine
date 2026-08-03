@@ -73,35 +73,45 @@
 /* ---------------------------------------------------------------------------
  * INLINE CONFIDENCE MARKERS (docrender/markers.py, theme/markers.tsv)
  *
- * [To be confirmed]{.tbc} · [18'-0"]{.est} · [48'-0"]{.was}
+ * [To be confirmed]{.tbc} · [40'-0"]{.conf} · [18'-0"]{.est} · [48'-0"]{.was}
  *
  * Every one says how much to TRUST the thing beside it. They sit INSIDE a
  * sentence, which is the whole reason they exist rather than being callouts:
  * the doubt belongs to one value, not to the paragraph. So they must be
  * legible without shouting -- a marked figure should still read as a figure.
+ *
+ * ⭐ SHAPE AND COLOUR ARE SEPARATE. Every rule below styles SHAPE only and
+ * takes its colour from `--dr-mark-color`, which the hook writes inline on the
+ * span from the `color` column of markers.tsv. So a new marker in any colour
+ * is a row in a TSV, with no rule added here and no class to invent.
+ *
+ * There are exactly four shapes because a reader can distinguish four at a
+ * glance and cannot distinguish nine. Colour is the open axis; shape is not.
  * ------------------------------------------------------------------------ */
 .dr-mark {
+  --dr-mark-color: currentColor;
   font-size: 0.9em;
   cursor: help;
   white-space: nowrap;
+  color: var(--dr-mark-color);
 }
-.dr-mark--flag {
-  color: var(--dr-warn);
-  border: 1px solid color-mix(in oklch, var(--dr-warn) 45%, transparent);
+.dr-mark--box {
+  border: 1px solid color-mix(in oklch, var(--dr-mark-color) 45%, transparent);
   border-radius: 3px;
   padding: 0.05em 0.34em;
-  background: color-mix(in oklch, var(--dr-warn) 10%, transparent);
+  background: color-mix(in oklch, var(--dr-mark-color) 10%, transparent);
 }
-.dr-mark--stale {
-  color: var(--dr-ink-muted);
+.dr-mark--plain {
+  font-weight: 500;
+}
+.dr-mark--strike {
   text-decoration: line-through;
   text-decoration-thickness: 1px;
 }
-.dr-mark--quiet {
-  color: var(--dr-ink-muted);
+.dr-mark--soft {
   font-style: italic;
 }
-.dr-mark--quiet::before {
+.dr-mark--soft::before {
   content: "~";
   opacity: 0.7;
   margin-right: 0.1em;
