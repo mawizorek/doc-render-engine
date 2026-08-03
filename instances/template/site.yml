@@ -12,7 +12,21 @@
 name: Doc Family Template
 description: The executable gold standard for every doc site in this family.
 slug: template
-base_url: https://mawizorek.github.io/template-docs/
+
+# ⚠️ THE ONE PLACE THIS INSTANCE IS NOT ORDINARY.
+#
+# Every real site lives at its own content repo's Pages URL. This one is served
+# from the ENGINE's own Pages by publish-default.yml, so that the gold standard
+# is live with no PAT and no human setup -- which is the only way "the spec is
+# proved by building" is true on day one rather than after somebody clicks
+# things.
+#
+# So base_url is the ENGINE's address, not `.../template-docs/`. It has to match
+# where the site actually lands: it becomes the canonical site URL and every
+# absolute link inside /doc-index.json, which is what sibling sites resolve
+# their cross-site links against. A pretty-but-wrong base_url would hand every
+# peer a set of 404s and nothing here would look broken.
+base_url: https://mawizorek.github.io/doc-render-engine/
 
 content_repo: mawizorek/template-docs
 content_branch: main
