@@ -22,6 +22,27 @@ name: Publish a site
 # deploys NOTHING. Run it before every publish.
 #
 # =============================================================================
+# ⚠️ THE SITE LIST BELOW IS HAND-MAINTAINED, AND IT CANNOT BE OTHERWISE
+# =============================================================================
+# `workflow_dispatch` inputs are read out of THIS FILE on the default branch
+# before any job starts, so a `type: choice` list cannot be computed. There is
+# no step that runs early enough to fill it in. Every other list of sites in
+# this repo is derived from `instances/*/site.yml`; this one is the exception,
+# and it is a platform limit rather than a decision.
+#
+# So it WILL be forgotten. It already was: `hml` was added as an instance and
+# wired into build.yml on 2026-08-03 and this dropdown was not touched, which
+# left a site that builds and cannot be published -- visible only to whoever
+# next opened the dropdown looking for it.
+#
+# Adding a site is therefore THREE edits, not two:
+#   1. instances/<slug>/site.yml   (the site itself)
+#   2. build.yml matrix row        (the all-sites regression build)
+#   3. the options list here       (the publish button)
+# The `Resolve the site` step below no longer duplicates the content repo --
+# that comes from site.yml -- so the slug is the only thing stated twice.
+#
+# =============================================================================
 # ⚠️ RE-RUN IS NOT THE SAME AS RUN (fixed 2026-08-03)
 # =============================================================================
 # GitHub's "Re-run jobs" button replays a run AT ITS ORIGINAL COMMIT. For a
@@ -48,6 +69,7 @@ on:
         options:
           - uritp
           - theatre
+          - hml
           - template
       mode:
         description: Preview shows the diff and deploys nothing
@@ -66,16 +88,6 @@ jobs:
     runs-on: ubuntu-latest
     name: ${{ inputs.site }} (${{ inputs.mode }})
     steps:
-      - name: Resolve the site
-        id: site
-        run: |
-          case "${{ inputs.site }}" in
-            uritp)    echo "repo=mawizorek/uritp-docs"    >> "$GITHUB_OUTPUT" ;;
-            theatre)  echo "repo=mawizorek/theatre-docs"  >> "$GITHUB_OUTPUT" ;;
-            template) echo "repo=mawizorek/template-docs" >> "$GITHUB_OUTPUT" ;;
-            *) echo "::error::unknown site ${{ inputs.site }}"; exit 1 ;;
-          esac
-
       - name: Check out the engine
         uses: actions/checkout@v4
         with:
@@ -90,6 +102,26 @@ jobs:
         working-directory: engine
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve the site
+        id: site
+        working-directory: engine
+        # The content repo is NOT restated here. It is read from the instance's
+        # own site.yml, which is the file that already had to be correct for
+        # anything to build. The old version carried a `case` statement naming
+        # every repo a second time, which meant a new site could be added to
+        # the dropdown and still fail on a missing branch of a switch nobody
+        # remembered existed.
+        run: |
+          slug="${{ inputs.site }}"
+          if [ ! -f "instances/$slug/site.yml" ]; then
+            echo "::error::no instance '$slug'. Known instances:"
+            ls -1 instances >&2
+            exit 1
+          fi
+          repo=$(python3 -c "import yaml,sys; print(yaml.safe_load(open('instances/$slug/site.yml'))['content_repo'])")
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "Publishing \`$slug\` from \`$repo\`." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Check out the content
         uses: actions/checkout@v4
         with:
@@ -97,15 +129,6 @@ jobs:
           ref: main
           path: content
           fetch-depth: 2
-
-      - name: Confirm the instance agrees with the repo
-        working-directory: engine
-        run: |
-          declared=$(python3 -c "import yaml; print(yaml.safe_load(open('instances/${{ inputs.site }}/site.yml'))['content_repo'])")
-          if [ "$declared" != "${{ steps.site.outputs.repo }}" ]; then
-            echo "::error::this workflow says ${{ steps.site.outputs.repo }}, site.yml says $declared."
-            exit 1
-          fi
 
       - uses: actions/setup-python@v5
         with:
