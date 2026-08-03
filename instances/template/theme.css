@@ -1,0 +1,14 @@
+/* Per-site look. Loaded LAST, so this file always has the final word.
+ *
+ * Keep it small. Anything here that another site would also want belongs in
+ * theme/*.tsv as a token instead, or it will be copied into three stylesheets
+ * that then drift apart.
+ *
+ * The template stays deliberately plain: it is the thing other sites are
+ * copied from, and a copy inherits the habits of its source.
+ */
+
+.md-typeset .dr-spec {
+  border-left: 2px solid var(--dr-accent);
+  padding-left: 0.9rem;
+}

@@ -1,0 +1,15 @@
+# A technical standard or a policy: the settled answer to a recurring question.
+#
+# `authority` and `review_cycle` exist because a standard with neither is
+# folklore. Who decided this, and when does somebody check it is still true.
+
+type: standard
+label: Standard
+extends: _base
+optional:
+  - applies_to
+  - authority
+  - review_cycle
+renders:
+  - spec_table: [applies_to, authority, review_cycle]
+  - callout_if_missing: [authority]

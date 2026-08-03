@@ -1,0 +1,16 @@
+# Measured pairs against the WCAG floor. NOT decoration: this is the
+# accessibility floor, and a palette that drops below it is reported by
+# hooks/08 rather than discovered by somebody who cannot read the site.
+#
+# `min` is 4.5 for body text and 3.0 for large text and UI edges.
+# Re-measure when a colour changes. A stale row here is worse than no row,
+# because it reads as a check that passed.
+pair	scheme	ratio	min
+ink on surface	dark	13.9	4.5
+ink on surface	light	14.6	4.5
+ink-muted on surface	dark	7.1	4.5
+ink-muted on surface	light	7.4	4.5
+accent on surface	dark	7.8	4.5
+accent on surface	light	5.2	4.5
+rule on surface	dark	3.2	3.0
+rule on surface	light	3.1	3.0

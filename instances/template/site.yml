@@ -1,0 +1,63 @@
+# The gold-standard instance.
+#
+# This is a real site with a real build, and that is the entire idea: a written
+# specification rots, an executable one cannot. If the template renders, the
+# spec is true by demonstration. If a change to the engine breaks the contract,
+# this site breaks first and loudest, before any site with readers.
+#
+# It is also the reference every other instance is copied from. Keep it
+# ordinary: no clever exceptions, no special cases, nothing another site cannot
+# imitate.
+
+name: Doc Family Template
+description: The executable gold standard for every doc site in this family.
+slug: template
+base_url: https://maw-agents.github.io/template-docs/
+
+content_repo: maw-agents/template-docs
+content_branch: main
+
+theme: base
+
+palette:
+  dark:
+    primary: black
+    accent: cyan
+  light:
+    primary: blue grey
+    accent: cyan
+
+# Section titles and order. Lives HERE and not in the content tree, because
+# the content tree holds markdown and nothing else. Anything absent sorts
+# alphabetically after everything ranked, so a new folder always lands
+# somewhere sane rather than at a random position.
+sections:
+  authoring:
+    title: Authoring
+    order: 10
+  venues:
+    title: Venues
+    order: 20
+  standards:
+    title: Standards
+    order: 30
+  reference:
+    title: Reference
+    order: 40
+
+# Sibling sites this one may link into with [text](@slug:page-id).
+# Empty until there is something real to point at: a peer that does not exist
+# yet is a build-time fetch that always fails and a warning everyone learns to
+# ignore.
+peers: {}
+
+# Portability leak scan (hooks/08). Normally the engine is scanned for this
+# instance's own slug and name, and the build FAILS if either appears, because
+# an engine that knows which site it is rendering has stopped being portable.
+#
+# Disabled here for an honest reason rather than a convenient one: this slug is
+# an ordinary English word that legitimately appears throughout the engine's
+# own documentation. Scanning for it produces noise, and a check that cries
+# wolf is a check somebody mutes. The real sites carry proper nouns and get the
+# real scan, which is where it actually matters.
+leak_tokens: []

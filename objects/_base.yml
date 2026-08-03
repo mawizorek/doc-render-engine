@@ -1,0 +1,25 @@
+# The parent every other declaration extends.
+#
+# These three fields are the contract. Everything else in the family is
+# optional somewhere, and these are optional nowhere.
+#
+#   id      IDENTITY, and a promise. Other pages link to this string, so moving
+#           the file, renaming its folder, or retitling the page cannot break
+#           an inbound link. Set once, never change. That is the whole point.
+#   title   what a human sees.
+#   status  the publication gate. Mandatory with no default, so a page that
+#           forgets it does not build. Nothing goes public by accident.
+
+type: _base
+label: Page
+requires:
+  - id
+  - title
+  - status
+optional:
+  - revised      # when this was last true. Provenance, not decoration.
+  - order        # sort weight in the sidebar. Absent sorts alphabetically.
+  - theme        # skin override. A page beats its folder on LOOK.
+  - related      # ids, not paths
+  - xref         # peer:id references to sibling sites
+  - source       # where the facts came from

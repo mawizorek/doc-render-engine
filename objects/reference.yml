@@ -1,0 +1,11 @@
+# Contacts, glossaries, revision histories: pages that are looked up rather
+# than read.
+
+type: reference
+label: Reference
+extends: _base
+optional:
+  - maintainer
+  - updated_by
+renders:
+  - spec_table: [maintainer, updated_by]

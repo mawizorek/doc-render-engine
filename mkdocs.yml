@@ -1,0 +1,82 @@
+# Base renderer config. Deliberately almost empty of identity.
+#
+# Everything that says WHICH SITE this is -- name, URL, repo, palette, section
+# titles -- is absent here and arrives from instances/<slug>/site.yml at build
+# time, applied by hooks/00_instance.py. A hardcoded site name in this file is
+# the design failing, and hooks/08 fails the build if one appears.
+#
+# The content tree is checked out separately and pointed at by
+# DOCRENDER_CONTENT. It holds markdown and nothing else: no nav file, no
+# template, no stylesheet, no config. That is the rule the family is built on.
+
+site_name: docrender
+site_url: https://example.invalid/
+docs_dir: !ENV [DOCRENDER_CONTENT, content]
+site_dir: !ENV [DOCRENDER_OUTPUT, site]
+
+use_directory_urls: true
+strict: false
+
+# A content repo is a repo first and a docs_dir second, so its own README and
+# licence must not become pages. This is the one place those two roles collide.
+exclude_docs: |
+  README.md
+  LICENSE
+  LICENSE.md
+  .github/
+
+# Broken links render as visible markers and land in the build report rather
+# than failing the deploy. v1 built with --strict and one typo froze the entire
+# live site twice in forty minutes while Pages kept serving a stale commit.
+validation:
+  links:
+    absolute_links: ignore
+    unrecognized_links: ignore
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+  palette:
+    # Dark first: it is the default, and the toggle offers the other one.
+    - scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light
+    - scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+hooks:
+  - hooks/00_instance.py
+  - hooks/01_objects.py
+  - hooks/02_visibility.py
+  - hooks/03_links.py
+  - hooks/05_assets.py
+  - hooks/06_pagefoot.py
+  - hooks/07_buildstamp.py
+  - hooks/08_sizecheck.py
+  - hooks/09_index.py
