@@ -15,6 +15,41 @@ import yaml
 
 _FRONTMATTER = re.compile(r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*\r?\n?", re.S)
 
+# Fenced blocks (``` or ~~~, any indent, any info string) and inline code spans
+# (one or more backticks). Ordered longest-first so a fence is never mistaken
+# for an inline span that happens to start with three backticks.
+_PROTECTED = re.compile(
+    r"(?ms)^[ \t]*(?P<f>`{3,}|~{3,}).*?(?:^[ \t]*(?P=f)[ \t]*$|\Z)"
+    r"|(?P<t>`+)(?:.|\n)*?(?P=t)"
+)
+
+
+def sub_outside_code(pattern: re.Pattern, repl, markdown: str) -> str:
+    """Run a substitution everywhere EXCEPT inside code.
+
+    CODE IS NOT CONTENT. Any transform that rewrites markdown text will, given
+    a documentation site, eventually be pointed at a page that DOCUMENTS the
+    syntax it rewrites -- and then it edits the example. That is not a corner
+    case here, it is the authoring guide, and it happened for real on the first
+    live build: the page teaching `[Main Stage](@main-stage)` shipped with the
+    resolved URL inside its own code fence, teaching the opposite of the rule.
+
+    Lives in util rather than in one hook because the bug is available to every
+    hook that does this, and the second one to want it should not have to know
+    the first one solved it.
+
+    Rebuilding from slices keeps protected regions byte-identical instead of
+    round-tripping them through a replacement.
+    """
+    out = []
+    cursor = 0
+    for guard in _PROTECTED.finditer(markdown):
+        out.append(pattern.sub(repl, markdown[cursor:guard.start()]))
+        out.append(guard.group(0))
+        cursor = guard.end()
+    out.append(pattern.sub(repl, markdown[cursor:]))
+    return "".join(out)
+
 
 def split_frontmatter(text: str) -> tuple[dict, str]:
     """Return (metadata, body). Absent frontmatter is not an error here.
@@ -59,9 +94,9 @@ def load_yaml(path: str | Path) -> dict:
 def load_tsv(path: str | Path) -> list[dict]:
     """Read a tab-separated table with a header row.
 
-    TSV rather than YAML for the theme tables, inherited from v1 and kept: a
-    palette is a grid, it reads like a grid in any editor, and a grid resists
-    growing the free-text area that turns a data file into a document.
+    TSV rather than YAML for the theme and marker tables, inherited from v1 and
+    kept: these are grids, they read like grids in any editor, and a grid
+    resists growing the free-text area that turns a data file into a document.
     """
     p = Path(path)
     if not p.is_file():

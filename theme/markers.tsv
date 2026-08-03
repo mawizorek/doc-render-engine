@@ -1,0 +1,29 @@
+# INLINE CONFIDENCE MARKERS.
+#
+# Written in a page as   [some text]{.marker}   or bare as   {.marker}
+#
+# Each one says something about how much to TRUST the thing next to it. That is
+# the whole category, and it is deliberately narrow: these are not highlighters
+# and not decoration. A marker that does not change how a reader should weigh a
+# fact does not belong in this table.
+#
+# ADDING ONE IS A ROW HERE. No code change, no CSS change if you reuse a style.
+# Before adding, the test: could a reader confuse this with an existing marker?
+# Five distinguishable markers beat twelve that all mean 'careful'.
+#
+# EVERY USE IS COUNTED IN THE BUILD REPORT, grouped by marker. That is the
+# actual point -- a marker nobody can list is just a colour. It means you can
+# ask 'what is unconfirmed across this whole site' and get an answer.
+#
+# style:  flag   amber, boxed. Something is missing or unverified.
+#         stale  struck through. Superseded; kept so the old value is findable.
+#         quiet  grey, small. True but soft -- an estimate, an approximation.
+#
+# label:   shown when the marker is used bare, with no text of its own.
+# tooltip: hover text. Say what the READER should DO about it.
+marker	label	style	tooltip
+tbc	To be confirmed	flag	Not yet verified against a source. Do not rely on this without checking.
+verify	Verify on site	flag	Recorded once and never re-checked. Measure it before you build to it.
+gap	Not recorded	flag	This fact should exist and does not. The absence is known, not overlooked.
+est	Estimate	quiet	Approximate. Close enough to plan with, not close enough to cut to.
+was	Superseded	stale	The old value, kept so paperwork quoting it can still be matched up.
