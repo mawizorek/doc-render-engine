@@ -23,19 +23,35 @@ else's outage.
 
 A link that resolves nowhere renders as a visible marker and lands in the
 report. It does not fail the build. See objects.py for why.
+
+⚠️ CODE IS NOT CONTENT (fixed 2026-08-03, first live build).
+Substitution SKIPS fenced blocks and inline code spans. Without that, the very
+page that teaches this syntax has its examples rewritten into the output it is
+trying to explain -- `[Main Stage](@main-stage)` was rendering as
+`[Main Stage](../../venues/example-house/main-stage/)` inside a code fence, so
+the authoring guide silently taught the wrong thing. Any transform that edits
+markdown text has this bug available to it; this is the one that found it.
 """
 
 from __future__ import annotations
 
 import json
 import re
-import urllib.error
 import urllib.request
 from pathlib import Path
 
 from . import state
 
 _LINK = re.compile(r"\]\(@([A-Za-z0-9_.:-]+)(#[A-Za-z0-9_-]+)?\)")
+
+# Fenced blocks (``` or ~~~, any indent, any info string) and inline spans
+# (one or more backticks). Ordered longest-first so a fence is never mistaken
+# for an inline span that happens to start with three backticks.
+_PROTECTED = re.compile(
+    r"(?ms)^[ \t]*(?P<f>`{3,}|~{3,}).*?(?:^[ \t]*(?P=f)[ \t]*$|\Z)"
+    r"|(?P<t>`+)(?:.|\n)*?(?P=t)"
+)
+
 _TIMEOUT = 10
 
 
@@ -155,4 +171,14 @@ def on_page_markdown(markdown, page, config, files):
         prefix = "../" * depth
         return "](" + prefix + str(hit.get("url", "")) + anchor + ")"
 
-    return _LINK.sub(replace, markdown)
+    # Walk the gaps BETWEEN protected regions and substitute only there, so a
+    # code sample survives verbatim. Rebuilding the string from slices keeps
+    # every protected region byte-identical rather than round-tripping it.
+    out = []
+    cursor = 0
+    for guard in _PROTECTED.finditer(markdown):
+        out.append(_LINK.sub(replace, markdown[cursor:guard.start()]))
+        out.append(guard.group(0))
+        cursor = guard.end()
+    out.append(_LINK.sub(replace, markdown[cursor:]))
+    return "".join(out)
