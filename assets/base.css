@@ -20,11 +20,45 @@
   --md-typeset-color: var(--dr-ink);
   --md-typeset-a-color: var(--dr-accent);
   --md-code-bg-color: var(--dr-surface-raised);
+  --md-footer-bg-color: var(--dr-surface-raised);
+  --md-footer-bg-color--dark: var(--dr-surface);
+  --md-footer-fg-color: var(--dr-ink);
+  --md-footer-fg-color--light: var(--dr-ink-muted);
+  --md-footer-fg-color--lighter: var(--dr-ink-muted);
 }
 
 :root {
   --md-text-font: var(--dr-font-body);
   --md-code-font: var(--dr-font-mono);
+}
+
+/* ---------------------------------------------------------------------------
+ * NO ROUTE BACK TO THE SOURCE (LOCKED 2026-08-03, Michael)
+ *
+ * These are finished reference documents for designers, guest artists and
+ * students. Nothing in them should advertise a repository or invite an edit.
+ * The real fix is upstream -- `repo_url` is never set (see instance.py) -- and
+ * this is the belt to that pair of braces: if a future change sets it back,
+ * whether deliberately or by copying a config from somewhere, the chrome still
+ * does not appear and somebody has to come here and mean it.
+ *
+ * The single foot-of-page edit line is the deliberate exception, and it is
+ * switched off per site with `edit_links: false`.
+ * ------------------------------------------------------------------------ */
+.md-header__source,
+.md-nav__source {
+  display: none !important;
+}
+
+/* Material reads ANY `status:` in frontmatter as a doc-status badge and hangs
+ * an ⓘ next to the nav entry and the title. Ours means PUBLICATION STATE --
+ * hidden / unlisted / public -- which is a build instruction, not a note to
+ * the reader. Every page carries one, so every page grew an icon that means
+ * nothing. Suppressed rather than renamed: `status:` is the right word for the
+ * field and v1 fought the same battle. */
+.md-status,
+.md-nav__icon.md-status {
+  display: none !important;
 }
 
 /* The lede.
@@ -178,23 +212,82 @@
 }
 
 /* Page foot: the edit link. Quiet, at the bottom, with words rather than an
- * icon. See docrender/pagefoot.py for why it is not the theme's pencil. */
+ * icon. See docrender/pagefoot.py for why it is not the theme's pencil, and
+ * for the per-site switch that removes it entirely. */
 .pagefoot__rule {
   margin-top: 2.6rem;
   border: 0;
   border-top: 1px solid var(--dr-rule);
 }
 .pagefoot {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  opacity: 0.7;
 }
 .pagefoot__edit {
   color: var(--dr-ink-muted) !important;
 }
+.pagefoot__edit:hover {
+  color: var(--dr-accent) !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * FOOTER
+ *
+ * Two bars ship by default and the lower one was carrying three things nobody
+ * asked for: a bare build token, an engine hash, and an advert for the static
+ * site generator. On a page whose job is to be the settled answer about a
+ * building, that reads as clutter at best and as somebody else's branding at
+ * worst.
+ *
+ * What is left is one small right-aligned token. Everything it dropped is in
+ * the stamp's `title` attribute, so a hover still recovers the deploy time,
+ * engine ref and content SHA.
+ *
+ * ⚠️ THE font-size: 0 IS NOT A TYPO. Material's generator credit is a bare
+ * text node ('Made with') plus a link, with no class of its own to target. The
+ * only way to remove it without overriding the theme template -- which we
+ * would then have to maintain across upgrades -- is to zero the container's
+ * font size and restore it on the child we keep.
+ * ------------------------------------------------------------------------ */
+.md-footer-meta {
+  background: var(--dr-surface);
+  border-top: 1px solid var(--dr-rule);
+}
+.md-footer-meta__inner {
+  padding: 0.5rem 0.8rem;
+  justify-content: flex-end;
+}
+.md-copyright {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  font-size: 0;
+}
+.md-copyright a {
+  display: none;
+}
+.md-copyright__highlight {
+  padding: 0;
+  color: var(--dr-ink-muted);
+}
 
 /* Build stamp. The only signal that a deploy succeeded, so it stays legible
- * rather than being decorated into invisibility. */
+ * rather than being decorated into invisibility -- but it is furniture, not
+ * content, so it sits quiet. */
 .buildstamp {
   font-family: var(--dr-font-mono);
-  font-size: 0.76rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: var(--dr-ink-muted);
+  opacity: 0.75;
+  cursor: help;
+}
+
+/* The prev/next bar. Kept -- it is genuine reader navigation -- but toned down
+ * so it stops competing with the page it sits under. */
+.md-footer__link {
   opacity: 0.85;
+}
+.md-footer__title {
+  font-size: 0.86rem;
 }
