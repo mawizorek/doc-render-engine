@@ -37,13 +37,12 @@
  *
  * These are finished reference documents for designers, guest artists and
  * students. Nothing in them should advertise a repository or invite an edit.
- * The real fix is upstream -- `repo_url` is never set (see instance.py) -- and
- * this is the belt to that pair of braces: if a future change sets it back,
- * whether deliberately or by copying a config from somewhere, the chrome still
+ * The real fix is upstream -- `repo_url` is never set -- and this is the belt
+ * to that pair of braces: if a future change sets it back, the chrome still
  * does not appear and somebody has to come here and mean it.
  *
- * The single foot-of-page edit line is the deliberate exception, and it is
- * switched off per site with `edit_links: false`.
+ * The single foot-of-page edit line is the deliberate exception, switched off
+ * per site with `edit_links: false`.
  * ------------------------------------------------------------------------ */
 .md-header__source,
 .md-nav__source {
@@ -54,8 +53,7 @@
  * an ⓘ next to the nav entry and the title. Ours means PUBLICATION STATE --
  * hidden / unlisted / public -- which is a build instruction, not a note to
  * the reader. Every page carries one, so every page grew an icon that means
- * nothing. Suppressed rather than renamed: `status:` is the right word for the
- * field and v1 fought the same battle. */
+ * nothing. */
 .md-status,
 .md-nav__icon.md-status {
   display: none !important;
@@ -64,13 +62,49 @@
 /* The lede.
  * The first paragraph after the H1 is also what a search result shows, so it
  * is styled as a real element rather than left to the author to fake with
- * bold or a blockquote. Authors are told: write one or two lines, do not try
- * to make it big yourself. */
+ * bold or a blockquote. */
 .md-typeset h1 + p {
   font-size: var(--dr-lede-size);
   font-weight: var(--dr-lede-weight);
   color: var(--dr-ink-muted);
   max-width: var(--dr-measure);
+}
+
+/* ---------------------------------------------------------------------------
+ * INLINE CONFIDENCE MARKERS (docrender/markers.py, theme/markers.tsv)
+ *
+ * [To be confirmed]{.tbc} · [18'-0"]{.est} · [48'-0"]{.was}
+ *
+ * Every one says how much to TRUST the thing beside it. They sit INSIDE a
+ * sentence, which is the whole reason they exist rather than being callouts:
+ * the doubt belongs to one value, not to the paragraph. So they must be
+ * legible without shouting -- a marked figure should still read as a figure.
+ * ------------------------------------------------------------------------ */
+.dr-mark {
+  font-size: 0.9em;
+  cursor: help;
+  white-space: nowrap;
+}
+.dr-mark--flag {
+  color: var(--dr-warn);
+  border: 1px solid color-mix(in oklch, var(--dr-warn) 45%, transparent);
+  border-radius: 3px;
+  padding: 0.05em 0.34em;
+  background: color-mix(in oklch, var(--dr-warn) 10%, transparent);
+}
+.dr-mark--stale {
+  color: var(--dr-ink-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.dr-mark--quiet {
+  color: var(--dr-ink-muted);
+  font-style: italic;
+}
+.dr-mark--quiet::before {
+  content: "~";
+  opacity: 0.7;
+  margin-right: 0.1em;
 }
 
 /* Generated spec table.
@@ -149,7 +183,6 @@
   min-width: 6rem;
   max-width: 12rem;
 }
-/* Column one is the identifier, so it survives a horizontal scroll. */
 .dr-data tbody td:first-child,
 .dr-data tbody th:first-child {
   position: sticky;
@@ -164,8 +197,6 @@
   left: 0;
   z-index: 4;
 }
-/* A section row (RACK 2, ML PANEL 1) is a heading inside the sheet, not a
- * record. It spans, and it stays put on the left like the identifiers do. */
 .dr-data__section th {
   position: sticky;
   left: 0;
@@ -189,12 +220,11 @@
   color: var(--dr-ink-muted);
 }
 
-/* A link that resolved nowhere.
- * Loud on purpose. A dead link that looks like a live one is worse than a
- * missing link, because a reader trusts it and finds out later. */
+/* A reference that resolved nowhere. Marked, and NOT an anchor: the link does
+ * not act, but the failure is not hidden either. It says a document is coming. */
 .docrender-dead {
-  color: var(--dr-dead) !important;
-  text-decoration: line-through !important;
+  color: var(--dr-dead);
+  text-decoration: line-through;
   cursor: help;
 }
 .docrender-dead::after {
@@ -212,8 +242,7 @@
 }
 
 /* Page foot: the edit link. Quiet, at the bottom, with words rather than an
- * icon. See docrender/pagefoot.py for why it is not the theme's pencil, and
- * for the per-site switch that removes it entirely. */
+ * icon. Removed entirely per site with `edit_links: false`. */
 .pagefoot__rule {
   margin-top: 2.6rem;
   border: 0;
@@ -233,21 +262,11 @@
 /* ---------------------------------------------------------------------------
  * FOOTER
  *
- * Two bars ship by default and the lower one was carrying three things nobody
- * asked for: a bare build token, an engine hash, and an advert for the static
- * site generator. On a page whose job is to be the settled answer about a
- * building, that reads as clutter at best and as somebody else's branding at
- * worst.
- *
- * What is left is one small right-aligned token. Everything it dropped is in
- * the stamp's `title` attribute, so a hover still recovers the deploy time,
- * engine ref and content SHA.
- *
  * ⚠️ THE font-size: 0 IS NOT A TYPO. Material's generator credit is a bare
- * text node ('Made with') plus a link, with no class of its own to target. The
- * only way to remove it without overriding the theme template -- which we
- * would then have to maintain across upgrades -- is to zero the container's
- * font size and restore it on the child we keep.
+ * text node plus a link, with no class of its own to target. The only way to
+ * remove it without overriding the theme template -- which we would then have
+ * to maintain across upgrades -- is to zero the container's font size and
+ * restore it on the child we keep.
  * ------------------------------------------------------------------------ */
 .md-footer-meta {
   background: var(--dr-surface);

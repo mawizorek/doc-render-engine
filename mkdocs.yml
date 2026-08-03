@@ -3,7 +3,7 @@
 # Everything that says WHICH SITE this is -- name, URL, palette, section titles
 # -- is absent here and arrives from instances/<slug>/site.yml at build time,
 # applied by hooks/00_instance.py. A hardcoded site name in this file is the
-# design failing, and hooks/08 fails the build if one appears.
+# design failing, and hooks/08 fails the build if one appears in CODE.
 #
 # The content tree is checked out separately and pointed at by
 # DOCRENDER_CONTENT. It holds markdown, plus data files a page explicitly
@@ -44,9 +44,7 @@ theme:
   features:
     - navigation.sections
     # A folder's index.md BECOMES the folder's landing page instead of sitting
-    # inside it as a duplicate entry. Without this, `venues/spac/index.md`
-    # renders as a section called Spac containing a page with the same title,
-    # and the sidebar says everything twice.
+    # inside it as a duplicate entry.
     - navigation.indexes
     - navigation.top
     - navigation.footer
@@ -87,6 +85,7 @@ hooks:
   - hooks/01b_data.py
   - hooks/02_visibility.py
   - hooks/03_links.py
+  - hooks/03b_markers.py
   - hooks/05_assets.py
   - hooks/06_pagefoot.py
   - hooks/07_buildstamp.py

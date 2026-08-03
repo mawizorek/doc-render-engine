@@ -42,6 +42,11 @@ THREE JOBS, all of which want to run last.
 3. THE REPORT. Everything every hook complained about, printed once, in one
    block, at the end. Warnings scattered through 400 lines of MkDocs output are
    warnings nobody reads.
+
+   ⭐ The `markers` section is not a complaint, and it is the most useful thing
+   here. Every `[text]{.tbc}` and friend on the site, listed with its page. A
+   marker you cannot enumerate is decoration; a marker you can enumerate turns
+   "what is still unconfirmed" into a question with an answer.
 """
 
 from __future__ import annotations
@@ -70,6 +75,7 @@ _LABELS = {
     "duplicate_id": "Duplicate ids",
     "dead_links": "Broken references (rendered as struck-through markers)",
     "stale_xref": "Cross-site index problems",
+    "markers": "Marked unresolved -- every tbc / verify / gap / est / was",
     "oversize": "Over the size budget",
     "notes": "Notes",
 }
@@ -201,7 +207,10 @@ def on_post_build(config):
         entries = state.REPORT.get(bucket) or []
         if not entries:
             continue
-        clean = False
+        # Markers are inventory, not a defect, so a page full of them still
+        # counts as a clean build.
+        if bucket != "markers":
+            clean = False
         print("")
         print(label + " (" + str(len(entries)) + ")")
         for entry in entries:
