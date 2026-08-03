@@ -10,13 +10,21 @@ name: Publish the default site
 #
 # The gold standard has to be LIVE, because that is the entire premise: a
 # written specification rots, an executable one cannot. So the default instance
-# publishes to THIS repository's own Pages, which the built-in GITHUB_TOKEN can
-# do with no secret and no human setup at all. If this URL is up and correct,
-# the contract is true today.
+# publishes into THIS repository, which the built-in GITHUB_TOKEN can write to
+# with no secret at all.
 #
-# Real sites keep using build.yml, because they must live at their own address
-# under their own name. The template does not need a pretty address; it needs to
-# be undeniable.
+# It uses the SAME mechanism as every real site -- render, then push the result
+# to a gh-pages branch -- and differs only in which repo that branch lives in.
+# That matters: a gold standard that proves a code path nothing else uses is
+# not a gold standard, it is a demo.
+#
+# FIRST ATTEMPT, RECORDED BECAUSE IT WILL BE TRIED AGAIN OTHERWISE: this job
+# originally used actions/configure-pages with `enablement: true` plus the
+# upload-artifact/deploy-pages trio, on the theory that Pages could be switched
+# on through the API and remove the last human step. The Configure Pages step
+# failed outright -- the workflow token cannot enable Pages on this repo -- and
+# it failed FIRST, which skipped the render and destroyed the one signal the
+# run existed to produce. Hence the order below: render before publish, always.
 
 on:
   push:
@@ -28,22 +36,15 @@ on:
     - cron: "23 7 * * *"
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# Never two deployments at once, and never cancel one halfway: a half-published
-# site is worse than a stale one.
 concurrency:
-  group: pages
+  group: publish-default
   cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     env:
       DOCRENDER_INSTANCE: template
     steps:
@@ -59,13 +60,6 @@ jobs:
           path: content
           # Two commits so the build stamp can name the change it rendered.
           fetch-depth: 2
-
-      - name: Configure Pages
-        # enablement turns Pages on via the API on the first run, so this repo
-        # needs no click in Settings before its own site exists.
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/setup-python@v5
         with:
@@ -96,11 +90,31 @@ jobs:
           cd "${{ github.workspace }}/engine"
           mkdocs build --config-file mkdocs.yml
 
-      - name: Upload
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
+      - name: Prove something was actually rendered
+        # A publish step will happily push an empty directory and report
+        # success. Then the site is "live" and blank, which is the worst of the
+        # three possible outcomes because it looks like it worked.
+        run: |
+          test -f "${{ github.workspace }}/site/index.html" \
+            || { echo "::error::no index.html in the build output"; exit 1; }
+          pages=$(find "${{ github.workspace }}/site" -name '*.html' | wc -l)
+          echo "rendered $pages html files"
+          [ "$pages" -ge 2 ] \
+            || { echo "::error::only $pages page(s) rendered; the content tree did not come through"; exit 1; }
+          {
+            echo "### Default site rendered"
+            echo
+            echo "- $pages HTML files"
+            echo "- content: \`$DOCRENDER_COMMIT_SUBJECT\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Deploy
-        id: deploy
-        uses: actions/deploy-pages@v4
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          # Same repository, so the built-in token is enough. This is the whole
+          # reason the default site lives here rather than at a pretty address.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          enable_jekyll: false
+          commit_message: "render: default site from engine ${{ github.sha }}"
