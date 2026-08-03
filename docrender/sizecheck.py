@@ -7,17 +7,37 @@ THREE JOBS, all of which want to run last.
    quietly breaks. 22KB hard, 18KB warn. v1 was over budget in four places and
    that is the single largest reason v2 was a rewrite rather than a copy.
 
-2. LEAK SCAN, and this is the one that keeps the family honest. The engine is
-   only portable while it contains no site-specific string. That claim decays
-   the instant nobody checks it, so we check it: if the active instance's own
-   proper nouns appear anywhere in the engine source, the build FAILS. Not
-   warns. It is the one hard failure in the pipeline, because it is the only
-   check whose subject is the architecture itself rather than a page.
+2. LEAK SCAN. The engine is only portable while it contains no site-specific
+   BEHAVIOUR, and that claim decays the instant nobody checks it.
 
-   An instance may narrow the scan with `leak_tokens:` in its site.yml. That
-   exists for one honest reason: a slug that is also an ordinary English word
-   produces noise rather than signal, and a check that cries wolf gets muted,
-   which is worse than not having it.
+   =========================================================================
+   IT READS CODE, NOT COMMENTS (REDESIGNED 2026-08-03, and this is the second
+   version -- the first one did not survive contact with three real sites)
+   =========================================================================
+   v1 of this check searched raw file text. That is wrong, and it failed in
+   the most instructive way available: it blocked the build of the ONE site
+   that was supposed to be proving the engine is portable, because the word
+   appeared in a COMMENT EXPLAINING THE CHECK ITSELF.
+
+   Two sites had already opted out for the same reason -- `template` and
+   `theatre` are ordinary English words that appear legitimately in prose --
+   which meant the check protected nothing while looking like it protected
+   everything. `instances/theatre/site.yml` said so at the time: *if the last
+   site opts out too, the check is decorative and should be redesigned rather
+   than quietly kept.* That happened within the hour, so it is redesigned.
+
+   The distinction that makes it work: **a comment naming a site is
+   documentation; a string literal naming a site is a bug.** Only the second
+   changes what the engine DOES. So Python is stripped of comments and string
+   literals via `tokenize` before scanning, CSS of `/* */`, and YAML/TSV of
+   `#` lines. What survives is identifiers and operators -- the actual code.
+
+   ⚠️ Known and accepted hole: a site name hidden in a NON-literal expression
+   (`"uri" + "tp"`, or a name assembled at runtime) walks straight through.
+   Not worth defending against. This check exists to catch the honest mistake
+   of typing a site into the engine, not to defeat somebody smuggling one in.
+
+   Still the ONE hard failure in the pipeline. Everything else warns.
 
 3. THE REPORT. Everything every hook complained about, printed once, in one
    block, at the end. Warnings scattered through 400 lines of MkDocs output are
@@ -26,9 +46,12 @@ THREE JOBS, all of which want to run last.
 
 from __future__ import annotations
 
+import io
 import os
 import re
 import sys
+import token as token_mod
+import tokenize
 from pathlib import Path
 
 from . import state
@@ -37,13 +60,15 @@ HARD_KB = 22
 WARN_KB = 18
 GUIDE_KB = 12
 
+_SCAN_SUFFIXES = {".py", ".css", ".js", ".yml", ".yaml", ".tsv", ".json", ".txt"}
+
 _LABELS = {
-    "leaks": "SITE NAME LEAKED INTO THE ENGINE (build will fail)",
+    "leaks": "SITE NAME LEAKED INTO ENGINE CODE (build will fail)",
     "missing_status": "Pages with no usable status (NOT BUILT)",
     "missing_required": "Missing required fields",
     "unknown_type": "Undeclared types (fell back to 'page')",
     "duplicate_id": "Duplicate ids",
-    "dead_links": "Dead links (rendered as visible markers)",
+    "dead_links": "Broken references (rendered as struck-through markers)",
     "stale_xref": "Cross-site index problems",
     "oversize": "Over the size budget",
     "notes": "Notes",
@@ -78,6 +103,40 @@ def _scan_sizes() -> None:
             )
 
 
+def _code_only(path: Path) -> str:
+    """Return the file with comments and string literals removed.
+
+    Prose is where a site gets EXPLAINED; code is where it gets DEPENDED ON.
+    Only the second is a portability defect, so only the second is scanned.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
+
+    if path.suffix == ".py":
+        kept = []
+        try:
+            for tok in tokenize.generate_tokens(io.StringIO(text).readline):
+                if tok.type in (token_mod.COMMENT, token_mod.STRING):
+                    continue
+                kept.append(tok.string)
+        except (tokenize.TokenError, IndentationError, SyntaxError):
+            # An unparseable file is a different problem, and silently
+            # skipping it would be a hole. Scan it whole and accept the noise.
+            return text
+        return " ".join(kept)
+
+    if path.suffix in (".css", ".js"):
+        text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
+        return re.sub(r"(?m)^\s*//.*$", " ", text)
+
+    if path.suffix in (".yml", ".yaml", ".tsv", ".txt"):
+        return re.sub(r"(?m)^\s*#.*$", " ", text)
+
+    return text
+
+
 def _leak_tokens() -> list[str]:
     declared = state.INSTANCE.get("leak_tokens")
     if declared is not None:
@@ -100,28 +159,27 @@ def _scan_leaks() -> bool:
         return False
 
     slug = str(state.INSTANCE.get("slug", "?"))
-    roots = ["docrender", "objects", "theme", "assets", "hooks"]
     leaked = False
 
-    for name in roots:
+    for name in ("docrender", "objects", "theme", "assets", "hooks"):
         root = state.ENGINE_ROOT / name
         if not root.is_dir():
             continue
         for path in root.rglob("*"):
-            if not path.is_file():
+            if not path.is_file() or path.suffix not in _SCAN_SUFFIXES:
                 continue
-            try:
-                text = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeDecodeError):
+            code = _code_only(path)
+            if not code:
                 continue
-            for token in tokens:
-                if re.search(re.escape(token), text, re.I):
+            for tok in tokens:
+                if re.search(re.escape(tok), code, re.I):
                     leaked = True
                     state.note(
                         "leaks",
-                        str(path.relative_to(state.ENGINE_ROOT)) + " mentions '"
-                        + token + "'. The engine must not know which site it is "
-                        + "rendering. Move it to instances/" + slug + "/.",
+                        str(path.relative_to(state.ENGINE_ROOT))
+                        + " depends on '" + tok + "' in CODE (not a comment). "
+                        + "The engine must not know which site it renders. "
+                        + "Move it to instances/" + slug + "/site.yml.",
                     )
     return leaked
 
@@ -159,10 +217,9 @@ def on_post_build(config):
 
     if leaked:
         print(
-            "::error::docrender: the engine contains the name of the site it "
-            "is rendering. That is the one failure this pipeline refuses to "
-            "warn about, because a portable engine stops being portable "
-            "silently.",
+            "::error::docrender: engine CODE references the site it is "
+            "rendering. That is the one failure this pipeline refuses to warn "
+            "about, because a portable engine stops being portable silently.",
             file=sys.stderr,
         )
         raise SystemExit(1)

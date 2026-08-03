@@ -55,19 +55,14 @@ sections:
   reference:
     order: 40
 
-# Sibling sites this one may link into with [text](@slug:page-id).
-# Empty until there is something real to point at: a peer that does not exist
-# yet is a build-time fetch that always fails and a warning everyone learns to
-# ignore.
 peers: {}
 
-# Portability leak scan (hooks/08). Normally the engine is scanned for this
-# instance's own slug and name, and the build FAILS if either appears, because
-# an engine that knows which site it is rendering has stopped being portable.
+# ⚠️ THE ONE INSTANCE THAT STILL OPTS OUT, and for a reason that does not
+# apply to any other site: this slug is the literal word "template", which
+# appears in engine CODE legitimately -- `instances/template` is the path the
+# copy-a-new-site procedure names, and the word turns up in identifiers rather
+# than only in prose. Scanning would fail on correct code, not on a leak.
 #
-# Disabled here for an honest reason rather than a convenient one: this slug is
-# an ordinary English word that legitimately appears throughout the engine's
-# own documentation. Scanning for it produces noise, and a check that cries
-# wolf is a check somebody mutes. The real sites carry proper nouns and get the
-# real scan, which is where it actually matters.
+# Every REAL site is under the scan. If a future instance needs this line,
+# the honest question is whether its slug is too generic to be a slug.
 leak_tokens: []
