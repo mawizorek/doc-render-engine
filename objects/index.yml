@@ -1,0 +1,29 @@
+# A HUB: a page whose job is to point at the pages under it.
+#
+# The one type that describes a page's ROLE IN THE TREE rather than the kind of
+# fact it holds, and that is deliberate. The engine already treats `index.md`
+# specially in three separate places, all of them keyed on the FILENAME: it
+# sorts to the top of its section, it donates its title to the folder so the
+# sidebar and the page agree on what a thing is called, and its URL is the one
+# `relative_url` had to be rewritten for. A behaviour keyed on a filename is
+# invisible to anything that reads METADATA instead of paths -- it cannot
+# appear in doc-index.json, so no script, importer or print pipeline can act on
+# it. Declaring the role puts it in the record.
+#
+# It is not page-with-a-label. page.yml warns against inventing empty types to
+# feel organised, so this one earns its keep by DRAWING the section contents:
+# the pages directly beneath it, minus any the body already links, sorted the
+# way the sidebar sorts them.
+#
+# NOT EVERY index.md WANTS THIS TYPE, and the build does not nag about it. A
+# folder whose landing page IS the subject -- a building, with rooms in folders
+# under it -- is correctly typed `venue`, and its filename is an accident of
+# where it sits. Choose `index` when pointing at other pages is the whole job.
+
+type: index
+label: Index
+extends: _base
+optional:
+  - contents      # `false` draws nothing. `auto` opts IN from any other type.
+renders:
+  - child_list: []
