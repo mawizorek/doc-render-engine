@@ -15,13 +15,15 @@ name: Publish the default site
 # the contract is true today.
 #
 # Real sites keep using build.yml, because they must live at their own address
-# under their own name. The template does not need a pretty address; it needs to
-# be undeniable.
+# under their own name. The template does not need a pretty address; it needs
+# to be undeniable.
 #
-# ⚠️ The matrix row for `template` in build.yml carries `publisher: engine-pages`
-# so that workflow renders it as a check and does NOT publish it. If you ever
-# retire this file, change that row to `publisher: matrix` in the same commit or
-# the default site silently stops updating.
+# ⚠️ CONSEQUENCE, fixed 2026-08-03: this path publishes the template at a
+# DIFFERENT address from the one build.yml would use, so the instance has two
+# possible base URLs and site.yml can only state one. An address is therefore a
+# property of the PUBLISHING PATH, not of the site, and it is passed in below.
+# Left unfixed, the live site advertises a base_url pointing somewhere it is
+# not, which poisons doc-index.json -- the one file other sites depend on.
 
 on:
   push:
@@ -60,10 +62,11 @@ jobs:
       - name: Check out the content
         uses: actions/checkout@v4
         with:
-          # Was `maw-agents/template-docs` until the 2026-08-03 transfer. That
-          # kept working only because GitHub redirects a moved repo, which is a
-          # silent crutch: it survives right up until somebody creates a new repo
-          # at the old name, and then this quietly builds the wrong content.
+          # ⚠️ Was `maw-agents/template-docs` until 2026-08-03. Both repos were
+          # transferred to this account and this line was missed. GitHub does
+          # redirect a transferred path, so it would have kept working and kept
+          # being wrong -- exactly the sort of quietly-stale pointer the
+          # doc-rot sweep exists to catch.
           repository: mawizorek/template-docs
           path: content
           # Two commits so the build stamp can name the change it rendered.
@@ -72,6 +75,7 @@ jobs:
       - name: Configure Pages
         # enablement turns Pages on via the API on the first run, so this repo
         # needs no click in Settings before its own site exists.
+        id: pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
@@ -94,6 +98,10 @@ jobs:
           DOCRENDER_CONTENT: ${{ github.workspace }}/content
           DOCRENDER_OUTPUT: ${{ github.workspace }}/site
           DOCRENDER_ENGINE_REF: ${{ github.sha }}
+          # The address this particular path publishes to, discovered by
+          # configure-pages rather than assumed. Overrides site.yml's base_url
+          # for this build only -- see the CONSEQUENCE note at the top.
+          DOCRENDER_BASE_URL: ${{ steps.pages.outputs.base_url }}
         run: |
           cd "${{ github.workspace }}/content"
           echo "DOCRENDER_COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
