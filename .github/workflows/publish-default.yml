@@ -17,6 +17,11 @@ name: Publish the default site
 # Real sites keep using build.yml, because they must live at their own address
 # under their own name. The template does not need a pretty address; it needs to
 # be undeniable.
+#
+# ⚠️ The matrix row for `template` in build.yml carries `publisher: engine-pages`
+# so that workflow renders it as a check and does NOT publish it. If you ever
+# retire this file, change that row to `publisher: matrix` in the same commit or
+# the default site silently stops updating.
 
 on:
   push:
@@ -55,7 +60,11 @@ jobs:
       - name: Check out the content
         uses: actions/checkout@v4
         with:
-          repository: maw-agents/template-docs
+          # Was `maw-agents/template-docs` until the 2026-08-03 transfer. That
+          # kept working only because GitHub redirects a moved repo, which is a
+          # silent crutch: it survives right up until somebody creates a new repo
+          # at the old name, and then this quietly builds the wrong content.
+          repository: mawizorek/template-docs
           path: content
           # Two commits so the build stamp can name the change it rendered.
           fetch-depth: 2

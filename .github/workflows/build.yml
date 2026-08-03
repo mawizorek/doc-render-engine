@@ -13,6 +13,19 @@ name: Build and deploy doc sites
 #
 # fail-fast is off on purpose. These sites have separate audiences and must
 # fail separately; one broken build must never take the others down with it.
+#
+# ⭐ EVERY ROW DECLARES ITS PUBLISHER, and that field is the whole reason this
+# file and publish-default.yml can coexist without fighting:
+#
+#   publisher: matrix         this workflow pushes the built site into the
+#                             content repo's gh-pages branch. Normal sites.
+#   publisher: engine-pages   publish-default.yml puts it on THIS repo's own
+#                             Pages instead. The default instance only.
+#
+# Two publishers for one site is how a site starts disagreeing with itself, so
+# the field is a string rather than a boolean: `publishes_here: false` read
+# ambiguously enough that the condition testing it was inverted, and the
+# default instance was being published twice.
 
 on:
   push:
@@ -45,7 +58,12 @@ jobs:
         include:
           - instance: template
             repo: mawizorek/template-docs
+            publisher: engine-pages
     name: ${{ matrix.instance }}
+    env:
+      # A secret cannot be read inside an `if:`, so its presence is resolved
+      # once, here, into something a step can test.
+      HAS_DEPLOY_TOKEN: ${{ secrets.DOCRENDER_TOKEN != '' }}
     steps:
       - name: Check out the engine
         uses: actions/checkout@v4
@@ -58,16 +76,19 @@ jobs:
           repository: ${{ matrix.repo }}
           path: content
           fetch-depth: 2
-          # Explicit, even though the content repos are public. The default
-          # GITHUB_TOKEN is scoped to THIS repository, so relying on it to read
-          # another one works only by public-clone accident and would break the
-          # day a content repo goes private.
-          token: ${{ secrets.DOCRENDER_TOKEN }}
+          # Deliberately NOT authenticated. The content repos are public, and a
+          # token here buys nothing while adding a failure mode that is genuinely
+          # hard to read: a fine-grained PAT missing this one repo fails the
+          # CHECKOUT with `git ... exit code 128`, which looks like a broken
+          # build rather than a missing checkbox. That cost a debugging round on
+          # 2026-08-03, right after a repo transfer left it off the token's list.
+          # If a content repo ever goes private, add `token:` back HERE and
+          # expect that failure mode to return.
 
       - name: Confirm the matrix agrees with the instance config
         working-directory: engine
         run: |
-          declared=$(python3 -c "import yaml,sys; print(yaml.safe_load(open('instances/${{ matrix.instance }}/site.yml'))['content_repo'])")
+          declared=$(python3 -c "import yaml; print(yaml.safe_load(open('instances/${{ matrix.instance }}/site.yml'))['content_repo'])")
           if [ "$declared" != "${{ matrix.repo }}" ]; then
             echo "::error::matrix says ${{ matrix.repo }}, site.yml says $declared."
             echo "Two places name the content repo and they disagree. Fix one."
@@ -106,17 +127,48 @@ jobs:
           mkdocs build --config-file mkdocs.yml
 
       - name: Deploy to the content repo's gh-pages
-        if: github.event_name != 'pull_request'
+        # Three conditions, each a real thing that goes wrong:
+        #  - no PAT yet, so the cross-repo write dies confusingly
+        #  - this row is published somewhere else (see the header)
+        #  - a PR must never publish
+        if: >-
+          env.HAS_DEPLOY_TOKEN == 'true'
+          && matrix.publisher == 'matrix'
+          && github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@v4
         with:
           # A fine-grained PAT with Contents: write on every content repo.
-          # GITHUB_TOKEN cannot be used: it is scoped to THIS repo, and the
-          # whole point is writing to another one. A fine-grained PAT is also
-          # scoped to ONE resource owner, which is why every repo in this
-          # family has to live under the same account.
+          # GITHUB_TOKEN cannot be used: it is scoped to THIS repo and the whole
+          # job is writing to another one. A fine-grained PAT is also scoped to
+          # ONE resource owner, which is why the whole family lives under one
+          # account -- and a repo TRANSFERRED in after the token was minted is
+          # not added to it automatically. See README section 6.
           personal_token: ${{ secrets.DOCRENDER_TOKEN }}
           external_repository: ${{ matrix.repo }}
           publish_branch: gh-pages
           publish_dir: ./site
           enable_jekyll: false
           commit_message: "render: ${{ matrix.instance }} from engine ${{ github.sha }}"
+
+      - name: Say what happened to the built site
+        # Silence is the enemy. A green build that published nothing looks
+        # exactly like a green build that published everything, and the whole
+        # point of the build stamp is that we refuse to guess about that.
+        if: always()
+        run: |
+          {
+            echo "### ${{ matrix.instance }}"
+            echo
+            if [ "${{ matrix.publisher }}" = "engine-pages" ]; then
+              echo "Rendered as a build check. This site is published by"
+              echo "\`publish-default.yml\` to this repository's own Pages, not"
+              echo "to \`${{ matrix.repo }}\`. Nothing was pushed from here, and"
+              echo "that is correct."
+            elif [ "$HAS_DEPLOY_TOKEN" != "true" ]; then
+              echo "Rendered, NOT published: \`DOCRENDER_TOKEN\` is not set, so"
+              echo "the write to \`${{ matrix.repo }}\` was skipped. A setup gap,"
+              echo "not a build failure. See README section 6."
+            else
+              echo "Published to \`${{ matrix.repo }}\` on \`gh-pages\`."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
