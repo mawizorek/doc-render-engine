@@ -37,14 +37,27 @@ leaves the page on `status: routed`, which is not a real state, so the page is
 not built and does not appear anywhere. Reporting only "status is 'routed'"
 sends the author hunting for a typo they cannot see. Naming the duplicate first
 points at the actual cause. Cost a real debugging round on 2026-08-03.
+
+GENERATED CONTENT GOES IN ONE OF TWO PLACES, and which one is not a style
+choice. A spec table describes the page, so it belongs at the top, under the
+lede. A contents list points AWAY from the page, so it belongs at the foot,
+after whatever the author had to say. Putting a list of links above the prose
+turns every hub page into a menu and buries the one paragraph that explains
+what the section is for.
 """
 
 from __future__ import annotations
 
+import re
+
 from . import state
-from .util import read_frontmatter_checked, slug_title
+from .util import read_frontmatter_checked, slug_title, sub_outside_code
 
 VALID_STATUS = {"hidden", "unlisted", "gated", "public"}
+
+#: An `@id` reference in the body. Same shape links.py resolves, minus the
+#: anchor: a page mentioned WITH an anchor is still mentioned.
+_REFERENCED = re.compile(r"\]\(@(?P<token>[A-Za-z0-9_.:-]+)")
 
 
 def _resolve(type_name: str) -> dict:
@@ -120,6 +133,21 @@ def on_files(files, config):
             )
             type_name = "page"
 
+        # `index` claims a POSITION, not a subject. The three behaviours it
+        # names -- sorting first, titling the folder, being the section's
+        # landing page -- all key on the filename, so on any other file the
+        # declaration is simply untrue, and a reader of doc-index.json would
+        # believe it. The reverse is NOT reported: an index.md is often
+        # legitimately typed as its subject.
+        if type_name == "index" and f.name != "index":
+            state.note(
+                "notes",
+                f.src_uri + ": type 'index' on a file that is not an index page. "
+                + "The section behaviours it implies all key on the FILENAME, so "
+                + "nothing here sorts first or titles a folder. Rename the file "
+                + "to index.md, or type this page as what it is about.",
+            )
+
         spec = _resolve(type_name)
         missing = [k for k in spec.get("requires", []) if not meta.get(k)]
         if missing:
@@ -152,6 +180,94 @@ def _spec_table(meta: dict, fields: list[str]) -> str:
     )
 
 
+def _referenced_ids(markdown: str) -> set[str]:
+    """Every id the body already links, ignoring code.
+
+    Routed through sub_outside_code for the reason that function exists: a page
+    DOCUMENTING `[Main Stage](@main-stage)` inside a fence has not filed Main
+    Stage anywhere, and reading its example as a real reference would hide a
+    genuinely unfiled page. The substitution here returns each match unchanged;
+    it is a code-aware scan wearing a rewriter's clothes.
+    """
+    found: set[str] = set()
+
+    def collect(match):
+        found.add(match.group("token"))
+        return match.group(0)
+
+    sub_outside_code(_REFERENCED, collect, markdown)
+    return found
+
+
+def _child_list(page, markdown: str) -> str:
+    """The pages directly beneath this one that the body has not mentioned.
+
+    WHY THE REMAINDER AND NOT EVERYTHING. A good index page is prose: it says
+    what the section is for and links its pages with a line each on why you
+    would read them. Drawing the full list under that duplicates every link and
+    trains people to skip the writing. Drawing what is LEFT does the opposite --
+    a curated index renders no list at all, and the moment somebody adds a file
+    without filing it, it appears here until they do. The gap becomes visible
+    instead of staying silent, which is the same bargain callout_if_missing
+    makes on a page with an undocumented field.
+
+    DIRECT CHILDREN ONLY: a file in this folder, or the landing page of a folder
+    one level down. Anything deeper belongs to THAT index, and hoisting it here
+    would flatten the tree the sidebar just spent a hook arranging.
+    """
+    src = page.file.src_uri
+    folder = src.rpartition("/")[0]
+    prefix = folder + "/" if folder else ""
+
+    referenced = _referenced_ids(markdown)
+    entries, suppressed = [], False
+
+    for other, meta in state.BY_SRC.items():
+        if other == src or not other.startswith(prefix):
+            continue
+        rest = other[len(prefix):]
+        if "/" in rest and not (
+            rest.count("/") == 1 and rest.endswith("/index.md")
+        ):
+            continue
+
+        page_id = meta.get("id")
+        if not page_id:
+            continue
+
+        # state.PAGES is the PUBLISHED map: links.py fills it after visibility
+        # has already pruned, so a page absent from it was never built and a
+        # link to it would render as a broken marker. `unlisted` is a
+        # deliberate absence from navigation, and this is navigation.
+        published = state.PAGES.get(page_id)
+        if not published or published.get("status") != "public":
+            continue
+
+        if page_id in referenced:
+            suppressed = True
+            continue
+
+        order = meta.get("order")
+        title = str(meta.get("title") or slug_title(page_id))
+        entries.append(
+            (order if isinstance(order, int) else 10_000, title.lower(), title, page_id)
+        )
+
+    if not entries:
+        return ""
+
+    # Same key instance.py sorts the sidebar by. Two orders for the same set of
+    # pages on the same screen is the sort of disagreement nobody reports and
+    # everybody notices.
+    entries.sort()
+
+    heading = "## Also in this section" if suppressed else "## In this section"
+    lines = [heading, ""]
+    for _, _, title, page_id in entries:
+        lines.append("- [" + title + "](@" + page_id + ")")
+    return "\n".join(lines)
+
+
 def _insert_after_lede(markdown: str, block: str) -> str:
     """Place generated content after the H1 and its opening paragraph.
 
@@ -171,26 +287,50 @@ def _insert_after_lede(markdown: str, block: str) -> str:
     return "\n".join(lines[:i] + ["", block] + lines[i:])
 
 
+def _wants_children(meta: dict, renders: list) -> bool:
+    """Does this page draw a contents list.
+
+    Two ways in, because the ROLE and the LAYOUT are not the same question. A
+    type declares `child_list` because pointing at its children is what that
+    kind of page is for; `contents: auto` lets a page that is primarily about
+    something else -- a building whose rooms are files under it -- borrow the
+    behaviour without lying about its type. `contents: false` is the opt out,
+    and it wins, since a page saying no is the least ambiguous signal here.
+    """
+    contents = meta.get("contents")
+    if contents is False:
+        return False
+    if isinstance(contents, str) and contents.strip().lower() == "auto":
+        return True
+    return any("child_list" in d for d in renders)
+
+
 def on_page_markdown(markdown, page, config, files):
     """Draw whatever the page's type declares.
 
-    Two directives are implemented in engine v1:
+    Three directives are implemented:
 
         spec_table: [a, b, c]      a two-column table of those fields
         callout_if_missing: [a]    a visible note naming what is not known yet
+        child_list: []            the section contents, at the FOOT of the page
 
     The second is the quiet one that earns its place. A venue page missing its
     grid height looks identical to a venue that genuinely has no grid. Saying
     'this is not documented yet' out loud turns a silent gap into a visible one,
     which is the only way it ever gets filled.
+
+    `child_list` takes no field list and is read as a flag, because unlike the
+    other two it cannot be drawn from frontmatter alone: it needs the whole
+    page. It emits `@id` links rather than paths, so stage 03 resolves them by
+    the same rules as hand-written ones -- including reporting one as dead if a
+    page it lists somehow fails to publish.
     """
     meta = state.BY_SRC.get(page.file.src_uri, {})
     spec = meta.get("_spec") or {}
+    renders = [d for d in spec.get("renders", []) if isinstance(d, dict)]
     blocks = []
 
-    for directive in spec.get("renders", []):
-        if not isinstance(directive, dict):
-            continue
+    for directive in renders:
         for name, fields in directive.items():
             if name == "spec_table":
                 table = _spec_table(meta, list(fields or []))
@@ -207,6 +347,12 @@ def on_page_markdown(markdown, page, config, files):
                         + " not been recorded. Treat as unknown, not as absent."
                     )
 
-    if not blocks:
-        return markdown
-    return _insert_after_lede(markdown, "\n\n".join(blocks))
+    # Read from the ORIGINAL body, before anything is inserted into it, so a
+    # generated block can never be mistaken for something the author wrote.
+    listing = _child_list(page, markdown) if _wants_children(meta, renders) else ""
+
+    if blocks:
+        markdown = _insert_after_lede(markdown, "\n\n".join(blocks))
+    if listing:
+        markdown = markdown.rstrip() + "\n\n" + listing + "\n"
+    return markdown
