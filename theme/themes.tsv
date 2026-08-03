@@ -1,0 +1,8 @@
+# Named skins. An instance picks one by name in its site.yml; a page or folder
+# can override with `theme:` in frontmatter.
+#
+# `base` is always applied underneath whatever else is chosen, so a new theme
+# only has to state what it CHANGES rather than redeclare every token.
+theme	label	notes
+base	Base	shared token set, always applied under everything else
+utility	Utility	dense and low-chrome, for pages that are worked from rather than read

@@ -1,0 +1,16 @@
+# A building.
+#
+# A venue is a container first: the thing spaces point their `parent` at. Its
+# own fields are the facts that belong to the whole building rather than to any
+# one room.
+
+type: venue
+label: Venue
+extends: _base
+optional:
+  - address
+  - city
+  - operator
+  - access_notes
+renders:
+  - spec_table: [address, city, operator]

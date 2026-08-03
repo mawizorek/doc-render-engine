@@ -1,0 +1,30 @@
+# A room inside a building.
+#
+# The type that best shows why declarations beat prose. Every space in the
+# family renders the same spec table, in the same order, with the same field
+# names, because the TYPE draws it and not the author. Add a field here and
+# every space in every repo gains it in one edit.
+#
+# `parent` is required and is an ID, never a path. A space that does not say
+# which building it is in is a fact with nowhere to live.
+#
+# The callout is the quiet half. A space missing its grid height currently
+# looks exactly like a space with no grid at all. Saying 'not documented yet'
+# out loud turns a silent gap into a visible one, which is the only way a gap
+# ever gets filled.
+
+type: space
+label: Space
+extends: _base
+requires:
+  - parent
+optional:
+  - capacity
+  - dimensions
+  - grid_height
+  - power
+  - seating
+  - rigging
+renders:
+  - spec_table: [capacity, dimensions, grid_height, power, seating, rigging]
+  - callout_if_missing: [capacity, grid_height]

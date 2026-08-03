@@ -1,0 +1,10 @@
+# A plain document. The fallback for anything that declares no type, and the
+# right answer for most prose.
+#
+# It deliberately adds nothing to _base. A type earns its existence by having
+# fields or a way of drawing; inventing empty types to feel organised produces
+# a vocabulary nobody can keep straight.
+
+type: page
+label: Page
+extends: _base

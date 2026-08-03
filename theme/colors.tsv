@@ -1,0 +1,20 @@
+# Token values per colour scheme. OKLCH throughout: it interpolates without
+# the muddy midpoints hex gives you, and a lightness change stays a lightness
+# change instead of quietly shifting hue.
+#
+# TOKEN NAMES are shared across every site in the family. VALUES are not, and
+# must not be: two sites that look identical are two sites nobody can tell
+# apart, and a shared palette means fixing one breaks the other silently.
+# An instance overrides values in its own theme.css.
+theme	token	dark	light
+base	surface	oklch(21% 0.012 260)	oklch(99% 0.002 260)
+base	surface-raised	oklch(26% 0.014 260)	oklch(97% 0.004 260)
+base	ink	oklch(93% 0.008 260)	oklch(24% 0.012 260)
+base	ink-muted	oklch(72% 0.014 260)	oklch(46% 0.014 260)
+base	rule	oklch(34% 0.014 260)	oklch(89% 0.006 260)
+base	accent	oklch(74% 0.132 232)	oklch(52% 0.138 232)
+base	warn	oklch(78% 0.148 78)	oklch(56% 0.152 62)
+base	danger	oklch(70% 0.176 22)	oklch(52% 0.196 22)
+base	dead	oklch(70% 0.176 22)	oklch(52% 0.196 22)
+utility	surface	oklch(18% 0.008 260)	oklch(100% 0 0)
+utility	accent	oklch(76% 0.104 168)	oklch(48% 0.108 168)

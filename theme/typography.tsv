@@ -1,0 +1,10 @@
+# Scale and families. Scheme-independent: type does not change between light
+# and dark, and pretending otherwise is how a site ends up with two type
+# systems that drift apart.
+token	value	notes
+font-body	-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif	system stack, zero webfont latency
+font-mono	ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace	same reasoning
+lede-size	1.15rem	the opening paragraph, which is also the search snippet
+lede-weight	350	
+spec-label	0.78rem	field names in a generated spec table
+measure	34rem	comfortable line length for prose

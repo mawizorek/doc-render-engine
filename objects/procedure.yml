@@ -1,0 +1,21 @@
+# A procedure: a thing somebody DOES, in an order, on some occasion.
+#
+# Distinct from `standard`, and the distinction is worth holding: a standard is
+# what must be true, a procedure is what you do. The same subject often needs
+# both, and collapsing them produces a document that is bad at being either.
+#
+# This is also the first type in the family with no theatre in it, which is
+# deliberate. A doc site that is procedures and nothing else must be a
+# first-class citizen here, or the engine is only pretending to be portable.
+
+type: procedure
+label: Procedure
+extends: _base
+optional:
+  - owner
+  - frequency
+  - trigger
+  - systems
+renders:
+  - spec_table: [owner, frequency, trigger, systems]
+  - callout_if_missing: [owner]
