@@ -1,8 +1,27 @@
 # Build dependencies. Also the file actions/setup-python hashes for its pip cache.
 #
-# The 9.7 floor is inherited from v1 and is deliberate: 9.7 (Nov 2025) released
-# every former Insiders feature to everyone. Below it several things we use do
-# not exist, and an unknown option is a hard build failure.
+# ⚠️ `mkdocs<2` IS THE LOAD-BEARING LINE IN THIS FILE (pinned 2026-08-03).
+#
+# MkDocs 2.0 shipped and pip resolved it on the next build, which broke the
+# publish outright. Material's own release warning is unusually blunt about it:
+# all plugins stop working, all theme overrides break, no migration path exists,
+# and it is currently unlicensed and unsuitable for production.
+#
+# This engine is ENTIRELY plugin machinery -- thirteen hooks, every feature it
+# has -- so "all plugins stop working" is not a caveat, it is the whole product.
+#
+# The upper bound on mkdocs-material was never enough on its own: Material
+# declares mkdocs as a DEPENDENCY, so pip was free to pull 2.0 underneath a
+# perfectly well-pinned 9.x. An unpinned transitive dependency is an unpinned
+# build, and this is exactly the failure that argument describes.
+#
+# Do not lift this bound to "try 2.0" on a live site. Cut a branch, build the
+# template instance, read the report, and only then decide -- the template is
+# the site that exists to break first.
+#
+# The 9.7 floor is separate and also deliberate: 9.7 (Nov 2025) released every
+# former Insiders feature to everyone, and several things here do not exist
+# below it, where an unknown option is a hard build failure.
 #
 # NOT here, and the absence is a decision:
 #   mkdocs-awesome-nav  -- needs a .nav.yml INSIDE the content tree, which
@@ -11,6 +30,7 @@
 #                          this dependency is what made a pure content repo
 #                          possible at all.
 
+mkdocs>=1.6,<2
 mkdocs-material>=9.7,<10
 PyYAML>=6
 
