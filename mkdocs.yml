@@ -42,12 +42,24 @@ validation:
 theme:
   name: material
   features:
-    - navigation.sections
+    # ⚠️ `navigation.sections` IS DELIBERATELY ABSENT (removed 2026-08-03).
+    #
+    # It renders top-level folders as flat, permanently-expanded headings --
+    # every page on the site visible at once, nothing collapsible. That is
+    # wrong for a tree that is going to keep growing, and it is why the sidebar
+    # read as one long list instead of five sections you can open.
+    #
+    # Without it, each folder is a collapsible group, CLOSED by default. The
+    # sidebar opens as a short list of top-level sections and expands where the
+    # reader is. Do not re-add it, and do not add `navigation.expand` either --
+    # that forces every group open, which is the same problem with extra steps.
+    #
     # A folder's index.md BECOMES the folder's landing page instead of sitting
     # inside it as a duplicate entry.
     - navigation.indexes
     - navigation.top
     - navigation.footer
+    - navigation.prune
     - search.suggest
     - search.highlight
     - content.code.copy
