@@ -1,35 +1,49 @@
-# ROUTE TABLES for this site. Michael's single editable source for keys.
+# ROUTE TABLES for this site. The single editable source for durable codes.
 #
 # A page opts in with `router: <table>` in its frontmatter and renders a text
-# field. Type a key from that table, get sent to the page it names.
+# field. Three kinds of entry, and the DESTINATION decides which -- there is no
+# mode flag to set:
 #
-#     crew:
-#       loadin24: crew-call-sheet
-#       grid: spac-main-stage
+#     pm:
+#       maw:                      PORTABLE CURTAIN. No destination, so it means
+#                                 "curtain on whatever page declares this
+#                                 table." One entry, reusable on any number of
+#                                 pages, never needs to know their ids. This is
+#                                 the right shape for a ROLE table.
 #
-# The VALUE on the right is a page `id`, never a path or a URL -- so a route
-# survives the destination page being moved or renamed, exactly like every
-# other link in this family. A key pointing at an id that does not exist is
-# reported at build time rather than failing silently for whoever types it.
+#     staff:
+#       staff26: staff            PINNED CURTAIN. Names the id of the page it is
+#                                 used on. Same behaviour, tied to that one page
+#                                 -- what you want when one table holds curtains
+#                                 for several different pages.
 #
-# ⚠️ NOT SECURITY, and the name is the reminder. A router does not know where
-# to send someone who types the wrong thing; it does not stop them going there
+#       loadin24: crew-call-sheet REDIRECT. Names a DIFFERENT page and sends you
+#                                 there. The value is a page `id`, never a path,
+#                                 so the route survives the destination being
+#                                 moved or renamed.
+#
+# A key pointing at an id that does not exist is reported at build time rather
+# than failing silently for whoever types it.
+#
+# ⚠️ NOT SECURITY, and the name is the reminder. A router does not know where to
+# send someone who types the wrong thing; it does not stop them getting there
 # another way. The site is public and every destination is reachable by URL.
-# Use it to keep a casual reader out of the way, or to hand one person a code.
-# Never put anything here that would matter if a stranger read it.
+# A curtain HIDES a page body in the DOM -- it does not encrypt it. Never put
+# anything behind one that would matter if a stranger read it.
 #
-# ⚠️ THE KEYS ARE VISIBLE TO ANYONE WITH ACCESS TO THIS REPO. That is why they
-# live in the ENGINE and not in the content repo, which is public and has a
-# Download ZIP button that would ship them with the documents.
+# ⚠️ KEYS HERE ARE VISIBLE TO ANYONE WITH ACCESS TO THIS REPO. That is still the
+# better of the two options: the alternative is a content repo that is public
+# and has a Download ZIP button. For a throwaway code, `router_code:` in the
+# page itself is easier and honest about being throwaway.
 #
-# Pair a router with `status: unlisted` on its destinations. Not enforced --
-# sometimes a destination is deliberately public -- but a router pointing at a
-# page already in the sidebar is a router with nothing to do.
-#
-# Empty for now. Add a table when there is a real reason for one.
-
+# Pair a curtain with `status: unlisted` if the page should not appear in the
+# sidebar. `public` is right when the page should be findable and the code is
+# only a pause.
 
 staff:
   staff26: staff
+
+# Role table. Any page that declares `router: pm` accepts this code and reveals
+# its own body -- no per-page entry, no ids to keep in step.
 pm:
-  maw: doc-specs
+  maw:
