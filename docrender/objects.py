@@ -30,11 +30,13 @@ single typo froze the entire live site twice in forty minutes while Pages
 cheerfully kept serving a stale commit. Broken things get reported and render
 as visible markers; the deploy continues. A site that stops updating silently
 is worse than a site with one ugly page on it.
+
+⚠️ THE ONE EXCEPTION TO "WARN QUIETLY": a DUPLICATE frontmatter key is reported
+as a real problem with its winner named, because YAML resolves it silently and
+the author cannot see what happened. See util.duplicate_keys.
 """
 
 from __future__ import annotations
-
-import re
 
 from . import state
 from .util import read_frontmatter, slug_title
@@ -71,6 +73,19 @@ def on_files(files, config):
         meta = read_frontmatter(f.abs_src_path)
         state.BY_SRC[f.src_uri] = meta
 
+        # DUPLICATE KEYS FIRST, because a duplicate is usually the REASON a
+        # later complaint exists. Reporting "status is 'routed'" without saying
+        # there were two status lines sends the author looking in the wrong
+        # place -- which is exactly what happened on 2026-08-03.
+        for key in meta.get("_dupes") or []:
+            state.note(
+                "duplicate_key",
+                f.src_uri + ": `" + key + ":` appears more than once in the "
+                + "frontmatter. YAML keeps the LAST one silently, so this page "
+                + "is using `" + key + ": " + str(meta.get(key)) + "`. Delete "
+                + "the line you did not mean.",
+            )
+
         status = meta.get("status")
         if status not in VALID_STATUS:
             # The single most valuable rule in the contract, inherited from v1:
@@ -78,9 +93,14 @@ def on_files(files, config):
             # public web because somebody forgot a line.
             detail = (
                 "is '" + str(status) + "', not one of " + str(sorted(VALID_STATUS))
-                if status else "is missing -- page will NOT be built"
+                if status else "is missing"
             )
-            state.note("missing_status", f.src_uri + ": status " + detail)
+            state.note(
+                "missing_status",
+                f.src_uri + ": status " + detail + " -- PAGE WILL NOT BE BUILT, "
+                + "so it is absent from the nav and every @link to it renders "
+                + "as broken.",
+            )
 
         page_id = meta.get("id")
         if page_id:

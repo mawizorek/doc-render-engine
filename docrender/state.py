@@ -50,12 +50,19 @@ def reset() -> None:
     PAGES = {}
     PEERS = {}
     REPORT = {
+        # Order here is the order the report prints, and it is deliberate:
+        # a duplicate KEY is usually the CAUSE of the complaints under it, so
+        # it has to be read first. A reader who fixes a symptom before seeing
+        # its cause fixes the wrong file.
+        "duplicate_key": [],
         "missing_status": [],
-        "unknown_type": [],
         "missing_required": [],
+        "unknown_type": [],
         "duplicate_id": [],
         "dead_links": [],
         "stale_xref": [],
+        "markers": [],
+        "routers": [],
         "oversize": [],
         "leaks": [],
         "notes": [],
