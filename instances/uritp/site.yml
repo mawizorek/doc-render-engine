@@ -1,0 +1,54 @@
+# URITP — the first REAL site on the matrix publishing path.
+#
+# Distinct from `template` in the one way that matters: this one is published
+# by build.yml into its own content repo's gh-pages branch, at its own address,
+# for its own audience. The template is served from the engine's Pages as a
+# special case; this is the ordinary path every real site uses.
+
+name: URITP Production Resources
+description: Venue information, technical standards, and production reference.
+slug: uritp
+base_url: https://mawizorek.github.io/uritp-docs/
+
+content_repo: mawizorek/uritp-docs
+content_branch: main
+
+theme: base
+
+# NOT the template's palette, on purpose. Two sites that look identical are two
+# sites nobody can tell apart, and a shared palette means the day somebody
+# fixes a colour here is the day another site breaks unnoticed. Structure is
+# shared; look is local.
+palette:
+  dark:
+    primary: black
+    accent: amber
+  light:
+    primary: blue grey
+    accent: amber
+
+sections:
+  venues:
+    title: Venues
+    order: 10
+  production:
+    title: Production
+    order: 20
+  safety:
+    title: Safety
+    order: 30
+  reference:
+    title: Reference
+    order: 40
+
+# The cross-site contract, pointed at a site that is ACTUALLY LIVE. This is the
+# first real test of `@peer:id` against a published doc-index.json rather than
+# against a hypothetical.
+peers:
+  template: https://mawizorek.github.io/doc-render-engine/
+
+# Full leak scan, no opt-out. "uritp" is a proper noun that appears nowhere in
+# the engine's code, objects, theme or assets, so the check is both safe to run
+# and genuinely meaningful here -- unlike `template` and `theatre`, whose slugs
+# are ordinary words. This instance is the one that actually proves the engine
+# is site-agnostic.

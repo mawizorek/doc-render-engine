@@ -1,0 +1,6 @@
+/* Theatre Notes' own look. Loaded last, so this file has the final word. */
+
+.md-typeset .dr-spec {
+  border-left: 2px solid var(--dr-accent);
+  padding-left: 0.9rem;
+}
