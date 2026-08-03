@@ -22,9 +22,7 @@ THREE JOBS, all of which want to run last.
    Two sites had already opted out for the same reason -- `template` and
    `theatre` are ordinary English words that appear legitimately in prose --
    which meant the check protected nothing while looking like it protected
-   everything. `instances/theatre/site.yml` said so at the time: *if the last
-   site opts out too, the check is decorative and should be redesigned rather
-   than quietly kept.* That happened within the hour, so it is redesigned.
+   everything.
 
    The distinction that makes it work: **a comment naming a site is
    documentation; a string literal naming a site is a bug.** Only the second
@@ -33,9 +31,8 @@ THREE JOBS, all of which want to run last.
    `#` lines. What survives is identifiers and operators -- the actual code.
 
    ⚠️ Known and accepted hole: a site name hidden in a NON-literal expression
-   (`"uri" + "tp"`, or a name assembled at runtime) walks straight through.
-   Not worth defending against. This check exists to catch the honest mistake
-   of typing a site into the engine, not to defeat somebody smuggling one in.
+   walks straight through. Not worth defending against. This catches the honest
+   mistake of typing a site into the engine, not somebody smuggling one in.
 
    Still the ONE hard failure in the pipeline. Everything else warns.
 
@@ -43,11 +40,17 @@ THREE JOBS, all of which want to run last.
    block, at the end. Warnings scattered through 400 lines of MkDocs output are
    warnings nobody reads.
 
+   ⭐ SECTION ORDER IS CAUSE-BEFORE-SYMPTOM, set in state.reset(). A duplicate
+   frontmatter KEY leads, because it is usually the reason for everything under
+   it: a page with two `status:` lines silently uses the second, so it is not
+   built, so it is missing from the nav, so every link to it renders broken --
+   three complaints, one cause, and only one of them worth reading first.
+
    ⭐ Two sections are INVENTORY rather than complaints, and they are the most
    useful things here. `markers` lists every tbc / verify / gap / est / was on
-   the site; `routers` lists every router and how many routes it carries.
-   Neither counts against a clean build. A thing you cannot enumerate is
-   decoration; a thing you can enumerate is a worklist.
+   the site; `routers` lists every router and what kind it is. Neither counts
+   against a clean build. A thing you cannot enumerate is decoration; a thing
+   you can enumerate is a worklist.
 """
 
 from __future__ import annotations
@@ -74,11 +77,13 @@ _INVENTORY = {"markers", "routers"}
 
 _LABELS = {
     "leaks": "SITE NAME LEAKED INTO ENGINE CODE (build will fail)",
+    "duplicate_key": "DUPLICATE FRONTMATTER KEYS -- read these first, they "
+                     "usually explain everything below",
     "missing_status": "Pages with no usable status (NOT BUILT)",
     "missing_required": "Missing required fields",
     "unknown_type": "Undeclared types (fell back to 'page')",
     "duplicate_id": "Duplicate ids",
-    "dead_links": "Broken references (rendered as struck-through markers)",
+    "dead_links": "Broken references (rendered as visible markers)",
     "stale_xref": "Cross-site index problems",
     "markers": "Marked unresolved -- every tbc / verify / gap / conf / est / was",
     "routers": "Routers on this site",
