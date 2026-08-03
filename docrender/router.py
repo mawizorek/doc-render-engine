@@ -1,84 +1,72 @@
-"""Stage 04b -- ROUTERS. Type a key, get somewhere.
-
-Two modes, and the route table decides which one without any extra syntax.
-
-    # instances/<slug>/routes.yml
-    crew:
-      loadin24: crew-call-sheet     # REDIRECT: sends you to another page
-      staff26: staff                # CURTAIN:  reveals THIS page's own body
-
-**If a key points at the id of the page carrying the router, it is a CURTAIN.**
-The page's body is held back, the field sits where the content would be, and a
-correct code reveals it in place. Pointing anywhere else is a REDIRECT.
-
-That inference is deliberate rather than a `mode:` field: "send me to the page I
-am on" has exactly one sensible meaning, and a redirect to your own URL is
-never what anybody wanted. Michael hit that literally -- typed the code, the
-browser navigated to the same address, and nothing appeared to happen.
+"""Stage 04b -- ROUTERS. A pause, or a door to somewhere else.
 
 =============================================================================
-REDIRECT DESTINATIONS ARE RESOLVED BY util.relative_url, NOT BY COUNTING
+TWO PLACES TO PUT A CODE, and they answer different needs
 =============================================================================
-This module shipped with `prefix = "../" * page.file.url.count("/")`, copied
-from links.py before that math was known to be wrong. It is wrong on the root
-index page of every site, because MkDocs reports that page's url as `./` --
-one separator at depth zero -- so the sealed destination pointed one directory
-ABOVE the site root.
 
-🔴 THE ROUTER'S COPY WAS THE DANGEROUS ONE, and it is worth saying why rather
-than just fixing it. A bad link renders as a bad link: somebody hovers it, or
-clicks it, and the 404 is immediate and public. A bad REDIRECT is sealed inside
-an encrypted payload, so nothing about the page looks wrong -- the field
-renders, the code validates, the crypto succeeds, and the reader is delivered
-to a 404 by a mechanism that reported success at every step. The only person
-who can find it is somebody holding a correct key, which is the smallest
-audience the site has.
+LOCAL -- in the page itself. Throwaway, no engine edit, no deploy of anything
+but the content repo:
 
-=============================================================================
-CURTAIN MODE IS A PAUSE, NOT A LOCK, AND THE PAGE SOURCE PROVES IT
-=============================================================================
-The body is hidden in the DOM. It is NOT encrypted. Anyone who views source,
-opens devtools, or reads the markdown in the public content repo sees
-everything.
+    ---
+    id: staff
+    router_code: staff26
+    router_prompt: Got a code?
+    ---
 
-That is the explicit design (Michael, 2026-08-03): *"just a screen before
-landing on content, a brief pause. not real encryption."* Encrypting the body
-is what v1 did; it cost a shared cipher across two files, a keyring, and a
-whole authoring document, to protect content that was public in the repo the
-whole time.
+REMOTE -- in `instances/<slug>/routes.yml` in the engine. Durable, one place to
+edit, and the only form that can send somebody to a DIFFERENT page:
 
-What IS withheld is the code itself: only a PBKDF2 hash of it ships, so the
-page does not hand out the key to the next person. Weak effort in the right
-place, none wasted in the wrong one.
+    staff:
+      staff26: staff                # curtain on the staff page
+      loadin24: crew-call-sheet      # redirect to another page
 
-If something genuinely must not be read, it does not belong in a public doc
-repo at all, and no amount of front-end work changes that.
+    ---
+    id: staff
+    router: staff
+    ---
+
+Both may be present; the keys are simply pooled. The split is deliberate
+(Michael, 2026-08-03): a code you are trying out for an afternoon should not
+require touching the engine, and a code that people are actually given should
+not live in a file anyone can grep out of a public content repo.
+
+⚠️ A LOCAL CODE IS IN THE CONTENT REPO, WHICH IS PUBLIC. That is fine for the
+thing it is for -- a pause -- and it is the wrong choice for anything you would
+mind a stranger typing. Local is for trash; remote is for real.
 
 =============================================================================
-WHY REDIRECT MODE STILL ENCRYPTS
+CURTAIN OR REDIRECT: the destination decides, not a mode flag
 =============================================================================
-Because a plaintext destination is not a router, it is a list of links with an
-input box in front of it. Anyone reading source would see every destination and
-skip the field, which defeats the only thing that mode does. A curtain has no
-such problem: the destination is the page you are already on.
+**A key pointing at the id of the page carrying the router is a CURTAIN**: the
+page's own body is held back, the field sits where the content would be, and a
+correct code reveals it in place. `router_code` is always a curtain, since it
+names no destination at all.
 
-So the asymmetry is on purpose. Curtain hides content it cannot protect and
-says so; redirect protects a destination it genuinely can.
+Anything else is a REDIRECT.
+
+Inferred rather than declared because "send me to the page I am on" has exactly
+one sensible meaning. Michael hit the other reading first: the browser navigated
+to the same URL and nothing appeared to happen.
 
 =============================================================================
-WHERE THE KEYS LIVE: instances/<slug>/routes.yml
+A CURTAIN IS A PAUSE. THE PAGE SOURCE PROVES IT.
 =============================================================================
-In the ENGINE, one file per site, the single editable source. Never in a content
-repo -- that repo is public and has a Download ZIP button, so a key committed
-there ships with the documents.
+The body is hidden in the DOM. It is NOT encrypted. View source, open devtools,
+or read the markdown in the public repo and it is all there.
 
-The table NAME is shared vocabulary and lives in the page's frontmatter; the
-KEYS are local and live with the site. Same split as object types and palettes.
+That is the design, not an oversight: *"just a screen before landing on content,
+a brief pause. not real encryption."* v1 encrypted page bodies and paid for it
+with a cipher shared across two files, a keyring and its own authoring document
+-- to protect content that was public in the repo the whole time.
 
-UNLOCKING IS REMEMBERED FOR THE SESSION. A code that opens one curtain opens
-every curtain it fits, and closing the tab re-locks everything --
-sessionStorage, not localStorage, because a shared shop machine is the normal
-case here.
+What IS withheld is the code: only a PBKDF2 hash ships, so a page does not hand
+the key to the next person who opens it. Weak effort in the right place, none
+wasted in the wrong one.
+
+REDIRECT still seals its destination, and the asymmetry is the point: a
+plaintext destination is not a router, it is a list of links with an input box
+in front of it. A curtain has no such problem -- the destination is the page you
+are already standing on.
 """
 
 from __future__ import annotations
@@ -90,7 +78,7 @@ import secrets
 from pathlib import Path
 
 from . import state
-from .util import load_yaml, relative_url
+from .util import load_yaml
 
 ITERATIONS = 120_000
 
@@ -134,6 +122,14 @@ def _wrap(key: str, destination: str) -> dict | None:
     return {"s": _b64(salt), "n": _b64(nonce), "w": _b64(sealed)}
 
 
+def _as_list(value) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        return [str(v) for v in value if str(v).strip()]
+    return [str(value)] if str(value).strip() else []
+
+
 def _field(mode: str, payload: list, prompt: str) -> str:
     return (
         '<form class="dr-router" data-mode="' + mode + '"'
@@ -155,61 +151,66 @@ def _field(mode: str, payload: list, prompt: str) -> str:
 def on_page_content(html, page, config, files):
     meta = state.BY_SRC.get(page.file.src_uri, {})
     table_name = meta.get("router")
-    if not table_name:
-        return html
-
-    tables = _routes()
-    table = tables.get(str(table_name))
-    if not table:
-        state.note(
-            "missing_required",
-            page.file.src_uri + ": declares router '" + str(table_name)
-            + "', which is not in instances/" + str(state.INSTANCE.get("slug"))
-            + "/routes.yml. Known: " + (", ".join(sorted(tables)) or "none"),
-        )
+    local = _as_list(meta.get("router_code"))
+    if not table_name and not local:
         return html
 
     own_id = str(meta.get("id") or "")
+    depth = page.file.url.count("/")
+    prefix = "../" * depth
 
-    curtain: list[dict] = []
+    curtain: list[dict] = [_check(code) for code in local]
     redirects: list[dict] = []
 
-    for key, target in table.items():
-        target = str(target)
-        # Points at this very page -> curtain. See the module docstring.
-        if target == own_id:
-            curtain.append(_check(str(key)))
-            continue
-        hit = state.PAGES.get(target)
-        if not hit:
+    if table_name:
+        tables = _routes()
+        table = tables.get(str(table_name))
+        if table is None:
             state.note(
-                "dead_links",
-                page.file.src_uri + ": router '" + str(table_name) + "' has a key "
-                + "pointing at '" + target + "', which is not a page on this "
-                + "site. That key will never route anywhere.",
+                "missing_required",
+                page.file.src_uri + ": declares router '" + str(table_name)
+                + "', which is not in instances/"
+                + str(state.INSTANCE.get("slug")) + "/routes.yml. Known: "
+                + (", ".join(sorted(tables)) or "none"),
             )
-            continue
-        wrap = _wrap(str(key), relative_url(str(hit["url"]), page.file.url))
-        if wrap:
-            redirects.append(wrap)
+            table = {}
+        for key, target in (table or {}).items():
+            target = str(target)
+            if target == own_id:
+                curtain.append(_check(str(key)))
+                continue
+            hit = state.PAGES.get(target)
+            if not hit:
+                state.note(
+                    "dead_links",
+                    page.file.src_uri + ": router '" + str(table_name) + "' has a "
+                    + "key pointing at '" + target + "', which is not a page on "
+                    + "this site. That key will never route anywhere.",
+                )
+                continue
+            wrap = _wrap(str(key), prefix + str(hit["url"]))
+            if wrap:
+                redirects.append(wrap)
 
     if not curtain and not redirects:
         state.note(
             "notes",
-            page.file.src_uri + ": router '" + str(table_name) + "' produced no "
-            + "working routes, so no field is rendered.",
+            page.file.src_uri + ": a router is declared but produced no working "
+            + "keys, so no field is rendered.",
         )
         return html
 
     prompt = str(meta.get("router_prompt") or "Enter your code")
     mode = "curtain" if curtain else "redirect"
+    source = "local" if local and not table_name else (
+        "remote" if table_name and not local else "local+remote"
+    )
     state.note(
         "routers",
-        page.file.src_uri + " · " + str(table_name) + " · " + mode
-        + " · " + str(len(curtain) + len(redirects)) + " keys",
+        page.file.src_uri + " · " + mode + " · " + source + " · "
+        + str(len(curtain) + len(redirects)) + " keys",
     )
 
-    # Shuffled so source order says nothing about which key is which.
     rng = secrets.SystemRandom()
     rng.shuffle(curtain)
     rng.shuffle(redirects)
@@ -217,15 +218,15 @@ def on_page_content(html, page, config, files):
     if not curtain:
         return html + _field("redirect", redirects, prompt)
 
-    # CURTAIN. The body is held behind the `hidden` attribute rather than a CSS
-    # class, so it is withheld even before any stylesheet loads -- no flash of
+    # CURTAIN. The body is held behind the `hidden` ATTRIBUTE rather than a CSS
+    # class, so it is withheld before any stylesheet loads -- no flash of
     # content on a slow connection.
     #
-    # The <noscript> block REVEALS it and removes the field. That is correct
-    # rather than a compromise: this is a pause, not a lock, so a reader with
-    # no JavaScript should get the document instead of an input box that can
-    # never work. `!important` in an author sheet beats the `hidden` attribute's
-    # user-agent rule, which is the only reason this works at all.
+    # The <noscript> block reveals it and removes the field. Correct rather than
+    # a compromise: this is a pause, not a lock, so a reader without JavaScript
+    # should get the document instead of an input box that can never work.
+    # `!important` in an author sheet beats the `hidden` attribute's user-agent
+    # rule, which is the only reason that works.
     return (
         _field("curtain", curtain + redirects, prompt)
         + "<noscript><style>"
