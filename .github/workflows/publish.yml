@@ -1,0 +1,143 @@
+name: Publish a site
+
+# ⭐ THE PUBLISH BUTTON.
+#
+# Pick a site, choose Preview or Publish, run it. That is the whole interface,
+# and it is deliberately a different thing from build.yml.
+#
+#   build.yml    fires on every engine change and rebuilds EVERYTHING. It is
+#                the engine's own regression check: did my change break a site.
+#   publish.yml  is the editorial act. ONE site, on purpose, when its content
+#                is ready. It is the closest thing this family has to 'make
+#                this public', and it is a decision rather than a side effect.
+#
+# WHY IT IS NOT AUTOMATIC ON CONTENT PUSH. A content repo holds no workflow --
+# that is the purity rule, and it is what keeps the green Download ZIP clean.
+# The cost is that saving a file does not publish it. That cost turns out to be
+# a feature here: an unfinished page can sit in `main` for a week without a
+# reader ever seeing it, and going live is something somebody chooses.
+#
+# PREVIEW MODE renders the site, diffs it against what is actually being
+# served, prints new / disappearing / renamed pages to the run summary, and
+# deploys NOTHING. Run it before every publish. It is the answer to 'what is
+# about to change that I have forgotten about'.
+
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: Which site
+        required: true
+        type: choice
+        options:
+          - uritp
+          - theatre
+          - template
+      mode:
+        description: Preview shows the diff and deploys nothing
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - publish
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    name: ${{ inputs.site }} (${{ inputs.mode }})
+    steps:
+      - name: Resolve the site
+        id: site
+        run: |
+          case "${{ inputs.site }}" in
+            uritp)    echo "repo=mawizorek/uritp-docs"    >> "$GITHUB_OUTPUT" ;;
+            theatre)  echo "repo=mawizorek/theatre-docs"  >> "$GITHUB_OUTPUT" ;;
+            template) echo "repo=mawizorek/template-docs" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::unknown site ${{ inputs.site }}"; exit 1 ;;
+          esac
+
+      - name: Check out the engine
+        uses: actions/checkout@v4
+        with:
+          path: engine
+
+      - name: Check out the content
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.site.outputs.repo }}
+          path: content
+          fetch-depth: 2
+
+      - name: Confirm the instance agrees with the repo
+        working-directory: engine
+        run: |
+          declared=$(python3 -c "import yaml; print(yaml.safe_load(open('instances/${{ inputs.site }}/site.yml'))['content_repo'])")
+          if [ "$declared" != "${{ steps.site.outputs.repo }}" ]; then
+            echo "::error::this workflow says ${{ steps.site.outputs.repo }}, site.yml says $declared."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: engine/requirements.txt
+
+      - name: Install the renderer
+        working-directory: engine
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Render and report
+        working-directory: engine
+        env:
+          DOCRENDER_INSTANCE: ${{ inputs.site }}
+          DOCRENDER_CONTENT: ${{ github.workspace }}/content
+          DOCRENDER_OUTPUT: ${{ github.workspace }}/site
+          DOCRENDER_ENGINE_REF: ${{ github.sha }}
+          DOCRENDER_DRY_RUN: ${{ inputs.mode == 'preview' && '1' || '0' }}
+        run: |
+          # Exported inline: $GITHUB_ENV only reaches LATER steps, so setting
+          # these and running mkdocs in the same step would leave the build
+          # stamp reading `unstamped`.
+          cd "${{ github.workspace }}/content"
+          export DOCRENDER_COMMIT_SHA="$(git rev-parse HEAD)"
+          export DOCRENDER_COMMIT_SUBJECT="$(git log -1 --pretty=%s)"
+          cd "${{ github.workspace }}/engine"
+          mkdocs build --config-file mkdocs.yml
+
+      - name: Deploy
+        if: inputs.mode == 'publish' && inputs.site != 'template'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.DOCRENDER_TOKEN }}
+          external_repository: ${{ steps.site.outputs.repo }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          enable_jekyll: false
+          commit_message: "publish: ${{ inputs.site }} from engine ${{ github.sha }}"
+
+      - name: What happens next
+        if: always()
+        run: |
+          {
+            echo ""
+            echo "---"
+            if [ "${{ inputs.mode }}" = "preview" ]; then
+              echo "**Nothing was deployed.** This was a preview. Run again with"
+              echo "mode \`publish\` to push the diff above to the live site."
+            elif [ "${{ inputs.site }}" = "template" ]; then
+              echo "**Nothing was deployed from here.** The template publishes"
+              echo "from \`publish-default.yml\` to this repo's own Pages."
+            else
+              echo "**Published.** Live in about a minute at the URL above."
+              echo "The footer stamp on the site is how you confirm it landed:"
+              echo "if it does not name this run, the deploy did not take."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
