@@ -1,14 +1,19 @@
 # Base renderer config. Deliberately almost empty of identity.
 #
-# Everything that says WHICH SITE this is -- name, URL, repo, palette, section
-# titles -- is absent here and arrives from instances/<slug>/site.yml at build
-# time, applied by hooks/00_instance.py. A hardcoded site name in this file is
-# the design failing, and hooks/08 fails the build if one appears.
+# Everything that says WHICH SITE this is -- name, URL, palette, section titles
+# -- is absent here and arrives from instances/<slug>/site.yml at build time,
+# applied by hooks/00_instance.py. A hardcoded site name in this file is the
+# design failing, and hooks/08 fails the build if one appears.
 #
 # The content tree is checked out separately and pointed at by
 # DOCRENDER_CONTENT. It holds markdown, plus data files a page explicitly
 # declares -- and nothing else. No nav file, no template, no stylesheet, no
 # config. See docrender/datatable.py for why data is content and config is not.
+#
+# 🚫 NO `repo_url`. Setting it plants a repository widget in the header with
+# the owner, name and star count. These are reference documents, not a project
+# recruiting contributors. The foot-of-page edit link is composed independently
+# in docrender/pagefoot.py and switched per site with `edit_links:`.
 
 site_name: docrender
 site_url: https://example.invalid/
@@ -38,6 +43,11 @@ theme:
   name: material
   features:
     - navigation.sections
+    # A folder's index.md BECOMES the folder's landing page instead of sitting
+    # inside it as a duplicate entry. Without this, `venues/spac/index.md`
+    # renders as a section called Spac containing a page with the same title,
+    # and the sidebar says everything twice.
+    - navigation.indexes
     - navigation.top
     - navigation.footer
     - search.suggest
