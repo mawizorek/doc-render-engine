@@ -11,8 +11,7 @@ name: Publish the default site
 # The gold standard has to be LIVE, because that is the entire premise: a
 # written specification rots, an executable one cannot. So the default instance
 # publishes to THIS repository's own Pages, which the built-in GITHUB_TOKEN can
-# do with no secret and no human setup at all. If this URL is up and correct,
-# the contract is true today.
+# do with no secret. If this URL is up and correct, the contract is true today.
 #
 # Real sites keep using build.yml, because they must live at their own address
 # under their own name. The template does not need a pretty address; it needs
@@ -73,12 +72,26 @@ jobs:
           fetch-depth: 2
 
       - name: Configure Pages
-        # enablement turns Pages on via the API on the first run, so this repo
-        # needs no click in Settings before its own site exists.
+        # ⚠️ `enablement: true` WAS SET HERE AND CANNOT WORK. Removed 2026-08-03
+        # after it failed with:
+        #
+        #     Create Pages site failed. Error: Resource not accessible by
+        #     integration
+        #
+        # `permissions: pages: write` grants the right to DEPLOY to a Pages site
+        # that already exists. CREATING one is an administration-scoped call,
+        # and the built-in GITHUB_TOKEN does not carry that on a personal repo
+        # no matter what the workflow asks for. The flag is not a shortcut past
+        # the setup click; it is a request that gets refused.
+        #
+        # So Pages must be turned on ONCE, by hand:
+        #     Settings -> Pages -> Build and deployment -> Source: GitHub Actions
+        # After that this step finds the site and reports its address below.
+        #
+        # If this step fails with `Get Pages site failed: Not Found`, that click
+        # has not happened yet. It is a setup gap, not a build failure.
         id: pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/setup-python@v5
         with:
