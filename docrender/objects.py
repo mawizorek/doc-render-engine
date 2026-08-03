@@ -17,29 +17,32 @@ plainly:
 
 This is FileMaker thinking pointed at a static site. _base.yml is the parent
 table, each type file is a table occurrence, requires/optional are the field
-list, layout is the layout, and a page's frontmatter block is the record. That
-correspondence is intentional: the repo objects are deliberately modelled after
-FMP structure so the two runtimes share one vocabulary.
+list, layout is the layout, and a page's frontmatter block is the record.
 
 Runs FIRST, before visibility, deliberately: a page with a broken declaration
-is broken whether or not it happens to be hidden today. Catching it only when
-someone publishes is catching it at the worst possible moment.
+is broken whether or not it happens to be hidden today.
 
 FAILURE POSTURE: warn, never die. v1 built with --strict and on 2026-08-01 a
 single typo froze the entire live site twice in forty minutes while Pages
 cheerfully kept serving a stale commit. Broken things get reported and render
-as visible markers; the deploy continues. A site that stops updating silently
-is worse than a site with one ugly page on it.
+as visible markers; the deploy continues.
 
-⚠️ THE ONE EXCEPTION TO "WARN QUIETLY": a DUPLICATE frontmatter key is reported
-as a real problem with its winner named, because YAML resolves it silently and
-the author cannot see what happened. See util.duplicate_keys.
+⚠️ DUPLICATE FRONTMATTER KEYS ARE REPORTED FIRST, and the ordering is the
+point. YAML resolves a duplicate silently by keeping the LAST value, so
+
+    status: public
+    status: routed
+
+leaves the page on `status: routed`, which is not a real state, so the page is
+not built and does not appear anywhere. Reporting only "status is 'routed'"
+sends the author hunting for a typo they cannot see. Naming the duplicate first
+points at the actual cause. Cost a real debugging round on 2026-08-03.
 """
 
 from __future__ import annotations
 
 from . import state
-from .util import read_frontmatter, slug_title
+from .util import read_frontmatter_checked, slug_title
 
 VALID_STATUS = {"hidden", "unlisted", "gated", "public"}
 
@@ -70,27 +73,21 @@ def on_files(files, config):
     seen_ids: dict[str, str] = {}
 
     for f in files.documentation_pages():
-        meta = read_frontmatter(f.abs_src_path)
+        meta, dupes = read_frontmatter_checked(f.abs_src_path)
         state.BY_SRC[f.src_uri] = meta
 
-        # DUPLICATE KEYS FIRST, because a duplicate is usually the REASON a
-        # later complaint exists. Reporting "status is 'routed'" without saying
-        # there were two status lines sends the author looking in the wrong
-        # place -- which is exactly what happened on 2026-08-03.
-        for key in meta.get("_dupes") or []:
+        # DUPLICATES FIRST: a duplicate is usually the REASON a later complaint
+        # exists, so it has to be named before the symptom it caused.
+        for key in dupes:
             state.note(
                 "duplicate_key",
-                f.src_uri + ": `" + key + ":` appears more than once in the "
-                + "frontmatter. YAML keeps the LAST one silently, so this page "
-                + "is using `" + key + ": " + str(meta.get(key)) + "`. Delete "
-                + "the line you did not mean.",
+                f.src_uri + ": `" + key + ":` appears more than once. YAML keeps "
+                + "the LAST one silently, so this page is using `" + key + ": "
+                + str(meta.get(key)) + "`. Delete the line you did not mean.",
             )
 
         status = meta.get("status")
         if status not in VALID_STATUS:
-            # The single most valuable rule in the contract, inherited from v1:
-            # no status means the page does not publish. Nothing reaches the
-            # public web because somebody forgot a line.
             detail = (
                 "is '" + str(status) + "', not one of " + str(sorted(VALID_STATUS))
                 if status else "is missing"
@@ -183,9 +180,9 @@ def on_page_markdown(markdown, page, config, files):
         callout_if_missing: [a]    a visible note naming what is not known yet
 
     The second is the quiet one that earns its place. A venue page missing its
-    grid height currently looks identical to a venue that genuinely has no
-    grid. Saying 'this is not documented yet' out loud turns a silent gap into
-    a visible one, which is the only way it ever gets filled.
+    grid height looks identical to a venue that genuinely has no grid. Saying
+    'this is not documented yet' out loud turns a silent gap into a visible one,
+    which is the only way it ever gets filled.
     """
     meta = state.BY_SRC.get(page.file.src_uri, {})
     spec = meta.get("_spec") or {}
