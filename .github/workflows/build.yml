@@ -65,6 +65,9 @@ jobs:
           - instance: theatre
             repo: mawizorek/theatre-docs
             publisher: matrix
+          - instance: hml
+            repo: mawizorek/hml-docs
+            publisher: matrix
     name: ${{ matrix.instance }}
     env:
       # A secret cannot be read inside an `if:`, so its presence is resolved

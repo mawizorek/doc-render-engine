@@ -1,0 +1,13 @@
+# ROUTE TABLES for this site. Empty, and it should stay that way until there is
+# a real reason for one.
+#
+# A page opts in with `router: <table>` in its frontmatter. Keys live here, in
+# the ENGINE, because the content repo is public and has a Download ZIP button
+# that would ship them alongside the documents.
+#
+# ⚠️ NOT SECURITY, and on THIS site that warning carries more weight than it
+# does on the others. A router does not know where to send someone who types
+# the wrong key; it does not stop them reaching the page another way. Nothing
+# that would matter to a stranger belongs on this site in the first place --
+# see section 2 of the content repo's README. A router is not the exception to
+# that rule.
