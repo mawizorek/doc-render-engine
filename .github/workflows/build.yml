@@ -13,6 +13,12 @@ name: Build and deploy doc sites
 #
 # fail-fast is off on purpose. These sites have separate audiences and must
 # fail separately; one broken build must never take the others down with it.
+#
+# NOTE ON THE DEFAULT INSTANCE: `template` is rendered here as a build check
+# only. It PUBLISHES from publish-default.yml, to this repository's own Pages,
+# so that the gold standard is live with no secret and no human setup. Do not
+# add a second publish path for it here; two publishers for one site is how a
+# site starts disagreeing with itself.
 
 on:
   push:
@@ -45,7 +51,12 @@ jobs:
         include:
           - instance: template
             repo: maw-agents/template-docs
+            publishes_here: false
     name: ${{ matrix.instance }}
+    env:
+      # secrets cannot be read inside an `if:` directly, so the presence of the
+      # deploy token is resolved once, here, into something a step can test.
+      HAS_DEPLOY_TOKEN: ${{ secrets.DOCRENDER_TOKEN != '' }}
     steps:
       - name: Check out the engine
         uses: actions/checkout@v4
@@ -101,7 +112,14 @@ jobs:
           mkdocs build --config-file mkdocs.yml
 
       - name: Deploy to the content repo's gh-pages
-        if: github.event_name != 'pull_request'
+        # Three conditions, and each one is a real thing that goes wrong:
+        #  - no PAT yet, so the write would fail with a confusing 404
+        #  - the default instance publishes elsewhere (see the header note)
+        #  - a PR must never publish
+        if: >-
+          env.HAS_DEPLOY_TOKEN == 'true'
+          && matrix.publishes_here == false
+          && github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@v4
         with:
           # A fine-grained PAT with Contents: write on every content repo.
@@ -113,3 +131,17 @@ jobs:
           publish_dir: ./site
           enable_jekyll: false
           commit_message: "render: ${{ matrix.instance }} from engine ${{ github.sha }}"
+
+      - name: Say why nothing was published
+        # Silence is the enemy here. A green build that published nothing looks
+        # exactly like a green build that published everything.
+        if: env.HAS_DEPLOY_TOKEN != 'true'
+        run: |
+          {
+            echo "### ${{ matrix.instance }}: rendered, not published"
+            echo
+            echo "\`DOCRENDER_TOKEN\` is not set on this repository, so the"
+            echo "cross-repo write to \`${{ matrix.repo }}\` was skipped."
+            echo "The render itself succeeded: this is a setup gap, not a build"
+            echo "failure. See README section 6."
+          } >> "$GITHUB_STEP_SUMMARY"
