@@ -12,13 +12,14 @@ The way out is the `on_files` event: append File objects whose source is
 somewhere else entirely -- here the engine's own assets/ and the instance's
 folder. MkDocs treats them as ordinary site files from that point on.
 
-About fifty lines, and the content repo stays pure permanently. A content repo
+About sixty lines, and the content repo stays pure permanently. A content repo
 can be zipped with the green button and contain nothing but documents, which
 was the entire origin of this redesign.
 
-SCRIPTS ARE ONLY PUBLISHED WHEN A PAGE ACTUALLY USES THEM. `router.js` ships
-only if some page on this site declares a router. A site with no routers
-should not carry the crypto for one, and a reader should not download it.
+⭐ FEATURE ASSETS ARE PUBLISHED ONLY WHERE THE FEATURE IS USED. The router's
+CSS and JS ship only if some page on this site declares a router. A site with
+no routers should not carry the crypto for one, a reader should not download
+it, and base.css should not grow a section that most sites scroll past.
 """
 
 from __future__ import annotations
@@ -37,12 +38,17 @@ def _uses_router() -> bool:
 def on_config(config):
     """Register the URLs. The files themselves arrive in on_files.
 
-    Order is deliberate: base, then generated tokens, then the instance sheet
-    last, so a site always has the final word on its own look.
+    Order is deliberate: base, then generated tokens, then any feature sheet,
+    then the instance sheet LAST, so a site always has the final word on its
+    own look.
     """
     for name in ("assets/base.css", "assets/_tokens.css"):
         if name not in config.extra_css:
             config.extra_css.append(name)
+
+    if _uses_router() and "assets/router.css" not in config.extra_css:
+        config.extra_css.append("assets/router.css")
+
     if (Path(state.INSTANCE.get("dir", ".")) / "theme.css").is_file():
         if "assets/site.css" not in config.extra_css:
             config.extra_css.append("assets/site.css")
@@ -68,12 +74,14 @@ def on_files(files, config):
         config, "assets/_tokens.css", content=theme.build_css()
     ))
 
+    if _uses_router():
+        _adopt(files, config, state.ENGINE_ROOT / "assets" / "router.css",
+               "assets/router.css")
+        _adopt(files, config, state.ENGINE_ROOT / "assets" / "router.js",
+               "assets/router.js")
+
     _adopt(files, config,
            Path(state.INSTANCE.get("dir", ".")) / "theme.css",
            "assets/site.css")
-
-    if _uses_router():
-        _adopt(files, config, state.ENGINE_ROOT / "assets" / "router.js",
-               "assets/router.js")
 
     return files

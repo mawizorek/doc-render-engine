@@ -1,0 +1,77 @@
+/* Router styling. Published ONLY to a site that has a router (see
+ * docrender/assets.py) -- a site with no routers should not carry the CSS for
+ * one, same reasoning as its JS.
+ *
+ * Kept out of base.css deliberately. base.css is 12KB and read whole every
+ * time somebody edits it; a feature that most sites never use does not belong
+ * in the file everything else has to scroll past.
+ *
+ * DESIGN NOTE. It is styled as an ordinary form, not as a lock screen. No
+ * padlock, no red, no "restricted". The thing does not restrict anything --
+ * it routes -- and dressing it as security is how a reader comes to trust it
+ * as security. Full reasoning in docrender/router.py.
+ */
+
+.dr-router {
+  margin: 2rem 0;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--dr-rule);
+  border-radius: 4px;
+  background: var(--dr-surface-raised);
+  max-width: 26rem;
+}
+
+.dr-router__label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--dr-ink-muted);
+}
+
+.dr-router__row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dr-router__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--dr-rule);
+  border-radius: 3px;
+  background: var(--dr-surface);
+  color: var(--dr-ink);
+  font-family: var(--dr-font-mono);
+  font-size: 0.9rem;
+}
+.dr-router__input:focus {
+  outline: 2px solid var(--dr-accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.dr-router__btn {
+  flex: 0 0 auto;
+  padding: 0.45rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: var(--dr-accent);
+  color: var(--dr-surface);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dr-router__btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Deliberately understated. A wrong code is the expected case for anybody who
+ * was not given one, and shouting at them serves nothing. */
+.dr-router__error {
+  margin: 0.6rem 0 0;
+  font-size: 0.82rem;
+  color: var(--dr-ink-muted);
+}
