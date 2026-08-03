@@ -3,31 +3,36 @@
 Answers one question from any page without opening Actions: is what I am
 looking at the latest push?
 
-This matters more than it sounds. When a build fails, GitHub Pages keeps
+That matters more than it sounds. When a build fails, GitHub Pages keeps
 serving the previous commit with no banner and no error page. The site simply
 stops changing. There is no other signal that has happened, which is why this
-hook exists at all and why it runs on every page rather than on one status
-page nobody visits.
+exists at all and why it runs on every page rather than on a status page
+nobody visits.
 
-Renders the PR number, parsed from the head commit SUBJECT passed in by the
-workflow:
+WHAT IS VISIBLE, and it is deliberately almost nothing:
 
-    squash merge   'fix: repair the venue links (#16)'        -> PR #16
-    merge commit   'Merge pull request #16 from owner/x'      -> PR #16
-    direct push    'Update main-stage.md'                     -> short SHA
+    URITP Production Resources · PR #12
 
-The SHA fallback is load-bearing, not a nicety: most edits to a content repo
-are made from the GitHub UI edit pencil and never see a branch, so a stamp that
-could only render a PR number would be blank most of the time.
+The deploy time, the engine version and the commit hash all live in the `title`
+attribute. A designer looking up a grid height does not need a clock or a
+forty-character hash, and the three or four times a year somebody debugs a
+frozen deploy, a hover or a view-source recovers everything.
 
-Only the subject line is read. A commit body that happens to mention another
-issue number must not win.
+⚠️ NOT A LINK ANY MORE (2026-08-03). It used to link to the PR. The rendered
+site no longer advertises its repository at all -- the header widget went for
+the same reason -- so the stamp names the PR without offering a door to it.
 
-Deploy time lives in the `title` attribute, not the visible text (v1, reversed
-2026-08-01 by Michael: 'footer should just say pr# and not date and time'). A
-designer looking up a grid height does not need a clock. Hover or view-source
-still recovers it, which is enough for the two or three people who ever need
-to diagnose a frozen deploy.
+The number is parsed from the head commit SUBJECT:
+
+    squash merge   'fix: repair the venue links (#16)'   -> PR #16
+    direct push    'Update main-stage.md'                -> short SHA
+
+The SHA fallback is load-bearing: most edits to a content repo are made from
+the GitHub UI and never see a branch, so a stamp that could only render a PR
+number would be blank most of the time.
+
+Only the subject line is read. A commit body that mentions another issue number
+must not win.
 """
 
 from __future__ import annotations
@@ -42,38 +47,33 @@ _PR = re.compile(r"#(\d+)")
 
 
 def on_config(config):
-    repo = state.INSTANCE.get("content_repo", "")
-    base = "https://github.com/" + repo if repo else ""
-
     subject = os.environ.get("DOCRENDER_COMMIT_SUBJECT", "").strip().splitlines()
     found = _PR.findall(subject[0]) if subject else []
     sha = os.environ.get("DOCRENDER_COMMIT_SHA", "")
 
-    if found and base:
-        source = '<a href="' + base + "/pull/" + found[-1] + '">PR #' + found[-1] + "</a>"
-    elif sha and base:
-        source = '<a href="' + base + "/commit/" + sha + '">' + sha[:7] + "</a>"
+    if found:
+        label = "PR #" + found[-1]
     elif sha:
-        source = sha[:7]
+        label = sha[:7]
     else:
-        source = "local"
+        # A local build, or the workflow failed to pass the commit through.
+        # Said plainly rather than dressed up: a stamp that lies about being a
+        # deploy is worse than one that admits it does not know.
+        label = "unstamped"
 
     # Runners are UTC. Stamp Eastern so the number means something to a human
     # in Rochester rather than needing mental arithmetic at 4am.
     eastern = datetime.timezone(datetime.timedelta(hours=-4))
     when = datetime.datetime.now(datetime.timezone.utc).astimezone(eastern)
-    stamp = when.strftime("%d %b %Y, %H:%M ET")
 
+    detail = "Deployed " + when.strftime("%d %b %Y, %H:%M ET")
     engine = os.environ.get("DOCRENDER_ENGINE_REF", "")
-    engine_bit = " &middot; engine " + engine if engine else ""
+    if engine:
+        detail += " · engine " + engine[:7]
+    if sha:
+        detail += " · content " + sha[:7]
 
     config.copyright = (
-        (config.copyright or "")
-        + ' &middot; <span class="buildstamp" title="Deployed '
-        + stamp
-        + '">'
-        + source
-        + "</span>"
-        + engine_bit
+        '<span class="buildstamp" title="' + detail + '">' + label + "</span>"
     )
     return config

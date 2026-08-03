@@ -1,8 +1,7 @@
 """Hook 00 -- become this site.
 
 The engine starts every build as nobody. This reads instances/<slug>/site.yml
-and applies it: name, URL, source repo, edit target, palette, section titles
-and order.
+and applies it: name, URL, edit target, palette, section titles and order.
 
 This file is what makes "one app, many sites" literally true rather than
 aspirational. There is exactly one place a site's identity enters a build, and
@@ -15,6 +14,19 @@ comes from `theme.palette`, not from CSS custom properties. Setting
 colour schemes at once, and silently breaks the dark toggle. So chrome is
 config and only finer detail is CSS. That split is not cosmetic and it cost
 real time to learn the first time.
+
+🚫 THE SITE NEVER ADVERTISES ITS REPOSITORY (LOCKED 2026-08-03, Michael).
+`repo_url` is deliberately NOT set. Setting it makes Material render a repo
+widget in the header with the owner/name and a star count, and these are
+reference documents for designers and guest artists -- not a project asking
+for contributors. A reader looking up a grid height should never be invited to
+fork anything.
+
+The consequence is that `page.edit_url`, which MkDocs derives from `repo_url`,
+is empty. That is handled where it belongs: pagefoot.py builds the edit link
+itself from `content_repo`, so the one quiet line at the foot survives while
+the header stays clean. The two used to be the same switch; they are not any
+more, which is the entire point of the change.
 """
 
 from __future__ import annotations
@@ -65,9 +77,6 @@ def on_config(config):
     # into doc-index.json, which is the one file every SIBLING site reads to
     # resolve cross-site links, so a stale value sends other people's readers
     # somewhere that does not exist.
-    #
-    # The publishing path knows its own address, so it passes it in. site.yml
-    # keeps the canonical one for humans reading the config.
     override = os.environ.get("DOCRENDER_BASE_URL", "").strip()
     if override:
         inst["base_url"] = override
@@ -85,11 +94,9 @@ def on_config(config):
     if inst.get("base_url"):
         config.site_url = inst["base_url"]
 
-    repo = inst.get("content_repo")
-    if repo:
-        config.repo_url = f"https://github.com/{repo}"
-        config.repo_name = repo
-        config.edit_uri = f"edit/{inst.get('content_branch', 'main')}/"
+    # 🚫 repo_url / repo_name / edit_uri are NOT set. See the module docstring.
+    # If you set them to "fix" the edit link, you also put the repo widget back
+    # in the header, which is the thing that was explicitly removed.
 
     palette = inst.get("palette") or {}
     for scheme in (config.theme.get("palette") or []):
@@ -104,17 +111,37 @@ def on_config(config):
     return config
 
 
+def _index_of(section):
+    """The index page inside a section, if it has one."""
+    for child in getattr(section, "children", None) or []:
+        if getattr(child, "is_page", False) and child.file.name == "index":
+            return child
+    return None
+
+
 def on_nav(nav, config, files):
-    """Order the sidebar from frontmatter and instance config.
+    """Order the sidebar, and let a folder be named by the page inside it.
 
-    Nav order is the hardest problem a pure content repo has: the usual answer
-    is a manifest inside the content tree, which is precisely what the content
-    tree may not contain. So order comes from the two places allowed to hold it
-    -- a page's own `order:` frontmatter, and the instance's `sections:` block,
-    which lives with the app.
+    Two problems solved here, and the second is the one that shows.
 
-    Unranked items sort after ranked ones, alphabetically, so a brand new page
-    always lands somewhere sane rather than at a random position.
+    ORDER. A pure content repo cannot hold a nav manifest -- that is machinery,
+    and machinery is what the content tree may not contain. So order comes from
+    the two places allowed to hold it: a page's own `order:` frontmatter, and
+    the instance's `sections:` block, which lives with the app. Unranked items
+    sort after ranked ones, alphabetically, so a new page always lands
+    somewhere sane rather than at a random position.
+
+    TITLES. MkDocs names a folder after the FOLDER, so `venues/spac/` shows up
+    in the sidebar as "Spac" even though the page inside it is called Swan
+    Auditorium. That is not a cosmetic mismatch: the sidebar and the page
+    disagree about what a place is called, and the reader has to work out that
+    they are the same thing. So a section takes the title of its own index
+    page, when it has one. Failing that, the instance can name it. Failing
+    that, the folder slug is prettified as a last resort.
+
+    The precedence is deliberate: the CONTENT names itself first, config only
+    covers folders with no index page, and the folder name is the fallback
+    nobody should have to rely on.
     """
     sections = {k.lower(): v for k, v in (state.INSTANCE.get("sections") or {}).items()}
 
@@ -126,20 +153,42 @@ def on_nav(nav, config, files):
             order = meta.get("order")
             title = meta.get("title") or item.title or ""
             return (order if isinstance(order, int) else 10_000, str(title).lower())
-        key = (getattr(item, "title", "") or "").lower()
-        return ((sections.get(key) or {}).get("order", 10_000), key)
+
+        # A section sorts by its config entry, or by its index page's `order:`.
+        key = (getattr(item, "_dr_slug", "") or getattr(item, "title", "") or "").lower()
+        cfg = sections.get(key) or {}
+        if "order" in cfg:
+            return (cfg["order"], key)
+        index = _index_of(item)
+        if index is not None:
+            order = state.BY_SRC.get(index.file.src_uri, {}).get("order")
+            if isinstance(order, int):
+                return (order, key)
+        return (10_000, key)
 
     def walk(items):
         for item in items:
-            if getattr(item, "is_section", False):
-                cfg = sections.get((item.title or "").lower()) or {}
-                if getattr(item, "children", None):
-                    walk(item.children)
-                    item.children.sort(key=rank)
-                if cfg.get("title"):
-                    item.title = cfg["title"]
-                elif item.title:
-                    item.title = slug_title(item.title)
+            if not getattr(item, "is_section", False):
+                continue
+
+            # Remember the folder name before renaming, so config lookups and
+            # sorting keep working against a stable key.
+            slug = (item.title or "").lower()
+            item._dr_slug = slug
+
+            if getattr(item, "children", None):
+                walk(item.children)
+                item.children.sort(key=rank)
+
+            index = _index_of(item)
+            cfg = sections.get(slug) or {}
+            if index is not None:
+                meta = state.BY_SRC.get(index.file.src_uri, {})
+                item.title = meta.get("title") or index.title or slug_title(slug)
+            elif cfg.get("title"):
+                item.title = cfg["title"]
+            elif item.title:
+                item.title = slug_title(item.title)
 
     walk(nav.items)
     nav.items.sort(key=rank)

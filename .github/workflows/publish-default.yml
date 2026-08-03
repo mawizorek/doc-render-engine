@@ -116,13 +116,13 @@ jobs:
           # for this build only -- see the CONSEQUENCE note at the top.
           DOCRENDER_BASE_URL: ${{ steps.pages.outputs.base_url }}
         run: |
+          # ⚠️ EXPORTED INLINE, NOT VIA $GITHUB_ENV. Writing to $GITHUB_ENV only
+          # affects LATER steps, never the step doing the writing -- so the
+          # original version set these and then ran mkdocs in the same step
+          # without them, and every page shipped stamped `local`.
           cd "${{ github.workspace }}/content"
-          echo "DOCRENDER_COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-          {
-            echo "DOCRENDER_COMMIT_SUBJECT<<EOF"
-            git log -1 --pretty=%s
-            echo "EOF"
-          } >> "$GITHUB_ENV"
+          export DOCRENDER_COMMIT_SHA="$(git rev-parse HEAD)"
+          export DOCRENDER_COMMIT_SUBJECT="$(git log -1 --pretty=%s)"
           cd "${{ github.workspace }}/engine"
           mkdocs build --config-file mkdocs.yml
 
