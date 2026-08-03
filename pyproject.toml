@@ -3,9 +3,17 @@ name = "docrender"
 version = "0.1.0"
 description = "Standalone markdown doc-site renderer. One app, many instances."
 requires-python = ">=3.11"
+
+# ⚠️ Keep these bounds in step with requirements.txt, and read the long note
+# there before touching the mkdocs pin. Short version: MkDocs 2.0 removes the
+# plugin system this engine is entirely built out of, and Material declares
+# mkdocs as a dependency, so an unbounded mkdocs here lets pip pull 2.0 in
+# underneath a correctly pinned Material and break every build.
 dependencies = [
+  "mkdocs>=1.6,<2",
   "mkdocs-material>=9.7,<10",
   "PyYAML>=6",
+  "cryptography>=42",
 ]
 
 [build-system]
