@@ -122,13 +122,15 @@ jobs:
           DOCRENDER_OUTPUT: ${{ github.workspace }}/site
           DOCRENDER_ENGINE_REF: ${{ github.sha }}
         run: |
+          # ⚠️ EXPORTED INLINE, NOT VIA $GITHUB_ENV. Writing to $GITHUB_ENV only
+          # affects LATER steps, never the step doing the writing -- so the
+          # original version set these and then ran mkdocs in the same step
+          # without them. Every page shipped stamped `local`, which is exactly
+          # the "is this the latest push?" signal the stamp exists to give.
+          # Found on the first live build, 2026-08-03.
           cd "${{ github.workspace }}/content"
-          echo "DOCRENDER_COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-          {
-            echo "DOCRENDER_COMMIT_SUBJECT<<EOF"
-            git log -1 --pretty=%s
-            echo "EOF"
-          } >> "$GITHUB_ENV"
+          export DOCRENDER_COMMIT_SHA="$(git rev-parse HEAD)"
+          export DOCRENDER_COMMIT_SUBJECT="$(git log -1 --pretty=%s)"
           cd "${{ github.workspace }}/engine"
           mkdocs build --config-file mkdocs.yml
 
