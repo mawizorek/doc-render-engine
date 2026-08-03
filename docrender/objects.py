@@ -214,6 +214,12 @@ def _child_list(page, markdown: str) -> str:
     DIRECT CHILDREN ONLY: a file in this folder, or the landing page of a folder
     one level down. Anything deeper belongs to THAT index, and hoisting it here
     would flatten the tree the sidebar just spent a hook arranging.
+
+    THREE WAYS A PAGE STAYS OUT OF THIS LIST, and they are not the same lever:
+
+        status: unlisted   out of the sidebar, out of search, out of here
+        listed: false      IN the sidebar and search, out of here only
+        a link in the body it is filed already, so it is not a loose end
     """
     src = page.file.src_uri
     folder = src.rpartition("/")[0]
@@ -233,6 +239,11 @@ def _child_list(page, markdown: str) -> str:
 
         page_id = meta.get("id")
         if not page_id:
+            continue
+
+        # `is False` and not falsy: `listed: 0` is not a thing anybody means,
+        # and an absent key must not read as an opt out.
+        if meta.get("listed") is False:
             continue
 
         # state.PAGES is the PUBLISHED map: links.py fills it after visibility
@@ -261,6 +272,9 @@ def _child_list(page, markdown: str) -> str:
     # everybody notices.
     entries.sort()
 
+    # "Also" means YOUR PROSE ALREADY COVERED SOME OF THESE, so it is set only
+    # by a body link. A page that opted out with `listed: false` was never part
+    # of the set and must not change the wording.
     heading = "## Also in this section" if suppressed else "## In this section"
     lines = [heading, ""]
     for _, _, title, page_id in entries:
@@ -296,6 +310,10 @@ def _wants_children(meta: dict, renders: list) -> bool:
     something else -- a building whose rooms are files under it -- borrow the
     behaviour without lying about its type. `contents: false` is the opt out,
     and it wins, since a page saying no is the least ambiguous signal here.
+
+    Not to be confused with `listed:`, which is the other end of the same
+    relationship: `contents:` is a PARENT deciding whether to draw a list at
+    all, `listed:` is a CHILD deciding whether to appear in one.
     """
     contents = meta.get("contents")
     if contents is False:
