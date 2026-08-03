@@ -11,48 +11,42 @@ inbound link, because none of those things is what the link points at. Set
 CROSS-SITE, with the honest limit up front. Every site in the family publishes
 /doc-index.json at its root on every build. `@peer:id` resolves against the
 peer's index, fetched at BUILD time and cached to disk in the instance folder.
-If a sibling renames a page, our links stay wrong until we rebuild. A nightly
-scheduled build closes that gap to about a day; a repository_dispatch from a
-peer's own deploy closes it to minutes. That is as close to real-time as a
-static site gets without adding a server, and adding a server to a
-documentation archive is a bad trade.
+If a sibling renames a page, our links stay wrong until we rebuild.
 
 The cache is COMMITTED, not ignored. An unreachable peer then degrades to
 'last known good, marked stale' instead of taking our build down over somebody
 else's outage.
 
-⚠️ CODE IS NOT CONTENT (fixed 2026-08-03, first live build).
-Substitution SKIPS fenced blocks and inline code spans. Without that, the very
-page that teaches this syntax has its examples rewritten into the output it is
-trying to explain -- `[Main Stage](@main-stage)` was rendering as
-`[Main Stage](../../venues/example-house/main-stage/)` inside a code fence, so
-the authoring guide silently taught the wrong thing.
+⚠️ CODE IS NOT CONTENT. Substitution SKIPS fenced blocks and inline code spans.
+Without that, the very page that teaches this syntax has its examples rewritten
+into the output it is trying to explain.
 
 =============================================================================
-AN UNRESOLVED LINK FAILS QUIETLY (CHANGED 2026-08-03, Michael)
+WHAT A DEAD LINK LOOKS LIKE, and the distinction that took two tries
 =============================================================================
-It renders as PLAIN TEXT -- the label, unlinked, unstyled -- and lands in the
-build report. It does not get a strikethrough, a red colour, or a
-`[broken link]` badge.
+An unresolved reference renders as a `<span>`: red, struck through, carrying a
+`[broken link]` badge and a tooltip saying what was not found.
 
-The original loud marker was wrong, and the reasoning that produced it was
-wrong in an instructive way. The argument was "a dead link that looks alive is
-worse than a missing one," which is true for a READER of a finished site, and
-irrelevant to how these sites actually get built: a page routinely points at
-something not written yet, and every one of those became a red strikethrough
-shouting at a reader about a problem only the author can fix and only the
-author cares about.
+**It is NOT an anchor.** No href, no navigation, no pointer cursor, nothing to
+click. "Fail silently" means the link does not ACT -- it does not take a reader
+somewhere broken -- and it does NOT mean the failure is hidden. The visual
+marker is the point: it is a visible reference to a document that is coming,
+which is genuinely useful information on a site being written.
 
-So the audiences split. The AUTHOR needs to know, and gets it in the build
-report, which is where a build problem belongs. The READER gets a sentence
-that still reads as a sentence, with a phrase that simply is not a link yet.
+Briefly rendered as plain text (PR #12) on a misreading of "fail silently."
+That was wrong in both directions at once: it hid the fact from the reader AND
+erased the forward reference from the page. Reverted.
 
-The forward reference survives either way -- the text stays, the id stays in
-the source, and it becomes a live link the moment the target exists.
+Three audiences, three signals, all of them correct now:
+  * the READER sees a phrase marked as not-yet-a-document, and cannot click it
+    into a 404;
+  * the AUTHOR sees it on the page while writing;
+  * the BUILD reports every one of them in the report block.
 """
 
 from __future__ import annotations
 
+import html
 import json
 import re
 import urllib.request
@@ -60,15 +54,10 @@ from pathlib import Path
 
 from . import state
 
-# Captures the LABEL too, because an unresolved link now renders as that label
-# and nothing else. The old pattern started at `](` and could not see it.
 _LINK = re.compile(
     r"\[(?P<label>[^\]]*)\]\(@(?P<token>[A-Za-z0-9_.:-]+)(?P<anchor>#[A-Za-z0-9_-]+)?\)"
 )
 
-# Fenced blocks (``` or ~~~, any indent, any info string) and inline spans.
-# Ordered longest-first so a fence is never mistaken for an inline span that
-# happens to start with three backticks.
 _PROTECTED = re.compile(
     r"(?ms)^[ \t]*(?P<f>`{3,}|~{3,}).*?(?:^[ \t]*(?P=f)[ \t]*$|\Z)"
     r"|(?P<t>`+)(?:.|\n)*?(?P=t)"
@@ -81,13 +70,15 @@ def _cache_path() -> Path:
     return Path(state.INSTANCE.get("dir", ".")) / "xref-cache.json"
 
 
-def on_files(files, config):
-    """Build the local id map, then load the peers'.
+def _dead(label: str, reason: str) -> str:
+    """A span, deliberately. Marked as broken, impossible to click."""
+    return (
+        '<span class="docrender-dead" title="' + html.escape(reason, quote=True) + '">'
+        + html.escape(label) + "</span>"
+    )
 
-    Runs after visibility has pruned, so PAGES holds only pages that will
-    actually exist. A link can therefore never resolve to a 404 of our own
-    making, only to a page that was never written.
-    """
+
+def on_files(files, config):
     for f in files.documentation_pages():
         meta = state.BY_SRC.get(f.src_uri, {})
         page_id = meta.get("id")
@@ -114,36 +105,34 @@ def _load_peers() -> None:
         except (OSError, ValueError):
             cache = {}
 
-    peers = state.INSTANCE.get("peers") or {}
-    for slug, base in peers.items():
+    for slug, base in (state.INSTANCE.get("peers") or {}).items():
         url = str(base).rstrip("/") + "/doc-index.json"
         try:
             with urllib.request.urlopen(url, timeout=_TIMEOUT) as response:
                 data = json.loads(response.read().decode("utf-8"))
             cache[slug] = data
             state.PEERS[slug] = data
-        except Exception as exc:  # network, JSON, DNS -- all the same answer
+        except Exception as exc:
             if slug in cache:
                 state.PEERS[slug] = cache[slug]
-                built = cache[slug].get("built", "unknown")
                 state.note(
                     "stale_xref",
                     "peer '" + slug + "' unreachable (" + str(exc)
-                    + "); using cached index built " + str(built),
+                    + "); using cached index built "
+                    + str(cache[slug].get("built", "unknown")),
                 )
             else:
                 state.note(
                     "stale_xref",
                     "peer '" + slug + "' unreachable (" + str(exc)
                     + ") and no cache exists. Every @" + slug
-                    + ": link will render as plain text.",
+                    + ": reference will render as broken.",
                 )
 
     if state.PEERS:
         try:
             path.write_text(
-                json.dumps(cache, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
+                json.dumps(cache, indent=2, sort_keys=True) + "\n", encoding="utf-8"
             )
         except OSError:
             pass
@@ -157,43 +146,36 @@ def on_page_markdown(markdown, page, config, files):
         token = match.group("token")
         anchor = match.group("anchor") or ""
 
-        # Unresolved: hand back the label as ordinary prose. The sentence still
-        # reads; the author hears about it in the build report.
         if ":" in token:
             slug, _, foreign_id = token.partition(":")
             peer = state.PEERS.get(slug)
             if not peer:
                 state.note("dead_links", src + ": unknown peer site '" + slug + "'")
-                return label
-            hit = None
-            for candidate in peer.get("pages", []):
-                if candidate.get("id") == foreign_id:
-                    hit = candidate
-                    break
+                return _dead(label, "unknown peer site: " + slug)
+            hit = next(
+                (c for c in peer.get("pages", []) if c.get("id") == foreign_id), None
+            )
             if not hit:
                 state.note(
                     "dead_links",
                     src + ": '" + foreign_id + "' not found in peer '" + slug + "'",
                 )
-                return label
+                return _dead(label, "not found in " + slug + ": " + foreign_id)
             base = str(peer.get("base_url", "")).rstrip("/")
-            target = base + "/" + str(hit.get("url", "")) + anchor
-            return "[" + label + "](" + target + "){ .docrender-xref }"
+            return (
+                "[" + label + "](" + base + "/" + str(hit.get("url", "")) + anchor
+                + "){ .docrender-xref }"
+            )
 
         hit = state.PAGES.get(token)
         if not hit:
             state.note("dead_links", src + ": no page with id '" + token + "'")
-            return label
+            return _dead(label, "no page yet with id: " + token)
 
-        # Relative, so the site survives being served from a subpath, which is
-        # exactly what a project Pages URL is.
         depth = page.file.url.count("/")
         prefix = "../" * depth
         return "[" + label + "](" + prefix + str(hit.get("url", "")) + anchor + ")"
 
-    # Walk the gaps BETWEEN protected regions and substitute only there, so a
-    # code sample survives verbatim. Rebuilding from slices keeps every
-    # protected region byte-identical rather than round-tripping it.
     out = []
     cursor = 0
     for guard in _PROTECTED.finditer(markdown):
