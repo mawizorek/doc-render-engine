@@ -38,6 +38,11 @@ not built and does not appear anywhere. Reporting only "status is 'routed'"
 sends the author hunting for a typo they cannot see. Naming the duplicate first
 points at the actual cause. Cost a real debugging round on 2026-08-03.
 
+RENAMED KEYS ARE REPORTED FOR THE SAME REASON, in _LEGACY_KEYS below. A key
+this engine does not know is not an error to YAML and not an error to MkDocs; it
+is simply ignored, and the page silently goes back to its default behaviour.
+That is indistinguishable from the feature never having worked.
+
 GENERATED CONTENT GOES IN ONE OF TWO PLACES, and which one is not a style
 choice. A spec table describes the page, so it belongs at the top, under the
 lede. A contents list points AWAY from the page, so it belongs at the foot,
@@ -54,6 +59,16 @@ from . import state
 from .util import read_frontmatter_checked, slug_title, sub_outside_code
 
 VALID_STATUS = {"hidden", "unlisted", "gated", "public"}
+
+#: Frontmatter keys this engine used to honour, and what replaced them.
+#:
+#: A rename is the one change that CANNOT be caught by a reader looking at the
+#: page: the old key parses as valid YAML, gets ignored, and the behaviour it
+#: bought silently reverts. Nothing on screen says so. So every retired key
+#: stays listed here and gets named in the build report until nobody uses it.
+_LEGACY_KEYS = {
+    "listed": "indexed",   # renamed 2026-08-03, hours after it shipped
+}
 
 #: An `@id` reference in the body. Same shape links.py resolves, minus the
 #: anchor: a page mentioned WITH an anchor is still mentioned.
@@ -98,6 +113,16 @@ def on_files(files, config):
                 + "the LAST one silently, so this page is using `" + key + ": "
                 + str(meta.get(key)) + "`. Delete the line you did not mean.",
             )
+
+        for old, new in _LEGACY_KEYS.items():
+            if old in meta:
+                state.note(
+                    "duplicate_key",
+                    f.src_uri + ": `" + old + ":` was renamed to `" + new
+                    + ":` and is now IGNORED. The page is behaving as though "
+                    + "the line were absent, which looks exactly like the "
+                    + "feature not working. Rename it.",
+                )
 
         status = meta.get("status")
         if status not in VALID_STATUS:
@@ -218,7 +243,7 @@ def _child_list(page, markdown: str) -> str:
     THREE WAYS A PAGE STAYS OUT OF THIS LIST, and they are not the same lever:
 
         status: unlisted   out of the sidebar, out of search, out of here
-        listed: false      IN the sidebar and search, out of here only
+        indexed: false     IN the sidebar and search, out of here only
         a link in the body it is filed already, so it is not a loose end
     """
     src = page.file.src_uri
@@ -241,9 +266,13 @@ def _child_list(page, markdown: str) -> str:
         if not page_id:
             continue
 
-        # `is False` and not falsy: `listed: 0` is not a thing anybody means,
-        # and an absent key must not read as an opt out.
-        if meta.get("listed") is False:
+        # `is False` and not falsy: an ABSENT key must not read as an opt out,
+        # and `indexed: 0` is nothing anybody means. `indexed: true` therefore
+        # lands here as a no-op, which is correct -- it states the default. It
+        # is deliberately NOT an override that forces a page into the list
+        # despite a body link, because that would print the same link twice on
+        # the same page.
+        if meta.get("indexed") is False:
             continue
 
         # state.PAGES is the PUBLISHED map: links.py fills it after visibility
@@ -273,8 +302,8 @@ def _child_list(page, markdown: str) -> str:
     entries.sort()
 
     # "Also" means YOUR PROSE ALREADY COVERED SOME OF THESE, so it is set only
-    # by a body link. A page that opted out with `listed: false` was never part
-    # of the set and must not change the wording.
+    # by a body link. A page that opted out with `indexed: false` was never
+    # part of the set and must not change the wording.
     heading = "## Also in this section" if suppressed else "## In this section"
     lines = [heading, ""]
     for _, _, title, page_id in entries:
@@ -311,9 +340,9 @@ def _wants_children(meta: dict, renders: list) -> bool:
     behaviour without lying about its type. `contents: false` is the opt out,
     and it wins, since a page saying no is the least ambiguous signal here.
 
-    Not to be confused with `listed:`, which is the other end of the same
+    Not to be confused with `indexed:`, which is the other end of the same
     relationship: `contents:` is a PARENT deciding whether to draw a list at
-    all, `listed:` is a CHILD deciding whether to appear in one.
+    all, `indexed:` is a CHILD deciding whether to appear in one.
     """
     contents = meta.get("contents")
     if contents is False:
