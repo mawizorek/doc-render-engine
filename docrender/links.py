@@ -24,6 +24,8 @@ and the failure is not hidden. A marked-but-dead reference is useful
 information on a site being written: it says a document is coming.
 
 Code is skipped via util.sub_outside_code -- see that function for why.
+Same-site paths are resolved by util.relative_url -- see THAT function for the
+root-index bug this file shipped with, and do not reintroduce a `../` count.
 """
 
 from __future__ import annotations
@@ -35,7 +37,7 @@ import urllib.request
 from pathlib import Path
 
 from . import state
-from .util import sub_outside_code
+from .util import relative_url, sub_outside_code
 
 _LINK = re.compile(
     r"\[(?P<label>[^\]]*)\]\(@(?P<token>[A-Za-z0-9_.:-]+)(?P<anchor>#[A-Za-z0-9_-]+)?\)"
@@ -150,8 +152,9 @@ def on_page_markdown(markdown, page, config, files):
             state.note("dead_links", src + ": no page with id '" + token + "'")
             return _dead(label, "no page yet with id: " + token)
 
-        depth = page.file.url.count("/")
-        prefix = "../" * depth
-        return "[" + label + "](" + prefix + str(hit.get("url", "")) + anchor + ")"
+        # Resolved against THIS page, never from a separator count. The root
+        # index page reports its url as `./` and broke that arithmetic.
+        target = relative_url(str(hit.get("url", "")), page.file.url)
+        return "[" + label + "](" + target + anchor + ")"
 
     return sub_outside_code(_LINK, replace, markdown)

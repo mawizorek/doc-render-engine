@@ -17,6 +17,24 @@ never what anybody wanted. Michael hit that literally -- typed the code, the
 browser navigated to the same address, and nothing appeared to happen.
 
 =============================================================================
+REDIRECT DESTINATIONS ARE RESOLVED BY util.relative_url, NOT BY COUNTING
+=============================================================================
+This module shipped with `prefix = "../" * page.file.url.count("/")`, copied
+from links.py before that math was known to be wrong. It is wrong on the root
+index page of every site, because MkDocs reports that page's url as `./` --
+one separator at depth zero -- so the sealed destination pointed one directory
+ABOVE the site root.
+
+🔴 THE ROUTER'S COPY WAS THE DANGEROUS ONE, and it is worth saying why rather
+than just fixing it. A bad link renders as a bad link: somebody hovers it, or
+clicks it, and the 404 is immediate and public. A bad REDIRECT is sealed inside
+an encrypted payload, so nothing about the page looks wrong -- the field
+renders, the code validates, the crypto succeeds, and the reader is delivered
+to a 404 by a mechanism that reported success at every step. The only person
+who can find it is somebody holding a correct key, which is the smallest
+audience the site has.
+
+=============================================================================
 CURTAIN MODE IS A PAUSE, NOT A LOCK, AND THE PAGE SOURCE PROVES IT
 =============================================================================
 The body is hidden in the DOM. It is NOT encrypted. Anyone who views source,
@@ -72,7 +90,7 @@ import secrets
 from pathlib import Path
 
 from . import state
-from .util import load_yaml
+from .util import load_yaml, relative_url
 
 ITERATIONS = 120_000
 
@@ -152,8 +170,6 @@ def on_page_content(html, page, config, files):
         return html
 
     own_id = str(meta.get("id") or "")
-    depth = page.file.url.count("/")
-    prefix = "../" * depth
 
     curtain: list[dict] = []
     redirects: list[dict] = []
@@ -173,7 +189,7 @@ def on_page_content(html, page, config, files):
                 + "site. That key will never route anywhere.",
             )
             continue
-        wrap = _wrap(str(key), prefix + str(hit["url"]))
+        wrap = _wrap(str(key), relative_url(str(hit["url"]), page.file.url))
         if wrap:
             redirects.append(wrap)
 
