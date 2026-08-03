@@ -14,11 +14,7 @@ from pathlib import Path
 import yaml
 
 _FRONTMATTER = re.compile(r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*\r?\n?", re.S)
-
-# A top-level `key:` inside a frontmatter block. Indented lines are nested
-# values and are not checked -- a repeated key inside a nested mapping is a
-# different and much rarer mistake.
-_TOP_KEY = re.compile(r"(?m)^(?P<key>[A-Za-z_][A-Za-z0-9_-]*)[ \t]*:")
+_TOP_KEY = re.compile(r"(?m)^([A-Za-z_][A-Za-z0-9_-]*)[ \t]*:")
 
 # Fenced blocks (``` or ~~~, any indent, any info string) and inline code spans
 # (one or more backticks). Ordered longest-first so a fence is never mistaken
@@ -56,20 +52,18 @@ def sub_outside_code(pattern: re.Pattern, repl, markdown: str) -> str:
 def duplicate_keys(text: str) -> list[str]:
     """Top-level frontmatter keys that appear more than once.
 
-    ⚠️ WHY THIS EXISTS. YAML silently keeps the LAST value for a repeated key.
-    So a page with two `status:` lines does not error, does not warn, and
-    quietly uses whichever one is further down the file -- which is the one the
-    author has usually forgotten about.
+    YAML resolves a duplicate silently by keeping the LAST value, which is a
+    genuinely nasty failure in frontmatter: writing
 
-    That cost real time on 2026-08-03: a page carried `status: public` followed
-    by `status: routed`, the second won, `routed` is not a publication state, so
-    the page was silently not built. Every downstream symptom pointed somewhere
-    else -- a missing nav entry, and a broken `@doc-specs` link on a completely
-    different page.
+        status: public
+        status: routed
 
-    The parser cannot help here because the file is VALID YAML. It has to be
-    caught in the raw text, before parsing, which is why this reads the block as
-    lines rather than as a mapping.
+    leaves the page with `status: routed`, which is not a real state, so it is
+    not built -- and nothing anywhere says why. It reads as "my page vanished."
+
+    Detected with a regex rather than a strict YAML loader on purpose: this has
+    to report ALL the offenders in one pass and keep parsing, where a strict
+    loader raises on the first one and yields no metadata at all.
     """
     match = _FRONTMATTER.match(text)
     if not match:
@@ -101,16 +95,22 @@ def split_frontmatter(text: str) -> tuple[dict, str]:
 
 
 def read_frontmatter(path: str | Path) -> dict:
-    """Frontmatter as a dict, plus `_dupes` if any key was repeated."""
     try:
         text = Path(path).read_text(encoding="utf-8")
     except OSError:
         return {}
     meta, _ = split_frontmatter(text)
-    dupes = duplicate_keys(text)
-    if dupes and isinstance(meta, dict):
-        meta["_dupes"] = dupes
     return meta
+
+
+def read_frontmatter_checked(path: str | Path) -> tuple[dict, list[str]]:
+    """Frontmatter plus any duplicated keys, in one read."""
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return {}, []
+    meta, _ = split_frontmatter(text)
+    return meta, duplicate_keys(text)
 
 
 def load_yaml(path: str | Path) -> dict:
