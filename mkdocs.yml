@@ -86,6 +86,7 @@ hooks:
   - hooks/02_visibility.py
   - hooks/03_links.py
   - hooks/03b_markers.py
+  - hooks/04b_router.py
   - hooks/05_assets.py
   - hooks/06_pagefoot.py
   - hooks/07_buildstamp.py
