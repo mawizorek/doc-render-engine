@@ -79,8 +79,13 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
+# ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and two pairs depend on it:
+#   00 sorts the nav  ->  00c rewires prev/next from the sorted tree
+#   01 reads frontmatter -> 02 prunes -> 03 indexes what survived
+# Renumbering without reading hooks/README.md will break something silently.
 hooks:
   - hooks/00_instance.py
+  - hooks/00c_nav.py
   - hooks/01_objects.py
   - hooks/01b_data.py
   - hooks/02_visibility.py
