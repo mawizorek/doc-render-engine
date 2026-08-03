@@ -17,31 +17,13 @@ The cache is COMMITTED, not ignored. An unreachable peer then degrades to
 'last known good, marked stale' instead of taking our build down over somebody
 else's outage.
 
-⚠️ CODE IS NOT CONTENT. Substitution SKIPS fenced blocks and inline code spans.
-Without that, the very page that teaches this syntax has its examples rewritten
-into the output it is trying to explain.
+WHAT A BROKEN REFERENCE LOOKS LIKE. A `<span>`: red, struck through, carrying a
+`[broken link]` badge and a tooltip naming what was not found. **It is NOT an
+anchor** -- no href, no navigation, nothing to click. The link does not ACT,
+and the failure is not hidden. A marked-but-dead reference is useful
+information on a site being written: it says a document is coming.
 
-=============================================================================
-WHAT A DEAD LINK LOOKS LIKE, and the distinction that took two tries
-=============================================================================
-An unresolved reference renders as a `<span>`: red, struck through, carrying a
-`[broken link]` badge and a tooltip saying what was not found.
-
-**It is NOT an anchor.** No href, no navigation, no pointer cursor, nothing to
-click. "Fail silently" means the link does not ACT -- it does not take a reader
-somewhere broken -- and it does NOT mean the failure is hidden. The visual
-marker is the point: it is a visible reference to a document that is coming,
-which is genuinely useful information on a site being written.
-
-Briefly rendered as plain text (PR #12) on a misreading of "fail silently."
-That was wrong in both directions at once: it hid the fact from the reader AND
-erased the forward reference from the page. Reverted.
-
-Three audiences, three signals, all of them correct now:
-  * the READER sees a phrase marked as not-yet-a-document, and cannot click it
-    into a 404;
-  * the AUTHOR sees it on the page while writing;
-  * the BUILD reports every one of them in the report block.
+Code is skipped via util.sub_outside_code -- see that function for why.
 """
 
 from __future__ import annotations
@@ -53,14 +35,10 @@ import urllib.request
 from pathlib import Path
 
 from . import state
+from .util import sub_outside_code
 
 _LINK = re.compile(
     r"\[(?P<label>[^\]]*)\]\(@(?P<token>[A-Za-z0-9_.:-]+)(?P<anchor>#[A-Za-z0-9_-]+)?\)"
-)
-
-_PROTECTED = re.compile(
-    r"(?ms)^[ \t]*(?P<f>`{3,}|~{3,}).*?(?:^[ \t]*(?P=f)[ \t]*$|\Z)"
-    r"|(?P<t>`+)(?:.|\n)*?(?P=t)"
 )
 
 _TIMEOUT = 10
@@ -176,11 +154,4 @@ def on_page_markdown(markdown, page, config, files):
         prefix = "../" * depth
         return "[" + label + "](" + prefix + str(hit.get("url", "")) + anchor + ")"
 
-    out = []
-    cursor = 0
-    for guard in _PROTECTED.finditer(markdown):
-        out.append(_LINK.sub(replace, markdown[cursor:guard.start()]))
-        out.append(guard.group(0))
-        cursor = guard.end()
-    out.append(_LINK.sub(replace, markdown[cursor:]))
-    return "".join(out)
+    return sub_outside_code(_LINK, replace, markdown)
