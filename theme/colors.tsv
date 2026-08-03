@@ -11,6 +11,14 @@
 # Keep base first in this file and never interleave.
 #
 # Anything named here can be used as a marker colour in markers.tsv.
+#
+# ⚠️ THIS FILE IS ON DEATH ROW. Michael's canonical palette lives in
+# `mawizorek/maw-themes` (extracted 2026-08-03) -- 19 themes, 35 columns, a
+# real design system. This one is three themes and nine tokens, written in an
+# afternoon to unblock a demo, and it shares a FILENAME with the canonical
+# table while having no relationship to it. That collision is exactly why a
+# change to the real `eos` theme did not show up on the live site.
+# Deleted by the refit handoff. Do not invest in it.
 theme	token	dark	light
 base	surface	oklch(21% 0.012 260)	oklch(99% 0.002 260)
 base	surface-raised	oklch(26% 0.014 260)	oklch(97% 0.004 260)
@@ -21,7 +29,12 @@ base	accent	oklch(74% 0.132 232)	oklch(52% 0.138 232)
 base	warn	oklch(78% 0.148 78)	oklch(56% 0.152 62)
 base	danger	oklch(70% 0.176 22)	oklch(52% 0.196 22)
 base	ok	oklch(76% 0.132 152)	oklch(48% 0.134 152)
-base	dead	oklch(70% 0.176 22)	oklch(52% 0.196 22)
+# `dead` is deliberately NOT `danger`. A reference to a page that has not been
+# written yet is not an error, and it was reading as one: shared with danger it
+# came out the same alarm red as a genuine warning, on a list where most items
+# were simply not written yet. Pulled well down in chroma and darker in tone --
+# a disconnected maroon that reads as inert rather than urgent.
+base	dead	oklch(56% 0.082 18)	oklch(44% 0.088 18)
 utility	surface	oklch(18% 0.008 260)	oklch(100% 0 0)
 utility	accent	oklch(76% 0.104 168)	oklch(48% 0.108 168)
 # --- eos -------------------------------------------------------------------
