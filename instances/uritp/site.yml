@@ -13,12 +13,16 @@ base_url: https://mawizorek.github.io/uritp-docs/
 content_repo: mawizorek/uritp-docs
 content_branch: main
 
-theme: base
+# ⭐ ONE LINE. Changing a site's entire look is a single word here, which is the
+# test of whether the theme layer is real rather than decorative: if this cost
+# a code change, the engine/site separation would be a claim and not a fact.
+# Named themes live in theme/themes.tsv.
+theme: eos
 
-# NOT the template's palette, on purpose. Two sites that look identical are two
-# sites nobody can tell apart, and a shared palette means the day somebody
-# fixes a colour here is the day another site breaks unnoticed. Structure is
-# shared; look is local.
+# Chrome (header + sidebar) is Material's `palette`, NOT a CSS variable, and it
+# has to be set here. Setting --md-primary-fg-color in an unscoped :root looks
+# like it works, hits both colour schemes at once, and silently breaks the dark
+# toggle. Kept in step with the eos accent by hand.
 palette:
   dark:
     primary: black

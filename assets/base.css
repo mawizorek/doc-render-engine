@@ -62,6 +62,99 @@
   text-transform: uppercase;
 }
 
+/* ---------------------------------------------------------------------------
+ * TSV DATA TABLE (docrender/datatable.py)
+ *
+ * A spreadsheet exported by somebody who had to actually use it: 130 rows,
+ * eight columns, section breaks in the middle. Two decisions carry the weight.
+ *
+ * 1. IT SCROLLS SIDEWAYS INSTEAD OF WRAPPING. A wrapped cell turns one row
+ *    into three and destroys the horizontal scan that makes a table readable
+ *    at all. On a phone you swipe; you never lose the row.
+ * 2. THE FIRST COLUMN AND THE HEADER STICK. Column one is the identifier you
+ *    are tracing (R1zAA) and the header is what the cell you land on MEANS.
+ *    Scroll far enough right without them and every value is an orphan.
+ * ------------------------------------------------------------------------ */
+.dr-data {
+  margin: 1.4rem 0;
+  max-height: 78vh;
+  overflow: auto;
+  border: 1px solid var(--dr-rule);
+  border-radius: 3px;
+  background: var(--dr-surface);
+}
+.dr-data table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+  font-family: var(--dr-data-font, var(--dr-font-body));
+  font-size: var(--dr-data-size);
+  line-height: 1.35;
+}
+.dr-data th,
+.dr-data td {
+  padding: var(--dr-data-pad);
+  border-bottom: 1px solid var(--dr-rule);
+  border-right: 1px solid var(--dr-rule);
+  white-space: nowrap;
+  text-align: left;
+  vertical-align: top;
+}
+.dr-data thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--dr-surface-raised);
+  color: var(--dr-ink-muted);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: normal;
+  min-width: 6rem;
+  max-width: 12rem;
+}
+/* Column one is the identifier, so it survives a horizontal scroll. */
+.dr-data tbody td:first-child,
+.dr-data tbody th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--dr-surface);
+  font-weight: 600;
+  color: var(--dr-accent);
+}
+.dr-data thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+}
+/* A section row (RACK 2, ML PANEL 1) is a heading inside the sheet, not a
+ * record. It spans, and it stays put on the left like the identifiers do. */
+.dr-data__section th {
+  position: sticky;
+  left: 0;
+  background: var(--dr-surface-raised);
+  color: var(--dr-ink);
+  font-weight: 700;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-top: 2px solid var(--dr-accent);
+}
+.dr-data tbody tr:hover td {
+  background: var(--dr-surface-raised);
+}
+.dr-data__source {
+  position: sticky;
+  left: 0;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.72rem;
+  color: var(--dr-ink-muted);
+}
+
 /* A link that resolved nowhere.
  * Loud on purpose. A dead link that looks like a live one is worse than a
  * missing link, because a reader trusts it and finds out later. */

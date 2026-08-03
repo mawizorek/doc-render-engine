@@ -1,35 +1,39 @@
-# General theatre notes — practice that is not tied to one building.
+# General theatre notes — practice that is not tied to one building, plus the
+# venue records that are.
 #
-# Renamed from `oph` on 2026-08-03. Worth knowing why, because it changes what
-# the site is FOR: a venue-specific site documents one operation, while this one
-# documents the craft, which is the thing URITP pages will want to reference
-# rather than restate.
+# Renamed from `oph` on 2026-08-03.
 
 name: Theatre Notes
-description: General professional theatre practice, standards and procedure.
+description: Professional theatre practice, venue records and reference.
 slug: theatre
 base_url: https://mawizorek.github.io/theatre-docs/
 
 content_repo: mawizorek/theatre-docs
 content_branch: main
 
-theme: base
+# ⭐ ONE LINE, same as every other site. `database` treats a table as the
+# primary content rather than an illustration of it, which is the right call
+# for a site whose first real pages are 130-row circuit schedules.
+theme: database
 
 palette:
   dark:
     primary: black
-    accent: deep purple
+    accent: teal
   light:
     primary: blue grey
-    accent: deep purple
+    accent: teal
 
 sections:
+  venues:
+    title: Venues
+    order: 10
   practice:
     title: Practice
-    order: 10
+    order: 20
   reference:
     title: Reference
-    order: 20
+    order: 30
 
 peers:
   template: https://mawizorek.github.io/doc-render-engine/
