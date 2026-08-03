@@ -41,7 +41,7 @@
 # only a pause.
 
 staff:
-  staff26: staff
+  staff26:
 
 # Role table. Any page that declares `router: pm` accepts this code and reveals
 # its own body -- no per-page entry, no ids to keep in step.
