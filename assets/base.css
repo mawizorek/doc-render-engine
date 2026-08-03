@@ -272,17 +272,39 @@
   color: var(--dr-ink-muted);
 }
 
-/* A reference that resolved nowhere. Marked, and NOT an anchor: the link does
- * not act, but the failure is not hidden either. It says a document is coming. */
+/* ---------------------------------------------------------------------------
+ * A REFERENCE THAT RESOLVED NOWHERE
+ *
+ *     Electrics — Lighting Inventory [err]
+ *
+ * Not an anchor: no href, nothing to click, so the link cannot ACT. Still
+ * marked, so the failure is not hidden either. It reads as a document that is
+ * coming rather than as something broken.
+ *
+ * ⚠️ TONED DOWN 2026-08-03 AND IT SHOULD STAY DOWN. It was strikethrough plus
+ * an alarm-red `[broken link]` badge, sharing the `danger` colour. On a real
+ * page -- an inventory index where most entries were simply not written yet --
+ * eight of nine lines rendered as struck-out red and the page read as a
+ * catastrophe instead of as a work in progress. Michael: *"less obtrusive, no
+ * strikethrough anywhere, more disconnected maroon."*
+ *
+ * So: no line through the text, a desaturated maroon of its own (`dead` is now
+ * a separate token from `danger`, deliberately), and a small monospace `[err]`
+ * carrying the detail in its tooltip. Legible at a glance, invisible at a
+ * distance -- which is the correct weight for a note that concerns the author
+ * far more than the reader.
+ * ------------------------------------------------------------------------ */
 .docrender-dead {
   color: var(--dr-dead);
-  text-decoration: line-through;
   cursor: help;
 }
 .docrender-dead::after {
-  content: " [broken link]";
-  font-size: 0.78em;
-  letter-spacing: 0.04em;
+  content: " [err]";
+  font-family: var(--dr-font-mono);
+  font-size: 0.72em;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+  vertical-align: 0.08em;
 }
 
 /* A link into a sibling site. Marked because leaving this site is worth
