@@ -59,6 +59,12 @@ jobs:
           - instance: template
             repo: mawizorek/template-docs
             publisher: engine-pages
+          - instance: uritp
+            repo: mawizorek/uritp-docs
+            publisher: matrix
+          - instance: theatre
+            repo: mawizorek/theatre-docs
+            publisher: matrix
     name: ${{ matrix.instance }}
     env:
       # A secret cannot be read inside an `if:`, so its presence is resolved
@@ -170,5 +176,9 @@ jobs:
               echo "not a build failure. See README section 6."
             else
               echo "Published to \`${{ matrix.repo }}\` on \`gh-pages\`."
+              echo
+              echo "⚠️ The site is only reachable once Pages is set to deploy"
+              echo "from the \`gh-pages\` branch on that repo. The first run"
+              echo "CREATES the branch; the setting is a one-time click after."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
