@@ -6,8 +6,9 @@
 # the design failing, and hooks/08 fails the build if one appears.
 #
 # The content tree is checked out separately and pointed at by
-# DOCRENDER_CONTENT. It holds markdown and nothing else: no nav file, no
-# template, no stylesheet, no config. That is the rule the family is built on.
+# DOCRENDER_CONTENT. It holds markdown, plus data files a page explicitly
+# declares -- and nothing else. No nav file, no template, no stylesheet, no
+# config. See docrender/datatable.py for why data is content and config is not.
 
 site_name: docrender
 site_url: https://example.invalid/
@@ -70,19 +71,12 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
-# THE ORDER IS LOAD-BEARING. See hooks/README.md before reordering anything:
-# 02 must drop hidden pages before 03 indexes ids, or a link to a hidden page
-# resolves to a URL that 404s.
-#
-# 04 was missing from this list until 2026-08-03, which meant the theme stage
-# never ran and the TSV token layer was dead code that every document in this
-# repo described as live. Registered here, where the order is actually decided.
 hooks:
   - hooks/00_instance.py
   - hooks/01_objects.py
+  - hooks/01b_data.py
   - hooks/02_visibility.py
   - hooks/03_links.py
-  - hooks/04_theme.py
   - hooks/05_assets.py
   - hooks/06_pagefoot.py
   - hooks/07_buildstamp.py
