@@ -12,34 +12,39 @@ The way out is the `on_files` event: append File objects whose source is
 somewhere else entirely -- here the engine's own assets/ and the instance's
 folder. MkDocs treats them as ordinary site files from that point on.
 
-⭐ FEATURE ASSETS ARE PUBLISHED ONLY WHERE THE FEATURE IS USED. The router's
-CSS and JS ship only if some page on this site declares a router. A site with
-no routers should not carry the crypto for one, a reader should not download
-it, and base.css should not grow a section that most sites scroll past.
+=============================================================================
+🐛 ON_CONFIG CANNOT SEE THE PAGES. THIS BROKE THE ROUTER COMPLETELY.
+=============================================================================
+MkDocs runs EVERY hook's `on_config` before ANY hook's `on_files`. So at
+`on_config` time `state.BY_SRC` is empty -- nothing has read a frontmatter block
+yet -- and the old `_uses_router()` check therefore answered False on every
+single build.
+
+Consequence: `router.js` and `router.css` were PUBLISHED (that happens in
+`on_files`, by which point BY_SRC is populated) but never LINKED from any page.
+The form rendered, looked completely correct, had no JavaScript attached, and so
+submitting it did what an unhandled form does: reloaded the page. Which is
+precisely the symptom -- "the page reloads so my guess is the unlock just
+doesn't hold." The unlock was never running.
+
+The fix is to decide from something that EXISTS at on_config time. Two sources,
+both cheap: the instance's `routes.yml`, and a scan of the content tree for the
+frontmatter keys. The scan is one pass over small text files, done once and
+cached, which is a fair price for a check that cannot silently answer wrong.
+
+⭐ FEATURE ASSETS ARE STILL PUBLISHED ONLY WHERE THE FEATURE IS USED. The
+principle was right; the implementation asked a question too early.
 
 =============================================================================
-⚠️ EVERY ASSET URL CARRIES A CONTENT FINGERPRINT (added 2026-08-03)
+⚠️ EVERY ASSET URL CARRIES A CONTENT FINGERPRINT
 =============================================================================
     assets/base.a41f7c92.css
 
-The hash is the first eight hex of the file's own SHA-256, so the URL CHANGES
-whenever the bytes change and stays identical when they do not.
-
-This is not a micro-optimisation, it is a correctness fix for the most
-expensive failure mode this project has had. `assets/base.css` was a stable URL
-served by GitHub Pages, so a browser -- and any CDN in front of it -- kept the
-old copy after a deploy. The site said it had updated, the deploy WAS correct,
-the markup WAS new, and the styling was hours old. Every symptom pointed at the
-build, and the build was innocent.
-
-It cost a full diagnostic round on 2026-08-03 chasing a stale engine that was
-real but was not the whole story, and it is the reason "I published and do not
-see your change" kept being true. A fingerprint makes that class of report
-impossible: if the bytes changed, the URL changed, and nothing can serve the
-old one by accident.
-
-Side effect worth knowing: old fingerprinted files are simply absent from the
-next deploy, so nothing accumulates.
+First eight hex of the file's own SHA-256, so the URL CHANGES when the bytes
+change and stays identical when they do not. Not a micro-optimisation: a stable
+asset URL on GitHub Pages meant a browser kept the old stylesheet after a
+correct deploy, and every symptom pointed at the build. A fingerprint makes
+"I published and do not see my change" impossible for assets.
 """
 
 from __future__ import annotations
@@ -50,10 +55,40 @@ from pathlib import Path
 from mkdocs.structure.files import File
 
 from . import state, theme
+from .util import load_yaml
+
+_ROUTER_KEYS = ("router:", "router_code:")
 
 
-def _uses_router() -> bool:
-    return any(meta.get("router") for meta in state.BY_SRC.values())
+def _uses_router(config) -> bool:
+    """Does this site have a router anywhere? Answerable at on_config time.
+
+    Cached in state because both events ask, and the answer must not differ
+    between them -- a link with no file, or a file with no link, are both worse
+    than either problem alone.
+    """
+    cached = state.REPORT.get("_router")
+    if cached is not None:
+        return bool(cached)
+
+    found = bool(load_yaml(Path(state.INSTANCE.get("dir", ".")) / "routes.yml"))
+
+    if not found:
+        # A page can carry its own codes with no entry in routes.yml, so the
+        # route table alone is not enough to answer this.
+        docs = Path(str(config.docs_dir))
+        if docs.is_dir():
+            for path in docs.rglob("*.md"):
+                try:
+                    head = path.read_text(encoding="utf-8")[:2000]
+                except (OSError, UnicodeDecodeError):
+                    continue
+                if any(key in head for key in _ROUTER_KEYS):
+                    found = True
+                    break
+
+    state.REPORT["_router"] = found
+    return found
 
 
 def _fingerprint(raw: bytes) -> str:
@@ -73,14 +108,13 @@ def _read(path: Path) -> bytes | None:
         return None
 
 
-def _plan() -> list[tuple[str, bytes]]:
+def _plan(config) -> list[tuple[str, bytes]]:
     """Every asset this build publishes, in load order, with its bytes.
 
-    Built once and used by both events: `on_config` needs the URLs and
-    `on_files` needs the content, and they must not disagree about either.
-    Order is deliberate -- base, then generated tokens, then any feature sheet,
-    then the instance sheet LAST, so a site always has the final word on its
-    own look.
+    Built by both events -- `on_config` needs the URLs, `on_files` needs the
+    content -- and they must never disagree. Order is deliberate: base, then
+    generated tokens, then any feature sheet, then the instance sheet LAST so a
+    site always has the final word on its own look.
     """
     plan: list[tuple[str, bytes]] = []
 
@@ -90,7 +124,7 @@ def _plan() -> list[tuple[str, bytes]]:
 
     plan.append(("tokens.css", theme.build_css().encode("utf-8")))
 
-    if _uses_router():
+    if _uses_router(config):
         for name in ("router.css", "router.js"):
             raw = _read(state.ENGINE_ROOT / "assets" / name)
             if raw is not None:
@@ -104,7 +138,7 @@ def _plan() -> list[tuple[str, bytes]]:
 
 
 def on_config(config):
-    for name, raw in _plan():
+    for name, raw in _plan(config):
         url = _stamped(name, raw)
         target = config.extra_javascript if name.endswith(".js") else config.extra_css
         if url not in target:
@@ -113,6 +147,6 @@ def on_config(config):
 
 
 def on_files(files, config):
-    for name, raw in _plan():
+    for name, raw in _plan(config):
         files.append(File.generated(config, _stamped(name, raw), content=raw))
     return files
