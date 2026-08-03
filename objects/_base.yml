@@ -23,3 +23,6 @@ optional:
   - related      # ids, not paths
   - xref         # peer:id references to sibling sites
   - source       # where the facts came from
+  - listed       # `false` keeps this page OUT of its parent index's contents
+                 # list. Sidebar and search are unaffected -- that is what
+                 # `status: unlisted` is for, and the two are independent.

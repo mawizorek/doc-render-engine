@@ -85,12 +85,16 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
-# ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and two pairs depend on it:
-#   00 sorts the nav  ->  00c rewires prev/next from the sorted tree
-#   01 reads frontmatter -> 02 prunes -> 03 indexes what survived
+# ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and three chains depend on it:
+#   00 sorts the nav  ->  00b prunes it  ->  00c rewires prev/next from what is
+#      left. Put 00b after 00c and the footer Next button walks through pages
+#      that are not in the sidebar.
+#   01 reads frontmatter -> 02 prunes files -> 03 indexes what survived
+#   09 runs last, because it describes the finished site
 # Renumbering without reading hooks/README.md will break something silently.
 hooks:
   - hooks/00_instance.py
+  - hooks/00b_unlisted.py
   - hooks/00c_nav.py
   - hooks/01_objects.py
   - hooks/01b_data.py
