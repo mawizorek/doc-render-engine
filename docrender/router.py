@@ -1,52 +1,79 @@
 """Stage 04b -- ROUTERS. A pause, or a door to somewhere else.
 
 =============================================================================
-TWO PLACES TO PUT A CODE, and they answer different needs
+THE THREE FRONTMATTER KEYS, and how they relate to `status:`
 =============================================================================
 
-LOCAL -- in the page itself. Throwaway, no engine edit, no deploy of anything
-but the content repo:
+    status:         REQUIRED on every page, and NOTHING to do with routers.
+                    It decides whether the page is BUILT and whether it is
+                    LISTED. There is no default: a page with no status is not
+                    built at all. See docrender/visibility.py.
+
+    router:         name of a table in instances/<slug>/routes.yml (REMOTE)
+    router_code:    a code, or a list of them, written right here (LOCAL)
+    router_prompt:  the label above the field. Optional. Does NOTHING on its
+                    own -- it is decoration for a router, not a router.
+
+A router does not gate anything and `status:` does not know it exists. They
+operate on different questions: status decides what REACHES the site, a router
+decides what a reader sees FIRST once they are there. A `hidden` page with a
+router is still not built; a `public` page with a curtain is still fully public.
+
+Use `unlisted` for a curtain destination you do not want in the sidebar. Use
+`public` when the page should be findable and you just want the pause.
+
+=============================================================================
+LOCAL VS REMOTE
+=============================================================================
+LOCAL -- in the page. Throwaway, no engine edit, no engine deploy:
 
     ---
     id: staff
+    status: public
     router_code: staff26
     router_prompt: Got a code?
     ---
 
-REMOTE -- in `instances/<slug>/routes.yml` in the engine. Durable, one place to
-edit, and the only form that can send somebody to a DIFFERENT page:
+REMOTE -- in the engine. Durable, one place to edit, and the only form that can
+send somebody to a DIFFERENT page:
 
+    # instances/<slug>/routes.yml
     staff:
-      staff26: staff                # curtain on the staff page
-      loadin24: crew-call-sheet      # redirect to another page
+      staff26: staff                # curtain on the staff page (by id)
+      loadin24: crew-call-sheet     # redirect to another page
+    pm:
+      maw:                          # PORTABLE curtain -- see below
 
-    ---
-    id: staff
-    router: staff
-    ---
+Both may be present on one page; the keys pool. The split is deliberate: a code
+you are trying for an afternoon should not require touching the engine, and a
+code people are actually given should not sit in a public content repo.
 
-Both may be present; the keys are simply pooled. The split is deliberate
-(Michael, 2026-08-03): a code you are trying out for an afternoon should not
-require touching the engine, and a code that people are actually given should
-not live in a file anyone can grep out of a public content repo.
-
-⚠️ A LOCAL CODE IS IN THE CONTENT REPO, WHICH IS PUBLIC. That is fine for the
-thing it is for -- a pause -- and it is the wrong choice for anything you would
-mind a stranger typing. Local is for trash; remote is for real.
+⚠️ A LOCAL CODE IS IN A PUBLIC REPO. Fine for a pause, wrong for anything you
+would mind a stranger typing. Local is for trash; remote is for real.
 
 =============================================================================
-CURTAIN OR REDIRECT: the destination decides, not a mode flag
+THREE KINDS OF ENTRY, and the destination decides which -- never a mode flag
 =============================================================================
-**A key pointing at the id of the page carrying the router is a CURTAIN**: the
-page's own body is held back, the field sits where the content would be, and a
-correct code reveals it in place. `router_code` is always a curtain, since it
-names no destination at all.
 
-Anything else is a REDIRECT.
+    maw:                    -> PORTABLE CURTAIN. No destination at all, so it
+                               means "curtain on whatever page declares this
+                               table." One entry, reusable on any number of
+                               pages, and it never needs to know their ids.
 
-Inferred rather than declared because "send me to the page I am on" has exactly
-one sensible meaning. Michael hit the other reading first: the browser navigated
-to the same URL and nothing appeared to happen.
+    staff26: staff          -> PINNED CURTAIN. Names the id of the page it is
+                               used on. Identical behaviour, but tied to that
+                               one page -- which is what you want when a table
+                               mixes curtains for several different pages.
+
+    loadin24: crew-sheet    -> REDIRECT. Names a different page; sends you there.
+
+The portable form is the useful default for a role-shaped table (`pm`, `crew`,
+`shop`): the table says who the code is FOR, and each page decides whether to
+use it. Michael's read on arriving at this, which is the right one: *"if
+router=pm then the entrance code can be maw."*
+
+Nothing is inferred from a flag because "send me to the page I am on" has
+exactly one sensible meaning, and a redirect to your own URL is never it.
 
 =============================================================================
 A CURTAIN IS A PAUSE. THE PAGE SOURCE PROVES IT.
@@ -54,14 +81,13 @@ A CURTAIN IS A PAUSE. THE PAGE SOURCE PROVES IT.
 The body is hidden in the DOM. It is NOT encrypted. View source, open devtools,
 or read the markdown in the public repo and it is all there.
 
-That is the design, not an oversight: *"just a screen before landing on content,
-a brief pause. not real encryption."* v1 encrypted page bodies and paid for it
-with a cipher shared across two files, a keyring and its own authoring document
--- to protect content that was public in the repo the whole time.
+That is the design: *"just a screen before landing on content, a brief pause.
+not real encryption."* v1 encrypted page bodies and paid for it with a cipher
+shared across two files, a keyring and its own authoring document -- to protect
+content that was public in the repo the whole time.
 
 What IS withheld is the code: only a PBKDF2 hash ships, so a page does not hand
-the key to the next person who opens it. Weak effort in the right place, none
-wasted in the wrong one.
+the key to the next person who opens it.
 
 REDIRECT still seals its destination, and the asymmetry is the point: a
 plaintext destination is not a router, it is a list of links with an input box
@@ -152,7 +178,18 @@ def on_page_content(html, page, config, files):
     meta = state.BY_SRC.get(page.file.src_uri, {})
     table_name = meta.get("router")
     local = _as_list(meta.get("router_code"))
+
     if not table_name and not local:
+        # `router_prompt` alone is a real mistake and used to be a silent one:
+        # the page renders normally and the author is left wondering where their
+        # field went. A label with nothing to label is worth one line of report.
+        if meta.get("router_prompt"):
+            state.note(
+                "missing_required",
+                page.file.src_uri + ": has `router_prompt` but no `router:` or "
+                + "`router_code:`, so there is no field for it to label and "
+                + "nothing is rendered.",
+            )
         return html
 
     own_id = str(meta.get("id") or "")
@@ -174,20 +211,33 @@ def on_page_content(html, page, config, files):
                 + (", ".join(sorted(tables)) or "none"),
             )
             table = {}
+
         for key, target in (table or {}).items():
-            target = str(target)
+            # PORTABLE CURTAIN: no destination means "this page, whichever page
+            # is asking". One table entry, usable on any number of pages,
+            # without the table needing to know their ids. See the docstring.
+            if target is None or not str(target).strip():
+                curtain.append(_check(str(key)))
+                continue
+
+            target = str(target).strip()
+
+            # PINNED CURTAIN: names this page explicitly.
             if target == own_id:
                 curtain.append(_check(str(key)))
                 continue
+
             hit = state.PAGES.get(target)
             if not hit:
                 state.note(
                     "dead_links",
                     page.file.src_uri + ": router '" + str(table_name) + "' has a "
                     + "key pointing at '" + target + "', which is not a page on "
-                    + "this site. That key will never route anywhere.",
+                    + "this site. That key will never route anywhere. (Leave the "
+                    + "value blank for a curtain on this page.)",
                 )
                 continue
+
             wrap = _wrap(str(key), prefix + str(hit["url"]))
             if wrap:
                 redirects.append(wrap)
@@ -202,9 +252,12 @@ def on_page_content(html, page, config, files):
 
     prompt = str(meta.get("router_prompt") or "Enter your code")
     mode = "curtain" if curtain else "redirect"
-    source = "local" if local and not table_name else (
-        "remote" if table_name and not local else "local+remote"
-    )
+    if local and table_name:
+        source = "local+remote"
+    elif local:
+        source = "local"
+    else:
+        source = "remote"
     state.note(
         "routers",
         page.file.src_uri + " · " + mode + " · " + source + " · "
