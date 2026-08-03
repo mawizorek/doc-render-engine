@@ -18,8 +18,7 @@ theme: database
 
 # 🔀 One quiet "Edit this page on GitHub" at the foot, and nothing else in the
 # site mentions a repository. Set to `false` to remove even that -- the
-# intended end state once these pages have outside readers. See the same block
-# in instances/uritp/site.yml.
+# intended end state once these pages have outside readers.
 edit_links: true
 
 palette:
@@ -42,18 +41,11 @@ sections:
 peers:
   template: https://mawizorek.github.io/doc-render-engine/
 
-# ⚠️ LEAK SCAN DISABLED, and this is a REAL LIMITATION rather than a
-# convenience -- read before copying this line into a new instance.
+# ✅ LEAK SCAN BACK ON (2026-08-03). It was disabled because the word
+# "theatre" appears legitimately in the engine's own object declarations, and
+# scanning raw text would have failed every build on a correct file.
 #
-# The scan fails the build if the engine mentions the site it is rendering.
-# That works when a slug is a proper noun. This slug is the word "theatre",
-# which legitimately appears in the engine's own object declarations (see
-# objects/procedure.yml, which uses it to explain what a non-theatre page is).
-# Scanning would fail every build on a correct file.
-#
-# So: THE LEAK SCAN ONLY PROTECTS SITES WITH DISTINCTIVE NAMES. Two of three
-# instances now opt out (`template`, `theatre`), which means `uritp` is
-# currently the only site actually proving the engine is site-agnostic. If it
-# ever opts out too, the check is decorative and should be redesigned rather
-# than quietly kept.
-leak_tokens: []
+# The scan now reads CODE and ignores comments, so a word used in prose is no
+# longer mistaken for a dependency. Two instances opted out under the old
+# design and the third then blocked on a comment about the check itself, which
+# is what forced the redesign. All three are back under it.
