@@ -2,7 +2,7 @@
 
 The renderer for a family of documentation sites. One app, many instances.
 
-**Status:** v1. Builds. Deployment needs two manual setup steps, see §6.
+**Status:** v1. Builds. Deployment needs the manual setup in §6.
 **Instances:** `template` (live gold standard). Others are added deliberately.
 
 ---
@@ -84,13 +84,16 @@ forgot a line.
 
 ## 4. Adding a site
 
-1. Create the content repo. Markdown only.
+1. Create the content repo, **under the same account as this one** (§6a says
+   why that is not a style preference). Markdown only.
 2. `cp -r instances/template instances/<slug>` and edit `site.yml`.
 3. Add one row to the matrix in `.github/workflows/build.yml`.
-4. Enable Pages on the content repo: **deploy from branch → `gh-pages`**.
+4. **Add the new repo to the `DOCRENDER_TOKEN` PAT's repository list.** Easy to
+   forget, and the failure is a 403 at the very last step of an otherwise green
+   build.
+5. Enable Pages on the content repo: **deploy from branch → `gh-pages`**.
 
-That is the whole procedure, and the fact that it is four steps rather than a
-fork is the point.
+That this is five steps rather than a fork is the point.
 
 **Pin by tag, never by branch, once other sites are consuming this repo.** The
 reason these are separate repos is that they fail separately; a floating
@@ -116,15 +119,35 @@ Run the lowest-stakes site as the canary on the moving tag and pin the rest.
 
 ## 6. Setup that a human has to do
 
-Both are one-time and neither can be done from inside a workflow.
+None of this can be done from inside a workflow.
 
-**a. `DOCRENDER_TOKEN` secret on this repo.** A fine-grained PAT with
-*Contents: write* on every content repo. The built-in `GITHUB_TOKEN` is scoped
-to this repository only, and the entire job is writing to a different one.
+### a. The `DOCRENDER_TOKEN` secret, on THIS repo
 
-**b. Pages enabled on each content repo**, deploying from the `gh-pages`
-branch. The first build creates that branch; the setting has to be flipped once
-after it exists.
+A fine-grained PAT with **Contents: Read and write**. It goes on the engine,
+not on a content repo, because **the secret belongs where the workflow runs** —
+and every workflow in this family runs here. A content repo holds no workflow
+at all; that is the purity rule.
+
+⚠️ **A fine-grained PAT is scoped to ONE resource owner**, which is why every
+repo in this family has to live under the same account. A split namespace is
+not untidy, it is unbuildable: no single token can both read the engine and
+write the site.
+
+⚠️ **A repo TRANSFERRED into the account after the token was created is NOT
+added to it automatically.** The token's repository list is a fixed set chosen
+at creation. The build then goes green all the way through rendering and dies
+with a 403 on the final push, which reads like a broken deploy rather than a
+missing checkbox. Check the list at
+[Settings → Developer settings → Personal access tokens](https://github.com/settings/tokens?type=beta)
+and add the repo.
+
+### b. Pages on each content repo
+
+**Settings → Pages → Deploy from a branch → `gh-pages` / `(root)`.**
+
+Order matters: the first successful build CREATES that branch, so the setting
+cannot be flipped until after the first run. Run the workflow, set Pages, run
+it once more.
 
 ---
 
