@@ -27,3 +27,7 @@
 # page already in the sidebar is a router with nothing to do.
 #
 # Empty for now. Add a table when there is a real reason for one.
+
+
+staff:
+  staff26: staff
