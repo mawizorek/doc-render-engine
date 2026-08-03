@@ -1,0 +1,115 @@
+name: Build and deploy doc sites
+
+# THE APP MATRIX.
+#
+# One job per site. Each checks out the engine and one content repo, renders,
+# and pushes the result to THAT content repo's gh-pages branch.
+#
+# The detail that makes the whole design work: the green Download ZIP button
+# zips the DEFAULT branch only. Built output on gh-pages therefore never
+# pollutes the download, the content repo stays pure markdown, and the site
+# still lives at its own pretty URL. No separate instance repos, no build
+# artefacts in the tree a reader downloads.
+#
+# fail-fast is off on purpose. These sites have separate audiences and must
+# fail separately; one broken build must never take the others down with it.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      instance:
+        description: Single instance to build (blank = all)
+        required: false
+        default: ""
+  repository_dispatch:
+    types: [content-changed]
+  schedule:
+    # A content repo holds NO workflow of its own -- that is the purity rule --
+    # so it cannot trigger its own rebuild. This poll is the price of that, and
+    # it is the right trade: nobody publishes venue specs on a stopwatch, and
+    # workflow_dispatch covers the impatient case. It also refreshes cross-site
+    # links, which resolve at build time and go stale when a peer renames.
+    - cron: "23 7 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - instance: template
+            repo: maw-agents/template-docs
+    name: ${{ matrix.instance }}
+    steps:
+      - name: Check out the engine
+        uses: actions/checkout@v4
+        with:
+          path: engine
+
+      - name: Check out the content
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repo }}
+          path: content
+          fetch-depth: 2
+
+      - name: Confirm the matrix agrees with the instance config
+        working-directory: engine
+        run: |
+          declared=$(python3 -c "import yaml,sys; print(yaml.safe_load(open('instances/${{ matrix.instance }}/site.yml'))['content_repo'])")
+          if [ "$declared" != "${{ matrix.repo }}" ]; then
+            echo "::error::matrix says ${{ matrix.repo }}, site.yml says $declared."
+            echo "Two places name the content repo and they disagree. Fix one."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: engine/requirements.txt
+
+      - name: Install the renderer
+        working-directory: engine
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Render
+        working-directory: engine
+        env:
+          DOCRENDER_INSTANCE: ${{ matrix.instance }}
+          DOCRENDER_CONTENT: ${{ github.workspace }}/content
+          DOCRENDER_OUTPUT: ${{ github.workspace }}/site
+          DOCRENDER_ENGINE_REF: ${{ github.sha }}
+        run: |
+          cd "${{ github.workspace }}/content"
+          echo "DOCRENDER_COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          {
+            echo "DOCRENDER_COMMIT_SUBJECT<<EOF"
+            git log -1 --pretty=%s
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+          cd "${{ github.workspace }}/engine"
+          mkdocs build --config-file mkdocs.yml
+
+      - name: Deploy to the content repo's gh-pages
+        if: github.event_name != 'pull_request'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          # A fine-grained PAT with Contents: write on every content repo.
+          # GITHUB_TOKEN cannot be used: it is scoped to THIS repo, and the
+          # whole point is writing to another one.
+          personal_token: ${{ secrets.DOCRENDER_TOKEN }}
+          external_repository: ${{ matrix.repo }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          enable_jekyll: false
+          commit_message: "render: ${{ matrix.instance }} from engine ${{ github.sha }}"
