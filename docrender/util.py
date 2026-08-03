@@ -78,6 +78,13 @@ def relative_url(target: str, from_page: str) -> str:
     an encrypted payload, so a wrong URL is not visible until a reader types a
     correct code and lands nowhere.
 
+    ⚠️ AND FOR TWO DAYS THAT PARAGRAPH WAS AHEAD OF THE CODE. Naming two call
+    sites reads as having converted two; only `links.py` was. `router.py` kept
+    its own copy until 2026-08-03, so the copy described here as the more
+    dangerous one is precisely the one that stayed broken -- protected from
+    discovery by the same encryption that made it dangerous. When a docstring
+    explains why a helper was extracted, say which callers actually call it.
+
     A trailing component containing a dot is treated as a filename and dropped
     from the source path, so this stays correct under `directory_urls: false`.
     """
@@ -139,6 +146,10 @@ def duplicate_keys(text: str) -> list[str]:
     not built -- and nothing anywhere says why. It reads as "my page vanished",
     and the report's own complaint (`status is 'routed'`) sends the author
     hunting for a typo they cannot see.
+
+    THE SAME TRAP CATCHES ANY REPEATED KEY, which is why routers take a LIST
+    rather than a repeated line: `router:` twice keeps the second table and
+    silently discards the first. See docrender/router.py.
 
     Detected with a regex rather than a strict YAML loader on purpose: this has
     to report ALL the offenders in one pass and keep parsing, where a strict

@@ -9,7 +9,8 @@ THE FRONTMATTER KEYS, and how they relate to `status:`
                      LISTED. There is no default: a page with no status is not
                      built at all. See docrender/visibility.py.
 
-    router:          name of a table in instances/<slug>/routes.yml (REMOTE)
+    router:          name of a table in instances/<slug>/routes.yml, or a LIST
+                     of table names (REMOTE)
     router_code:     a code, or a list of them, written right here (LOCAL)
     router_prompt:   the label above the field. Optional, and does NOTHING on
                      its own -- decoration for a router, not a router.
@@ -19,6 +20,33 @@ A router does not gate anything and `status:` does not know it exists. They
 answer different questions: status decides what REACHES the site, a router
 decides what a reader sees FIRST once they are there. A `hidden` page with a
 router is still not built; a `public` page with a curtain is still fully public.
+
+=============================================================================
+EVERY SOURCE OF KEYS POOLS. REPEATING A FRONTMATTER KEY DOES NOT.
+=============================================================================
+One page may draw keys from any number of places, and they all end up in the
+same field:
+
+    ---
+    id: staff
+    status: public
+    router: [pm, staff, guests]      # three REMOTE tables
+    router_code: [tryme, temp26]     # plus two LOCAL codes
+    ---
+
+⚠️ WHAT DOES NOT WORK IS WRITING THE SAME KEY TWICE:
+
+    router: pm
+    router: staff        # <- the first line is GONE
+
+That is YAML, not this engine: a duplicate key silently keeps the LAST value.
+Use a list. objects.py reports duplicate frontmatter keys FIRST for exactly
+this reason -- the symptom ("only one of my tables works") looks nothing like
+the cause.
+
+A key defined in two different tables is reported and the first table wins.
+Resolving that by dict iteration order would make the winner depend on the
+order somebody happened to type two files in.
 
 =============================================================================
 A ROUTER ON A FOLDER'S index.md CASCADES TO EVERYTHING UNDER IT
@@ -36,15 +64,26 @@ reader steps around by clicking any child in the sidebar. It also costs the
 reader nothing extra, because an unlock is remembered for the session: one code
 at the index and the whole folder opens as they navigate.
 
+🔴 THIS DID NOT WORK FOR A DIRECT CHILD UNTIL 2026-08-03, AND THE EXAMPLE
+ABOVE IS THE CASE IT GOT WRONG. `_inherited` began its walk at the page's
+GRANDPARENT folder: for `production/staff/props.md` it looked at
+`production/index.md` and then the site root, and never at
+`production/staff/index.md` -- the one folder index the whole feature exists to
+read. `parts[:depth - 1]` where `parts[:depth]` was meant, guarded by a comment
+confidently explaining a different off-by-one. It is now an explicit list of
+ancestor paths, because index arithmetic is what made a wrong answer look
+deliberate.
+
 ⚠️ AND IT IS STILL NOT PROTECTION. A direct link to a child page shows the
 curtain, but the body is in that page's source either way. Cascading makes the
 PAUSE consistent across a folder. It does not make the folder private, and
 nothing here ever will -- the content repo is public.
 
-This is deliberately the OPPOSITE emphasis from publication states, which
-cascade so that the most PROTECTIVE statement wins. Access should be hard to
-weaken by accident; a pause should be easy to reason about. Same direction, very
-different stakes.
+A pause should be easy to reason about, so the nearest statement wins and a page
+can opt out. That is deliberately the opposite instinct from access control,
+where the most protective statement should win -- but note that publication
+states do not actually cascade at all. See visibility.py, which used to claim
+they did.
 
 =============================================================================
 LOCAL VS REMOTE
@@ -115,6 +154,16 @@ REDIRECT still seals its destination, and the asymmetry is the point: a
 plaintext destination is not a router, it is a list of links with an input box
 in front of it. A curtain has no such problem -- the destination is the page you
 are already standing on.
+
+🔴 AND THE SEAL IS WHY A WRONG DESTINATION WAS INVISIBLE FOR TWO DAYS. This file
+built redirect URLs with `"../" * page.file.url.count("/")`, the separator-
+counting math that `util.relative_url` was written to replace. util.py's own
+docstring says it was lifted into util because TWO hooks had copied that math,
+and names this one as the worse copy for precisely the reason it then stayed
+broken: a curtain's mistakes are visible immediately, while a redirect's
+destination is encrypted, so a wrong URL surfaces only when a reader types a
+correct code and lands on a 404. links.py was converted; this file was not.
+**A docstring describing a fix is not the fix.**
 """
 
 from __future__ import annotations
@@ -126,7 +175,7 @@ import secrets
 from pathlib import Path
 
 from . import state
-from .util import load_yaml
+from .util import load_yaml, relative_url
 
 ITERATIONS = 120_000
 
@@ -179,23 +228,44 @@ def _as_list(value) -> list[str]:
 
 
 def _declares_router(meta: dict) -> bool:
-    return bool(meta.get("router") or _as_list(meta.get("router_code")))
+    return bool(_as_list(meta.get("router")) or _as_list(meta.get("router_code")))
+
+
+def _ancestor_indexes(src_uri: str) -> list[str]:
+    """Every folder index above this page, nearest first, excluding itself.
+
+    Written as an explicit list rather than arithmetic on path indices, because
+    the arithmetic version was wrong by one level for two days and read as
+    intentional: it carried a comment explaining, correctly, that a page's own
+    index is not its ancestor -- while actually skipping its PARENT's index too.
+
+    For `production/staff/props.md`:
+        production/staff/index.md, production/index.md, index.md
+
+    For `production/staff/index.md` the first candidate IS the page, so it is
+    dropped and the walk starts at `production/index.md`. A folder index does
+    not inherit from itself.
+    """
+    parts = list(Path(src_uri).parts[:-1])
+    out = []
+    while True:
+        candidate = "/".join(parts + ["index.md"])
+        if candidate != src_uri:
+            out.append(candidate)
+        if not parts:
+            return out
+        parts.pop()
 
 
 def _inherited(src_uri: str) -> tuple[dict, str] | tuple[None, None]:
     """Nearest ancestor folder index that declares a router, if any.
 
-    Walks UP one folder at a time and stops at the first hit, so a subfolder
-    that redeclares overrides rather than stacking. Stacking would mean two
-    fields on one page, which is not a thing anybody wants.
+    Stops at the first hit, so a subfolder that redeclares overrides rather than
+    stacking. Stacking ACROSS folders would mean a reader's code depending on
+    how deep they happened to be, which is not something anybody can reason
+    about. Stacking on ONE page is what a list is for.
     """
-    parts = Path(src_uri).parts
-    # Start above this page's own folder: its own index is a sibling, not an
-    # ancestor, and a folder index does not inherit from itself.
-    for depth in range(len(parts) - 1, 0, -1):
-        candidate = "/".join(parts[:depth - 1] + ("index.md",)) if depth > 1 else "index.md"
-        if candidate == src_uri:
-            continue
+    for candidate in _ancestor_indexes(src_uri):
         meta = state.BY_SRC.get(candidate)
         if meta and _declares_router(meta):
             return meta, candidate
@@ -242,55 +312,72 @@ def on_page_content(html, page, config, files):
                 )
             return html
 
-    table_name = source_meta.get("router")
+    table_names = _as_list(source_meta.get("router"))
     local = _as_list(source_meta.get("router_code"))
 
     own_id = str(meta.get("id") or "")
-    depth = page.file.url.count("/")
-    prefix = "../" * depth
 
     curtain: list[dict] = [_check(code) for code in local]
     redirects: list[dict] = []
 
-    if table_name:
-        tables = _routes()
-        table = tables.get(str(table_name))
+    # WHERE EACH KEY CAME FROM, so a collision can be reported with both
+    # sources named. Two tables claiming one key is a real editing mistake and
+    # letting dict order decide the winner would make it depend on the order
+    # somebody typed two unrelated files in.
+    origin_of: dict[str, str] = {code: "router_code" for code in local}
+
+    tables = _routes() if table_names else {}
+    for table_name in table_names:
+        table = tables.get(table_name)
         if table is None:
             state.note(
                 "missing_required",
-                src + ": declares router '" + str(table_name)
+                src + ": declares router '" + table_name
                 + "', which is not in instances/"
                 + str(state.INSTANCE.get("slug")) + "/routes.yml. Known: "
                 + (", ".join(sorted(tables)) or "none"),
             )
-            table = {}
+            continue
 
         for key, target in (table or {}).items():
+            key = str(key)
+            if key in origin_of:
+                state.note(
+                    "routers",
+                    src + ": key '" + key + "' is defined in both '"
+                    + origin_of[key] + "' and '" + table_name + "'. Using '"
+                    + origin_of[key] + "'; the other is ignored.",
+                )
+                continue
+            origin_of[key] = table_name
+
             # PORTABLE CURTAIN: no destination means "this page, whichever page
             # is asking". The form that makes a cascade work.
             if target is None or not str(target).strip():
-                curtain.append(_check(str(key)))
+                curtain.append(_check(key))
                 continue
 
             target = str(target).strip()
 
             # PINNED CURTAIN: names this page explicitly.
             if target == own_id:
-                curtain.append(_check(str(key)))
+                curtain.append(_check(key))
                 continue
 
             hit = state.PAGES.get(target)
             if not hit:
                 state.note(
                     "dead_links",
-                    src + ": router '" + str(table_name) + "' has a key pointing "
+                    src + ": router '" + table_name + "' has a key pointing "
                     + "at '" + target + "', which is not a page on this site. "
                     + "That key will never route anywhere. (Leave the value "
                     + "blank for a curtain on whichever page uses the table.)",
                 )
                 continue
 
-            wrap = _wrap(str(key), prefix + str(hit["url"]))
+            # Resolved against THIS page, never from a separator count. See the
+            # red note in the module docstring, and util.relative_url.
+            wrap = _wrap(key, relative_url(str(hit["url"]), page.file.url))
             if wrap:
                 redirects.append(wrap)
 
@@ -308,12 +395,12 @@ def on_page_content(html, page, config, files):
         or "Enter your code"
     )
     mode = "curtain" if curtain else "redirect"
-    if local and table_name:
-        origin = "local+remote"
+    if local and table_names:
+        origin = "local+remote(" + ", ".join(table_names) + ")"
     elif local:
         origin = "local"
     else:
-        origin = "remote"
+        origin = "remote(" + ", ".join(table_names) + ")"
     if inherited_from:
         origin += " (inherited from " + inherited_from + ")"
     state.note(
