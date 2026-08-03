@@ -5,7 +5,10 @@
 # TOKEN NAMES are shared across every site in the family. VALUES are not, and
 # must not be: two sites that look identical are two sites nobody can tell
 # apart, and a shared palette means fixing one breaks the other silently.
-# An instance overrides values in its own theme.css.
+#
+# ORDER MATTERS. `base` rows are always emitted; the chosen theme's rows are
+# emitted AFTER them, so a theme overrides base simply by restating a token.
+# Keep base first in this file and never interleave.
 theme	token	dark	light
 base	surface	oklch(21% 0.012 260)	oklch(99% 0.002 260)
 base	surface-raised	oklch(26% 0.014 260)	oklch(97% 0.004 260)
@@ -18,3 +21,25 @@ base	danger	oklch(70% 0.176 22)	oklch(52% 0.196 22)
 base	dead	oklch(70% 0.176 22)	oklch(52% 0.196 22)
 utility	surface	oklch(18% 0.008 260)	oklch(100% 0 0)
 utility	accent	oklch(76% 0.104 168)	oklch(48% 0.108 168)
+# --- eos -------------------------------------------------------------------
+# Named after the console, and shaped by where the pages get read: a dimmer
+# room or a booth during a work call. Surfaces sit darker and cooler than base
+# so a phone at full brightness is not a flashlight, and the accent is the
+# amber a board op already reads as "live".
+eos	surface	oklch(17% 0.016 250)	oklch(98% 0.004 250)
+eos	surface-raised	oklch(22% 0.020 250)	oklch(95% 0.008 250)
+eos	ink	oklch(91% 0.010 250)	oklch(22% 0.014 250)
+eos	ink-muted	oklch(69% 0.018 250)	oklch(45% 0.016 250)
+eos	rule	oklch(31% 0.022 250)	oklch(87% 0.010 250)
+eos	accent	oklch(80% 0.130 74)	oklch(56% 0.132 62)
+eos	warn	oklch(82% 0.140 92)	oklch(58% 0.144 78)
+# --- database --------------------------------------------------------------
+# For pages that ARE a table. Neutral, almost grey, because a coloured surface
+# competes with the rows for attention -- and the rows are the content. The
+# accent is used sparingly and mostly on structure, not decoration.
+database	surface	oklch(20% 0.004 240)	oklch(100% 0 0)
+database	surface-raised	oklch(25% 0.006 240)	oklch(97% 0.002 240)
+database	ink	oklch(94% 0.004 240)	oklch(20% 0.006 240)
+database	ink-muted	oklch(71% 0.008 240)	oklch(44% 0.008 240)
+database	rule	oklch(36% 0.008 240)	oklch(86% 0.004 240)
+database	accent	oklch(76% 0.108 172)	oklch(46% 0.112 172)

@@ -6,3 +6,5 @@
 theme	label	notes
 base	Base	shared token set, always applied under everything else
 utility	Utility	dense and low-chrome, for pages that are worked from rather than read
+eos	Eos	lighting-console dark: cool blue-grey surfaces, amber live accent, for electrics and production paperwork read in a dim room
+database	Database	record-first: neutral surfaces, tight type, tables treated as the primary content rather than an illustration
