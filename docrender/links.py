@@ -21,16 +21,34 @@ The cache is COMMITTED, not ignored. An unreachable peer then degrades to
 'last known good, marked stale' instead of taking our build down over somebody
 else's outage.
 
-A link that resolves nowhere renders as a visible marker and lands in the
-report. It does not fail the build. See objects.py for why.
-
 ⚠️ CODE IS NOT CONTENT (fixed 2026-08-03, first live build).
 Substitution SKIPS fenced blocks and inline code spans. Without that, the very
 page that teaches this syntax has its examples rewritten into the output it is
 trying to explain -- `[Main Stage](@main-stage)` was rendering as
 `[Main Stage](../../venues/example-house/main-stage/)` inside a code fence, so
-the authoring guide silently taught the wrong thing. Any transform that edits
-markdown text has this bug available to it; this is the one that found it.
+the authoring guide silently taught the wrong thing.
+
+=============================================================================
+AN UNRESOLVED LINK FAILS QUIETLY (CHANGED 2026-08-03, Michael)
+=============================================================================
+It renders as PLAIN TEXT -- the label, unlinked, unstyled -- and lands in the
+build report. It does not get a strikethrough, a red colour, or a
+`[broken link]` badge.
+
+The original loud marker was wrong, and the reasoning that produced it was
+wrong in an instructive way. The argument was "a dead link that looks alive is
+worse than a missing one," which is true for a READER of a finished site, and
+irrelevant to how these sites actually get built: a page routinely points at
+something not written yet, and every one of those became a red strikethrough
+shouting at a reader about a problem only the author can fix and only the
+author cares about.
+
+So the audiences split. The AUTHOR needs to know, and gets it in the build
+report, which is where a build problem belongs. The READER gets a sentence
+that still reads as a sentence, with a phrase that simply is not a link yet.
+
+The forward reference survives either way -- the text stays, the id stays in
+the source, and it becomes a live link the moment the target exists.
 """
 
 from __future__ import annotations
@@ -42,11 +60,15 @@ from pathlib import Path
 
 from . import state
 
-_LINK = re.compile(r"\]\(@([A-Za-z0-9_.:-]+)(#[A-Za-z0-9_-]+)?\)")
+# Captures the LABEL too, because an unresolved link now renders as that label
+# and nothing else. The old pattern started at `](` and could not see it.
+_LINK = re.compile(
+    r"\[(?P<label>[^\]]*)\]\(@(?P<token>[A-Za-z0-9_.:-]+)(?P<anchor>#[A-Za-z0-9_-]+)?\)"
+)
 
-# Fenced blocks (``` or ~~~, any indent, any info string) and inline spans
-# (one or more backticks). Ordered longest-first so a fence is never mistaken
-# for an inline span that happens to start with three backticks.
+# Fenced blocks (``` or ~~~, any indent, any info string) and inline spans.
+# Ordered longest-first so a fence is never mistaken for an inline span that
+# happens to start with three backticks.
 _PROTECTED = re.compile(
     r"(?ms)^[ \t]*(?P<f>`{3,}|~{3,}).*?(?:^[ \t]*(?P=f)[ \t]*$|\Z)"
     r"|(?P<t>`+)(?:.|\n)*?(?P=t)"
@@ -57,11 +79,6 @@ _TIMEOUT = 10
 
 def _cache_path() -> Path:
     return Path(state.INSTANCE.get("dir", ".")) / "xref-cache.json"
-
-
-def _dead(reason: str) -> str:
-    """Render a visibly broken link rather than a plausible wrong one."""
-    return '](#){ .docrender-dead title="' + reason + '" }'
 
 
 def on_files(files, config):
@@ -119,7 +136,7 @@ def _load_peers() -> None:
                     "stale_xref",
                     "peer '" + slug + "' unreachable (" + str(exc)
                     + ") and no cache exists. Every @" + slug
-                    + ": link will render as a dead marker.",
+                    + ": link will render as plain text.",
                 )
 
     if state.PEERS:
@@ -136,15 +153,18 @@ def on_page_markdown(markdown, page, config, files):
     src = page.file.src_uri
 
     def replace(match):
-        token = match.group(1)
-        anchor = match.group(2) or ""
+        label = match.group("label")
+        token = match.group("token")
+        anchor = match.group("anchor") or ""
 
+        # Unresolved: hand back the label as ordinary prose. The sentence still
+        # reads; the author hears about it in the build report.
         if ":" in token:
             slug, _, foreign_id = token.partition(":")
             peer = state.PEERS.get(slug)
             if not peer:
                 state.note("dead_links", src + ": unknown peer site '" + slug + "'")
-                return _dead("unknown peer site: " + slug)
+                return label
             hit = None
             for candidate in peer.get("pages", []):
                 if candidate.get("id") == foreign_id:
@@ -155,25 +175,25 @@ def on_page_markdown(markdown, page, config, files):
                     "dead_links",
                     src + ": '" + foreign_id + "' not found in peer '" + slug + "'",
                 )
-                return _dead("not found in " + slug + ": " + foreign_id)
+                return label
             base = str(peer.get("base_url", "")).rstrip("/")
             target = base + "/" + str(hit.get("url", "")) + anchor
-            return "](" + target + "){ .docrender-xref }"
+            return "[" + label + "](" + target + "){ .docrender-xref }"
 
         hit = state.PAGES.get(token)
         if not hit:
             state.note("dead_links", src + ": no page with id '" + token + "'")
-            return _dead("no page with id: " + token)
+            return label
 
         # Relative, so the site survives being served from a subpath, which is
         # exactly what a project Pages URL is.
         depth = page.file.url.count("/")
         prefix = "../" * depth
-        return "](" + prefix + str(hit.get("url", "")) + anchor + ")"
+        return "[" + label + "](" + prefix + str(hit.get("url", "")) + anchor + ")"
 
     # Walk the gaps BETWEEN protected regions and substitute only there, so a
-    # code sample survives verbatim. Rebuilding the string from slices keeps
-    # every protected region byte-identical rather than round-tripping it.
+    # code sample survives verbatim. Rebuilding from slices keeps every
+    # protected region byte-identical rather than round-tripping it.
     out = []
     cursor = 0
     for guard in _PROTECTED.finditer(markdown):
