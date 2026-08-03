@@ -23,6 +23,14 @@ optional:
   - related      # ids, not paths
   - xref         # peer:id references to sibling sites
   - source       # where the facts came from
-  - listed       # `false` keeps this page OUT of its parent index's contents
-                 # list. Sidebar and search are unaffected -- that is what
-                 # `status: unlisted` is for, and the two are independent.
+  - indexed      # `false` keeps this page out of the contents list drawn by
+                 # the INDEX PAGE above it. Default true.
+                 #
+                 # ⚠️ THREE THINGS IN THIS ENGINE ARE CALLED AN INDEX AND THIS
+                 # IS ONLY ONE OF THEM. `indexed: false` does NOT remove the
+                 # page from /doc-index.json -- it is still published there,
+                 # because that file is the cross-site link contract and
+                 # dropping a page from it would break `@peer:id` links from
+                 # other sites. It does not touch the SEARCH index either;
+                 # that is `status: unlisted`. It means one thing: the list of
+                 # links at the foot of the parent index page.
