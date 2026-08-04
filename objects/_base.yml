@@ -38,13 +38,28 @@ optional:
   - related      # ids, not paths
   - xref         # peer:id references to sibling sites
   - source       # where the facts came from
-  - also_known_as  # other names for this thing: [genie, personnel lift, MEWP]
+  - keywords     # other words for this thing: [genie, personnel lift, MEWP]
+                 #
+                 # ⚠️ RENAMED FROM `also_known_as` 2026-08-04, Michael. The old
+                 # key is listed in objects.py _LEGACY_KEYS and is REPORTED at
+                 # build until nobody uses it -- a rename is the one change a
+                 # reader of the page cannot see, because the old key parses as
+                 # valid YAML, gets ignored, and the line silently stops working.
+                 #
+                 # ⭐ THE NAME CHANGE WIDENS WHAT BELONGS HERE, and that is the
+                 # point rather than a side effect. `also_known_as` could only
+                 # honestly hold ALIASES -- other names for the same thing.
+                 # `keywords` also holds the words somebody would SEARCH for
+                 # that are not names at all: a lighting page wanting `LX` and
+                 # `electrics`. The rendered label moved with it for exactly
+                 # this reason; "Also called: electrics" was about to be false.
                  #
                  # Renders as a quiet visible line at the foot, and is indexed
                  # for exactly that reason -- the words are ON THE PAGE. A
-                 # hidden keywords block was the rejected alternative: nobody
-                 # can see it, so nobody can audit it, so it rots silently and
-                 # the first symptom is a search that stopped matching.
+                 # HIDDEN meta block was the rejected alternative: nobody can
+                 # see it, so nobody can audit it, so it rots silently and the
+                 # first symptom is a search that stopped matching. Visible is
+                 # the whole mechanism; the field name was never the point.
   - indexed      # `false` keeps this page out of the contents list drawn by
                  # the INDEX PAGE above it. Default true.
                  #

@@ -1,4 +1,4 @@
-"""The lede, and the aka line. What a page says before it starts arguing.
+"""The lede, and the keywords line. What a page says before it starts arguing.
 
 WHY THE LEDE IS A FIELD AND NOT A POSITION (decided 2026-08-03, Michael).
 
@@ -31,12 +31,23 @@ That is a worklist, not a regression -- nothing fails, nothing stops
 publishing, and a page with no `summary:` renders exactly as it did the day
 before.
 
-THE AKA LINE is the same argument pointed at search. `also_known_as: [genie,
-personnel lift]` renders as a visible line at the foot, so the words are
-indexed because they are ON THE PAGE rather than injected into an index by a
-mechanism nobody can see. A hidden keywords block was the rejected option: it
-cannot be audited, so it rots silently, and the first symptom is a search that
-quietly stopped matching.
+THE KEYWORDS LINE is the same argument pointed at search. `keywords: [genie,
+personnel lift]` renders as a visible line at the foot, so the words are indexed
+because they are ON THE PAGE rather than injected into an index by a mechanism
+nobody can see. A HIDDEN meta block was the rejected option: it cannot be
+audited, so it rots silently, and the first symptom is a search that quietly
+stopped matching.
+
+⚠️ RENAMED FROM `also_known_as` 2026-08-04, Michael. The old key is reported via
+objects.py _LEGACY_KEYS. **The visible label moved with the field on purpose:**
+the old name could only honestly hold aliases, and the new one also holds search
+terms that are not names, so "Also called: electrics" was about to be false.
+
+⚠️ THE CSS CLASS IS STILL `dr-aka` AND THAT IS DELIBERATE, not a half-finished
+rename. Moving it means editing a stylesheet measured near the read-clip line,
+and a file that cannot be read whole cannot be safely rewritten -- which is a
+worse trade than one internal name that disagrees with its field. Named here so
+the next reader does not mistake it for an oversight.
 """
 
 from __future__ import annotations
@@ -176,11 +187,15 @@ def render(markdown: str, summary) -> str:
     return "\n".join(lines[: h1 + 1] + ["", block] + lines[h1 + 1 :])
 
 
-def aka(value) -> str:
-    """The 'Also called' line. VISIBLE, which is the whole point of it.
+def keywords(value) -> str:
+    """The keywords line. VISIBLE, which is the whole point of it.
 
     Accepts a list or a comma-separated string, because both are what people
     actually type and refusing one of them buys nothing.
+
+    ⚠️ The emitted class is `dr-aka`, not `dr-keywords`. See the module
+    docstring: the stylesheet that would have to change sits near the read-clip
+    line, and that is a worse risk than one stale internal name.
     """
     if value in (None, "", [], {}):
         return ""
@@ -192,7 +207,7 @@ def aka(value) -> str:
     names = [n for n in names if n]
     if not names:
         return ""
-    return '<p class="dr-aka">Also called: ' + ", ".join(names) + "</p>"
+    return '<p class="dr-aka">Keywords: ' + ", ".join(names) + "</p>"
 
 
 def insert_after(markdown: str, block: str) -> str:
