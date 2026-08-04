@@ -122,6 +122,16 @@ WHAT IT UNDERSTANDS ABOUT REAL SPREADSHEETS
 It does NOT sort, filter, total or reinterpret on its own. The raw file publishes beside
 the page, so every table offers a download link to the exact TSV it was drawn from.
 
+🐛 AND THAT DOWNLOAD LINK WAS A 404, WHILE THE COMMENT BESIDE IT ASSERTED OTHERWISE.
+It said the href "is simply its name relative to the page's own URL", which is true only
+on an index page. Under `use_directory_urls: true` a page at `lighting/x.md` is served
+from `lighting/x/`, while its TSV stays a sibling file at `lighting/x.tsv` -- one level
+UP. So a bare filename resolved to `lighting/x/x.tsv` and downloaded nothing, on every
+data page in the family. Resolved through `util.relative_url` now, the same helper that
+fixed this identical class of bug in links.py, router.py and revlog.py (#41). ⚠️ Do not
+go back to a bare filename, and do not count separators either -- see that function for
+why the arithmetic version was wrong on exactly one page per site.
+
 ⚠️ THE TABLE CARRIES A CLASS AND THAT IS LOAD-BEARING (fixed 2026-08-03). Material
 styles `.md-typeset table:not([class])` with `display: block` so wide tables can scroll.
 `display: block` on a table destroys the internal table layout, and a `position: sticky`
@@ -133,10 +143,12 @@ Do not remove it.
 from __future__ import annotations
 
 import html
+import posixpath
 import re
 from pathlib import Path
 
 from . import prefixes, state
+from .util import relative_url
 
 _BLOCK = re.compile(r"^[ \t]*!!![ \t]+data[ \t]+\"(?P<slot>[^\"\n]+)\"[ \t]*$")
 _OPTION = re.compile(r"^[ \t]+(?P<key>[A-Za-z_]+)[ \t]*:[ \t]*(?P<value>.*?)[ \t]*$")
@@ -147,6 +159,9 @@ _KNOWN_OPTIONS = ("pin", "sort", "hide", "caption")
 #: src_uri -> {slot: {"href": ..., "anchor": bool}}. Written at stage 01b, read by
 #: links.py at stage 03 to resolve an inline @data: mention. The per-page event order
 #: guarantees 01b has already run for THIS page.
+#:
+#: `href` is resolved RELATIVE TO THE PAGE, not a bare filename -- links.py hands it
+#: straight to a reader, so a wrong value here is a 404 in two places rather than one.
 PLACED: dict[str, dict[str, dict]] = {}
 
 
@@ -457,8 +472,19 @@ def on_page_markdown(markdown, page, config, files):
         return markdown
 
     here = Path(page.file.abs_src_path).parent
+    folder = posixpath.dirname(src)
     placed: dict[str, dict] = {}
     replacements: list[tuple[int, int, str]] = []
+
+    def href_for(filename: str) -> str:
+        """The TSV's URL as seen FROM THIS PAGE.
+
+        🐛 Not the bare filename, which is what this used to emit. See the docstring:
+        under directory URLs the page is one level deeper than its own sibling files,
+        so every download link was a 404.
+        """
+        site_path = posixpath.join(folder, filename) if folder else filename
+        return relative_url(site_path, page.file.url)
 
     for start, end, slot, options in blocks:
         entry = declared.get(slot)
@@ -501,12 +527,11 @@ def on_page_markdown(markdown, page, config, files):
 
         rows, pinned, override = _apply_options(rows, options, slot, src, state.note)
         caption = override if override is not None else entry["caption"]
-        # The TSV is copied to the site as an ordinary static file, so the download
-        # link is simply its name relative to the page's own URL.
+        href = href_for(entry["file"])
         replacements.append(
-            (start, end, _draw(rows, entry["file"], entry["file"], slot, caption, pinned))
+            (start, end, _draw(rows, href, entry["file"], slot, caption, pinned))
         )
-        placed[slot] = {"href": entry["file"], "anchor": True}
+        placed[slot] = {"href": href, "anchor": True}
 
     embedded_slots = {b[2] for b in blocks}
     for slot, entry in declared.items():
@@ -515,7 +540,7 @@ def on_page_markdown(markdown, page, config, files):
         # Declared and never drawn. It is NOT quietly appended at the page foot: a table
         # silently landing at the bottom of a long page is the failure nobody notices
         # for a month, and that fallback is the second legal path this rewrite removed.
-        placed[slot] = {"href": entry["file"], "anchor": False}
+        placed[slot] = {"href": href_for(entry["file"]), "anchor": False}
         if slot in embedded_slots:
             continue
         state.note(
