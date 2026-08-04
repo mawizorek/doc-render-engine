@@ -1,16 +1,13 @@
 # A building.
 #
-# A venue is a container first: the thing spaces point their `parent` at. Its
-# own fields are the facts that belong to the whole building rather than to any
-# one room.
+# A venue is a container: the thing spaces point their `parent` at.
+#
+# ⚠️ address, city, operator and access_notes were REMOVED 2026-08-03 with the
+# rest of the spec-table fields. An address is a fact about a building, printed
+# on that building's page and read by nothing else -- the same reason the room
+# facts left space.yml. Write it in the body. See space.yml for the full
+# reasoning; it is not repeated here.
 
 type: venue
 label: Venue
 extends: _base
-optional:
-  - address
-  - city
-  - operator
-  - access_notes
-renders:
-  - spec_table: [address, city, operator]
