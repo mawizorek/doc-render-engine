@@ -99,13 +99,19 @@ markdown_extensions:
 # harmless only by accident: docrender/assets.py calls `theme.build_css()`
 # itself, so the tokens are generated regardless and the dead shim was never
 # missed. Adding a stage is TWO edits, the file and this line.
+#
+# ⚠️ AND REMOVING ONE IS TWO EDITS IN THE OTHER ORDER: unregister here FIRST,
+# then delete the file. A listed file that no longer exists raises ImportError
+# before the build starts and takes every later hook down with it, so the
+# reverse order turns a tidy-up into a dead site. `01c_revlog` came out that
+# way on 2026-08-04 (the revision log is a `!!! data` table now, so the stage
+# had no caller left on any instance).
 hooks:
   - hooks/00_instance.py
   - hooks/00b_unlisted.py
   - hooks/00c_nav.py
   - hooks/01_objects.py
   - hooks/01b_data.py
-  - hooks/01c_revlog.py
   - hooks/02_visibility.py
   - hooks/03_links.py
   - hooks/03b_markers.py
