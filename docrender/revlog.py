@@ -137,9 +137,10 @@ def _when(iso: str) -> str:
 
 def _error(message: str) -> str:
     state.note("notes", "revision log: " + message)
-    return '<p class="docrender-dead">Revision log unavailable: ' + html.escape(
-        message
-    ) + "</p>"
+    return (
+        '<p class="docrender-dead">Revision log unavailable: '
+        + html.escape(message) + "</p>"
+    )
 
 
 def _table(rows: list[tuple[str, str]]) -> str:
@@ -156,9 +157,8 @@ def _table(rows: list[tuple[str, str]]) -> str:
         )
     out.append("</tbody></table>")
     out.append(
-        '<p class="dr-data__source">' + str(len(rows))
-        + " revisions &middot; "
-        + '<a href="revision-log.tsv" download>revision-log.tsv</a></p>"
+        '<p class="dr-data__source">' + str(len(rows)) + " revisions &middot; "
+        + '<a href="revision-log.tsv" download>revision-log.tsv</a></p>'
     )
     out.append("</div>")
     return "\n".join(out)
@@ -169,30 +169,24 @@ def on_page_markdown(markdown, page, config, files):
         return markdown
 
     if _git("rev-parse", "--git-dir") is None:
-        return _MARKER.sub(
-            lambda _: _error(
-                "the content tree is not a git checkout, so there is no "
-                "history to read"
-            ),
-            markdown,
+        message = _error(
+            "the content tree is not a git checkout, so there is no history "
+            "to read"
         )
+        return _MARKER.sub(lambda _: message, markdown)
 
     if _shallow():
-        return _MARKER.sub(
-            lambda _: _error(
-                "the content checkout is SHALLOW, so its history is "
-                "truncated. Refusing to render a partial log that would look "
-                "complete. Set fetch-depth: 0 on the content checkout."
-            ),
-            markdown,
+        message = _error(
+            "the content checkout is SHALLOW, so its history is truncated. "
+            "Refusing to render a partial log that would look complete. Set "
+            "fetch-depth: 0 on the content checkout."
         )
+        return _MARKER.sub(lambda _: message, markdown)
 
     rows = _commits()
     if not rows:
-        return _MARKER.sub(
-            lambda _: _error("no commits touching a document were found"),
-            markdown,
-        )
+        message = _error("no commits touching a document were found")
+        return _MARKER.sub(lambda _: message, markdown)
 
     state.REVLOG = rows
     table = _table(rows)
@@ -206,7 +200,7 @@ def on_post_build(config):
     drawn from a file you can download and open in a spreadsheet. Here the file
     is generated rather than committed, which is the only difference.
     """
-    rows = getattr(state, "REVLOG", None)
+    rows = state.REVLOG
     if not rows:
         return
     lines = ["when\tchange"]
