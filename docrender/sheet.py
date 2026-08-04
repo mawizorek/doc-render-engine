@@ -8,15 +8,45 @@ two jobs.
 
 **The seam is where the data stops and the markup starts.** This file knows what a
 spreadsheet is: rows, a header, section breaks, ragged widths, which column an option
-names, what order the rows go in, and -- since 2026-08-04 -- what KIND of thing each
-column holds. It emits no HTML and imports nothing that does. `datatable.py` keeps the
-frontmatter contract, the `!!! data` block, and the drawing.
+names, what order the rows go in, and what KIND of thing each column holds. It emits no
+HTML and imports nothing that does. `datatable.py` keeps the frontmatter contract, the
+`!!! data` block, and the drawing.
 
 It depends on `cells` for ONE thing: the plain text of a cell. A column name may be
 written `**Count**` and an option says `sort: count`, so comparison happens on what a
 reader sees rather than on what the author typed. Same for sorting -- see
 `sort_within_sections` -- and same for classification, so a marked value cannot change
 what kind of column it sits in.
+
+
+A HEADER CELL MAY DECLARE ITS COLUMN (2026-08-04, DL J21)
+=========================================================
+
+    thtr::id.key    slug    title::.key    credits::num    unit_cost::money
+
+`name::type.role.role`. Both halves optional: `x::num` is a type with no role,
+`x::.key` is a role with no type, plain `x` is neither and derives everything.
+
+⭐ **DERIVATION STAYS AND STAYS FIRST. A DECLARATION IS AN OVERRIDE.** That ordering is
+the whole reason this is safe to ship against a tree already full of TSVs: an
+unannotated sheet renders byte-for-byte as it did before this existed, so nobody has to
+migrate anything to keep what they have. If declaration replaced derivation, every sheet
+on the site would need a header pass before it rendered correctly again.
+
+⚠️ **AND IT IS NEEDED, WHICH `classify_columns` CANNOT ARGUE ITSELF OUT OF.** On the real
+`02-courses/course-index.tsv`: `credits` holds `1-4` and `2-4`, so one non-numeric value
+drops the whole column to text and the figures stop aligning -- the documented rule,
+working exactly as designed, producing the wrong answer. `thtr` is all digits, so it
+right-aligns course numbers as though they were quantities. **Derivation reads SHAPE and
+cannot read MEANING.** Currency is the same gap and worse: `1200` is a number either way
+and nothing in the values says dollars.
+
+⚠️ **SPECS ARE CARRIED BY NAME, NEVER BY INDEX**, and that is not a style choice:
+`apply_options` drops columns for `hide:`, so an index taken against the original header
+points at the wrong column afterwards. That bug is already written down two functions
+down, where `pinned` has to be recomputed for the same reason. A name lookup cannot
+drift. ⚠️ Two columns sharing a name therefore share a spec; a sheet with duplicate
+headers has a bigger problem than this.
 """
 
 from __future__ import annotations
@@ -75,7 +105,6 @@ def trim_columns(rows: list[list[str]]) -> list[list[str]]:
     whose every cell is blank except a header reading `-` used to survive: the drawing
     code blanked the junk LABEL and kept the COLUMN, so `thead th { min-width: 6rem }`
     reserved a sixth of a phone screen to render nothing, on every sheet that had one.
-    Found in two unrelated real sheets in the same screenshot pair.
 
     A column is only dropped when NO cell in it is real -- a `Status` column full of `-`
     keeps its header and stays, because somebody titled it and a reader can see that the
@@ -105,6 +134,83 @@ NUM = "num"
 TOKEN = "tok"
 PROSE = "prose"
 
+#: What a header may DECLARE, mapped to the kind class the stylesheet knows.
+#: `text` and `tok` are the same treatment under two names -- `text` is what an author
+#: means, `tok` is what the derivation has called it since #54, and renaming the internal
+#: one would churn the CSS for nothing.
+TYPES = {
+    "id": "id",
+    "num": NUM,
+    "money": "money",
+    "text": TOKEN,
+    "prose": PROSE,
+}
+ROLES = ("key",)
+
+_SPEC = re.compile(r"^(?P<name>[^:]*)::(?P<spec>[A-Za-z0-9._-]*)$")
+
+
+def split_header(rows, slot, src, note):
+    """Strip `::type.role` off every header cell. Returns (rows, {norm_name: spec}).
+
+    Runs immediately after `trim_columns` and BEFORE `apply_options`, because an option
+    saying `sort: credits` has to match a column headed `credits::num`. By the time
+    anything else in this module sees the header, the annotations are gone and the names
+    are what a reader sees.
+
+    ⚠️ An unknown type or role is REPORTED and IGNORED, never silent, for the reason
+    `apply_options` spells out at length: `pros` for `prose` in a header would otherwise
+    render a column that looks fine, behaves wrong, and never says why. A header is a
+    worse place for that than an option, because the option at least gets re-read every
+    time somebody edits the block.
+    """
+    if not rows:
+        return rows, {}
+
+    header = list(rows[0])
+    specs: dict[str, dict] = {}
+
+    for i, cell in enumerate(header):
+        match = _SPEC.match(str(cell).strip())
+        if not match:
+            continue
+        name = match.group("name").strip()
+        parts = [p for p in match.group("spec").split(".") if p]
+        kind = ""
+        roles: list[str] = []
+
+        # The type is the part BEFORE the first dot, and it is optional -- `::.key` is a
+        # role with no type, which is the common case on a title column.
+        if match.group("spec") and not match.group("spec").startswith("."):
+            declared = parts.pop(0).lower() if parts else ""
+            if declared in TYPES:
+                kind = TYPES[declared]
+            elif declared:
+                note(
+                    "dead_links",
+                    src + ": data block '" + slot + "' column '" + name
+                    + "' declares unknown type '" + declared + "'. Ignored, so the "
+                    + "column falls back to the derived kind. Known: "
+                    + ", ".join(sorted(TYPES)) + ".",
+                )
+
+        for role in parts:
+            if role.lower() in ROLES:
+                roles.append(role.lower())
+            else:
+                note(
+                    "dead_links",
+                    src + ": data block '" + slot + "' column '" + name
+                    + "' declares unknown role '" + role + "'. Ignored. Known: "
+                    + ", ".join(ROLES) + ".",
+                )
+
+        header[i] = name
+        specs[norm(name)] = {"kind": kind, "roles": roles}
+
+    return [header] + rows[1:], specs
+
+
 #: A value is PROSE when it is long enough AND wordy enough that holding it on one line
 #: is what sets the width of the whole table. Both tests, never either alone: `INV-433`
 #: is short, `Spirit Folio Powered` is three words and 20 characters and still scans as a
@@ -116,43 +222,34 @@ _PROSE_WORDS = 3
 def classify_columns(rows) -> list[str]:
     """One kind per column -- `num`, `tok` or `prose` -- DERIVED FROM THE VALUES.
 
-    ⭐ THIS IS THE ANSWER TO 'A WIDE RANGE OF EXPECTED DATA INPUTS' AND IT ADDS NO
-    AUTHORING SURFACE. The sheet already knows whether a column holds inventory numbers
-    or half a sentence; asking an author to declare it in the `!!! data` block would be a
-    second copy of a fact the file states perfectly, which is the defect this engine
-    spends its docstrings arguing against (DL J8, and `objects.py` on `data:`).
+    ⭐ THE DEFAULT, AND STILL THE RIGHT DEFAULT. The sheet already knows whether a column
+    holds inventory numbers or half a sentence, so the common case needs no authoring
+    surface at all. `split_header` above lets a header override this where the values are
+    genuinely ambiguous -- the two compose, and derivation is what runs when nobody said
+    anything.
 
     Why it matters, and it is not decoration. `white-space: nowrap` was CORRECT when a
     cell was a value: a wrapped cell turns one row into three and destroys the horizontal
     scan. It stopped being correct the moment a cell became prose (PR #50), because then
     **the longest sentence in the sheet sets the scroll width of the entire table** and
-    every column past it lives off the right edge of a phone. Per-column kinds let the
-    stylesheet keep nowrap exactly where it earns its keep.
+    every column past it lives off the right edge of a phone.
 
     The rules, in order, first match wins:
 
-      `num`    every filled value parses as a number (`cells.number`). Gets tabular
-               figures and right alignment, so a column of counts reads as a column.
+      `num`    every filled value parses as a number (`cells.number`).
       `prose`  the longest value is over ~24 characters AND at least 3 words. Wraps.
-      `tok`    everything else -- ids, codes, short labels, dimensions. Stays on one line.
+      `tok`    everything else -- ids, codes, short labels, dimensions.
 
     ⚠️ MEASURED ON `cells.plain()`, NEVER THE RAW CELL, for the same reason `sort:` is:
-    markup must not be able to change the shape of a sheet. `[3]{.est}` is still a number
-    and a column of them is still `num`, so marking a value cannot silently re-align the
-    column it lives in.
+    markup must not be able to change the shape of a sheet.
 
     ⚠️ SECTION ROWS ARE EXCLUDED. A section heading is one long string in column zero; it
     would make the identifier column prose on every sectioned sheet -- which is exactly
     the column that most needs to stay on one line.
 
-    ⚠️ An empty column classifies as `tok`, deliberately: the narrowest treatment for a
-    column with nothing to show. In practice `trim_columns` has already removed it.
-
-    ⚠️ THE THRESHOLDS ARE A JUDGEMENT, NOT A MEASUREMENT, and they are stated here rather
-    than buried so the next person can move them with their eyes open. They were set
-    against two real sheets (a course index and an audio inventory). A third sheet that
-    classifies badly is evidence, not a bug report -- change the numbers, do not add a
-    per-column override.
+    ⚠️ THE THRESHOLDS ARE A JUDGEMENT, NOT A MEASUREMENT. Set against two real sheets. A
+    third sheet that classifies badly is evidence to move the numbers -- or now, to
+    declare that one column in its header. It is not evidence for a new heuristic.
     """
     if not rows:
         return []
@@ -183,6 +280,32 @@ def classify_columns(rows) -> list[str]:
     return kinds
 
 
+def column_kinds(rows, specs) -> list[str]:
+    """The kind of every column: what its header declared, else what the values say."""
+    derived = classify_columns(rows)
+    out = []
+    for i, cell in enumerate(rows[0] if rows else []):
+        spec = specs.get(norm(cell)) or {}
+        out.append(spec.get("kind") or derived[i])
+    return out
+
+
+def key_columns(rows, specs) -> list[bool]:
+    """Which columns carry `.key` -- the ones that stay visible when space runs out.
+
+    ⭐ A `.key` DECLARATION IS THE OPT-IN, and there is deliberately no second switch. A
+    column marked key is only meaningful if something else collapses, so the declaration
+    and the feature flag are the same fact; making them two would let a sheet be in a
+    state where one is set and the other is not, which is a bug nobody can see. A sheet
+    that marks nothing keeps the sideways scroll it has today, so shipping this cannot
+    re-shape a page nobody touched (DL J15).
+    """
+    return [
+        "key" in (specs.get(norm(cell)) or {}).get("roles", [])
+        for cell in (rows[0] if rows else [])
+    ]
+
+
 def column_index(header: list[str], wanted) -> int:
     """Which column an option names, or -1. Never guesses at a near miss."""
     target = norm(wanted)
@@ -207,8 +330,8 @@ def sort_within_sections(body, index: int):
     silently.
 
     **Sorts on `cells.plain()`, not the raw cell.** A marked or linked value sorts on its
-    text, so `[18'-0\"]{.est}` sorts as `18'-0\"`. Markup cannot reorder a sheet -- that was
-    the one non-negotiable constraint on in-cell prose (DL J17).
+    text. Markup cannot reorder a sheet -- that was the one non-negotiable constraint on
+    in-cell prose (DL J17).
 
     **Numeric when it can be.** A column whose every filled value parses as a number
     sorts numerically; otherwise `10` lands before `9`, which is the kind of wrong nobody
@@ -318,7 +441,8 @@ def apply_options(rows, options, slot, src, note):
             for r in body
         ]
         # Recomputed AFTER the drop: an index taken against the full header points at the
-        # wrong column once earlier columns are gone.
+        # wrong column once earlier columns are gone. Specs do not need this treatment --
+        # they are keyed by NAME for exactly this reason.
         pinned = column_index(header, pin_name) if pin_name else -1
 
     return [header] + body, pinned, options.get("caption")
