@@ -19,6 +19,12 @@ This is FileMaker thinking pointed at a static site. _base.yml is the parent
 table, each type file is a table occurrence, requires/optional are the field
 list, layout is the layout, and a page's frontmatter block is the record.
 
+AND AS OF 2026-08-03 THE LEDE IS A FIELD TOO (`summary`), which is that same
+argument followed one step further: the sentence under the H1 was the last part
+of a page that was declared by POSITION rather than by name. See
+docrender/lede.py for the three-way disagreement that caused, and for why there
+is deliberately no positional fallback.
+
 Runs FIRST, before visibility, deliberately: a page with a broken declaration
 is broken whether or not it happens to be hidden today.
 
@@ -56,6 +62,7 @@ from __future__ import annotations
 import re
 
 from . import state
+from .lede import aka_block, check as check_page_head, insert_after_h1, lede_block
 from .util import read_frontmatter_checked, slug_title, sub_outside_code
 
 VALID_STATUS = {"hidden", "unlisted", "gated", "public"}
@@ -317,6 +324,14 @@ def _insert_after_lede(markdown: str, block: str) -> str:
     The first paragraph is the lede and is also what a search result shows, so
     nothing generated may come before it. Anything we cannot parse confidently
     goes at the top instead of guessing wrong and splitting a sentence.
+
+    ⚠️ THIS SCAN IS EXACTLY THE THIRD DEFINITION OF THE LEDE described in
+    docrender/lede.py, and it is kept rather than replaced because it still has
+    a job: it finds the GENERATED lede, which by the time this runs is an
+    ordinary paragraph under the H1 like any other. On a page that has not been
+    migrated it finds the hand-written one, which is why a spec table still
+    lands correctly on a page mid-migration. What it no longer does is DEFINE
+    anything -- lede.py does that, from a field.
     """
     lines = markdown.splitlines()
     heading = next((i for i, ln in enumerate(lines) if ln.startswith("# ")), None)
@@ -371,11 +386,21 @@ def on_page_markdown(markdown, page, config, files):
     page. It emits `@id` links rather than paths, so stage 03 resolves them by
     the same rules as hand-written ones -- including reporting one as dead if a
     page it lists somehow fails to publish.
+
+    On top of the directives it renders the two page-head fields, `summary` and
+    `also_known_as`. Those are not type directives because they are not a
+    property of a KIND of page: every page has a lede, and any page might have
+    another name.
     """
     meta = state.BY_SRC.get(page.file.src_uri, {})
     spec = meta.get("_spec") or {}
     renders = [d for d in spec.get("renders", []) if isinstance(d, dict)]
     blocks = []
+
+    # Checked against the ORIGINAL body, before this hook inserts anything.
+    # Run it after the insertions and the check that exists to notice a
+    # hand-written lede would find the generated one and pass every page.
+    check_page_head(page.file.src_uri, meta, markdown)
 
     for directive in renders:
         for name, fields in directive.items():
@@ -398,8 +423,21 @@ def on_page_markdown(markdown, page, config, files):
     # generated block can never be mistaken for something the author wrote.
     listing = _child_list(page, markdown) if _wants_children(meta, renders) else ""
 
+    # ORDER IS THE CHEAP WAY ROUND. The lede goes in FIRST, so by the time the
+    # spec table asks for "after the lede" there is one there to find, and
+    # _insert_after_lede needs no knowledge that it was generated.
+    lede = lede_block(meta)
+    if lede:
+        markdown = insert_after_h1(markdown, lede)
     if blocks:
         markdown = _insert_after_lede(markdown, "\n\n".join(blocks))
     if listing:
         markdown = markdown.rstrip() + "\n\n" + listing + "\n"
+
+    # Last of all, below the contents list. It is the quietest thing on the
+    # page and it is for a reader who is already here and called it something
+    # else, so it sits where a footnote would.
+    aka = aka_block(meta)
+    if aka:
+        markdown = markdown.rstrip() + "\n\n" + aka + "\n"
     return markdown
