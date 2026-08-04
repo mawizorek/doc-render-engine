@@ -86,6 +86,26 @@ states do not actually cascade at all. See visibility.py, which used to claim
 they did.
 
 =============================================================================
+THE CASCADE NOW TAKES THE SIDEBAR WITH IT (DL Q10 -> J14, 2026-08-04)
+=============================================================================
+A routed folder index has its whole subtree removed from the nav by
+visibility.py at stage 00b, which stashes what it took in `state.NAV_SEALED`.
+This file seals that manifest with `_wrap`, under EVERY code that opens the
+curtain and no others, and ships it on the form as `data-subtree`. A correct
+code decrypts it and router.js injects the entries under the section's own
+sidebar link.
+
+Sealed rather than shipped as text because a plaintext manifest would put every
+withheld title in the source of the page withholding it. The full argument, and
+the one that lost, are in the Decision Log -- not repeated here, because this
+docstring is already at the warn line.
+
+⚠️ A REDIRECT CODE NEVER UNSEALS THE NAV. It does not reveal this page, so it
+has no business revealing this page's children. Only curtain codes are used,
+which is why they are collected separately below rather than read back off the
+hashes.
+
+=============================================================================
 LOCAL VS REMOTE
 =============================================================================
 LOCAL -- in the page. Throwaway, no engine edit, no engine deploy:
@@ -129,7 +149,8 @@ THREE KINDS OF ENTRY, and the destination decides which -- never a mode flag
                                page -- what you want when one table mixes
                                curtains for several different pages.
 
-    loadin24: crew-sheet    -> REDIRECT. Names a different page; sends you there.
+    loadin24: crew-sheet    -> REDIRECT. Names a different page; sends you
+                               there.
 
 ⚠️ A PINNED curtain does NOT cascade usefully: inherited by a child page, its
 id no longer matches, so it is read as a redirect BACK to the folder index.
@@ -148,7 +169,10 @@ shared across two files, a keyring and its own authoring document -- to protect
 content that was public in the repo the whole time.
 
 What IS withheld is the code: only a PBKDF2 hash ships, so a page does not hand
-the key to the next person who opens it.
+the key to the next person who opens it. As of J14 the withheld NAV MANIFEST is
+sealed too -- which is not a contradiction of the paragraph above, because a
+manifest that shipped in the clear would defeat the feature that asked for it,
+while a body that ships in the clear defeats nothing that was ever claimed.
 
 REDIRECT still seals its destination, and the asymmetry is the point: a
 plaintext destination is not a router, it is a list of links with an input box
@@ -163,7 +187,8 @@ and names this one as the worse copy for precisely the reason it then stayed
 broken: a curtain's mistakes are visible immediately, while a redirect's
 destination is encrypted, so a wrong URL surfaces only when a reader types a
 correct code and lands on a 404. links.py was converted; this file was not.
-**A docstring describing a fix is not the fix.**
+**A docstring describing a fix is not the fix.** Every url the seal touches --
+now including the nav manifest -- goes through `relative_url` for that reason.
 """
 
 from __future__ import annotations
@@ -201,7 +226,7 @@ def _check(key: str) -> dict:
 
 
 def _wrap(key: str, destination: str) -> dict | None:
-    """Seal a redirect destination under its key."""
+    """Seal a redirect destination, or a nav manifest, under its key."""
     try:
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     except ImportError:
@@ -272,11 +297,64 @@ def _inherited(src_uri: str) -> tuple[dict, str] | tuple[None, None]:
     return None, None
 
 
-def _field(mode: str, payload: list, prompt: str) -> str:
+def _seal_nav(owner_src: str, codes: list[str], page) -> tuple[str, str]:
+    """Seal the nav entries visibility.py withheld, once per curtain code.
+
+    Returns (base64 payload, anchor url), both empty when there is nothing to
+    reveal -- which is the normal case for a page whose folder had no children.
+
+    ⚠️ EVERY url is resolved against the page ASKING, not against the page that
+    owns the manifest. An inherited router puts this form on a child three
+    folders down, and a url that was correct for the index page is wrong there.
+    Sealed, so wrong would have meant invisible until somebody typed a real
+    code. See the red note in the module docstring.
+    """
+    sealed = state.NAV_SEALED.get(owner_src)
+    if not sealed or not codes:
+        return "", ""
+
+    items = []
+    for entry in sealed["items"]:
+        row = {"t": entry["t"], "d": entry.get("d", 1)}
+        if entry.get("u"):
+            row["u"] = relative_url(entry["u"], page.file.url)
+        items.append(row)
+
+    manifest = json.dumps(items, separators=(",", ":"))
+    wraps = [w for w in (_wrap(code, manifest) for code in codes) if w]
+    if not wraps:
+        # The seal failed, so the subtree stays out of the sidebar and no code
+        # brings it back. Fail-safe in the right direction and useless to a
+        # reader, so it is reported as a real defect rather than a note.
+        state.note(
+            "missing_required",
+            page.file.src_uri + ": the withheld nav subtree could not be "
+            + "sealed, so no code will reveal it. The section is unopenable "
+            + "until `cryptography` is installed.",
+        )
+        return "", ""
+
+    # Which code opens which is itself information, and with one manifest per
+    # code the wraps are otherwise in frontmatter order.
+    secrets.SystemRandom().shuffle(wraps)
+    return (
+        _b64(json.dumps(wraps, separators=(",", ":")).encode("utf-8")),
+        relative_url(sealed["anchor"], page.file.url),
+    )
+
+
+def _field(mode: str, payload: list, prompt: str, subtree: str, anchor: str) -> str:
+    extra = ""
+    if subtree:
+        extra = (
+            ' data-subtree="' + subtree + '"'
+            + ' data-subtree-anchor="' + anchor + '"'
+        )
     return (
         '<form class="dr-router" data-mode="' + mode + '"'
         + ' data-iter="' + str(ITERATIONS) + '"'
-        + ' data-routes="' + _b64(json.dumps(payload).encode("utf-8")) + '">'
+        + ' data-routes="' + _b64(json.dumps(payload).encode("utf-8")) + '"'
+        + extra + ">"
         + '<label class="dr-router__label" for="dr-router-key">'
         + prompt + "</label>"
         + '<div class="dr-router__row">'
@@ -320,6 +398,11 @@ def on_page_content(html, page, config, files):
     curtain: list[dict] = [_check(code) for code in local]
     redirects: list[dict] = []
 
+    # THE PLAINTEXT CURTAIN CODES, kept alongside their hashes because the nav
+    # manifest has to be SEALED under them and a hash cannot be reversed to do
+    # it. Never rendered, never leaves this function.
+    curtain_codes: list[str] = list(local)
+
     # WHERE EACH KEY CAME FROM, so a collision can be reported with both
     # sources named. Two tables claiming one key is a real editing mistake and
     # letting dict order decide the winner would make it depend on the order
@@ -355,6 +438,7 @@ def on_page_content(html, page, config, files):
             # is asking". The form that makes a cascade work.
             if target is None or not str(target).strip():
                 curtain.append(_check(key))
+                curtain_codes.append(key)
                 continue
 
             target = str(target).strip()
@@ -362,6 +446,7 @@ def on_page_content(html, page, config, files):
             # PINNED CURTAIN: names this page explicitly.
             if target == own_id:
                 curtain.append(_check(key))
+                curtain_codes.append(key)
                 continue
 
             hit = state.PAGES.get(target)
@@ -395,6 +480,11 @@ def on_page_content(html, page, config, files):
         or "Enter your code"
     )
     mode = "curtain" if curtain else "redirect"
+
+    # The manifest belongs to the page that DECLARED the router, which on an
+    # inherited form is an ancestor rather than this page.
+    subtree, anchor = _seal_nav(inherited_from or src, curtain_codes, page)
+
     if local and table_names:
         origin = "local+remote(" + ", ".join(table_names) + ")"
     elif local:
@@ -406,7 +496,8 @@ def on_page_content(html, page, config, files):
     state.note(
         "routers",
         src + " · " + mode + " · " + origin + " · "
-        + str(len(curtain) + len(redirects)) + " keys",
+        + str(len(curtain) + len(redirects)) + " keys"
+        + (" · nav reveal armed" if subtree else ""),
     )
 
     rng = secrets.SystemRandom()
@@ -414,7 +505,7 @@ def on_page_content(html, page, config, files):
     rng.shuffle(redirects)
 
     if not curtain:
-        return html + _field("redirect", redirects, prompt)
+        return html + _field("redirect", redirects, prompt, "", "")
 
     # CURTAIN. The body is held behind the `hidden` ATTRIBUTE rather than a CSS
     # class, so it is withheld before any stylesheet loads -- no flash of
@@ -425,8 +516,13 @@ def on_page_content(html, page, config, files):
     # should get the document instead of an input box that can never work.
     # `!important` in an author sheet beats the `hidden` attribute's user-agent
     # rule, which is the only reason that works.
+    #
+    # ⚠️ A no-JS reader gets the BODY and not the sidebar entries, which is the
+    # one place the two halves of this feature genuinely disagree. Injecting nav
+    # needs a decryption, and there is no non-JS way to do one. Stated rather
+    # than papered over: the content is reachable, the menu is not.
     return (
-        _field("curtain", curtain + redirects, prompt)
+        _field("curtain", curtain + redirects, prompt, subtree, anchor)
         + "<noscript><style>"
         + ".dr-curtain{display:block !important}.dr-router{display:none}"
         + "</style></noscript>"
