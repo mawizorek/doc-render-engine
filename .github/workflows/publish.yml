@@ -11,11 +11,19 @@ name: Publish a site
 #                is ready. It is the closest thing this family has to 'make
 #                this public', and it is a decision rather than a side effect.
 #
-# WHY IT IS NOT AUTOMATIC ON CONTENT PUSH. A content repo holds no workflow --
-# that is the purity rule, and it is what keeps the green Download ZIP clean.
-# The cost is that saving a file does not publish it. That cost turns out to be
-# a feature here: an unfinished page can sit in `main` for a week without a
-# reader ever seeing it, and going live is something somebody chooses.
+# WHY IT IS NOT AUTOMATIC ON CONTENT PUSH. Publishing is an editorial decision:
+# an unfinished page can sit in `main` for a week without a reader ever seeing
+# it, and going live is something somebody chooses.
+#
+# ⚠️ THE OLD SECOND HALF OF THAT ARGUMENT IS NO LONGER TRUE (2026-08-04). It used
+# to read "a content repo holds no workflow -- that is the purity rule -- so it
+# CANNOT publish itself." `uritp-docs` now holds exactly one workflow, by
+# Michael's explicit exception, which regenerates its revision-log TSV on every
+# doc commit. So auto-publish became POSSIBLE on the day this comment stopped
+# being a fact, and the reason it is still not done is the editorial one above,
+# which stands on its own. Recorded rather than quietly rewritten, because
+# "impossible" and "chosen against" are different arguments and only one of them
+# survives contact with a new workflow.
 #
 # PREVIEW MODE renders the site, diffs it against what is actually being
 # served, prints new / disappearing / renamed pages to the run summary, and
@@ -128,14 +136,26 @@ jobs:
           repository: ${{ steps.site.outputs.repo }}
           ref: main
           path: content
-          # ⚠️ FULL HISTORY, and it is load-bearing rather than generous.
-          # docrender/revlog.py builds the automatic revision log by reading
-          # `git log` out of this checkout. At a shallow depth git does not
-          # complain -- it returns the handful of commits it happens to have,
-          # which renders as a complete-looking history covering an afternoon.
-          # revlog.py refuses to draw a log on a shallow clone for that reason,
-          # so at depth 2 the page shows an error instead of a lie. Cloning a
-          # markdown repo whole costs seconds.
+          # ⚠️ NO LONGER LOAD-BEARING, AND THE OLD REASON IS RECORDED RATHER
+          # THAN DELETED (2026-08-04).
+          #
+          # SUPERSEDED: "docrender/revlog.py builds the automatic revision log
+          # by reading `git log` out of this checkout, and a shallow clone
+          # answers that query without complaining -- it returns the handful of
+          # commits it happens to have, which renders as a complete-looking
+          # history covering an afternoon."
+          #
+          # That is no longer how the log is built. revlog.py now renders the
+          # TSV the content repo commits for itself, and makes NO git call at
+          # all, so nothing in the engine breaks at depth 1. The shallow-clone
+          # trap did not go away -- it MOVED to the content repo's own
+          # revision-log workflow, which pins fetch-depth: 0 for exactly the
+          # reason quoted above.
+          #
+          # Kept anyway, deliberately: a full clone of a markdown repo costs
+          # seconds, and a publish that holds real history is the cheaper place
+          # to be if any stage ever wants it again. Anyone removing it should
+          # know it is now a preference, not a requirement.
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
