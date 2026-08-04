@@ -92,12 +92,20 @@ markdown_extensions:
 #   01 reads frontmatter -> 02 prunes files -> 03 indexes what survived
 #   09 runs last, because it describes the finished site
 # Renumbering without reading hooks/README.md will break something silently.
+#
+# ⚠️ THIS LIST IS THE REGISTRATION, NOT THE hooks/ FOLDER. A file sitting in
+# hooks/ that is absent from here is never loaded and does nothing whatsoever.
+# `hooks/04_theme.py` is exactly that today and has been for some time. It is
+# harmless only by accident: docrender/assets.py calls `theme.build_css()`
+# itself, so the tokens are generated regardless and the dead shim was never
+# missed. Adding a stage is TWO edits, the file and this line.
 hooks:
   - hooks/00_instance.py
   - hooks/00b_unlisted.py
   - hooks/00c_nav.py
   - hooks/01_objects.py
   - hooks/01b_data.py
+  - hooks/01c_revlog.py
   - hooks/02_visibility.py
   - hooks/03_links.py
   - hooks/03b_markers.py
