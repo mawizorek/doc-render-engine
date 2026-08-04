@@ -39,11 +39,29 @@ on:
   repository_dispatch:
     types: [content-changed]
   schedule:
-    # A content repo holds NO workflow of its own -- that is the purity rule --
-    # so it cannot trigger its own rebuild. This poll is the price of that, and
-    # it is the right trade: nobody publishes venue specs on a stopwatch, and
-    # workflow_dispatch covers the impatient case. It also refreshes cross-site
-    # links, which resolve at build time and go stale when a peer renames.
+    # Nobody publishes venue specs on a stopwatch, so a nightly poll is enough
+    # to pick up content edits, and workflow_dispatch covers the impatient case.
+    # It also refreshes cross-site links, which resolve at build time and go
+    # stale when a peer renames a page.
+    #
+    # ⚠️ THE ORIGINAL REASON FOR THIS POLL IS NO LONGER TRUE, and it is corrected
+    # rather than deleted (2026-08-04). It read: "a content repo holds NO
+    # workflow of its own -- that is the purity rule -- so it cannot trigger its
+    # own rebuild. This poll is the price of that."
+    #
+    # `uritp-docs` now holds one workflow, by Michael's explicit exception, so
+    # that repo COULD fire the `content-changed` repository_dispatch above and
+    # make the poll unnecessary for itself. It deliberately does not. Two
+    # reasons, and the second is the real one:
+    #
+    #   1. the exception was granted for ONE job, the revision-log TSV, and
+    #      explicitly does not license a second;
+    #   2. rendering on every doc commit would make publishing automatic, and
+    #      publish.yml exists precisely because going live is an editorial
+    #      decision rather than a side effect of saving a file.
+    #
+    # The poll therefore stays, but it is now a CHOICE rather than a constraint.
+    # The three other content repos still hold no workflow at all.
     - cron: "23 7 * * *"
 
 permissions:
@@ -84,13 +102,22 @@ jobs:
         with:
           repository: ${{ matrix.repo }}
           path: content
-          # ⚠️ FULL HISTORY. docrender/revlog.py reads `git log` here to build
-          # the automatic revision log, and a shallow clone answers that query
-          # without complaining -- it just returns the two commits it has,
-          # which renders as a complete-looking log covering ten minutes.
-          # revlog.py refuses to draw on a shallow clone, so this must match
-          # publish.yml or the page is correct when published and broken on
-          # the nightly. Cloning a markdown repo whole costs seconds.
+          # ⚠️ NO LONGER LOAD-BEARING (2026-08-04), old reason kept on the record.
+          #
+          # SUPERSEDED: "docrender/revlog.py reads `git log` here to build the
+          # automatic revision log, and a shallow clone answers that query
+          # without complaining -- it just returns the two commits it has, which
+          # renders as a complete-looking log covering ten minutes."
+          #
+          # revlog.py makes no git call now; it renders the TSV each content repo
+          # commits for itself. The trap MOVED to that repo's own revision-log
+          # workflow, which pins fetch-depth: 0 for the reason quoted above.
+          #
+          # Kept because it costs seconds on a markdown repo and because this
+          # setting must stay in step with publish.yml -- a depth that differs
+          # between the two is the worst kind of inconsistency, correct when
+          # published and broken on the nightly. Now a preference, not a
+          # requirement, and if it is ever removed it must be removed from BOTH.
           fetch-depth: 0
           # Deliberately NOT authenticated. The content repos are public, and a
           # token here buys nothing while adding a failure mode that is genuinely
