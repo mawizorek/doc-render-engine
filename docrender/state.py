@@ -37,12 +37,23 @@ PAGES: dict = {}
 #: Foreign page maps from peer sites, keyed by peer slug.
 PEERS: dict = {}
 
-#: (timestamp, subject) for every doc-touching commit, read out of git by
+#: (when, commit, pr, change) for every doc-touching commit, read out of git by
 #: revlog.py. Lives here because it is used in two events: the table is drawn
 #: during on_page_markdown and the downloadable TSV is written during
 #: on_post_build. Reading git twice could return two different answers to the
 #: same question, which is the sort of disagreement nobody reports.
+#:
+#: ⚠️ FOUR fields, and only two of them reach the page. `commit` and `pr` are
+#: file-only by house rule -- revlog.py's docstring says why, and it is a lock
+#: rather than an omission.
 REVLOG: list = []
+
+#: Site-relative output directories of the pages that carried a dr:revlog
+#: marker, e.g. `01-utility/automatic-revision-log`. The TSV is written into
+#: each one rather than at the site root, because the table links to it with a
+#: bare relative href and `use_directory_urls` puts the page one level deeper
+#: than its source file suggests. Root-writing was the 404 fixed 2026-08-04.
+REVLOG_DIRS: list = []
 
 #: Everything the build wants to tell a human. Printed in one block at the end
 #: rather than scattered through 400 lines of output where nobody reads it.
@@ -50,13 +61,14 @@ REPORT: dict = {}
 
 
 def reset() -> None:
-    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REVLOG, REPORT
+    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REVLOG, REVLOG_DIRS, REPORT
     INSTANCE = {}
     TYPES = {}
     BY_SRC = {}
     PAGES = {}
     PEERS = {}
     REVLOG = []
+    REVLOG_DIRS = []
     REPORT = {
         # Order here is the order the report prints, and it is deliberate:
         # a duplicate KEY is usually the CAUSE of the complaints under it, so
