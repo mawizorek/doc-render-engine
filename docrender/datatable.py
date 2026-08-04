@@ -7,7 +7,7 @@ the size gate it enforces on everybody else.
 
 THREE MODULES, ONE FEATURE:
 
-    sheet.py    reading and shaping a TSV. Rows, header, sections, options, order.
+    sheet.py    reading and shaping a TSV. Rows, header, sections, options, order, KIND.
     cells.py    one cell as prose. Markers, @refs, inline markdown, escaping.
     this file    the frontmatter contract, the `!!! data` block, and the HTML.
 
@@ -59,8 +59,8 @@ again.
 EVERY CELL IS PROSE
 ===================
 
-    Grid height	[18'-0"]{.est}		measured off the old plot
-    Console	[QL5](@term:yamaha-ql5)	1	**do not** repatch
+    Grid height\t[18'-0\"]{.est}\t\tmeasured off the old plot
+    Console\t[QL5](@term:yamaha-ql5)\t1\t**do not** repatch
 
 A cell says anything a line of body text can say inline, and renders identically, because
 `cells.py` hands it to the same hooks the page body goes through. **Read that module
@@ -71,6 +71,23 @@ used to emerge as entity gibberish, and the limits (no block markdown, raw HTML 
 `sheet.sort_within_sections`. ⚠️ But a SPREADSHEET cannot read a marked cell as a number
 at all, and nothing here can fix that. A separate confidence COLUMN is still the end state
 (J17); in-cell marking ships because that column needs a FileMaker field to feed it.
+
+
+EVERY COLUMN HAS A KIND, AND NOBODY TYPES IT (2026-08-04)
+=========================================================
+
+`sheet.classify_columns` reads the values and returns `num` / `tok` / `prose` per column;
+this module writes that on every `<th>` and `<td>` as `dr-col--<kind>` and has no further
+opinion. `assets/data.css` decides what each kind looks like.
+
+⭐ The point is that a sheet declares its own shape. There is no option, no frontmatter
+key and nothing to learn -- see `classify_columns` for why an authoring surface here would
+have been a second copy of a fact the file already states.
+
+⚠️ THE CONSEQUENCE THAT MATTERS: A PROSE COLUMN WRAPS AND EVERY OTHER KIND DOES NOT. Before
+this, one long note in one cell set the scroll width of the whole table and pushed every
+remaining column off the right edge of a phone -- because `white-space: nowrap` was written
+when a cell was a value and was never revisited when a cell became prose.
 
 
 FAILURE POSTURE
@@ -89,8 +106,8 @@ sticky rule is held until the older frozen-column claim is verified on the deplo
 Shipping CSS onto an unverified mechanism is the same silent failure one layer up.
 
 
-TWO TRAPS IN THE HTML
-=====================
+THREE TRAPS IN THE HTML
+=======================
 
 🐛 The download link was a 404 on every non-index page until 2026-08-04 while the comment
 beside it asserted a bare filename was correct: under `use_directory_urls` a page at
@@ -104,6 +121,14 @@ do not count separators either.
 `display: block` destroys the internal table layout, and a `position: sticky` cell inside a
 non-table has no row context to stick within -- so the frozen header and first column
 silently did nothing. The class makes `:not([class])` stop matching. Do not remove it.
+
+🐛 A SECTION BAND'S LABEL LIVES IN AN INNER `<span>`, AND THAT IS NOT DECORATION
+(2026-08-04). The band is a `<th colspan="N">`, so its width IS the table's full scroll
+width -- `position: sticky; left: 0` on it has no slack to slide within and does exactly
+nothing. The heading scrolled away with the rest of the row and a reader three columns in
+saw `WARE [2000]` where the sheet said `HARDWARE [2000]`. The span is the element that can
+actually stick. Same shape as the trap above: sticky failing silently because the box it
+sits in cannot honour it.
 """
 
 from __future__ import annotations
@@ -118,7 +143,6 @@ from .util import relative_url
 
 _BLOCK = re.compile(r"^[ \t]*!!![ \t]+data[ \t]+\"(?P<slot>[^\"\n]+)\"[ \t]*$")
 _OPTION = re.compile(r"^[ \t]+(?P<key>[A-Za-z_]+)[ \t]*:[ \t]*(?P<value>.*?)[ \t]*$")
-_JUNK_HEADER = re.compile(r"^[\W_]+$")
 
 #: src_uri -> {slot: {"href": ..., "anchor": bool}}. Written at stage 01b, read by links.py
 #: at stage 03 to resolve an inline @data: mention. The per-page event order guarantees 01b
@@ -129,10 +153,25 @@ _JUNK_HEADER = re.compile(r"^[\W_]+$")
 PLACED: dict[str, dict[str, dict]] = {}
 
 
+def _klass(index: int, pinned: int, kinds: list[str]) -> str:
+    """The class attribute for one cell: its column's kind, plus the pin flag."""
+    names = []
+    if index < len(kinds):
+        names.append("dr-col--" + kinds[index])
+    if index == pinned:
+        names.append("dr-data__pin")
+    if not names:
+        return ""
+    return ' class="' + " ".join(names) + '"'
+
+
 def _draw(rows, href, filename, slot, caption, pinned, page) -> str:
     """The table as finished HTML. Every cell goes through cells.render exactly once."""
     header, body = rows[0], rows[1:]
     span = len(header)
+    # Once per table, from the shaped rows -- so `hide:` has already run and the kinds line
+    # up with the columns that survive to be drawn.
+    kinds = sheet.classify_columns(rows)
 
     out = ['<div class="dr-data" id="data-' + html.escape(slot) + '">']
     if caption:
@@ -141,25 +180,27 @@ def _draw(rows, href, filename, slot, caption, pinned, page) -> str:
     out.append('<table class="dr-data__table">')
     out.append("<thead><tr>")
     for i, cell in enumerate(header):
-        label = "" if _JUNK_HEADER.match(cell) else cells.render(cell, page)
-        klass = ' class="dr-data__pin"' if i == pinned else ""
-        out.append("<th" + klass + ">" + label + "</th>")
+        label = "" if sheet.is_junk(cell) else cells.render(cell, page)
+        out.append("<th" + _klass(i, pinned, kinds) + ">" + label + "</th>")
     out.append("</tr></thead>")
     out.append("<tbody>")
 
     records = 0
     for row in body:
         if sheet.is_section(row):
+            # The label is the sticky element, NOT the cell -- see the module docstring.
             out.append(
                 '<tr class="dr-data__section"><th colspan="' + str(span) + '">'
-                + cells.render(row[0], page) + "</th></tr>"
+                + '<span class="dr-data__section-label">' + cells.render(row[0], page)
+                + "</span></th></tr>"
             )
             continue
         records += 1
         out.append("<tr>")
         for i, cell in enumerate(row):
-            klass = ' class="dr-data__pin"' if i == pinned else ""
-            out.append("<td" + klass + ">" + cells.render(cell, page) + "</td>")
+            out.append(
+                "<td" + _klass(i, pinned, kinds) + ">" + cells.render(cell, page) + "</td>"
+            )
         out.append("</tr>")
 
     out.append("</tbody></table>")
