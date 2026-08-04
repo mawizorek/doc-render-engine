@@ -2,73 +2,140 @@
 
 THE PURITY RULE, READ CORRECTLY.
 
-"The content tree holds markdown and nothing else" was always a rule about
-MACHINERY, not about file extensions. It exists so the green Download ZIP
-button hands somebody the documents and nothing they have to be told to ignore:
-no stylesheet, no config, no nav manifest, no build script.
+"The content tree holds markdown and nothing else" was always a rule about MACHINERY,
+not about file extensions. It exists so the green Download ZIP button hands somebody
+the documents and nothing they have to be told to ignore: no stylesheet, no config, no
+nav manifest, no build script.
 
-A table of dimmer circuits is not machinery. It IS the documentation, and it is
-precisely the thing a reader would want in that zip. Refusing it on a technical
-reading of the rule would push real content out of the content repo, which is
-the exact opposite of what the rule is for.
+A table of dimmer circuits is not machinery. It IS the documentation. So a page may
+declare data files beside it. They stay TSV on disk -- editable in a spreadsheet,
+diffable in git, greppable, useful to anything that is not this renderer -- and the
+engine draws them.
 
-So: a page may declare data files beside it. They stay TSV on disk -- editable
-in a spreadsheet, diffable in git, greppable, and useful to anything that is
-not this renderer -- and the engine draws them.
+
+=============================================================================
+A DATA FILE IS A NAMED SLOT, NOT A FILENAME (rewritten 2026-08-04, DL J4/J5)
+=============================================================================
 
     ---
-    id: oph-lighting-circuits
-    title: Circuits and dimmers
+    title: Audio Inventory
     type: reference
     status: public
+    summary: Every microphone, cable and rack unit the audio department owns.
     data:
-      - circuits-and-dimmers.tsv
-      - where-dimmers-run.tsv
+      inventory_table:
+        file: audio-inventory.tsv
+        caption: Audio inventory
+      revision_log:
+        file: audio-inventory-revisions.tsv
     ---
 
-PLACEMENT. **`data:` says WHICH files. A marker in the body says WHERE.**
+    ## What we own
 
-    <!-- dr:table circuits-and-dimmers.tsv -->
+    !!! data "inventory_table"
 
-That line is the entire placement mechanism -- the hook finds it and swaps the
-rendered table in on the spot. Without one, a declared table lands at the end
-of the page in the order declared, which is a fallback and not the intended
-way to use it: prose about a table almost always belongs above it.
+    New staff and designers should review the [inventory table](@data:inventory_table)
+    before the first production meeting.
 
-An HTML comment on purpose: invisible on GitHub, in any other markdown
-renderer, and in a text editor. A page keeps working as a document where this
-engine is not involved, which is the same promise the content repo makes.
+    ## Version History
 
-The filename in the marker must match one in `data:`. A marker naming
-something undeclared renders a visible error rather than doing nothing
-quietly, because a table silently landing at the bottom of a long page is the
-kind of failure nobody notices for a month.
+    !!! data "revision_log"
+        sort: Date
+        pin: Commit
+
+⭐ THE POINT OF THE SLOT NAME. The body never names a file. Swap the two filenames in
+the frontmatter and that entire body is byte-identical between Audio, LX and Video --
+which is the whole reason this was asked for. Renaming a TSV is a one-line frontmatter
+edit, not a hunt through prose.
+
+⚠️ SLOT NAMES ARE DECLARED BY THE TYPE, NOT BY THE AUTHOR. `objects/<type>.yml` lists
+the `data_slots` that type may carry, and an undeclared key is reported. That is what
+makes the shared paragraph SAFE rather than merely conventional: if Audio wrote
+`inventory_table` and Video wrote `inventory`, a page-local scheme would let the copied
+paragraph break silently on a page that otherwise looks fine.
+
+⚠️ ONE FRONTMATTER FORM, DELIBERATELY. A slot is always a map with `file:`; `caption:`
+is optional. The tempting shorthand (`inventory_table: audio-inventory.tsv`) would be a
+second legal spelling of the same fact, and a sanctioned second path is exactly what
+the lede decision struck. The old LIST form (`data: [x.tsv, y.tsv]`) is gone and is
+reported by name, because a retired key parses as valid YAML, gets ignored, and looks
+indistinguishable from the feature never having worked.
+
+
+TWO VERBS, AND THEY ARE NOT INTERCHANGEABLE
+===========================================
+
+    !!! data "revision_log"            EMBED. Block level, draws the table here.
+    [the revision log](@data:revision_log)   MENTION. Inline, links to it.
+
+The embed carries no label because there is nothing for a label to say that the slot
+name and the heading above it do not already say -- a label there is a second copy of
+the caption for a human to keep in sync. The mention carries a label because a sentence
+needs words, and those words change with the sentence. So the label survives in exactly
+the one place it is doing work.
+
+`!!!` is the admonition grammar this content set already writes (`!!! warning "..."`
+sits a dozen lines above the first table this replaced), so it is not a new thing to
+learn. This hook runs BEFORE the admonition extension sees the text. If the hook is
+ever disabled the block degrades to a visible admonition box naming the slot, not to
+silence.
+
+⚠️ `data` IS NOW A RESERVED ADMONITION TYPE. Nobody can write a genuine `!!! data`
+callout again. One-way door, accepted knowingly.
+
+
+OPTIONS, AND THE FAILURE POSTURE THAT MATTERS MORE THAN THE OPTIONS
+==================================================================
+
+Indented under the block, one per line:
+
+    pin:     freeze this column at the left while the table scrolls sideways
+    sort:    order rows by this column
+    hide:    drop these columns (comma separated)
+    caption: override the slot's frontmatter caption for THIS embed
+
+⭐ AN OPTION NAMING A COLUMN THAT DOES NOT EXIST IS REPORTED, NEVER SILENT. This was
+asked for as a silent no-op and refused, and the evidence was in the content repo: a
+page carried a hand-written note saying the frozen header and first column DO NOT
+freeze, discovered by accident weeks after shipping. `pin: commitID` against a sheet
+whose header says `commit_id` would rebuild that bug and make it policy -- a table that
+looks fine, scrolls wrong, and never says why. The real requirement was "do not fail my
+build over a typo in a cosmetic option", and that is already the house posture: warn,
+render without the option, publish, and put it in the report.
+
+NOT PROVIDED, deliberately: filters, totals, column renames, computed columns. Those
+edit the data. The sheet is the source of truth and the renderer's job is to show it,
+not to have opinions about it. `hide` sits on the line and is allowed because dropping
+a column from a VIEW does not change what the sheet says.
+
+⚠️ `pin:` EMITS MARKUP THAT THE STYLESHEET DOES NOT YET HONOUR. The class is on the
+cells; the sticky rule is a separate commit, held back on purpose until the earlier
+frozen-column claim is verified on the deployed site. Shipping the CSS on an unverified
+mechanism is the same silent failure one layer up.
+
 
 WHAT IT UNDERSTANDS ABOUT REAL SPREADSHEETS, because exported ones are messy:
 
-  * SECTION ROWS. A row with a value in the first cell and nothing anywhere
-    else (RACK 1, ML PANEL 2) is a heading inside the sheet, not a record. It
-    renders as a spanning subheading rather than a mostly-empty row.
-  * RAGGED WIDTH. Rows longer than the header keep their cells; the header is
-    padded. Trailing columns that are empty in EVERY row are dropped. An
-    exported sheet routinely carries both problems at once.
-  * JUNK HEADERS. A header cell that is only punctuation (a stray backtick from
-    an export) renders blank instead of as a column name.
+  * SECTION ROWS. A row with a value in the first cell and nothing anywhere else
+    (RACK 1, ML PANEL 2) is a heading inside the sheet, not a record. It renders as a
+    spanning subheading rather than a mostly-empty row. `sort` orders rows WITHIN each
+    section and never across them, because sorting a sheet flat would silently move
+    records out from under the heading that gives them meaning.
+  * RAGGED WIDTH. Rows longer than the header keep their cells; the header is padded.
+    Trailing columns that are empty in EVERY row are dropped.
+  * JUNK HEADERS. A header cell that is only punctuation (a stray backtick from an
+    export) renders blank instead of as a column name.
   * BLANK ROWS are skipped.
 
-It does NOT sort, filter, total, or reinterpret. The sheet is the source of
-truth and the renderer's job is to show it, not to have opinions about it.
-
-The raw file is published beside the page, so every table offers a download
-link back to the exact TSV it was drawn from.
+The raw file is published beside the page, so every table offers a download link back
+to the exact TSV it was drawn from.
 
 ⚠️ THE TABLE CARRIES A CLASS AND THAT IS LOAD-BEARING (fixed 2026-08-03).
-Material styles `.md-typeset table:not([class])` with `display: block` so wide
-tables can scroll. `display: block` on a table destroys the internal table
-layout, and a `position: sticky` cell inside a non-table has no row context to
-stick within -- so the frozen header and frozen first column silently did
-nothing, which is exactly how it shipped and exactly how Michael found it.
-The class makes `:not([class])` stop matching. Do not remove it.
+Material styles `.md-typeset table:not([class])` with `display: block` so wide tables
+can scroll. `display: block` on a table destroys the internal table layout, and a
+`position: sticky` cell inside a non-table has no row context to stick within -- so the
+frozen header and frozen first column silently did nothing. The class makes
+`:not([class])` stop matching. Do not remove it.
 """
 
 from __future__ import annotations
@@ -77,10 +144,22 @@ import html
 import re
 from pathlib import Path
 
-from . import state
+from . import prefixes, state
 
-_MARKER = re.compile(r"[ \t]*<!--[ \t]*dr:table[ \t]+(?P<name>[^\s>]+?)[ \t]*-->[ \t]*")
+_BLOCK = re.compile(r"^[ \t]*!!![ \t]+data[ \t]+\"(?P<slot>[^\"\n]+)\"[ \t]*$")
+_OPTION = re.compile(r"^[ \t]+(?P<key>[A-Za-z_]+)[ \t]*:[ \t]*(?P<value>.*?)[ \t]*$")
 _JUNK_HEADER = re.compile(r"^[\W_]+$")
+
+_KNOWN_OPTIONS = ("pin", "sort", "hide", "caption")
+
+#: src_uri -> {slot: {"href": ..., "anchor": ... or None}}. Written at stage 01b and
+#: read by links.py at stage 03 to resolve an inline @data: mention. Per-page and
+#: per-build; the page event order guarantees 01b has run for THIS page already.
+PLACED: dict[str, dict[str, dict]] = {}
+
+
+def _norm(name: str) -> str:
+    return re.sub(r"\s+", " ", str(name)).strip().lower()
 
 
 def _read_rows(path: Path) -> list[list[str]]:
@@ -99,10 +178,10 @@ def _read_rows(path: Path) -> list[list[str]]:
 def _trim_columns(rows: list[list[str]]) -> list[list[str]]:
     """Pad every row to the widest, then drop columns that are empty throughout.
 
-    Both halves are needed and for opposite reasons: an exported sheet has rows
-    that run PAST the header (real data nobody put a heading on) and columns
-    that exist only as trailing tabs. Padding first means a real value in an
-    over-long row is never lost by the trim.
+    Both halves are needed and for opposite reasons: an exported sheet has rows that
+    run PAST the header (real data nobody put a heading on) and columns that exist
+    only as trailing tabs. Padding first means a real value in an over-long row is
+    never lost by the trim.
     """
     if not rows:
         return rows
@@ -116,27 +195,124 @@ def _is_section(cells: list[str]) -> bool:
     return bool(cells) and bool(cells[0]) and not any(cells[1:])
 
 
-def _render(path: Path, href: str) -> str:
+def _column_index(header: list[str], wanted: str) -> int:
+    target = _norm(wanted)
+    for i, cell in enumerate(header):
+        if _norm(cell) == target:
+            return i
+    return -1
+
+
+def _sort_within_sections(body: list[list[str]], index: int) -> list[list[str]]:
+    """Order rows by one column, never moving a record across a section heading."""
+    out: list[list[str]] = []
+    block: list[list[str]] = []
+
+    def flush():
+        block.sort(key=lambda r: _norm(r[index]) if index < len(r) else "")
+        out.extend(block)
+        block.clear()
+
+    for cells in body:
+        if _is_section(cells):
+            flush()
+            out.append(cells)
+            continue
+        block.append(cells)
+    flush()
+    return out
+
+
+def _apply_options(rows, options, slot, src, note):
+    """Return (rows, pinned_index, caption_override). Reports, never raises."""
+    header = rows[0]
+    body = rows[1:]
+    pinned = -1
+    caption = options.get("caption")
+
+    for key in sorted(options):
+        if key not in _KNOWN_OPTIONS:
+            note(
+                "dead_links",
+                src + ": data block '" + slot + "' sets unknown option '" + key
+                + "'. Ignored. Known options: " + ", ".join(_KNOWN_OPTIONS) + ".",
+            )
+
+    hidden = [h for h in re.split(r",", options.get("hide", "")) if h.strip()]
+    drop: list[int] = []
+    for name in hidden:
+        index = _column_index(header, name)
+        if index < 0:
+            note(
+                "dead_links",
+                src + ": data block '" + slot + "' hides column '" + name.strip()
+                + "' which is not in the sheet. Nothing hidden. Header is: "
+                + ", ".join(c for c in header if c) + ".",
+            )
+            continue
+        drop.append(index)
+
+    if "sort" in options:
+        index = _column_index(header, options["sort"])
+        if index < 0:
+            note(
+                "dead_links",
+                src + ": data block '" + slot + "' sorts by column '" + options["sort"]
+                + "' which is not in the sheet. Rendered in sheet order. Header is: "
+                + ", ".join(c for c in header if c) + ".",
+            )
+        else:
+            body = _sort_within_sections(body, index)
+
+    if "pin" in options:
+        pinned = _column_index(header, options["pin"])
+        if pinned < 0:
+            note(
+                "dead_links",
+                src + ": data block '" + slot + "' pins column '" + options["pin"]
+                + "' which is not in the sheet. Nothing pinned. Header is: "
+                + ", ".join(c for c in header if c) + ".",
+            )
+
+    if drop:
+        keep = [i for i in range(len(header)) if i not in drop]
+        # Recompute AFTER dropping: an index taken against the full header would point
+        # at the wrong column once earlier columns are gone.
+        pin_name = header[pinned] if pinned >= 0 else None
+        header = [header[i] for i in keep]
+        body = [[c for j, c in enumerate(r) if j in keep] if not _is_section(r) else r
+                for r in body]
+        pinned = _column_index(header, pin_name) if pin_name else -1
+
+    return [header] + body, pinned, caption
+
+
+def _render(path: Path, href: str, slot: str, caption: str, pinned: int) -> str:
     rows = _trim_columns(_read_rows(path))
     if not rows:
         state.note("notes", "data file " + path.name + " is empty or unreadable")
         return ""
+    return _draw(rows, href, path.name, slot, caption, pinned)
 
+
+def _draw(rows, href, filename, slot, caption, pinned) -> str:
     header, body = rows[0], rows[1:]
     span = len(header)
 
-    out = [
-        '<div class="dr-data">',
-        # The class is required, not decorative -- see the module docstring.
-        '<table class="dr-data__table">',
-        "<thead><tr>",
-    ]
-    for cell in header:
+    out = ['<div class="dr-data" id="data-' + html.escape(slot) + '">']
+    if caption:
+        out.append('<p class="dr-data__caption">' + html.escape(caption) + "</p>")
+    # The class is required, not decorative -- see the module docstring.
+    out.append('<table class="dr-data__table">')
+    out.append("<thead><tr>")
+    for i, cell in enumerate(header):
         label = "" if _JUNK_HEADER.match(cell) else html.escape(cell)
-        out.append("<th>" + label + "</th>")
+        klass = ' class="dr-data__pin"' if i == pinned else ""
+        out.append("<th" + klass + ">" + label + "</th>")
     out.append("</tr></thead>")
     out.append("<tbody>")
 
+    records = 0
     for cells in body:
         if _is_section(cells):
             out.append(
@@ -144,70 +320,234 @@ def _render(path: Path, href: str) -> str:
                 + html.escape(cells[0]) + "</th></tr>"
             )
             continue
+        records += 1
         out.append("<tr>")
-        for cell in cells:
-            out.append("<td>" + html.escape(cell) + "</td>")
+        for i, cell in enumerate(cells):
+            klass = ' class="dr-data__pin"' if i == pinned else ""
+            out.append("<td" + klass + ">" + html.escape(cell) + "</td>")
         out.append("</tr>")
 
     out.append("</tbody></table>")
     out.append(
-        '<p class="dr-data__source">'
-        + str(len(body)) + " rows &middot; "
-        + '<a href="' + html.escape(href) + '" download>' + html.escape(path.name)
+        '<p class="dr-data__source">' + str(records) + " rows &middot; "
+        + '<a href="' + html.escape(href) + '" download>' + html.escape(filename)
         + "</a></p>"
     )
     out.append("</div>")
     return "\n".join(out)
 
 
+def _slots_for_type(type_name: str) -> list[str]:
+    """The `data_slots` a type may carry, flattened along its `extends` chain.
+
+    ⚠️ This walks state.TYPES itself rather than reading meta["_spec"], because
+    objects._resolve merges only requires/optional/renders. Folding `data_slots` into
+    that merge is the right end state and is a follow-up; until then this is the one
+    place the chain is walked twice, and it is named here so it does not become the
+    kind of quiet second copy this module spends its docstring arguing against.
+    """
+    slots: list[str] = []
+    decl = state.TYPES.get(type_name)
+    seen: set = set()
+    chain = []
+    while decl and decl.get("type") not in seen:
+        seen.add(decl.get("type"))
+        chain.append(decl)
+        parent = decl.get("extends")
+        decl = state.TYPES.get(parent) if parent else None
+    for decl in reversed(chain):
+        for value in decl.get("data_slots") or []:
+            if value not in slots:
+                slots.append(str(value))
+    return slots
+
+
+def _declared(meta: dict, src: str, note) -> dict[str, dict]:
+    """Validate `data:` and return {slot: {"file":..., "caption":...}}."""
+    raw = meta.get("data")
+    if not raw:
+        return {}
+
+    if isinstance(raw, (list, tuple, str)):
+        note(
+            "duplicate_key",
+            src + ": `data:` is a MAP of named slots now, not a list of filenames. "
+            + "The list form is ignored, which looks exactly like the tables never "
+            + "having worked. Rewrite it as `data:` then `  <slot>:` then "
+            + "`    file: <name>.tsv`.",
+        )
+        return {}
+
+    legal = _slots_for_type(str(meta.get("_type") or meta.get("type") or "page"))
+    out: dict[str, dict] = {}
+
+    for slot, value in raw.items():
+        slot = str(slot)
+        if legal and slot not in legal:
+            note(
+                "missing_required",
+                src + ": data slot '" + slot + "' is not declared on type '"
+                + str(meta.get("_type")) + "'. Declared slots: "
+                + (", ".join(legal) or "none")
+                + ". Add it to the type, or use the name the type already has -- a "
+                + "slot spelled two ways across two pages is prose that stops being "
+                + "portable.",
+            )
+            continue
+        if not isinstance(value, dict) or not value.get("file"):
+            note(
+                "missing_required",
+                src + ": data slot '" + slot + "' needs a `file:` key. A slot is "
+                + "always a map (`file:` required, `caption:` optional); the bare "
+                + "`slot: name.tsv` shorthand is not a second legal form.",
+            )
+            continue
+        out[slot] = {
+            "file": str(value.get("file")),
+            "caption": str(value.get("caption") or ""),
+        }
+    return out
+
+
+def _resolve_mention(slot: str, page, label: str):
+    """Resolve an inline `[label](@data:slot)`. Returns markdown, or None to decline.
+
+    An embedded slot resolves to its anchor on this page; a declared-but-unembedded
+    slot resolves to the TSV download, which is the honest answer -- there is no table
+    on the page to jump to. An unknown slot returns None and links.py renders the
+    existing broken-reference marker.
+    """
+    placed = PLACED.get(page.file.src_uri) or {}
+    entry = placed.get(slot)
+    if not entry:
+        return None
+    target = "#data-" + slot if entry.get("anchor") else entry["href"]
+    return "[" + label + "](" + target + ")"
+
+
+prefixes.claim("data", __name__, _resolve_mention)
+
+
+def _collect_blocks(markdown: str):
+    """Find every `!!! data` block and its indented options.
+
+    Returns (lines, [(start, end, slot, options)]) with end EXCLUSIVE. Line-based
+    rather than one regex because the options are an indented run of arbitrary length,
+    and a regex that spans them is a regex nobody can read six months from now.
+    """
+    lines = markdown.split("\n")
+    found = []
+    i = 0
+    in_fence = False
+    while i < len(lines):
+        stripped = lines[i].lstrip()
+        if stripped.startswith("```") or stripped.startswith("~~~"):
+            in_fence = not in_fence
+            i += 1
+            continue
+        match = _BLOCK.match(lines[i]) if not in_fence else None
+        if not match:
+            i += 1
+            continue
+        start = i
+        options: dict[str, str] = {}
+        i += 1
+        while i < len(lines):
+            if not lines[i].strip():
+                # A blank line inside the option run is legal admonition style; only a
+                # non-indented line actually ends the block.
+                if i + 1 < len(lines) and _OPTION.match(lines[i + 1]):
+                    i += 1
+                    continue
+                break
+            option = _OPTION.match(lines[i])
+            if not option:
+                break
+            options[option.group("key").lower()] = option.group("value")
+            i += 1
+        found.append((start, i, match.group("slot").strip(), options))
+    return lines, found
+
+
 def on_page_markdown(markdown, page, config, files):
-    meta = state.BY_SRC.get(page.file.src_uri, {})
-    declared = meta.get("data")
-    if not declared:
+    src = page.file.src_uri
+    meta = state.BY_SRC.get(src, {})
+    declared = _declared(meta, src, state.note)
+
+    lines, blocks = _collect_blocks(markdown)
+    if not declared and not blocks:
         return markdown
-    if isinstance(declared, str):
-        declared = [declared]
 
     here = Path(page.file.abs_src_path).parent
-    placed: set[str] = set()
-    rendered: dict[str, str] = {}
+    placed: dict[str, dict] = {}
+    replacements: list[tuple[int, int, str]] = []
 
-    for name in declared:
-        name = str(name)
-        path = here / name
+    for start, end, slot, options in blocks:
+        entry = declared.get(slot)
+        if not entry:
+            state.note(
+                "dead_links",
+                src + ": `!!! data \"" + slot + "\"` names a slot that is not in this "
+                + "page's `data:` frontmatter. Declared here: "
+                + (", ".join(sorted(declared)) or "nothing") + ".",
+            )
+            replacements.append((
+                start, end,
+                '<p class="docrender-dead">Undeclared data slot: '
+                + html.escape(slot) + "</p>",
+            ))
+            continue
+
+        path = here / entry["file"]
         if not path.is_file():
             state.note(
                 "missing_required",
-                page.file.src_uri + ": declares data file '" + name
-                + "' which does not exist beside it",
+                src + ": data slot '" + slot + "' declares file '" + entry["file"]
+                + "' which does not exist beside it.",
             )
-            rendered[name] = (
+            replacements.append((
+                start, end,
                 '<p class="docrender-dead">Missing data file: '
-                + html.escape(name) + "</p>"
-            )
+                + html.escape(entry["file"]) + "</p>",
+            ))
             continue
-        # The TSV is copied to the site as an ordinary static file, so the
-        # download link is simply its name relative to the page's own URL.
-        rendered[name] = _render(path, name)
 
-    def swap(match):
-        name = match.group("name")
-        if name not in rendered:
+        rows = _trim_columns(_read_rows(path))
+        if not rows:
             state.note(
-                "missing_required",
-                page.file.src_uri + ": marker for '" + name
-                + "' but it is not listed in the page's `data:` frontmatter",
+                "notes",
+                src + ": data file " + entry["file"] + " is empty or unreadable.",
             )
-            return (
-                '<p class="docrender-dead">Undeclared data file: '
-                + html.escape(name) + "</p>"
-            )
-        placed.add(name)
-        return rendered[name]
+            replacements.append((start, end, ""))
+            continue
 
-    markdown = _MARKER.sub(swap, markdown)
+        rows, pinned, override = _apply_options(rows, options, slot, src, state.note)
+        caption = override if override is not None else entry["caption"]
+        # The TSV is copied to the site as an ordinary static file, so the download
+        # link is simply its name relative to the page's own URL.
+        drawn = _draw(rows, entry["file"], entry["file"], slot, caption, pinned)
+        replacements.append((start, end, drawn))
+        placed[slot] = {"href": entry["file"], "anchor": True}
 
-    trailing = [rendered[n] for n in rendered if n not in placed]
-    if trailing:
-        markdown = markdown.rstrip() + "\n\n" + "\n\n".join(trailing) + "\n"
-    return markdown
+    for slot, entry in declared.items():
+        if slot in placed:
+            continue
+        # Declared and never placed. NOT rendered at the page foot: a table silently
+        # landing at the bottom of a long page is the failure nobody notices for a
+        # month, and it was the second legal path this rewrite exists to remove.
+        placed.setdefault(slot, {"href": entry["file"], "anchor": False})
+        if any(b[2] == slot for b in blocks):
+            continue
+        state.note(
+            "missing_required",
+            src + ": data slot '" + slot + "' is declared and never placed. Add "
+            + '`!!! data "' + slot + '"` where the table belongs, or drop the slot. '
+            + "An inline [mention](@data:" + slot + ") still resolves to the file "
+            + "download, so this is a warning and not a broken page.",
+        )
+
+    PLACED[src] = placed
+
+    for start, end, replacement in reversed(replacements):
+        lines[start:end] = [replacement]
+    return "\n".join(lines)
