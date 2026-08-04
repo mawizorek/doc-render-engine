@@ -8,3 +8,34 @@
 type: reference
 label: Reference
 extends: _base
+
+# The data slots a reference page may declare. A CLOSED vocabulary, and that is
+# the whole feature rather than a restriction (Decision Log J5).
+#
+# ⭐ WHY IT IS CLOSED. The point of naming a slot instead of a filename is that
+# the same prose can be copied between the lighting, audio and video pages with
+# only the frontmatter changed. That only holds if the KEY is the same word on
+# every page. If audio writes `inventory_table` and video writes `inventory`,
+# the shared paragraph breaks on the paste -- and it breaks as a dead reference
+# on a page that otherwise looks perfectly fine. Page-local extras were offered
+# as an option and REJECTED, so there is no "and anything else you like" tier.
+#
+# ⚠️ KEEP THESE GENERIC. `inventory_table` travels; `lighting_inventory_table`
+# does not, and a slot that names its department has quietly moved the
+# department name out of the frontmatter and into the prose that was supposed to
+# be portable. If a new page needs a genuinely new KIND of sheet, add a row. If
+# it needs the same kind of sheet for a different department, it already has
+# one.
+#
+# ⚠️ PER TYPE, NOT GLOBAL. Declaring a slot here does not make it legal on
+# `procedure` or `venue`. Those types declare their own.
+data_slots:
+  - schedule_table   # a plot, patch, rack or circuit schedule: the authored
+                     # record of how something IS wired or hung
+  - survey_table     # what was found in the room. Checks a schedule against
+                     # reality, so it is deliberately a separate slot -- a page
+                     # carrying both is making a comparison, and collapsing
+                     # them into one name would hide that
+  - inventory_table  # what we own, and how much of it
+  - contact_table    # people, companies, numbers
+  - revision_log     # what changed and when
