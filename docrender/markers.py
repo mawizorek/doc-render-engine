@@ -3,6 +3,7 @@
     The second altered curtain is not named: [To be confirmed]{.tbc}
     Grid height [18'-0"]{.est} above deck
     A [source 4]{.term} is an ERS fixture
+    Manufactured by [ETC](@term:electronic-theatre-controls)
 
 Decision history: doc-render-engine (repo) -- Decision Log in ClickUp, Q6/J7.
 The argument lives THERE; this file states the contract.
@@ -28,6 +29,38 @@ groups by class. The confidence question survives untouched no matter how many
 glossary terms a site marks.
 
 
+TWO FORMS, AND THE UNDERLINE IS THE ONLY DIFFERENCE A READER SEES
+================================================================
+
+    [source 4]{.term}                     ACCESSORY. A span. This word is jargon.
+    [ETC](@term:electronic-theatre-
+           controls)                       LINK. An anchor. Jargon, and here is
+                                           the page that defines it.
+
+Same class, same colour, same weight. Only the link is underlined, and that is
+deliberate: a reader learns the rule in one page without being told it, because
+underline already means "this goes somewhere" everywhere else on the web.
+
+So this module owns BOTH forms and claims the `@term:` prefix itself, rather than
+that living in a module of its own. The reason is not tidiness -- it is that the
+two forms must never disagree about which class they are. One constant,
+`_TERM_CLASS`, is read by the span renderer and the link resolver, so they cannot
+drift apart. A second module would have been a second place to name the family.
+
+⚠️ A DEAD `@term:` NEVER DEGRADES INTO AN ACCESSORY. The resolver returns None,
+links.py reports it and renders the broken-reference span. Falling back to the
+underlineless accessory form would be a silent second legal path for a reference
+that did not resolve -- the exact fallback shape struck in J2 -- and it would make
+"which terms still have no page" unanswerable, which is the whole reason both
+forms are counted.
+
+⚠️ `@term:` RESOLVES AGAINST ANY PAGE ID, deliberately loosely. There is no
+`term` page TYPE declared yet, so there is nothing to check against; inventing one
+here would be deciding a schema question in a rendering hook. Consequence, stated
+rather than hidden: `@term:main-stage` will happily point at a venue page. Harmless
+today, and the place to tighten it is objects/, not here.
+
+
 THE CASCADE
 ===========
 
@@ -38,9 +71,7 @@ mechanism -- and a new terminology row is a slug and a tooltip, nothing else.
 SHAPE IS STILL A CLOSED SET OF FOUR (box, plain, strike, soft), because a reader
 can tell four apart at a glance and cannot tell nine apart. Terminology needed
 colour and weight WITHOUT an underline, which is `plain`, which already existed:
-the class axis cost the shape axis nothing. A span is not an anchor and takes no
-underline; when the link form lands, the underline is the whole affordance and
-nobody has to write a rule to create it.
+the class axis cost the shape axis nothing.
 
 
 WHY THIS IS A HOOK AND NOT A MARKDOWN EXTENSION
@@ -51,6 +82,10 @@ image, a heading. `[text]{.tbc}` is a bare bracketed span, which is Pandoc synta
 and is not an element Python-Markdown produces, so the attribute has nothing to
 attach to and the whole thing renders as literal text with the braces showing.
 That is exactly what shipped on the live curtain inventory.
+
+⭐ The LINK form is the opposite case and needs no hook of its own: an anchor is
+an element `attr_list` can decorate, so the resolver just hands links.py a
+perfectly ordinary markdown link wearing two classes.
 
 
 COLOUR IS RESOLVED ONCE PER BUILD, AND THAT IS A FIX
@@ -85,8 +120,8 @@ from __future__ import annotations
 import html
 import re
 
-from . import state
-from .util import load_tsv, sub_outside_code
+from . import prefixes, state
+from .util import load_tsv, relative_url, sub_outside_code
 
 # [text]{.marker} with optional whitespace, or bare {.marker}.
 _MARK = re.compile(
@@ -99,6 +134,16 @@ _TOKEN = re.compile(r"^[a-z][a-z0-9-]*$")
 
 _SHAPES = {"box", "plain", "strike", "soft"}
 _FALLBACK_SHAPE = "box"
+
+#: The family the `@term:` prefix belongs to. Read by BOTH the span renderer and
+#: the link resolver so the two forms cannot drift apart -- see the docstring.
+#: Must match a `class` row in theme/marker-classes.tsv.
+_TERM_CLASS = "terminology"
+
+#: The class carried by the LINK form on top of its family class. Exists so an
+#: anchor can take the family colour without also taking `.dr-mark`, whose
+#: `cursor: help` and `white-space: nowrap` are both wrong on something clickable.
+_TERM_LINK_CLASS = "dr-term"
 
 #: Marker name -> resolved row. Built by on_files, read by on_page_markdown.
 _TABLE: dict[str, dict] = {}
@@ -154,6 +199,16 @@ def _build_table() -> dict[str, dict]:
             "theme/marker-classes.tsv is missing or empty, so every marker falls "
             + "back to a boxed body-coloured chip. Markers still render; the "
             + "families do not.",
+        )
+    elif _TERM_CLASS not in classes:
+        # The @term: prefix is claimed unconditionally at import, so the link form
+        # keeps resolving even here -- it would just paint from a class rule that
+        # was never generated, i.e. body colour with no explanation anywhere.
+        state.note(
+            "notes",
+            "theme/marker-classes.tsv declares no '" + _TERM_CLASS + "' class, but "
+            + "@term: links resolve against it. They will render underlined in the "
+            + "body colour until that row exists.",
         )
 
     # Reported here rather than in build_css so one bad cell complains once.
@@ -218,7 +273,8 @@ def build_css() -> str:
 
     lines = [
         "/* GENERATED by docrender/markers.py -- do not edit.",
-        "   One rule per marker CLASS, from theme/marker-classes.tsv.",
+        "   One rule per marker CLASS, from theme/marker-classes.tsv,",
+        "   plus the one static rule for the @term: link form.",
         "   Shape lives in assets/base.css; colour is data. */",
     ]
     for name in sorted(classes):
@@ -232,7 +288,71 @@ def build_css() -> str:
             ".md-typeset .dr-mark--cls-" + name
             + " { --dr-mark-color: " + value + "; }"
         )
+
+    # THE LINK FORM. An anchor carrying its family class inherits the custom
+    # property set above, and this rule is what consumes it -- deliberately
+    # WITHOUT `.dr-mark`, whose cursor:help and white-space:nowrap are wrong on
+    # something clickable.
+    #
+    # ⚠️ THE UNDERLINE IS EXPLICIT, AND THAT IS NOT REDUNDANCY. The whole design
+    # rests on underline being the one visible difference between the link form
+    # and the accessory form, and Material's own link styling is a framework
+    # default that has not been verified to persist an underline in this build.
+    # An affordance the design depends on does not get left to somebody else's
+    # default -- if Material also underlines it, this changes nothing.
+    #
+    # It is emitted HERE rather than in base.css for a boring reason worth stating:
+    # base.css is 16.4KB, close enough to the read ceiling that a wholesale rewrite
+    # from a single read is the clobber that ate util.py on 2026-08-03. This file
+    # already generates the colour half, so the link half costs nothing here.
+    lines.append(
+        ".md-typeset a." + _TERM_LINK_CLASS + " { color: var(--dr-mark-color);"
+        + " text-decoration: underline; text-decoration-thickness: 1px;"
+        + " text-underline-offset: 0.15em; }"
+    )
+
     return "\n".join(lines) + "\n"
+
+
+def _resolve_term(slug: str, page, label: str):
+    """Resolve `@term:<page-id>` to an underlined, terminology-coloured link.
+
+    Registered with docrender/prefixes.py, and called from links.py while it
+    rewrites inline references. Returns None to decline, which is what makes a
+    term with no page render as the broken-reference span rather than as an
+    accessory -- see the docstring.
+
+    Resolves against `state.PAGES`, which is populated in links.on_files and
+    therefore holds only pages that were actually BUILT. A term whose page exists
+    but is `status: hidden` declines here, and that is correct: a link to a page
+    nobody can open is a broken link, not a working one.
+    """
+    hit = state.PAGES.get(slug)
+    if not hit:
+        return None
+
+    # Resolved against THIS page, never from a separator count -- util.relative_url
+    # carries the whole story of why that distinction cost a live 404.
+    target = relative_url(str(hit.get("url", "")), page.file.url)
+
+    # Counted like the span form, and in the same shape, so the report answers
+    # "every terminology reference on this site" for both forms at once.
+    state.note(
+        "markers",
+        _TERM_CLASS + " \u00b7 term \u00b7 " + page.file.src_uri + " \u00b7 "
+        + label + " \u2192 " + slug,
+    )
+
+    return (
+        "[" + label + "](" + target + "){ ." + _TERM_LINK_CLASS
+        + " .dr-mark--cls-" + _TERM_CLASS + " }"
+    )
+
+
+# Claimed at IMPORT time, which is the contract prefixes.py documents: claims
+# happen when hook modules are imported, lookups happen much later inside events.
+# Registering is how the handler works, so it cannot be forgotten.
+prefixes.claim("term", __name__, _resolve_term)
 
 
 def on_files(files, config):
@@ -252,7 +372,8 @@ def on_page_markdown(markdown, page, config, files):
         row = _TABLE.get(name)
         if not row:
             # Not one of ours. Almost certainly an attr_list attribute on a real
-            # element (`{ .md-button }`), so hand it back untouched rather than
+            # element (`{ .md-button }`), or the two-class block links.py just
+            # emitted for an @term: link, so hand it back untouched rather than
             # eating syntax that belongs to somebody else.
             return match.group(0)
 
