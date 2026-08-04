@@ -25,3 +25,17 @@ data_slots:
                     # the entire reason both exist as separate documents.
   - inventory_table # what a department owns.
   - revision_log    # what changed and when.
+  - catalog         # the closed, numbered set of things this page DEFINES:
+                    # every course the program offers, every role, every
+                    # policy. Added 2026-08-04 for 02-courses.
+                    #
+                    # ⚠️ Not `schedule`, and the distinction is the reason this
+                    # slot exists rather than reusing one. A schedule says what
+                    # is happening or what is patched WHERE — it is true of one
+                    # room, one show, one term, and it goes stale. A catalog
+                    # says what EXISTS and what each entry MEANS. Nothing in it
+                    # expires; entries are added and retired.
+                    #
+                    # ⚠️ Not `inventory_table` either: an inventory counts what
+                    # is owned, and two of a thing are two rows. A catalog row
+                    # is a DEFINITION, and there is exactly one of each.
