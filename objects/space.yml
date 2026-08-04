@@ -1,30 +1,35 @@
 # A room inside a building.
 #
-# The type that best shows why declarations beat prose. Every space in the
-# family renders the same spec table, in the same order, with the same field
-# names, because the TYPE draws it and not the author. Add a field here and
-# every space in every repo gains it in one edit.
-#
 # `parent` is required and is an ID, never a path. A space that does not say
 # which building it is in is a fact with nowhere to live.
 #
-# The callout is the quiet half. A space missing its grid height currently
-# looks exactly like a space with no grid at all. Saying 'not documented yet'
-# out loud turns a silent gap into a visible one, which is the only way a gap
-# ever gets filled.
+# ⚠️ THE SPEC FIELDS ARE GONE (2026-08-03, Michael: "they're slop and not real
+# metadata"). capacity, dimensions, grid_height, power, seating and rigging
+# used to be declared here and drawn as a table, with a callout naming the ones
+# a page had not filled in.
+#
+# They were facts about a ROOM. Nothing off the page ever read them: not the
+# nav, not search, not doc-index.json, not a sibling site. The test this engine
+# now applies is whether a value is needed AWAY from the page it appears on,
+# and these were not -- so they were prose wearing a header's clothes.
+#
+# datatable.py had already settled this exact question in the other direction:
+# "A table of dimmer circuits is not machinery. It IS the documentation." A
+# grid height is the same class of thing as a dimmer circuit. Room facts belong
+# in the body, or in a TSV declared with `data:` when there are enough of them
+# to be a table.
+#
+# The evidence was stronger than the argument: across the whole of uritp-docs,
+# all four space pages set ZERO of the six fields. The table rendered nothing
+# and the callout nagged four pages about values nobody intended to record
+# here. A field set that is never populated is not waiting for content.
+#
+# 🚫 Do not re-add a facts-about-the-subject field here. If a room needs a
+# consistent grid of numbers, that is a data file, and the mechanism already
+# exists: `data:` plus a `<!-- dr:table -->` marker.
 
 type: space
 label: Space
 extends: _base
 requires:
   - parent
-optional:
-  - capacity
-  - dimensions
-  - grid_height
-  - power
-  - seating
-  - rigging
-renders:
-  - spec_table: [capacity, dimensions, grid_height, power, seating, rigging]
-  - callout_if_missing: [capacity, grid_height]

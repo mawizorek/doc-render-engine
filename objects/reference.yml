@@ -1,11 +1,10 @@
 # Contacts, glossaries, revision histories: pages that are looked up rather
 # than read.
+#
+# ⚠️ maintainer and updated_by were REMOVED 2026-08-03 with the rest of the
+# spec-table fields. Who keeps a page current is worth stating on the page;
+# it was not worth a key nothing read.
 
 type: reference
 label: Reference
 extends: _base
-optional:
-  - maintainer
-  - updated_by
-renders:
-  - spec_table: [maintainer, updated_by]
