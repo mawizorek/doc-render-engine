@@ -19,6 +19,11 @@ This is FileMaker thinking pointed at a static site. _base.yml is the parent
 table, each type file is a table occurrence, requires/optional are the field
 list, layout is the layout, and a page's frontmatter block is the record.
 
+AS OF 2026-08-03 THE LEDE IS ONE OF THOSE FIELDS. `summary:` is required on
+_base and rendered into the slot after the H1; it used to be whatever paragraph
+happened to sit there. The reasoning, and the deliberate absence of a
+positional fallback, are in docrender/lede.py.
+
 Runs FIRST, before visibility, deliberately: a page with a broken declaration
 is broken whether or not it happens to be hidden today.
 
@@ -54,9 +59,10 @@ what the section is for.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
-from . import state
-from .util import read_frontmatter_checked, slug_title, sub_outside_code
+from . import lede, state
+from .util import duplicate_keys, slug_title, split_frontmatter, sub_outside_code
 
 VALID_STATUS = {"hidden", "unlisted", "gated", "public"}
 
@@ -73,6 +79,21 @@ _LEGACY_KEYS = {
 #: An `@id` reference in the body. Same shape links.py resolves, minus the
 #: anchor: a page mentioned WITH an anchor is still mentioned.
 _REFERENCED = re.compile(r"\]\(@(?P<token>[A-Za-z0-9_.:-]+)")
+
+
+def _read_page(path: str) -> tuple[dict, str, list]:
+    """Frontmatter, BODY, and duplicate keys -- from ONE read.
+
+    util.read_frontmatter_checked gives the first and third. The lede check
+    needs the second, and reading a file twice to answer two questions about
+    the same bytes is how the two answers eventually disagree.
+    """
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return {}, "", []
+    meta, body = split_frontmatter(text)
+    return meta, body, duplicate_keys(text)
 
 
 def _resolve(type_name: str) -> dict:
@@ -101,7 +122,7 @@ def on_files(files, config):
     seen_ids: dict[str, str] = {}
 
     for f in files.documentation_pages():
-        meta, dupes = read_frontmatter_checked(f.abs_src_path)
+        meta, body, dupes = _read_page(f.abs_src_path)
         state.BY_SRC[f.src_uri] = meta
 
         # DUPLICATES FIRST: a duplicate is usually the REASON a later complaint
@@ -181,6 +202,10 @@ def on_files(files, config):
                 f.src_uri + " (type: " + type_name + ") is missing required "
                 + ", ".join(missing),
             )
+
+        # WHERE the lede is, which the required-field check cannot say. Runs on
+        # hidden pages too, same posture as everything above it.
+        lede.check(f.src_uri, meta, body, state.note)
 
         meta["_type"] = type_name
         meta["_spec"] = spec
@@ -311,25 +336,6 @@ def _child_list(page, markdown: str) -> str:
     return "\n".join(lines)
 
 
-def _insert_after_lede(markdown: str, block: str) -> str:
-    """Place generated content after the H1 and its opening paragraph.
-
-    The first paragraph is the lede and is also what a search result shows, so
-    nothing generated may come before it. Anything we cannot parse confidently
-    goes at the top instead of guessing wrong and splitting a sentence.
-    """
-    lines = markdown.splitlines()
-    heading = next((i for i, ln in enumerate(lines) if ln.startswith("# ")), None)
-    if heading is None:
-        return block + "\n" + markdown
-    i = heading + 1
-    while i < len(lines) and not lines[i].strip():
-        i += 1
-    while i < len(lines) and lines[i].strip():
-        i += 1
-    return "\n".join(lines[:i] + ["", block] + lines[i:])
-
-
 def _wants_children(meta: dict, renders: list) -> bool:
     """Does this page draw a contents list.
 
@@ -371,6 +377,10 @@ def on_page_markdown(markdown, page, config, files):
     page. It emits `@id` links rather than paths, so stage 03 resolves them by
     the same rules as hand-written ones -- including reporting one as dead if a
     page it lists somehow fails to publish.
+
+    Two fields are drawn here that no type declares, because they belong to
+    every page: `summary:` (the lede, into the slot after the H1) and
+    `also_known_as:` (a visible line at the foot). See docrender/lede.py.
     """
     meta = state.BY_SRC.get(page.file.src_uri, {})
     spec = meta.get("_spec") or {}
@@ -396,10 +406,23 @@ def on_page_markdown(markdown, page, config, files):
 
     # Read from the ORIGINAL body, before anything is inserted into it, so a
     # generated block can never be mistaken for something the author wrote.
+    # This includes the lede: a link in `summary:` is metadata, and metadata
+    # must not decide whether a child page counts as filed.
     listing = _child_list(page, markdown) if _wants_children(meta, renders) else ""
 
+    # LEDE FIRST, then the blocks that sit under it. insert_after skips the H1
+    # and the run beneath it, so it lands below the lede either way -- but only
+    # if the lede is already there when it runs.
+    summary = meta.get("summary")
+    if summary:
+        markdown = lede.render(markdown, summary)
     if blocks:
-        markdown = _insert_after_lede(markdown, "\n\n".join(blocks))
+        markdown = lede.insert_after(markdown, "\n\n".join(blocks))
     if listing:
         markdown = markdown.rstrip() + "\n\n" + listing + "\n"
+
+    aka = lede.aka(meta.get("also_known_as"))
+    if aka:
+        markdown = markdown.rstrip() + "\n\n" + aka + "\n"
+
     return markdown
