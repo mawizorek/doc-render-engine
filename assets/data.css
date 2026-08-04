@@ -1,12 +1,16 @@
 /* The TSV data table (docrender/table.py, sheet.py, datatable.py).
  *
- * SPLIT OUT OF base.css ON 2026-08-04. base.css was 18.4KB -- past the 18KB warn
- * line sizecheck.py prints on every build -- and the per-column work would have
- * carried it over the 22KB hard line. A file that cannot be read back whole
- * cannot be safely edited, and the answer to a file doing two jobs is a SPLIT.
+ * SPLIT OUT OF base.css ON 2026-08-04, because that file reached 18.4KB and the
+ * per-column work would have carried it over the 22KB read-whole line -- the
+ * point where a file stops coming back whole from one read and therefore stops
+ * being safely editable. The answer to a file doing two jobs is a SPLIT.
+ *
+ * (The header comment first written here cited a warn line that could not fire:
+ * the size budget walked only content and docrender until the same PR taught it
+ * about assets/. The split was right; the sentence was not. See sizecheck.py.)
  *
  * WARNING: THE TABLE RULES LIVE HERE AND NOWHERE ELSE. Nothing was left behind in
- * base.css as a layer to override: two homes for one rule is the defect this
+ * base.css as a layer to override. Two homes for one rule is the defect this
  * engine spends its docstrings arguing against, and a stylesheet is the easiest
  * place in the world to build one by accident.
  *
@@ -17,38 +21,36 @@
 /* ---------------------------------------------------------------------------
  * THE SHELL
  *
- * A spreadsheet exported by somebody who had to actually use it: 130 rows, eight
- * columns, section breaks in the middle. Three decisions carry the weight.
+ * A spreadsheet exported by somebody who had to use it: 130 rows, eight columns,
+ * section breaks in the middle. Three decisions carry the weight.
  *
  * 1. IT SCROLLS SIDEWAYS INSTEAD OF WRAPPING -- for the columns where that is
  *    true. A wrapped VALUE turns one row into three and destroys the horizontal
- *    scan that makes a table readable at all. See THE COLUMN KINDS for why that
- *    stopped being true of every column.
+ *    scan. See THE COLUMN KINDS for why that stopped being true of every column.
  * 2. THE FIRST COLUMN AND THE HEADER STICK. Column one is the identifier you are
  *    tracing and the header is what the cell you land on MEANS. Scroll far
  *    enough right without them and every value is an orphan.
  * 3. THE BOX DOES NOT TRAP A PHONE. See THE ONE VIEWPORT RULE at the foot.
  *
  * BUG: (1) AND (2) WERE BOTH FALSE UNTIL 2026-08-03. Material styles
- * .md-typeset table:not([class]) with display:block so wide tables get their own
- * scrollbar. Our table shipped with no class, so display:block stopped it being
- * a table -- and a position:sticky cell inside a block has no row context to
- * stick within, so it silently did nothing. Three defences: the table carries a
- * class, display:table is forced anyway, and Material's JS scroll wrapper is
- * neutralised if it appears.
+ * .md-typeset table:not([class]) with display:block so wide tables can scroll.
+ * Ours shipped with no class, so display:block stopped it being a table -- and a
+ * position:sticky cell inside a block has no row context to stick within, so it
+ * silently did nothing. Three defences: the table carries a class, display:table
+ * is forced anyway, and Material's JS scroll wrapper is neutralised if it shows.
  *
  * CONTAINER, NOT VIEWPORT (2026-08-04). container-type makes every rule below
- * answer to the width of THIS BOX rather than the width of the window, so the
- * table does the right thing inside a narrow column or a split view and not only
- * on a phone. A table is a component; it should answer to the space it is given
- * and not to the size of the glass.
+ * answer to the width of THIS BOX rather than the window, so the table behaves
+ * inside a narrow column or a split view and not only on a phone. A table is a
+ * component; it should answer to the space it is given, not the size of the
+ * glass.
  * ------------------------------------------------------------------------ */
 .dr-data {
   container-type: inline-size;
   margin: 1.4rem 0;
   max-height: 78vh;
   overflow: auto;
-  /* Stop a sideways swipe that runs out of table from turning into a browser
+  /* Stop a sideways swipe that runs out of table from becoming a browser
    * back-navigation, which on iOS is one flick away at all times. */
   overscroll-behavior-x: contain;
   border: 1px solid var(--dr-rule);
@@ -107,8 +109,8 @@
 }
 
 /* The frozen identifier column. The box-shadow is not decoration: without an edge
- * there is nothing on screen that says the table scrolls, and a reader who does
- * not know to swipe reads the first two columns and leaves. */
+ * nothing on screen says the table scrolls, and a reader who does not know to
+ * swipe reads the first two columns and leaves. */
 .dr-data__table tbody td:first-child {
   position: sticky;
   left: 0;
@@ -128,7 +130,7 @@
   background: var(--dr-surface-raised);
 }
 
-/* The toggle cell exists in the markup of every list table and is furniture until
+/* The toggle cell is in the markup of every list table and is furniture until
  * there is no room. Hidden rather than absent, so the row does not change shape
  * between the two layouts. */
 .dr-data__more { display: none; }
@@ -140,22 +142,22 @@
  * sheet.classify_columns, OVERRIDDEN by a ::type in the header cell.
  *
  * WHY THIS EXISTS. white-space:nowrap above was CORRECT when a cell was a value,
- * and it stopped being correct the moment a cell became prose (PR #50). With
- * nowrap on everything, THE LONGEST SENTENCE IN THE SHEET SETS THE SCROLL WIDTH
- * OF THE WHOLE TABLE, and every column after it lives permanently off the right
- * edge of a phone. Kinds keep nowrap exactly where it earns its keep.
+ * and stopped being correct the moment a cell became prose (PR #50). With nowrap
+ * on everything, THE LONGEST SENTENCE IN THE SHEET SETS THE SCROLL WIDTH OF THE
+ * WHOLE TABLE, and every column after it lives off the right edge of a phone.
+ * Kinds keep nowrap exactly where it earns its keep.
  *
  * WARNING: SPECIFICITY IS DELIBERATE AND FRAGILE. The blanket rule above is
  * .md-typeset .dr-data__table td = (0,2,1); these have to beat it, which is why
- * every one attaches the kind class to td/th and repeats itself with and without
- * the .md-typeset prefix. Do not tidy them down to a bare class selector -- it
- * will lose to the rule ninety lines above it, and it will lose silently.
+ * each attaches the kind class to td/th and repeats itself with and without the
+ * .md-typeset prefix. Do not tidy them down to a bare class selector -- it will
+ * lose to the rule ninety lines above it, and it will lose silently.
  *
  * WARNING: THE FONTS ARE TWO TOKENS, NOT ONE. --dr-data-font was always the whole
- * table font, and a site that sets it to mono meant it -- for the ids and the
- * counts, which is what a monospaced face is FOR. It costs roughly 60% extra
- * width per character on a sentence, which is the column that can least afford
- * it. So prose reads --dr-data-prose-font and falls back to the body face.
+ * table's font, and a site setting it to mono meant it -- for the ids and the
+ * counts, which is what a monospaced face is FOR. It costs roughly 60% more
+ * width per character on a sentence, the column that can least afford it. So
+ * prose reads --dr-data-prose-font and falls back to the body face.
  * ------------------------------------------------------------------------ */
 
 .md-typeset .dr-data__table td.dr-col--id,
@@ -173,8 +175,8 @@
 /* AN ID IS NOT A QUANTITY, and this rule exists because the engine got it wrong
  * for three hours. A course number is all digits, so derivation called it `num`
  * and right-aligned 44 course codes as though they were counts. An id is a NAME
- * that happens to be written in digits: it left-aligns like every other label,
- * and takes tabular figures only so the codes line up as a column of names. */
+ * written in digits: it left-aligns like any other label and takes tabular
+ * figures only so the codes line up as a column of names. */
 .md-typeset .dr-data__table td.dr-col--id,
 .dr-data__table td.dr-col--id {
   text-align: left;
@@ -182,8 +184,8 @@
 }
 
 /* Tabular figures so a column of counts lines up instead of ragging by glyph
- * width, and right-aligned so magnitudes are comparable at a glance. A number
- * column you have to read digit by digit is a list. */
+ * width, right-aligned so magnitudes compare at a glance. A number column you
+ * have to read digit by digit is a list. */
 .md-typeset .dr-data__table td.dr-col--num,
 .md-typeset .dr-data__table td.dr-col--money,
 .dr-data__table td.dr-col--num,
@@ -227,19 +229,17 @@
 }
 
 /* ---------------------------------------------------------------------------
- * THE SECTION BAND
- *
- *     CONSOLES & MIXERS [8110]
+ * THE SECTION BAND -- e.g. CONSOLES & MIXERS [8110]
  *
  * A heading INSIDE the sheet (sheet.is_section). It is a th with colspan=N, and
  * that is the whole reason the LABEL is a separate span.
  *
- * BUG: STICKY ON THE CELL DID NOTHING, AND LOOKED LIKE A PAINT BUG.
- * position:sticky with left:0 needs slack between the element and its scroll
- * container. A cell spanning every column has none -- its width IS the scroll
- * width -- so the band scrolled away with the row and a reader three columns in
- * saw WARE [2000] where the sheet said HARDWARE [2000]. An inline-block inside it
- * has all the slack in the world. Geometry, not paint.
+ * BUG: STICKY ON THE CELL DID NOTHING, AND LOOKED LIKE A PAINT BUG. Sticky needs
+ * slack between the element and its scroll container. A cell spanning every
+ * column has none -- its width IS the scroll width -- so the band scrolled away
+ * with the row and a reader three columns in saw WARE [2000] where the sheet said
+ * HARDWARE [2000]. An inline-block inside it has all the slack in the world.
+ * Geometry, not paint.
  * ------------------------------------------------------------------------ */
 .md-typeset .dr-data__table .dr-data__section th,
 .dr-data__table .dr-data__section th {
@@ -397,8 +397,8 @@
     text-transform: uppercase;
     color: var(--dr-ink-muted);
   }
-  /* The currency symbol rides on the VALUE. Without this the ::before above is
-   * overridden by the money rule and the field name is replaced by a dollar. */
+  /* The currency symbol rides on the VALUE. Without this the money ::before wins
+   * and the field name is replaced by a dollar sign. */
   .dr-data--list .dr-data__table td.dr-detail.dr-col--money::before {
     content: attr(data-label);
     margin-right: 0;
@@ -409,11 +409,11 @@
   }
   .dr-data--list .dr-data__table tbody tr:hover td { background: transparent; }
 
-  /* THE CONTROL. 44px, the minimum real target, sitting on the summary line. The
-   * whole row is clickable too (data.js), because a chevron in the corner is not
-   * a phone target when the thing you are tapping is a course -- but a control
-   * that exists only inside a click handler is a control a keyboard user does
-   * not have, so this is a real button and it stays. */
+  /* THE CONTROL. 44px, the minimum real target, on the summary line. The whole
+   * row is clickable too (data.js), because a chevron in the corner is a poor
+   * target when the thing being tapped is a course -- but a control that exists
+   * only inside a click handler is a control a keyboard user does not have, so
+   * this is a real button and it stays. */
   .dr-data-js .dr-data--list .dr-data__more {
     display: block;
     position: absolute;
@@ -476,17 +476,17 @@
 /* ---------------------------------------------------------------------------
  * THE ONE VIEWPORT RULE
  *
- * max-height is measured in vh, so it is a question about the GLASS and not about
- * the column -- and an element cannot answer a container query it establishes
- * itself. Both reasons point the same way, which is the only reason this is not
- * a compromise. On a phone the page scrolls vertically and the table scrolls
+ * max-height is measured in vh, so it is a question about the GLASS and not the
+ * column -- and an element cannot answer a container query it establishes itself.
+ * Both reasons point the same way, which is the only reason this is not a
+ * compromise. On a phone the page scrolls vertically and the table scrolls
  * sideways; a 78vh box that swallows a vertical swipe is the worst thing on this
  * page on a small screen and the best thing on it on a large one.
  *
  * WARNING: EVERY DEFECT THIS FILE FIXES WAS FOUND ON A PHONE AND WAS INVISIBLE ON
  * A LAPTOP, three times in two days (see base.css on the double nav rule, and
  * router.css on the revealed menu). The engine has a build report, a size gate, a
- * leak scan and a contrast gate. It has nothing that looks at a rendered page at
+ * leak scan and a contrast gate, and nothing that looks at a rendered page at
  * 390px. Until it does, this is where the phone gets thought about on purpose.
  * ------------------------------------------------------------------------ */
 @media screen and (max-width: 44.9375em) {
