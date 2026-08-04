@@ -1,14 +1,27 @@
 # The parent every other declaration extends.
 #
-# These three fields are the contract. Everything else in the family is
+# These four fields are the contract. Everything else in the family is
 # optional somewhere, and these are optional nowhere.
 #
-#   id      IDENTITY, and a promise. Other pages link to this string, so moving
-#           the file, renaming its folder, or retitling the page cannot break
-#           an inbound link. Set once, never change. That is the whole point.
-#   title   what a human sees.
-#   status  the publication gate. Mandatory with no default, so a page that
-#           forgets it does not build. Nothing goes public by accident.
+#   id       IDENTITY, and a promise. Other pages link to this string, so
+#            moving the file, renaming its folder, or retitling the page cannot
+#            break an inbound link. Set once, never change. That is the point.
+#   title    what a human sees.
+#   status   the publication gate. Mandatory with no default, so a page that
+#            forgets it does not build. Nothing goes public by accident.
+#   summary  THE LEDE. One or two lines: what this is and who needs it.
+#            Rendered under the H1, and it is also the teaser a search result
+#            shows, which is why an empty one is a real cost rather than an
+#            untidy one.
+#
+# ⚠️ summary IS REQUIRED AND HAS NO POSITIONAL FALLBACK (Decision Log Q1,
+# 2026-08-03). It used to be the first paragraph of the body -- an arrangement
+# in which the stylesheet, the engine and the search plugin each held their own
+# definition of where the lede ended, agreed on the happy path, and diverged
+# silently everywhere else. A page still carrying its lede in the body is
+# reported by docrender/lede.py; it is not quietly accepted. One source of
+# truth was the ruling, and a sanctioned fallback would have been a fourth
+# definition wearing a helpful face.
 
 type: _base
 label: Page
@@ -16,6 +29,7 @@ requires:
   - id
   - title
   - status
+  - summary
 optional:
   - revised      # when this was last true. Provenance, not decoration.
   - order        # sort weight in the sidebar. Absent sorts alphabetically.
@@ -23,6 +37,13 @@ optional:
   - related      # ids, not paths
   - xref         # peer:id references to sibling sites
   - source       # where the facts came from
+  - also_known_as  # what a reader might call this thing instead. Renders as a
+                 # quiet visible line at the foot of the page, which is the
+                 # whole design (Decision Log Q2): the words are indexed
+                 # because they are genuinely ON the page, so there is no
+                 # second search mechanism to maintain and nothing that can rot
+                 # where nobody can see it. A hidden keyword block was the
+                 # rejected option. List or comma-separated string.
   - indexed      # `false` keeps this page out of the contents list drawn by
                  # the INDEX PAGE above it. Default true.
                  #
