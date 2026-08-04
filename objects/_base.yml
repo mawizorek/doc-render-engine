@@ -56,3 +56,26 @@ optional:
                  # other sites. It does not touch the SEARCH index either;
                  # that is `status: unlisted`. It means one thing: the list of
                  # links at the foot of the parent index page.
+  - data         # TSV files beside this page, as a MAP of slot name to
+                 # filename:
+                 #
+                 #     data:
+                 #       schedule_table: circuits-and-dimmers.tsv
+                 #       revision_log: circuits-revisions.tsv
+                 #
+                 # ⭐ THE BODY REFERS TO THE SLOT, NEVER THE FILENAME.
+                 # `!!! data "schedule_table"` renders it in place and
+                 # `[the schedule](@data:schedule_table)` links to it, so
+                 # repointing a renamed sheet is a one-line edit here and no
+                 # prose changes anywhere. That is what lets one body of text
+                 # be copied between the audio, lighting and video pages.
+                 #
+                 # ⚠️ WHICH SLOT NAMES ARE LEGAL IS A PER-TYPE DECISION, in
+                 # `data_slots:` on the type, NOT here -- a slot legal
+                 # everywhere is legal in places it makes no sense. This line
+                 # only says the KEY exists. See docrender/typespec.py.
+                 #
+                 # 🐛 It was honoured by docrender/datatable.py and declared
+                 # NOWHERE until 2026-08-04: an undeclared field the engine
+                 # already read, which is the same defect this spec exists to
+                 # prevent, sitting inside the spec's own parent table.
