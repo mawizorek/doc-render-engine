@@ -104,6 +104,13 @@ layout, and a `position: sticky` cell inside a non-table has no row context to
 stick within -- so the frozen header and frozen first column silently did
 nothing, which is exactly how it shipped and exactly how Michael found it.
 The class makes `:not([class])` stop matching. Do not remove it.
+
+⚠️ THE SCANNER MUST ALWAYS ADVANCE. This walks the page line by line rather than
+substituting with one regex, because an indented option body is not something a
+single expression reads honestly. Every branch below either consumes lines in
+its own loop or increments `index`. A branch that falls through to `continue`
+without advancing hangs the build forever on one line, which is exactly what the
+first cut of this file did.
 """
 
 from __future__ import annotations
@@ -125,7 +132,7 @@ _JUNK_HEADER = re.compile(r"^[\W_]+$")
 
 _KNOWN_OPTIONS = ("pin", "sort", "hide", "caption")
 
-#: src_uri -> slot -> {"href": str, "anchor": str|None, "caption": str}
+#: src_uri -> slot -> {"href": str, "anchor": str|None}
 #: Read by links.py to resolve an inline `@data:slot` mention. Populated while
 #: this hook rewrites the page, which is stage 01b -- two full stages before
 #: links runs at 03, so the map is always complete by the time it is read.
@@ -134,7 +141,7 @@ PLACED: dict[str, dict[str, dict]] = {}
 
 def _norm(label: str) -> str:
     """Column names compare loosely. `Commit ID`, `commit_id` and `commitid`
-    are the same column to a human and a human is who types the option."""
+    are the same column to a human, and a human is who types the option."""
     return re.sub(r"[\W_]+", "", str(label)).lower()
 
 
@@ -184,7 +191,6 @@ def _parse_options(lines: list[str], where: str, slot: str) -> dict:
                 )
             continue
         key = match.group("key").lower()
-        value = match.group("value")
         if key not in _KNOWN_OPTIONS:
             state.note(
                 "notes",
@@ -192,7 +198,7 @@ def _parse_options(lines: list[str], where: str, slot: str) -> dict:
                 + "` (known: " + ", ".join(_KNOWN_OPTIONS) + "). Ignored.",
             )
             continue
-        opts[key] = value
+        opts[key] = match.group("value")
     return opts
 
 
@@ -252,10 +258,14 @@ def _apply_sort(header: list[str], body: list[list[str]], spec: str, where: str,
 
     def flush():
         # Blanks last rather than first: an untraced value is not a value that
-        # sorts before everything, and floating them to the top of every
-        # section would bury the rows that actually carry data.
-        run.sort(key=lambda r: (not (r[index] if index < len(r) else ""),
-                                (r[index] if index < len(r) else "").lower()))
+        # sorts before everything, and floating them to the top of every section
+        # would bury the rows that actually carry data.
+        run.sort(
+            key=lambda r: (
+                not (r[index] if index < len(r) else ""),
+                (r[index] if index < len(r) else "").lower(),
+            )
+        )
         out.extend(run)
         run.clear()
 
@@ -287,9 +297,7 @@ def _render(path: Path, href: str, slot: str, opts: dict, where: str) -> tuple[s
     pinned = True
     pin = (opts.get("pin") or "").strip()
     if pin:
-        if _norm(pin) == "none":
-            pinned = False
-        elif not header:
+        if _norm(pin) == "none" or not header:
             pinned = False
         elif _norm(pin) != _norm(header[0]):
             if _norm(pin) in {_norm(h) for h in header}:
@@ -309,7 +317,7 @@ def _render(path: Path, href: str, slot: str, opts: dict, where: str) -> tuple[s
                     + ". Rendered with the first column frozen.",
                 )
 
-    anchor = "dr-data--" + re.sub(r"[^a-z0-9]+", "-", slot.lower()).strip("-")
+    anchor = "dr-data--" + (re.sub(r"[^a-z0-9]+", "-", slot.lower()).strip("-") or "table")
     span = len(header)
     classes = "dr-data__table" if pinned else "dr-data__table dr-data__table--nopin"
 
@@ -350,7 +358,9 @@ def _render(path: Path, href: str, slot: str, opts: dict, where: str) -> tuple[s
     if caption:
         out.append('<p class="dr-data__caption">' + html.escape(caption) + "</p>")
 
-    return "\n".join(out), anchor
+    # Blank lines top and bottom: a raw HTML block glued to a prose line is not
+    # a block to the markdown parser, and it gets wrapped in a stray <p>.
+    return "\n" + "\n".join(out) + "\n", anchor
 
 
 def _declared(page, where: str) -> dict[str, str] | None:
@@ -384,12 +394,11 @@ def _declared(page, where: str) -> dict[str, str] | None:
                 + "the same way.",
             )
             continue
-        if not legal and not typespec.declares_slots(type_name):
+        if not legal:
             state.note(
                 "notes",
-                where + ": type '" + type_name + "' declares no `data_slots:` at all, "
-                + "so slot '" + slot + "' is unchecked. Declare the vocabulary on "
-                + "the type.",
+                where + ": type '" + type_name + "' declares no `data_slots:`, so slot '"
+                + slot + "' is unchecked. Declare the vocabulary on the type.",
             )
         clean[slot] = str(filename)
     return clean
@@ -455,8 +464,8 @@ def on_page_markdown(markdown, page, config, files):
                     + (", ".join(sorted(declared)) or "nothing"),
                 )
                 out.append(
-                    '<p class="docrender-dead">Undeclared data slot: '
-                    + html.escape(slot) + "</p>"
+                    '\n<p class="docrender-dead">Undeclared data slot: '
+                    + html.escape(slot) + "</p>\n"
                 )
                 continue
 
@@ -468,8 +477,8 @@ def on_page_markdown(markdown, page, config, files):
                     + "' which does not exist beside this page",
                 )
                 out.append(
-                    '<p class="docrender-dead">Missing data file: '
-                    + html.escape(filename) + "</p>"
+                    '\n<p class="docrender-dead">Missing data file: '
+                    + html.escape(filename) + "</p>\n"
                 )
                 continue
 
@@ -481,6 +490,7 @@ def on_page_markdown(markdown, page, config, files):
 
         legacy = _LEGACY_MARKER.fullmatch(line)
         if legacy:
+            index += 1
             name = legacy.group("name")
             slot = by_file.get(name)
             state.note(
@@ -488,20 +498,18 @@ def on_page_markdown(markdown, page, config, files):
                 where + ": `<!-- dr:table " + name + " -->` is the RETIRED placement "
                 + "marker and is still honoured for now. Replace it with `!!! data "
                 + '"' + (slot or "<slot>") + '"` -- the comment form is invisible to '
-                + "the type spec and a typo inside it renders nothing at all, "
+                + "the type spec, and a typo inside it renders nothing at all, "
                 + "silently.",
             )
-            if slot:
-                path = here / name
-                if path.is_file():
-                    rendered, anchor = _render(path, name, slot, {}, where)
-                    if rendered:
-                        out.append(rendered)
-                        placed[slot] = {"href": name, "anchor": anchor}
+            if slot and (here / name).is_file():
+                rendered, anchor = _render(here / name, name, slot, {}, where)
+                if rendered:
+                    out.append(rendered)
+                    placed[slot] = {"href": name, "anchor": anchor}
                     continue
             out.append(
-                '<p class="docrender-dead">Undeclared data file: '
-                + html.escape(name) + "</p>"
+                '\n<p class="docrender-dead">Undeclared data file: '
+                + html.escape(name) + "</p>\n"
             )
             continue
 
@@ -512,14 +520,13 @@ def on_page_markdown(markdown, page, config, files):
     # the foot of the page in declaration order. That is a second legal way for a
     # table to arrive, it was never the intended one, and a table silently
     # landing at the bottom of a long page is the kind of failure nobody notices
-    # for a month. It is reported instead. The slot is still resolvable as a
+    # for a month. It is reported instead. The slot stays resolvable as a
     # DOWNLOAD by an inline `@data:` mention, which is a legitimate way to use a
     # sheet you never embed.
     for slot, filename in declared.items():
         if slot in placed:
             continue
-        path = here / filename
-        if not path.is_file():
+        if not (here / filename).is_file():
             state.note(
                 "missing_required",
                 where + ": slot '" + slot + "' points at '" + filename
@@ -542,8 +549,8 @@ def reference(src_uri: str, slot: str) -> dict | None:
     """How an inline `@data:slot` on this page should resolve.
 
     Returns `{"href": ..., "anchor": ...}` where anchor is the id of the embedded
-    table on this page, or None when the slot is declared but not embedded -- in
-    which case the mention becomes a download link to the TSV.
+    table on this page, or anchor None when the slot is declared but not embedded
+    -- in which case the mention becomes a download link to the TSV itself.
     """
     return (PLACED.get(src_uri) or {}).get(slot)
 
