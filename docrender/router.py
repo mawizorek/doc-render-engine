@@ -2,6 +2,7 @@
 
 WHY decisions here are the way they are: the doc-render-engine Decision Log.
 This docstring is the CONTRACT and is deliberately kept under the warn line.
+The crypto lives in `docrender/seal.py`, which pairs with `assets/router.js`.
 
 =============================================================================
 THE FRONTMATTER KEYS, and how they relate to `status:`
@@ -90,42 +91,35 @@ arithmetic is what made a wrong answer look deliberate.
 THE CASCADE TAKES THE SIDEBAR WITH IT (DL J14, 2026-08-04)
 =============================================================================
 visibility.py strips a routed folder's subtree out of the nav at stage 00b and
-stashes it in `state.NAV_SEALED`. This file seals that manifest with `_wrap`,
+stashes it in `state.NAV_SEALED`. This file seals that manifest with `seal.wrap`,
 under EVERY code that opens the curtain and no others, and ships it as
 `data-subtree`. A correct code decrypts it and router.js injects the entries.
 
 ⚠️ A REDIRECT CODE NEVER UNSEALS THE NAV. It does not reveal this page, so it
 has no business revealing this page's children -- which is why curtain codes
-are collected separately below rather than read back off the hashes.
+are collected separately below rather than read back off the verifiers.
 
 =============================================================================
-A HELD CODE OPENS THE PAGE BEFORE FIRST PAINT (2026-08-04)
+A HELD CODE OPENS THE PAGE BEFORE FIRST PAINT (DL J17, 2026-08-04)
 =============================================================================
 Michael: "the lock menu kinda flashes on top of any page that's potentially
 locked... it's still like loading the menu each time and passing it immediately
 which seems like bad architecture." Correct on both counts, and they were two
-separate defects.
+separate defects with one shared fix.
 
 🔴 THE FLASH. `router.js` is `extra_javascript`, which Material puts at the END
 of the body, so the browser had already painted the form before any script ran.
 Hiding it from JS is by definition too late. Fixed with `_BOOT`, a tiny inline
 script emitted immediately after the form: it runs DURING PARSE, before the
-first paint, and puts a class on <html> that router.css acts on.
+first paint, and sets a class on <html> that router.css acts on.
 
-🔴 THE RE-DERIVATION, which is the architectural half. `_check()` used to mint
-a FRESH RANDOM SALT PER PAGE, so a code the reader had already typed could not
-be cached -- every navigation re-ran PBKDF2 at 120,000 iterations against a
+🔴 THE RE-DERIVATION, which is the architectural half. `seal.check()` used to
+mint a FRESH RANDOM SALT PER PAGE, so a code the reader had already typed could
+not be cached -- every navigation re-ran PBKDF2 at 120,000 iterations against a
 brand-new salt, per held key, sequentially, before the body appeared. Nothing
-was being loaded; it was being recomputed. One salt per BUILD (state.ROUTER_SALT)
-makes the derived verifier reusable, so page two costs a string comparison.
-
-The two fixes are the same fix: a cached verifier is what the pre-paint script
-compares, and it can only exist because the salt stops moving.
-
-🚫 `_wrap` KEEPS ITS OWN RANDOM SALT AND NONCE PER CALL. That is AES-GCM
-encryption, where reusing key material across different plaintexts is a real
-weakness rather than a cosmetic one. The shared salt is for VERIFIERS only. Do
-not tidy the two into one.
+was being loaded; it was being recomputed. One salt per BUILD makes the derived
+verifier reusable, so page two costs a string comparison. See state.ROUTER_SALT
+and seal.py on why verifiers and ciphertext do not share salts.
 
 =============================================================================
 A CURTAIN IS A PAUSE. THE PAGE SOURCE PROVES IT.
@@ -137,8 +131,8 @@ encryption."* v1 encrypted page bodies and paid for it with a cipher shared
 across two files, a keyring and its own authoring document -- to protect content
 that was public in the repo the whole time.
 
-What IS withheld is the CODE (only a PBKDF2 verifier ships) and, since J14, the
-NAV MANIFEST. Not a contradiction: a manifest in the clear would defeat the only
+What IS withheld is the CODE (only a verifier ships) and, since J14, the NAV
+MANIFEST. Not a contradiction: a manifest in the clear would defeat the only
 thing that feature does, while a body in the clear defeats nothing ever claimed.
 
 🔴 AND THE SEAL IS WHY A WRONG DESTINATION WAS INVISIBLE FOR TWO DAYS. This file
@@ -153,33 +147,29 @@ now including the nav manifest, goes through `relative_url`.
 
 from __future__ import annotations
 
-import base64
-import hashlib
 import json
 import secrets
 from pathlib import Path
 
-from . import state
+from . import seal, state
 from .util import load_yaml, relative_url
-
-ITERATIONS = 120_000
 
 # Runs during parse, BEFORE the first paint, which is the only moment that can
 # stop the form flashing. Deliberately dumb: it compares a cached verifier
 # against the ones on this page and sets a class. No crypto, no await, no
-# reflow -- if it needed either it would be too slow to be worth having.
+# reflow -- if it needed any of the three it would be too slow to be worth it.
 #
 #   dr-open      a cached verifier MATCHES an entry on this page, which is the
 #                same proof router.js computes, just precomputed. Body shown and
 #                form hidden at paint time.
 #   dr-checking  keys are held but none has a cached verifier (first unlock of
 #                the session, or the first page after a redeploy moved the
-#                salt). The outcome is unknown, so the form is hidden while the
-#                async trial runs and router.js puts it back if every key fails.
+#                salt). The outcome is unknown, so the form is held back while
+#                the async trial runs and router.js puts it back if all fail.
 #
-# Neither class hides the BODY. A reader whose JS dies mid-flight must never end
-# up staring at a blank page, so `hidden` on the curtain stays the only thing
-# withholding content and the <noscript> block below still overrides it.
+# ⚠️ NEITHER CLASS HIDES THE BODY. A reader whose JS dies mid-flight must never
+# end up staring at a blank page, so `hidden` on the curtain stays the only
+# thing withholding content and the <noscript> block still overrides it.
 _BOOT = (
     "<script>(function(){var f=document.querySelector('.dr-router');"
     "if(!f)return;var h=document.documentElement,k=[];"
@@ -193,59 +183,8 @@ _BOOT = (
 )
 
 
-def _b64(raw: bytes) -> str:
-    return base64.b64encode(raw).decode("ascii")
-
-
 def _routes() -> dict:
     return load_yaml(Path(state.INSTANCE.get("dir", ".")) / "routes.yml")
-
-
-def _derive(key: str, salt: bytes) -> bytes:
-    return hashlib.pbkdf2_hmac(
-        "sha256", key.encode("utf-8"), salt, ITERATIONS, dklen=32
-    )
-
-
-def _verifier_salt() -> bytes:
-    """One salt for every curtain verifier on this build. See state.ROUTER_SALT.
-
-    Minted lazily rather than at import, because a module-level value survives
-    `mkdocs serve`'s in-process rebuilds and would then outlive the build it
-    belongs to -- exactly what state.reset() exists to prevent.
-    """
-    if not state.ROUTER_SALT:
-        state.ROUTER_SALT = secrets.token_bytes(16)
-    return state.ROUTER_SALT
-
-
-def _check(key: str) -> dict:
-    """A verifier for a curtain: prove the code without shipping the code."""
-    salt = _verifier_salt()
-    return {"s": _b64(salt), "h": _b64(_derive(key, salt))}
-
-
-def _wrap(key: str, destination: str) -> dict | None:
-    """Seal a redirect destination, or a nav manifest, under its key.
-
-    🚫 Random salt AND nonce, per call, never the shared verifier salt. This is
-    encryption, not verification.
-    """
-    try:
-        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    except ImportError:
-        state.note(
-            "notes",
-            "router: the `cryptography` package is missing, so redirect "
-            "destinations cannot be sealed. Add it to requirements.txt.",
-        )
-        return None
-    salt = secrets.token_bytes(16)
-    nonce = secrets.token_bytes(12)
-    sealed = AESGCM(_derive(key, salt)).encrypt(
-        nonce, destination.encode("utf-8"), None
-    )
-    return {"s": _b64(salt), "n": _b64(nonce), "w": _b64(sealed)}
 
 
 def _as_list(value) -> list[str]:
@@ -323,7 +262,7 @@ def _seal_nav(owner_src: str, codes: list[str], page) -> tuple[str, str]:
         items.append(row)
 
     manifest = json.dumps(items, separators=(",", ":"))
-    wraps = [w for w in (_wrap(code, manifest) for code in codes) if w]
+    wraps = [w for w in (seal.wrap(code, manifest) for code in codes) if w]
     if not wraps:
         # The seal failed, so the subtree stays out of the sidebar and no code
         # brings it back. Fail-safe in the right direction and useless to a
@@ -340,7 +279,7 @@ def _seal_nav(owner_src: str, codes: list[str], page) -> tuple[str, str]:
     # code the wraps are otherwise in frontmatter order.
     secrets.SystemRandom().shuffle(wraps)
     return (
-        _b64(json.dumps(wraps, separators=(",", ":")).encode("utf-8")),
+        seal.b64(json.dumps(wraps, separators=(",", ":")).encode("utf-8")),
         relative_url(sealed["anchor"], page.file.url),
     )
 
@@ -354,8 +293,8 @@ def _field(mode: str, payload: list, prompt: str, subtree: str, anchor: str) -> 
         )
     return (
         '<form class="dr-router" data-mode="' + mode + '"'
-        + ' data-iter="' + str(ITERATIONS) + '"'
-        + ' data-routes="' + _b64(json.dumps(payload).encode("utf-8")) + '"'
+        + ' data-iter="' + str(seal.ITERATIONS) + '"'
+        + ' data-routes="' + seal.b64(json.dumps(payload).encode("utf-8")) + '"'
         + extra + ">"
         + '<label class="dr-router__label" for="dr-router-key">'
         + prompt + "</label>"
@@ -397,12 +336,12 @@ def on_page_content(html, page, config, files):
 
     own_id = str(meta.get("id") or "")
 
-    curtain: list[dict] = [_check(code) for code in local]
+    curtain: list[dict] = [seal.check(code) for code in local]
     redirects: list[dict] = []
 
-    # THE PLAINTEXT CURTAIN CODES, kept alongside their hashes because the nav
-    # manifest has to be SEALED under them and a hash cannot be reversed to do
-    # it. Never rendered, never leaves this function.
+    # THE PLAINTEXT CURTAIN CODES, kept alongside their verifiers because the
+    # nav manifest has to be SEALED under them and a verifier cannot be reversed
+    # to do it. Never rendered, never leaves this function.
     curtain_codes: list[str] = list(local)
 
     # WHERE EACH KEY CAME FROM, so a collision can be reported with both
@@ -439,7 +378,7 @@ def on_page_content(html, page, config, files):
             # PORTABLE CURTAIN: no destination means "this page, whichever page
             # is asking". The form that makes a cascade work.
             if target is None or not str(target).strip():
-                curtain.append(_check(key))
+                curtain.append(seal.check(key))
                 curtain_codes.append(key)
                 continue
 
@@ -447,7 +386,7 @@ def on_page_content(html, page, config, files):
 
             # PINNED CURTAIN: names this page explicitly.
             if target == own_id:
-                curtain.append(_check(key))
+                curtain.append(seal.check(key))
                 curtain_codes.append(key)
                 continue
 
@@ -464,7 +403,7 @@ def on_page_content(html, page, config, files):
 
             # Resolved against THIS page, never from a separator count. See the
             # red note in the module docstring, and util.relative_url.
-            wrap = _wrap(key, relative_url(str(hit["url"]), page.file.url))
+            wrap = seal.wrap(key, relative_url(str(hit["url"]), page.file.url))
             if wrap:
                 redirects.append(wrap)
 
@@ -517,7 +456,7 @@ def on_page_content(html, page, config, files):
     #
     # `_BOOT` sits between the form and the body so it can hide the form before
     # the first paint. It has to be INLINE and it has to be HERE: an external
-    # script is fetched too late, and the same code in router.js runs after
+    # script is fetched too late, and the same code inside router.js runs after
     # Material's own scripts at the end of the body, which is after paint.
     #
     # The <noscript> block reveals the body and removes the field. Correct
