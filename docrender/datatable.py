@@ -56,8 +56,8 @@ needs words. `data` is now a reserved admonition type; no genuine `!!! data` cal
 again.
 
 
-EVERY CELL IS PROSE
-===================
+EVERY CELL IS PROSE, AND EVERY COLUMN HAS A KIND
+================================================
 
     Grid height\t[18'-0\"]{.est}\t\tmeasured off the old plot
     Console\t[QL5](@term:yamaha-ql5)\t1\t**do not** repatch
@@ -72,22 +72,12 @@ used to emerge as entity gibberish, and the limits (no block markdown, raw HTML 
 at all, and nothing here can fix that. A separate confidence COLUMN is still the end state
 (J17); in-cell marking ships because that column needs a FileMaker field to feed it.
 
-
-EVERY COLUMN HAS A KIND, AND NOBODY TYPES IT (2026-08-04)
-=========================================================
-
-`sheet.classify_columns` reads the values and returns `num` / `tok` / `prose` per column;
-this module writes that on every `<th>` and `<td>` as `dr-col--<kind>` and has no further
-opinion. `assets/data.css` decides what each kind looks like.
-
-⭐ The point is that a sheet declares its own shape. There is no option, no frontmatter
-key and nothing to learn -- see `classify_columns` for why an authoring surface here would
-have been a second copy of a fact the file already states.
-
-⚠️ THE CONSEQUENCE THAT MATTERS: A PROSE COLUMN WRAPS AND EVERY OTHER KIND DOES NOT. Before
-this, one long note in one cell set the scroll width of the whole table and pushed every
-remaining column off the right edge of a phone -- because `white-space: nowrap` was written
-when a cell was a value and was never revisited when a cell became prose.
+⭐ `sheet.classify_columns` returns `num` / `tok` / `prose` per column, DERIVED from the
+values, and this module writes it on every cell as `dr-col--<kind>`. There is no option and
+no frontmatter key: a sheet declares its own shape. `assets/data.css` decides what each
+kind looks like; the consequence that matters is that **a prose column wraps and nothing
+else does**, because with nowrap everywhere the longest sentence in the sheet set the
+scroll width of the whole table. Reasoning: `classify_columns`, and DL J20.
 
 
 FAILURE POSTURE
@@ -122,13 +112,11 @@ do not count separators either.
 non-table has no row context to stick within -- so the frozen header and first column
 silently did nothing. The class makes `:not([class])` stop matching. Do not remove it.
 
-🐛 A SECTION BAND'S LABEL LIVES IN AN INNER `<span>`, AND THAT IS NOT DECORATION
-(2026-08-04). The band is a `<th colspan="N">`, so its width IS the table's full scroll
-width -- `position: sticky; left: 0` on it has no slack to slide within and does exactly
-nothing. The heading scrolled away with the rest of the row and a reader three columns in
-saw `WARE [2000]` where the sheet said `HARDWARE [2000]`. The span is the element that can
-actually stick. Same shape as the trap above: sticky failing silently because the box it
-sits in cannot honour it.
+🐛 A SECTION BAND'S LABEL LIVES IN AN INNER `<span>` (2026-08-04). The band is a `<th
+colspan="N">`, so its width IS the scroll width and `position: sticky; left: 0` on it has
+no slack to move within -- the heading scrolled away and read as `WARE [2000]` three
+columns in. The span can stick; the cell never could. Same shape as the trap above: sticky
+failing silently because the box it sits in cannot honour it.
 """
 
 from __future__ import annotations
