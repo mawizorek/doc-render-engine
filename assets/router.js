@@ -210,6 +210,12 @@
    * hidden checkbox per level to work its expand/collapse machinery. We are
    * inserting a flat list into an already-rendered tree; borrowing half of
    * that structure would inherit its behaviour and none of its state.
+   *
+   * ⚠️ AND ON MOBILE THAT IS NOT MERELY A PREFERENCE. Material's drawer is a
+   * stack of sliding panels: a nested `<nav class="md-nav">` is positioned
+   * OFF-CANVAS until its toggle is checked. Injecting one into a section whose
+   * children were sealed -- so it is no longer marked `--nested` and has no
+   * toggle -- would put the menu somewhere no reader can reach, on phones only.
    * --------------------------------------------------------------------- */
 
   function navAnchor() {
@@ -237,7 +243,28 @@
       if (!link) console.warn('docrender: nav anchor not found, menu not restored');
       return;
     }
-    if (link.parentNode.querySelector('.dr-nav-revealed')) return;
+
+    /* 🔴 THE LIST HANGS OFF THE <li>, NOT OFF THE LINK'S PARENT. Getting this
+     * wrong is what shipped in #48 and it looked spectacular on a phone.
+     *
+     * With `navigation.indexes` enabled, Material wraps a section's index link
+     * in `<div class="md-nav__link md-nav__container">`, and that container is
+     * `display: flex`. `link.parentNode` IS that container, so appending here
+     * made the revealed menu a third FLEX ITEM beside the title and the
+     * chevron: the section name squeezed into a two-line column, the chevron
+     * pushed out of the row, and every entry marching further right as its
+     * depth padding compounded inside a column a few characters wide.
+     *
+     * ⚠️ IT ALSO INHERITED THE WRONG TYPE, FOR FREE, WHICH IS THE PART WORTH
+     * REMEMBERING. `text-transform`, `letter-spacing` and `font-weight` are
+     * INHERITED properties, and that container matches base.css's top-level
+     * caps rule. So the child pages rendered in bold 700 uppercase -- shouting
+     * louder than the section heading above them. Nothing chose that and no
+     * rule in router.css said it; it fell through the DOM. Hoisting one level
+     * fixes the layout and the typography in the same move, because the <li>
+     * carries neither property. */
+    var host = link.closest('.md-nav__item') || link.parentNode;
+    if (host.querySelector('.dr-nav-revealed')) return;
 
     var list = document.createElement('ul');
     list.className = 'dr-nav-revealed';
@@ -257,7 +284,7 @@
       list.appendChild(row);
     });
 
-    link.parentNode.appendChild(list);
+    host.appendChild(list);
   }
 
   function revealNav(code) {
