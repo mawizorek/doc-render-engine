@@ -41,12 +41,12 @@ not care which event is running. Nothing about them can answer wrong early, so
 they are never gated on a usage check -- the trap above only bites a decision
 that needs the page map.
 
-⚠️ `data.css` AND `data.js` ARE UNCONDITIONAL TOO, FOR A DIFFERENT REASON WORTH
-STATING (2026-08-04). They are feature assets and they look gateable, but the
-question "does this site embed a table" cannot be answered cheaply or safely at
-on_config: a `!!! data` block lives in the BODY of a page, not in the first 2000
-bytes a frontmatter scan reads, so the router's trick does not transfer. The
-choice is between a whole-body scan of every page and ~22KB that matches nothing
+⚠️ THE THREE DATA-TABLE ASSETS ARE UNCONDITIONAL TOO, FOR A DIFFERENT REASON
+WORTH STATING (2026-08-04). They are feature assets and they look gateable, but
+the question "does this site embed a table" cannot be answered cheaply or safely
+at on_config: a `!!! data` block lives in the BODY of a page, not in the first
+2000 bytes a frontmatter scan reads, so the router's trick does not transfer. The
+choice is between a whole-body scan of every page and ~24KB that matches nothing
 and binds no listener when no table exists. **A check that can answer wrong is
 more expensive than the bytes** -- that is the whole lesson of the section above.
 
@@ -73,6 +73,13 @@ from . import markers, state, theme
 from .util import load_yaml
 
 _ROUTER_KEYS = ("router:", "router_code:")
+
+#: Load order is deliberate and is NOT alphabetical. `data.css` is base.css --
+#: the table layer was split out of it when that file passed the warn line -- so
+#: it loads immediately after. `data-list.css` overrides table rules inside a
+#: container query, so it loads after the rules it overrides. `data.js` drives
+#: both. Reorder these and list mode loses to the table it is meant to replace.
+_DATA_ASSETS = ("base.css", "data.css", "data-list.css", "data.js")
 
 
 def _uses_router(config) -> bool:
@@ -127,15 +134,10 @@ def _plan(config) -> list[tuple[str, bytes]]:
     """Every asset this build publishes, in load order, with its bytes.
 
     Built by both events -- `on_config` needs the URLs, `on_files` needs the
-    content -- and they must never disagree. Order is deliberate: base, then the
-    data-table pair, then the generated token sheet, then the generated
-    marker-class sheet, then any feature sheet, then the instance sheet LAST so a
-    site always has the final word on its own look.
-
-    `data.css` sits immediately after `base.css` because it IS base.css -- the
-    table layer was split out of it on 2026-08-04 when that file passed the warn
-    line, and nothing was left behind as an override. It has to load after base
-    for the same reason it used to be at the bottom of it.
+    content -- and they must never disagree. Order: base and the data-table
+    layers (see `_DATA_ASSETS`), then the generated token sheet, then the
+    generated marker-class sheet, then any feature sheet, then the instance sheet
+    LAST so a site always has the final word on its own look.
 
     `marks.css` sits after `tokens.css` because it CONSUMES those tokens, and it
     is separate from them because they answer different questions: tokens.css
@@ -143,7 +145,7 @@ def _plan(config) -> list[tuple[str, bytes]]:
     """
     plan: list[tuple[str, bytes]] = []
 
-    for name in ("base.css", "data.css", "data.js"):
+    for name in _DATA_ASSETS:
         raw = _read(state.ENGINE_ROOT / "assets" / name)
         if raw is not None:
             plan.append((name, raw))
