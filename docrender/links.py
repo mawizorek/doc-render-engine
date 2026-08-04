@@ -4,6 +4,7 @@
     [the notes](@main-stage#venue-notes)   a heading on it
     [rep plot](@oph:rep-plot)              a page in a SIBLING site
     [the schedule](@data:circuit_schedule) a data table on THIS page
+    [ETC](@term:etc)                       a defined term, styled as terminology
 
 Moving the file, renaming its folder, or retitling the page cannot break an inbound
 link, because none of those things is what the link points at. Set `id:` once and never
@@ -15,8 +16,8 @@ RESOLUTION ORDER (rewritten 2026-08-04, DL J8)
 
 0. A TOKEN CARRYING A FILE EXTENSION is refused, with the reason said out loud.
 1. RESERVED PREFIX. `@<prefix>:<rest>` claimed by a handler in docrender/prefixes.py.
-   `data` is claimed by datatable.py; `term` is decided and coming. Read that module
-   for why the registry is DERIVED from its handlers rather than typed as a list here.
+   `data` is claimed by datatable.py, `term` by markers.py. Read that module for why
+   the registry is DERIVED from its handlers rather than typed as a list here.
 2. PEER SITE. `@<slug>:<id>` against the peer's published index.
 3. PAGE ID. `@<id>` in this site.
 
@@ -30,6 +31,16 @@ And the extension refusal matters because the token charset accepts dots, so
 `[x](@circuits-and-dimmers.tsv)` matched this regex and resolved as a page id -- the
 wrong error, on a page one edit from right. Data files are reached by SLOT, never by
 filename; that is the entire point of a slot.
+
+⚠️ A RESERVED PREFIX TAKES NO `#anchor`, AND THAT WAS SILENT UNTIL 2026-08-04. A
+handler's signature is `(rest, page, label)` -- no anchor -- so `@data:x#totals` or
+`@term:etc#history` parsed fine, resolved fine, and lost the anchor on the way out.
+The reader got a correct-looking link to the top of the wrong place. It is now
+REPORTED and still dropped, which is the honest minimum: passing it through would
+mean changing the signature every handler already implements, and datatable.py is
+over the read ceiling tonight, so that is a deliberate later change and not a thing
+to sneak into a feature branch. Same class as every other bug in this file's history
+-- resolution that succeeds while quietly discarding half the request.
 
 
 CROSS-SITE, with the honest limit up front. Every site in the family publishes
@@ -171,6 +182,18 @@ def on_page_markdown(markdown, page, config, files):
 
             handler = prefixes.resolver(prefix)
             if handler:
+                if anchor:
+                    # A handler takes no anchor, so one written here is DROPPED. Said
+                    # out loud rather than swallowed: the link still works and still
+                    # goes to the wrong part of the page, which is the shape of every
+                    # bug this file has had.
+                    state.note(
+                        "dead_links",
+                        src + ": '@" + token + anchor + "' carries a heading anchor, "
+                        + "and the @" + prefix + ": namespace resolves whole targets "
+                        + "-- it takes no anchor, so '" + anchor + "' was ignored. "
+                        + "The link itself is fine; it lands at the top.",
+                    )
                 resolved = handler(rest, page, label)
                 if resolved is None:
                     state.note(
