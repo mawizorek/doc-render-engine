@@ -41,6 +41,15 @@ not care which event is running. Nothing about them can answer wrong early, so
 they are never gated on a usage check -- the trap above only bites a decision
 that needs the page map.
 
+⚠️ `data.css` IS UNCONDITIONAL TOO, AND FOR A DIFFERENT REASON WORTH STATING
+(2026-08-04). It is a feature sheet and it looks gateable, but the question
+"does this site embed a table" cannot be answered cheaply or safely at
+on_config: a `!!! data` block lives in the BODY of a page, not in the first 2000
+bytes a frontmatter scan reads, so the router's trick does not transfer. The
+choice is between a whole-body scan of every page and ~6KB of rules that match
+nothing when no table exists. A check that can answer wrong is more expensive
+than the bytes -- that is the whole lesson of the section above.
+
 =============================================================================
 ⚠️ EVERY ASSET URL CARRIES A CONTENT FINGERPRINT
 =============================================================================
@@ -119,9 +128,14 @@ def _plan(config) -> list[tuple[str, bytes]]:
 
     Built by both events -- `on_config` needs the URLs, `on_files` needs the
     content -- and they must never disagree. Order is deliberate: base, then the
-    generated token sheet, then the generated marker-class sheet, then any
-    feature sheet, then the instance sheet LAST so a site always has the final
-    word on its own look.
+    data-table sheet, then the generated token sheet, then the generated
+    marker-class sheet, then any feature sheet, then the instance sheet LAST so a
+    site always has the final word on its own look.
+
+    `data.css` sits immediately after `base.css` because it is base.css -- the
+    table layer was split out of it on 2026-08-04 when that file passed the warn
+    line, and nothing was left behind as an override. It has to load after base
+    for the same reason it used to be at the bottom of it.
 
     `marks.css` sits after `tokens.css` because it CONSUMES those tokens, and it
     is separate from them because they answer different questions: tokens.css
@@ -132,6 +146,10 @@ def _plan(config) -> list[tuple[str, bytes]]:
     base = _read(state.ENGINE_ROOT / "assets" / "base.css")
     if base is not None:
         plan.append(("base.css", base))
+
+    data = _read(state.ENGINE_ROOT / "assets" / "data.css")
+    if data is not None:
+        plan.append(("data.css", data))
 
     plan.append(("tokens.css", theme.build_css().encode("utf-8")))
     plan.append(("marks.css", markers.build_css().encode("utf-8")))
