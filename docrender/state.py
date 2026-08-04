@@ -54,9 +54,17 @@ def reset() -> None:
         # a duplicate KEY is usually the CAUSE of the complaints under it, so
         # it has to be read first. A reader who fixes a symptom before seeing
         # its cause fixes the wrong file.
+        #
+        # ⚠️ DECLARING A BUCKET HERE IS NOT ENOUGH TO MAKE IT PRINT. The report
+        # loop iterates sizecheck._LABELS, so a bucket with no label is
+        # collected and then silently dropped -- a check that runs, finds
+        # things, and tells nobody. Add both, always.
         "duplicate_key": [],
         "missing_status": [],
         "missing_required": [],
+        # Directly under missing_required, cause before symptom again: that
+        # check says `summary` is absent, this one says where the text is.
+        "body_lede": [],
         "unknown_type": [],
         "duplicate_id": [],
         "dead_links": [],
