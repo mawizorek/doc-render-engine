@@ -12,7 +12,9 @@
  * WARNING: THE TABLE RULES LIVE HERE AND NOWHERE ELSE. Nothing was left behind in
  * base.css as a layer to override. Two homes for one rule is the defect this
  * engine spends its docstrings arguing against, and a stylesheet is the easiest
- * place in the world to build one by accident.
+ * place in the world to build one by accident. The one legitimate neighbour is
+ * assets/data-list.css, which is a FEATURE layer rather than a second copy: it
+ * touches only .dr-data--list and only inside a container query.
  *
  * Consumes --dr-* tokens only. A site retunes every colour, font, measure and
  * currency symbol from its own theme.css and never edits this file.
@@ -39,11 +41,11 @@
  * silently did nothing. Three defences: the table carries a class, display:table
  * is forced anyway, and Material's JS scroll wrapper is neutralised if it shows.
  *
- * CONTAINER, NOT VIEWPORT (2026-08-04). container-type makes every rule below
- * answer to the width of THIS BOX rather than the window, so the table behaves
+ * CONTAINER, NOT VIEWPORT (2026-08-04). container-type makes the rules that need
+ * it answer to the width of THIS BOX rather than the window, so the table behaves
  * inside a narrow column or a split view and not only on a phone. A table is a
  * component; it should answer to the space it is given, not the size of the
- * glass.
+ * glass. data-list.css queries this container too.
  * ------------------------------------------------------------------------ */
 .dr-data {
   container-type: inline-size;
@@ -132,7 +134,7 @@
 
 /* The toggle cell is in the markup of every list table and is furniture until
  * there is no room. Hidden rather than absent, so the row does not change shape
- * between the two layouts. */
+ * between the two layouts. data-list.css reveals it. */
 .dr-data__more { display: none; }
 
 /* ---------------------------------------------------------------------------
@@ -296,175 +298,19 @@
   color: var(--dr-ink-muted);
 }
 
-/* ===========================================================================
- * LIST MODE -- the table stops being a table
+/* ---------------------------------------------------------------------------
+ * A NARROW BOX THAT IS NOT IN LIST MODE
  *
- *     THTR 123
- *     Intro to Lighting for the Stage             v
- *     ------------------------------------------------
- *     CREDITS    4
- *     LAB        section
- *     ENGL       124
+ * Most sheets declare no `.key` and therefore never restructure. They still get
+ * a narrower measure when the box is tight, so the prose column stops setting
+ * the scroll width for everything to its right.
  *
- * Applies ONLY to .dr-data--list, which table.py sets only when a column declared
- * .key in the sheet header. A sheet that declares nothing keeps the sideways
- * scroll it has today, so shipping this cannot re-shape a page nobody touched.
- *
- * WARNING: THE DETAILS HIDE ONLY UNDER html.dr-data-js, AND THAT IS LOAD-BEARING
- * TWICE OVER. A reader with no JavaScript gets the whole table rather than a list
- * that cannot be opened -- fail OPEN, because a list nobody can expand looks like
- * data loss and reports nothing. And the class is set by an inline script during
- * parse, not by data.js, because setting it from a deferred sheet would let the
- * detail rows paint and then vanish on every load. That flash is PR #49, the same
- * day, one feature over.
- * ======================================================================== */
+ * LIST MODE ITSELF LIVES IN assets/data-list.css. It moved there when this file
+ * passed the warn line and an attempted trim recovered 22 bytes -- the clearest
+ * possible evidence that prose was not the problem and the file was doing two
+ * jobs. Do not re-add a .dr-data--list rule here.
+ * ------------------------------------------------------------------------ */
 @container (max-width: 45em) {
-  .dr-data--list .dr-data__table,
-  .dr-data--list .dr-data__table tbody,
-  .dr-data--list .dr-data__table tr,
-  .dr-data--list .dr-data__table td {
-    display: block;
-    width: auto;
-    max-width: none;
-  }
-  .dr-data--list .dr-data__table { min-width: 0; }
-  .dr-data--list .dr-data__table thead { display: none; }
-
-  .dr-data--list .dr-data__table tr {
-    position: relative;
-    border-bottom: 1px solid var(--dr-rule);
-  }
-  .dr-data--list .dr-data__table tr:last-child { border-bottom: 0; }
-
-  .md-typeset .dr-data--list .dr-data__table td,
-  .dr-data--list .dr-data__table td {
-    border: 0;
-    padding: 2px 46px 2px 14px;
-    white-space: normal;
-    max-width: none;
-    min-width: 0;
-  }
-
-  /* THE SUMMARY. The id reads as an eyebrow and the other key columns as the line
-   * you actually scan. That hierarchy is what a list needs and a table does not:
-   * in a grid the header supplies it, and here the header is gone. */
-  .md-typeset .dr-data--list .dr-data__table td.dr-key.dr-col--id,
-  .dr-data--list .dr-data__table td.dr-key.dr-col--id {
-    position: static;
-    box-shadow: none;
-    background: transparent;
-    padding-top: 11px;
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    color: var(--dr-accent);
-  }
-  .md-typeset .dr-data--list .dr-data__table td.dr-key:not(.dr-col--id),
-  .dr-data--list .dr-data__table td.dr-key:not(.dr-col--id) {
-    padding-bottom: 11px;
-    font-family: var(--dr-data-prose-font, var(--dr-font-body));
-    font-size: 0.95rem;
-    line-height: 1.35;
-    text-align: left;
-    color: var(--dr-ink);
-    text-wrap: pretty;
-  }
-
-  /* THE DETAILS. Label and value, because the header row is gone and the value
-   * has to carry its own field name -- which is what table.py writes data-label
-   * for. */
-  .dr-data-js .dr-data--list .dr-data__table td.dr-detail { display: none; }
-
-  .md-typeset .dr-data--list .dr-data__table tr[data-open="true"] td.dr-detail,
-  .dr-data--list .dr-data__table tr[data-open="true"] td.dr-detail {
-    display: grid;
-    grid-template-columns: 6.6rem 1fr;
-    gap: 0 12px;
-    align-items: baseline;
-    padding-block: 5px;
-    font-size: 0.84rem;
-    text-align: left;
-    max-width: none;
-  }
-  .dr-data--list .dr-data__table tr[data-open="true"] td.dr-detail:last-of-type {
-    padding-bottom: 14px;
-  }
-  .dr-data--list .dr-data__table td.dr-detail::before {
-    content: attr(data-label);
-    padding-top: 0.15em;
-    font-family: var(--dr-font-mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
-    color: var(--dr-ink-muted);
-  }
-  /* The currency symbol rides on the VALUE. Without this the money ::before wins
-   * and the field name is replaced by a dollar sign. */
-  .dr-data--list .dr-data__table td.dr-detail.dr-col--money::before {
-    content: attr(data-label);
-    margin-right: 0;
-  }
-
-  .dr-data--list .dr-data__table tr[data-open="true"] {
-    background: var(--dr-surface-raised);
-  }
-  .dr-data--list .dr-data__table tbody tr:hover td { background: transparent; }
-
-  /* THE CONTROL. 44px, the minimum real target, on the summary line. The whole
-   * row is clickable too (data.js), because a chevron in the corner is a poor
-   * target when the thing being tapped is a course -- but a control that exists
-   * only inside a click handler is a control a keyboard user does not have, so
-   * this is a real button and it stays. */
-  .dr-data-js .dr-data--list .dr-data__more {
-    display: block;
-    position: absolute;
-    top: 0;
-    right: 0;
-    padding: 0;
-  }
-  .dr-data__toggle {
-    appearance: none;
-    background: transparent;
-    border: 0;
-    width: 44px;
-    height: 44px;
-    cursor: pointer;
-    position: relative;
-  }
-  .dr-data__toggle::after {
-    content: "";
-    position: absolute;
-    top: 17px;
-    left: 17px;
-    width: 9px;
-    height: 9px;
-    border-right: 1.5px solid var(--dr-ink-muted);
-    border-bottom: 1.5px solid var(--dr-ink-muted);
-    transform: rotate(45deg);
-    transform-origin: 70% 70%;
-    transition: transform .26s cubic-bezier(0.22, 1, 0.36, 1),
-                border-color .26s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .dr-data__table tr[data-open="true"] .dr-data__toggle::after {
-    transform: rotate(-135deg);
-    border-color: var(--dr-accent);
-  }
-  .dr-data__toggle:focus-visible {
-    outline: 2px solid var(--dr-accent);
-    outline-offset: -3px;
-  }
-
-  /* A section band still spans the sheet, but there are no columns left to span,
-   * so it becomes what it always was: a heading. */
-  .dr-data--list .dr-data__table .dr-data__section th { padding: 0; }
-  .dr-data--list .dr-data__section-label { position: static; display: block; }
-
-  .dr-data--list .dr-data__source {
-    padding: 12px 14px;
-    border-top: 1px solid var(--dr-rule);
-  }
-
-  /* A narrow box that is NOT in list mode still gets a narrower measure. Nothing
-   * restructures; the prose column simply stops setting the scroll width. */
   .md-typeset .dr-data__table td.dr-col--prose,
   .dr-data__table td.dr-col--prose {
     max-width: 22ch;
