@@ -1,116 +1,97 @@
-"""Stage 03b -- inline markers, in CLASSES.
+"""Stage 03b -- inline markers, in CLASSES, in two forms.
 
-    The second altered curtain is not named: [To be confirmed]{.tbc}
+    [To be confirmed]{.tbc}                 accessory: a span, no underline
     Grid height [18'-0"]{.est} above deck
     A [source 4]{.term} is an ERS fixture
-    Manufactured by [ETC](@term:electronic-theatre-controls)
+    Made by [ETC](@term:etc)                link: an anchor, underlined
 
-Decision history: doc-render-engine (repo) -- Decision Log in ClickUp, Q6/J7.
-The argument lives THERE; this file states the contract.
+Decision history: doc-render-engine (repo) Decision Log in ClickUp, Q6/J7 for the
+class axis and J8 for the `@term:` prefix; maw-themes J11 for the colour token.
+The arguments live THERE. This file states the contract and the traps.
 
 
-TWO AXES OF MEANING, NOT ONE
-============================
+TWO AXES OF MEANING
+===================
 
-Every marker used to say the same KIND of thing -- how much to trust the value
-beside it -- and this docstring used to defend that narrowness as the feature.
-It was half right. The narrowness protected the BUILD REPORT: you can ask "what
-is unconfirmed across this whole site" only while every row answers the same
-question.
+Every marker used to be a confidence claim, and that narrowness protected the
+BUILD REPORT: "what is unconfirmed across this whole site" is answerable only
+while every row answers the same question. What was missing was a way to say
+which kind a row IS -- so terminology was nearly built as a second, parallel
+family, because the table had no column for it.
 
-What was missing was a way to say which kind a row IS. So terminology was very
-nearly built as a SECOND, parallel family -- two mechanisms for one concept --
-because the table had no column for it. Michael's ruling settled it: *"it. is. a.
-marker. put it in markers. you've just found different 'classes' of markers...
-so they should cascade and be familied."*
+`class` is now a column, families live in theme/marker-classes.tsv, and the
+report groups by class. Confidence stays answerable however many terms a site
+marks.
 
-So `class` is a column, families live in theme/marker-classes.tsv, and the report
-groups by class. The confidence question survives untouched no matter how many
-glossary terms a site marks.
+A class carries the default SHAPE and COLOUR; a row overrides either. `est` and
+`was` keep soft and struck as OVERRIDES rather than as the only mechanism, and a
+new terminology row is a slug and a tooltip.
+
+SHAPE IS STILL A CLOSED SET OF FOUR (box, plain, strike, soft): four are
+distinguishable at a glance, nine are not. Terminology needed colour and weight
+without an underline, which is `plain`, which already existed -- the class axis
+cost the shape axis nothing.
 
 
 TWO FORMS, AND THE UNDERLINE IS THE ONLY DIFFERENCE A READER SEES
 ================================================================
 
-    [source 4]{.term}                     ACCESSORY. A span. This word is jargon.
-    [ETC](@term:electronic-theatre-
-           controls)                       LINK. An anchor. Jargon, and here is
-                                           the page that defines it.
+Same class, same colour, same weight; only the link is underlined. A reader
+learns that in one page without being told, because underline already means
+"this goes somewhere" everywhere else.
 
-Same class, same colour, same weight. Only the link is underlined, and that is
-deliberate: a reader learns the rule in one page without being told it, because
-underline already means "this goes somewhere" everywhere else on the web.
-
-So this module owns BOTH forms and claims the `@term:` prefix itself, rather than
-that living in a module of its own. The reason is not tidiness -- it is that the
-two forms must never disagree about which class they are. One constant,
-`_TERM_CLASS`, is read by the span renderer and the link resolver, so they cannot
-drift apart. A second module would have been a second place to name the family.
+This module owns both forms and claims `@term:` itself rather than delegating to
+a module of its own -- not for tidiness, but so the two forms cannot disagree
+about which family they are. `_TERM_CLASS` is read by the span renderer AND the
+link resolver. A second module would be a second place to name the family.
 
 ⚠️ A DEAD `@term:` NEVER DEGRADES INTO AN ACCESSORY. The resolver returns None,
 links.py reports it and renders the broken-reference span. Falling back to the
-underlineless accessory form would be a silent second legal path for a reference
-that did not resolve -- the exact fallback shape struck in J2 -- and it would make
-"which terms still have no page" unanswerable, which is the whole reason both
-forms are counted.
+underlineless form would be a silent second legal path for a reference that did
+not resolve (the fallback shape struck in J2) and would make "which terms still
+have no page" unanswerable -- which is why both forms are counted.
 
 ⚠️ `@term:` RESOLVES AGAINST ANY PAGE ID, deliberately loosely. There is no
-`term` page TYPE declared yet, so there is nothing to check against; inventing one
-here would be deciding a schema question in a rendering hook. Consequence, stated
-rather than hidden: `@term:main-stage` will happily point at a venue page. Harmless
-today, and the place to tighten it is objects/, not here.
-
-
-THE CASCADE
-===========
-
-A class carries the default SHAPE and COLOUR; a row overrides either. `est` and
-`was` still draw soft and struck -- now as OVERRIDES rather than as the only
-mechanism -- and a new terminology row is a slug and a tooltip, nothing else.
-
-SHAPE IS STILL A CLOSED SET OF FOUR (box, plain, strike, soft), because a reader
-can tell four apart at a glance and cannot tell nine apart. Terminology needed
-colour and weight WITHOUT an underline, which is `plain`, which already existed:
-the class axis cost the shape axis nothing.
+`term` page TYPE, so there is nothing to check against, and inventing one here
+would decide a schema question inside a rendering hook. Consequence, stated
+rather than hidden: `@term:main-stage` will point at a venue page. The place to
+tighten that is objects/, not here.
 
 
 WHY THIS IS A HOOK AND NOT A MARKDOWN EXTENSION
 ===============================================
 
-`attr_list` attaches attributes to elements that ALREADY EXIST -- a link, an
-image, a heading. `[text]{.tbc}` is a bare bracketed span, which is Pandoc syntax
-and is not an element Python-Markdown produces, so the attribute has nothing to
-attach to and the whole thing renders as literal text with the braces showing.
-That is exactly what shipped on the live curtain inventory.
+`attr_list` decorates elements that ALREADY EXIST. `[text]{.tbc}` is a bare
+bracketed span -- Pandoc syntax, not an element Python-Markdown produces -- so
+the attribute has nothing to attach to and the braces render as literal text.
+That is what shipped on the live curtain inventory.
 
-⭐ The LINK form is the opposite case and needs no hook of its own: an anchor is
-an element `attr_list` can decorate, so the resolver just hands links.py a
-perfectly ordinary markdown link wearing two classes.
+⭐ The LINK form is the opposite case and needs no hook: an anchor IS an element
+attr_list can decorate, so the resolver hands links.py an ordinary markdown link
+wearing two classes.
 
 
 COLOUR IS RESOLVED ONCE PER BUILD, AND THAT IS A FIX
 ====================================================
 
-`_colour()` used to run inside the per-MATCH replacement, so an unknown colour
-token reported once per OCCURRENCE. Six confidence markers on a page hid that
-completely. A terminology class used three hundred times on a site would have
-buried the report under three hundred copies of one complaint -- and the report is
-the only reason any of this is better than a highlighter.
+`_colour()` used to run inside the per-MATCH replacement, so an unknown token
+reported once per OCCURRENCE. Six markers on a page hid that completely; a
+terminology class used three hundred times would have buried the report under
+three hundred copies of one complaint -- and the report is the only reason this
+beats a highlighter.
 
-The table is therefore merged and resolved in `on_files`, once, before any page
-renders. Deliberately in an event and not at import: `mkdocs serve` rebuilds
-in-process, so a table cached at import would outlive an edit to either TSV.
+The table is merged and resolved in `on_files`, once. In an event and not at
+import, because `mkdocs serve` rebuilds in-process and a table cached at import
+would outlive an edit to either TSV.
 
-A class's colour is emitted as a REAL CSS RULE by `build_css()`. The inline custom
-property survives for a ROW override only -- there are a handful of classes, so a
-rule per class is cheap where a rule per marker was not, which is what the inline
-property existed to avoid.
+Class colour is emitted as a REAL CSS RULE by `build_css()`. The inline custom
+property survives for a ROW override only: a rule per class is cheap, a rule per
+marker was not, which is what the inline property existed to avoid.
 
-⚠️ THE COLOUR THIS SHIPS WITH IS NOT IN theme/colors.tsv YET, ON PURPOSE.
-`terminology` asks for `accent-soft`: real in the canonical maw-themes palette,
-absent from the nine-token stand-in this engine still reads. It reports as unknown
-ONCE and falls back to the body colour until the palette refit lands. Decided
-sequencing (maw-themes DL J11), not a defect.
+⚠️ THE SHIPPED COLOUR IS NOT IN theme/colors.tsv YET, ON PURPOSE. `terminology`
+asks for `accent-soft` -- real in the canonical maw-themes palette, absent from
+the nine-token stand-in this engine still reads. Reports as unknown ONCE and
+falls back to the body colour until the palette refit lands (J11).
 
 Defined in theme/markers.tsv + theme/marker-classes.tsv. Adding one is a row.
 """
@@ -135,14 +116,14 @@ _TOKEN = re.compile(r"^[a-z][a-z0-9-]*$")
 _SHAPES = {"box", "plain", "strike", "soft"}
 _FALLBACK_SHAPE = "box"
 
-#: The family the `@term:` prefix belongs to. Read by BOTH the span renderer and
-#: the link resolver so the two forms cannot drift apart -- see the docstring.
-#: Must match a `class` row in theme/marker-classes.tsv.
+#: The family `@term:` belongs to. Read by BOTH the span renderer and the link
+#: resolver so the forms cannot drift. Must match a `class` row in
+#: theme/marker-classes.tsv.
 _TERM_CLASS = "terminology"
 
-#: The class carried by the LINK form on top of its family class. Exists so an
-#: anchor can take the family colour without also taking `.dr-mark`, whose
-#: `cursor: help` and `white-space: nowrap` are both wrong on something clickable.
+#: Carried by the LINK form on top of its family class, so an anchor can take the
+#: family colour without also taking `.dr-mark` -- whose `cursor: help` and
+#: `white-space: nowrap` are both wrong on something clickable.
 _TERM_LINK_CLASS = "dr-term"
 
 #: Marker name -> resolved row. Built by on_files, read by on_page_markdown.
@@ -201,9 +182,9 @@ def _build_table() -> dict[str, dict]:
             + "families do not.",
         )
     elif _TERM_CLASS not in classes:
-        # The @term: prefix is claimed unconditionally at import, so the link form
-        # keeps resolving even here -- it would just paint from a class rule that
-        # was never generated, i.e. body colour with no explanation anywhere.
+        # @term: is claimed unconditionally at import, so the link form keeps
+        # resolving even here -- it would just paint from a class rule that was
+        # never generated, i.e. body colour with no explanation anywhere.
         state.note(
             "notes",
             "theme/marker-classes.tsv declares no '" + _TERM_CLASS + "' class, but "
@@ -290,21 +271,19 @@ def build_css() -> str:
         )
 
     # THE LINK FORM. An anchor carrying its family class inherits the custom
-    # property set above, and this rule is what consumes it -- deliberately
-    # WITHOUT `.dr-mark`, whose cursor:help and white-space:nowrap are wrong on
-    # something clickable.
+    # property set above; this rule consumes it, deliberately WITHOUT `.dr-mark`.
     #
     # ⚠️ THE UNDERLINE IS EXPLICIT, AND THAT IS NOT REDUNDANCY. The whole design
-    # rests on underline being the one visible difference between the link form
-    # and the accessory form, and Material's own link styling is a framework
-    # default that has not been verified to persist an underline in this build.
-    # An affordance the design depends on does not get left to somebody else's
-    # default -- if Material also underlines it, this changes nothing.
+    # rests on underline being the one visible difference between the two forms,
+    # and Material's link styling is a framework default nobody has verified
+    # persists an underline in this build. An affordance the design depends on is
+    # not left to somebody else's default. If Material underlines too, this is a
+    # no-op.
     #
-    # It is emitted HERE rather than in base.css for a boring reason worth stating:
-    # base.css is 16.4KB, close enough to the read ceiling that a wholesale rewrite
-    # from a single read is the clobber that ate util.py on 2026-08-03. This file
-    # already generates the colour half, so the link half costs nothing here.
+    # Emitted HERE rather than in base.css for a boring reason worth stating:
+    # base.css is ~16.4KB, close enough to the read ceiling that a wholesale
+    # rewrite from one read is the clobber that ate util.py on 2026-08-03. This
+    # file already generates the colour half.
     lines.append(
         ".md-typeset a." + _TERM_LINK_CLASS + " { color: var(--dr-mark-color);"
         + " text-decoration: underline; text-decoration-thickness: 1px;"
@@ -317,15 +296,15 @@ def build_css() -> str:
 def _resolve_term(slug: str, page, label: str):
     """Resolve `@term:<page-id>` to an underlined, terminology-coloured link.
 
-    Registered with docrender/prefixes.py, and called from links.py while it
+    Registered with docrender/prefixes.py and called from links.py while it
     rewrites inline references. Returns None to decline, which is what makes a
-    term with no page render as the broken-reference span rather than as an
-    accessory -- see the docstring.
+    term with no page render as the broken-reference span rather than an
+    accessory.
 
-    Resolves against `state.PAGES`, which is populated in links.on_files and
-    therefore holds only pages that were actually BUILT. A term whose page exists
-    but is `status: hidden` declines here, and that is correct: a link to a page
-    nobody can open is a broken link, not a working one.
+    Resolves against `state.PAGES`, populated in links.on_files, which therefore
+    holds only pages that were actually BUILT. A term whose page exists but is
+    hidden declines here, and that is correct: a link to a page nobody can open is
+    a broken link, not a working one.
     """
     hit = state.PAGES.get(slug)
     if not hit:
@@ -335,8 +314,8 @@ def _resolve_term(slug: str, page, label: str):
     # carries the whole story of why that distinction cost a live 404.
     target = relative_url(str(hit.get("url", "")), page.file.url)
 
-    # Counted like the span form, and in the same shape, so the report answers
-    # "every terminology reference on this site" for both forms at once.
+    # Counted like the span form, in the same shape, so the report answers "every
+    # terminology reference on this site" for both forms at once.
     state.note(
         "markers",
         _TERM_CLASS + " \u00b7 term \u00b7 " + page.file.src_uri + " \u00b7 "
@@ -350,7 +329,7 @@ def _resolve_term(slug: str, page, label: str):
 
 
 # Claimed at IMPORT time, which is the contract prefixes.py documents: claims
-# happen when hook modules are imported, lookups happen much later inside events.
+# happen when hook modules are imported, lookups happen later inside events.
 # Registering is how the handler works, so it cannot be forgotten.
 prefixes.claim("term", __name__, _resolve_term)
 
