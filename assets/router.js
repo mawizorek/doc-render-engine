@@ -326,13 +326,21 @@
 
   /* WARM. The boot script already proved a cached verifier matches, so the body
    * is showing and the form is hidden -- both from CSS, before paint. Nothing
-   * here re-derives anything; it finishes the job by decrypting the nav and
-   * taking the dead form out of the document. */
+   * here re-derives anything; it finishes the job by dropping the `hidden`
+   * attribute (CSS was only overriding its DISPLAY, and assistive technology
+   * reads the attribute), decrypting the nav, and taking the dead form out.
+   *
+   * ⚠️ `dr-open` IS DELIBERATELY LEFT ON <html>. Removing it looks like tidying
+   * up and would reintroduce the exact flash this whole change removes: the
+   * curtain's fade-in keys off `.dr-curtain:not([hidden])`, which starts
+   * matching the moment the line below runs, so a body that was already on
+   * screen would animate in a second time. router.css suppresses that with a
+   * `.dr-open` rule, and a class removed in the same tick cannot be relied on
+   * to still be there when style is recalculated. */
   if (root.classList.contains('dr-open')) {
     curtain.hidden = false;
     revealNav(warmCode());
     form.remove();
-    root.classList.remove('dr-open');
     return;
   }
 
