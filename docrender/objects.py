@@ -73,7 +73,8 @@ VALID_STATUS = {"hidden", "unlisted", "gated", "public"}
 #: bought silently reverts. Nothing on screen says so. So every retired key
 #: stays listed here and gets named in the build report until nobody uses it.
 _LEGACY_KEYS = {
-    "listed": "indexed",   # renamed 2026-08-03, hours after it shipped
+    "listed": "indexed",              # renamed 2026-08-03, hours after it shipped
+    "also_known_as": "keywords",      # renamed 2026-08-04, Michael
 }
 
 #: An `@id` reference in the body. Same shape links.py resolves, minus the
@@ -380,7 +381,7 @@ def on_page_markdown(markdown, page, config, files):
 
     Two fields are drawn here that no type declares, because they belong to
     every page: `summary:` (the lede, into the slot after the H1) and
-    `also_known_as:` (a visible line at the foot). See docrender/lede.py.
+    `keywords:` (a visible line at the foot). See docrender/lede.py.
     """
     meta = state.BY_SRC.get(page.file.src_uri, {})
     spec = meta.get("_spec") or {}
@@ -421,8 +422,8 @@ def on_page_markdown(markdown, page, config, files):
     if listing:
         markdown = markdown.rstrip() + "\n\n" + listing + "\n"
 
-    aka = lede.aka(meta.get("also_known_as"))
-    if aka:
-        markdown = markdown.rstrip() + "\n\n" + aka + "\n"
+    words = lede.keywords(meta.get("keywords"))
+    if words:
+        markdown = markdown.rstrip() + "\n\n" + words + "\n"
 
     return markdown
