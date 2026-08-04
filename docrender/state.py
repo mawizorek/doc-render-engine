@@ -37,18 +37,26 @@ PAGES: dict = {}
 #: Foreign page maps from peer sites, keyed by peer slug.
 PEERS: dict = {}
 
+#: (timestamp, subject) for every doc-touching commit, read out of git by
+#: revlog.py. Lives here because it is used in two events: the table is drawn
+#: during on_page_markdown and the downloadable TSV is written during
+#: on_post_build. Reading git twice could return two different answers to the
+#: same question, which is the sort of disagreement nobody reports.
+REVLOG: list = []
+
 #: Everything the build wants to tell a human. Printed in one block at the end
 #: rather than scattered through 400 lines of output where nobody reads it.
 REPORT: dict = {}
 
 
 def reset() -> None:
-    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REPORT
+    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REVLOG, REPORT
     INSTANCE = {}
     TYPES = {}
     BY_SRC = {}
     PAGES = {}
     PEERS = {}
+    REVLOG = []
     REPORT = {
         # Order here is the order the report prints, and it is deliberate:
         # a duplicate KEY is usually the CAUSE of the complaints under it, so
