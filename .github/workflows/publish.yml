@@ -128,7 +128,15 @@ jobs:
           repository: ${{ steps.site.outputs.repo }}
           ref: main
           path: content
-          fetch-depth: 2
+          # ⚠️ FULL HISTORY, and it is load-bearing rather than generous.
+          # docrender/revlog.py builds the automatic revision log by reading
+          # `git log` out of this checkout. At a shallow depth git does not
+          # complain -- it returns the handful of commits it happens to have,
+          # which renders as a complete-looking history covering an afternoon.
+          # revlog.py refuses to draw a log on a shallow clone for that reason,
+          # so at depth 2 the page shows an error instead of a lie. Cloning a
+          # markdown repo whole costs seconds.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
