@@ -1,16 +1,10 @@
 """Reading a TSV and shaping it. Everything BEFORE the HTML.
 
-Split out of `datatable.py` on 2026-08-04 because that module reached 25KB -- past the
-line where a file stops coming back whole from a single read, which is when it stops
-being safely editable. `seal.py` came out of `router.py` the same night for the same
-reason. Trimming the docstring bought 2KB and was not enough; the module was simply doing
-two jobs.
-
 **The seam is where the data stops and the markup starts.** This file knows what a
 spreadsheet is: rows, a header, section breaks, ragged widths, which column an option
 names, what order the rows go in, and what KIND of thing each column holds. It emits no
-HTML and imports nothing that does. `datatable.py` keeps the frontmatter contract, the
-`!!! data` block, and the drawing.
+HTML and imports nothing that does. `table.py` turns the result into markup;
+`datatable.py` owns the frontmatter contract and the `!!! data` block.
 
 It depends on `cells` for ONE thing: the plain text of a cell. A column name may be
 written `**Count**` and an option says `sort: count`, so comparison happens on what a
@@ -41,12 +35,11 @@ right-aligns course numbers as though they were quantities. **Derivation reads S
 cannot read MEANING.** Currency is the same gap and worse: `1200` is a number either way
 and nothing in the values says dollars.
 
-⚠️ **SPECS ARE CARRIED BY NAME, NEVER BY INDEX**, and that is not a style choice:
-`apply_options` drops columns for `hide:`, so an index taken against the original header
-points at the wrong column afterwards. That bug is already written down two functions
-down, where `pinned` has to be recomputed for the same reason. A name lookup cannot
-drift. ⚠️ Two columns sharing a name therefore share a spec; a sheet with duplicate
-headers has a bigger problem than this.
+⚠️ **SPECS ARE CARRIED BY NAME, NEVER BY INDEX.** `apply_options` drops columns for
+`hide:`, so an index taken against the original header points at the wrong column
+afterwards -- the bug already written down two functions down, where `pinned` has to be
+recomputed for exactly that reason. A name lookup cannot drift. ⚠️ Two columns sharing a
+name therefore share a spec; a sheet with duplicate headers has a bigger problem.
 """
 
 from __future__ import annotations
