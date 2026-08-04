@@ -4,18 +4,11 @@
 # what must be true, a procedure is what you do. The same subject often needs
 # both, and collapsing them produces a document that is bad at being either.
 #
-# This is also the first type in the family with no theatre in it, which is
-# deliberate. A doc site that is procedures and nothing else must be a
-# first-class citizen here, or the engine is only pretending to be portable.
+# ⚠️ owner, frequency, trigger and systems were REMOVED 2026-08-03 with the
+# rest of the spec-table fields. A procedure still needs a named owner -- one
+# with no owner does not get done, it gets assumed -- but that belongs in a
+# sentence somebody reads, not a key only the renderer saw.
 
 type: procedure
 label: Procedure
 extends: _base
-optional:
-  - owner
-  - frequency
-  - trigger
-  - systems
-renders:
-  - spec_table: [owner, frequency, trigger, systems]
-  - callout_if_missing: [owner]
