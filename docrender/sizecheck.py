@@ -51,6 +51,11 @@ THREE JOBS, all of which want to run last.
    the site; `routers` lists every router and what kind it is. Neither counts
    against a clean build. A thing you cannot enumerate is decoration; a thing
    you can enumerate is a worklist.
+
+   ⚠️ A BUCKET WITH NO LABEL HERE IS COLLECTED AND NEVER PRINTED by the
+   ordered pass below, which is the quietest possible way for a new check to
+   do nothing at all. Adding a bucket is two edits: state.reset() for the
+   order, _LABELS for the heading.
 """
 
 from __future__ import annotations
@@ -81,6 +86,7 @@ _LABELS = {
                      "usually explain everything below",
     "missing_status": "Pages with no usable status (NOT BUILT)",
     "missing_required": "Missing required fields",
+    "page_head": "Page head -- the lede, and whether the title and the H1 agree",
     "unknown_type": "Undeclared types (fell back to 'page')",
     "duplicate_id": "Duplicate ids",
     "dead_links": "Broken references (rendered as visible markers)",
