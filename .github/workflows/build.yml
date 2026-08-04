@@ -84,7 +84,14 @@ jobs:
         with:
           repository: ${{ matrix.repo }}
           path: content
-          fetch-depth: 2
+          # ⚠️ FULL HISTORY. docrender/revlog.py reads `git log` here to build
+          # the automatic revision log, and a shallow clone answers that query
+          # without complaining -- it just returns the two commits it has,
+          # which renders as a complete-looking log covering ten minutes.
+          # revlog.py refuses to draw on a shallow clone, so this must match
+          # publish.yml or the page is correct when published and broken on
+          # the nightly. Cloning a markdown repo whole costs seconds.
+          fetch-depth: 0
           # Deliberately NOT authenticated. The content repos are public, and a
           # token here buys nothing while adding a failure mode that is genuinely
           # hard to read: a fine-grained PAT missing this one repo fails the
