@@ -1,84 +1,53 @@
 """Stage 01b -- render a TSV sitting next to a page as a table.
 
-Decision history: doc-render-engine (repo) -- Decision Log in ClickUp, blocks J4/J5/J7
-and Q3/Q4/Q5/Q8/Q9. The reasoning behind every rule below lives THERE, deliberately:
-this file states the contract, the log keeps the argument. An earlier version of this
-docstring re-argued all of it and pushed the module to 21.7KB, one edit from failing
-the size gate this engine enforces on everybody else.
+Decision history: doc-render-engine (repo) Decision Log in ClickUp, blocks J4/J5/J7/J17
+and Q3/Q4/Q5/Q8/Q9. **The argument lives THERE; this file states the contract.** That
+split is not a style preference -- this docstring has twice grown until the module
+failed the size gate it enforces on everybody else.
 
 
 WHY DATA FILES ARE ALLOWED IN THE CONTENT TREE
 ==============================================
 
 "Markdown and nothing else" is a rule about MACHINERY -- no stylesheet, no config, no
-nav manifest, no build script -- so the Download ZIP button hands somebody the documents
-and nothing they must be told to ignore. A table of dimmer circuits is not machinery, it
-IS the documentation. TSVs stay TSV on disk: spreadsheet-editable, git-diffable,
-greppable, useful to anything that is not this renderer.
+nav manifest, no build script -- so the Download ZIP hands somebody the documents and
+nothing they must be told to ignore. A table of dimmer circuits is not machinery, it IS
+the documentation. TSVs stay TSV on disk: spreadsheet-editable, git-diffable, greppable.
 
 
-A DATA FILE IS A NAMED SLOT, NOT A FILENAME
-===========================================
+THE CONTRACT
+============
 
     ---
-    title: Audio Inventory
     type: reference
-    status: public
-    summary: Every microphone, cable and rack unit the audio department owns.
     data:
       inventory_table:
         file: audio-inventory.tsv
-        caption: Audio inventory
-      revision_log:
-        file: audio-inventory-revisions.tsv
+        caption: Audio inventory          # optional
     ---
 
-    ## What we own
+    !!! data "inventory_table"            EMBED. Block level. Draws it here.
+        sort: Count                       options, indented
+        pin: ID
+        hide: internal_notes
+        caption: ...                      overrides the frontmatter one
 
-    !!! data "inventory_table"
+    ...or [the inventory](@data:inventory_table)   MENTION. Inline. Links to it.
 
-    New staff and designers should review the [inventory table](@data:inventory_table)
-    before the first production meeting.
+⭐ The body never names a FILE, only a SLOT. Swap the filenames in the frontmatter and
+the body is byte-identical between Audio, LX and Video -- the whole reason this exists.
 
-    ## Version History
+⚠️ Slot names belong to the TYPE (`objects/<type>.yml` → `data_slots`); an undeclared key
+is reported. That is what makes a copied paragraph safe rather than merely conventional.
 
-    !!! data "revision_log"
-        sort: Date
-        pin: Commit
+⚠️ ONE FRONTMATTER FORM. A slot is always a map with `file:`. Neither `slot: name.tsv`
+nor the old `data: [x.tsv]` list is a second legal spelling; the list form is reported by
+name, because an ignored key looks exactly like the feature never having worked.
 
-⭐ The body never names a file. Swap the two filenames in the frontmatter and that body
-is byte-identical between Audio, LX and Video -- the whole reason this was asked for.
-Renaming a TSV is a one-line frontmatter edit, not a hunt through prose.
-
-⚠️ SLOT NAMES BELONG TO THE TYPE. `objects/<type>.yml` lists the `data_slots` that type
-may carry; an undeclared key is reported. That is what makes the shared paragraph SAFE
-rather than merely conventional -- under a page-local scheme, Audio writing
-`inventory_table` and Video writing `inventory` breaks the copied paragraph silently on
-a page that otherwise looks fine.
-
-⚠️ ONE FRONTMATTER FORM. A slot is always a map with `file:`; `caption:` is optional.
-The shorthand `inventory_table: audio-inventory.tsv` is NOT a second legal spelling. The
-old LIST form (`data: [x.tsv, y.tsv]`) is retired and reported by name, because an
-ignored key looks indistinguishable from the feature never having worked.
-
-
-TWO VERBS, NOT INTERCHANGEABLE
-==============================
-
-    !!! data "revision_log"                   EMBED. Block level. Draws it here.
-    [the revision log](@data:revision_log)    MENTION. Inline. Links to it.
-
-The embed carries no label: the slot name and the heading above it already say
-everything a label would, so a label there is a second copy for a human to keep in
-sync. The mention carries a label because a sentence needs words, and those words change
-with the sentence. The label survives exactly where it does work.
-
-`!!!` is the admonition grammar this content set already writes, so it is nothing new to
-learn. This hook runs BEFORE the admonition extension sees the text; if it is ever
-disabled the block degrades to a visible box naming the slot, not to silence.
-
-⚠️ `data` is now a RESERVED admonition type. No genuine `!!! data` callout, ever again.
-One-way door, taken knowingly.
+⚠️ The embed carries NO label -- the slot name and the heading above it already say it,
+and a label there is a second copy to keep in sync. The mention carries one because a
+sentence needs words. `data` is now a reserved admonition type; no genuine `!!! data`
+callout, ever again.
 
 
 EVERY CELL IS PROSE
@@ -87,75 +56,65 @@ EVERY CELL IS PROSE
     Grid height	[18'-0"]{.est}		measured off the old plot
     Console	[QL5](@term:yamaha-ql5)	1	**do not** repatch
 
-A cell says anything a line of body text can say inline -- confidence markers, `@` page
-and peer references, `@term:`, `@data:`, bold, emphasis, code -- and it renders
-identically, because `docrender/cells.py` hands the cell to the same link and marker
-hooks the page body goes through. Read that module before changing this one: it carries
-the escaping order, the reason markers in cells used to come out as entity gibberish, and
-the limits (no block markdown, raw HTML trusted).
+A cell says anything a line of body text can say inline -- markers, `@` page/peer refs,
+`@term:`, `@data:`, bold, emphasis, code -- and renders identically, because
+`docrender/cells.py` hands it to the same hooks the page body goes through. **Read that
+module before changing this one:** it carries the escaping order, the reason markers in
+cells used to emerge as entity gibberish, and the limits (no block markdown, raw HTML
+trusted).
 
-⭐ SORTING IS UNAFFECTED BY MARKUP, which was the one non-negotiable. `sort:` orders on
-`cells.plain()` -- the cell stripped back to bare text -- and orders NUMERICALLY when
-every value in the column is a number. `[18'-0"]{.est}` sorts as `18'-0"`, and `10` sorts
-after `9` rather than before it.
+⭐ MARKUP CANNOT REORDER A SHEET, which was the one non-negotiable. `sort:` orders on
+`cells.plain()` and orders NUMERICALLY when every value in the column is a number, so
+`[18'-0"]{.est}` sorts as `18'-0"` and `10` sorts after `9`.
 
-⚠️ A SPREADSHEET CANNOT DO THIS, and nothing here can fix that. Any non-digit in a cell
-makes it text to Excel and Numbers. A separate confidence COLUMN remains the end state
-(DL J17); in-cell marking ships because that column needs a FileMaker field to feed it.
+⚠️ A SPREADSHEET CANNOT DO THIS and nothing here can fix it: any non-digit in a cell
+makes it text to Excel and Numbers. A separate confidence COLUMN is still the end state
+(J17); in-cell marking ships because that column needs a FileMaker field to feed it.
 
 
-OPTIONS, AND A FAILURE POSTURE THAT MATTERS MORE THAN THE OPTIONS
-================================================================
+FAILURE POSTURE, WHICH MATTERS MORE THAN THE OPTIONS
+====================================================
 
-    pin:     freeze this column at the left while the table scrolls sideways
-    sort:    order rows by this column, WITHIN each section
-    hide:    drop these columns (comma separated)
-    caption: override the slot's frontmatter caption for THIS embed
+⭐ AN OPTION NAMING A MISSING COLUMN IS REPORTED, NEVER SILENT. Silence was asked for and
+refused, on the evidence of a page in the content repo carrying a hand-written note that
+the frozen header and first column DO NOT freeze -- found by accident, weeks late.
+`pin: commitID` against a header reading `commit_id` would rebuild that bug as policy.
+The real requirement was "do not fail my build over a typo in a cosmetic option", which
+is the house posture already: warn, render without the option, publish, report.
 
-⭐ AN OPTION NAMING A MISSING COLUMN IS REPORTED, NEVER SILENT. Silence was asked for
-and refused. The evidence was in the content repo: a page carried a hand-written note
-saying the frozen header and first column DO NOT freeze, found by accident weeks after
-shipping. `pin: commitID` against a header reading `commit_id` would rebuild that bug as
-policy -- a table that looks fine, scrolls wrong, and never says why. The real
-requirement was "do not fail my build over a typo in a cosmetic option", which is
-already the house posture: warn, render without the option, publish, report.
-
-NOT PROVIDED: filters, totals, renames, computed columns. Those edit the data, and the
+NOT PROVIDED: filters, totals, renames, computed columns. Those edit the data and the
 sheet is the source of truth. `hide` is allowed because dropping a column from a VIEW
 does not change what the sheet says.
 
-⚠️ `pin:` EMITS MARKUP THE STYLESHEET DOES NOT YET HONOUR. The class is on the cells;
-the sticky rule is a separate commit, held until the earlier frozen-column claim is
-verified on the deployed site. Shipping CSS onto an unverified mechanism is the same
-silent failure one layer up.
+⚠️ `pin:` EMITS MARKUP THE STYLESHEET DOES NOT YET HONOUR. The class is on the cells; the
+sticky rule is held until the older frozen-column claim is verified on the deployed site.
+Shipping CSS onto an unverified mechanism is the same silent failure one layer up.
 
 
 WHAT IT UNDERSTANDS ABOUT REAL SPREADSHEETS
 ===========================================
 
   * SECTION ROWS. First cell filled, everything else empty (RACK 1, ML PANEL 2) is a
-    heading inside the sheet, not a record. Renders as a spanning subheading. `sort`
-    orders within each section and never across one, because sorting flat would move
-    records out from under the heading that gives them meaning.
+    heading inside the sheet, not a record. Renders as a spanning subheading, and `sort`
+    orders WITHIN each one -- sorting flat would move records out from under the heading
+    that gives them meaning.
   * RAGGED WIDTH. Rows longer than the header keep their cells; the header is padded.
     Trailing columns empty in EVERY row are dropped.
   * JUNK HEADERS. A header cell that is only punctuation renders blank, not as a name.
   * BLANK ROWS are skipped.
 
-The raw file publishes beside the page, so every table offers a download link to the
-exact TSV it was drawn from. 🐛 That link was a 404 on every non-index page until
-2026-08-04, while the comment beside it asserted a bare filename was correct: under
-`use_directory_urls` a page at `lighting/x.md` serves from `lighting/x/` while its TSV
-stays a sibling at `lighting/x.tsv`. It goes through `util.relative_url` now, the helper
-that fixed the same class of bug in links.py, router.py and revlog.py. Do not go back to
-a bare filename, and do not count separators either.
+🐛 The download link was a 404 on every non-index page until 2026-08-04 while the comment
+beside it asserted a bare filename was correct: under `use_directory_urls` a page at
+`lighting/x.md` serves from `lighting/x/` while its TSV stays a sibling at
+`lighting/x.tsv`. It goes through `util.relative_url` now -- the helper that fixed the
+same class of bug in links.py, router.py and revlog.py. Do not go back to a bare
+filename, and do not count separators either.
 
-⚠️ THE TABLE CARRIES A CLASS AND THAT IS LOAD-BEARING (fixed 2026-08-03). Material
-styles `.md-typeset table:not([class])` with `display: block` so wide tables can scroll.
-`display: block` on a table destroys the internal table layout, and a `position: sticky`
-cell inside a non-table has no row context to stick within -- so the frozen header and
-frozen first column silently did nothing. The class makes `:not([class])` stop matching.
-Do not remove it.
+⚠️ THE TABLE CARRIES A CLASS AND THAT IS LOAD-BEARING (2026-08-03). Material styles
+`.md-typeset table:not([class])` with `display: block` so wide tables can scroll.
+`display: block` destroys the internal table layout, and a `position: sticky` cell inside
+a non-table has no row context to stick within -- so the frozen header and first column
+silently did nothing. The class makes `:not([class])` stop matching. Do not remove it.
 """
 
 from __future__ import annotations
@@ -199,9 +158,9 @@ def _read_rows(path: Path) -> list[list[str]]:
         return []
     rows = []
     for line in text.splitlines():
-        cells_ = [c.strip() for c in line.split("\t")]
-        if any(cells_):
-            rows.append(cells_)
+        row = [c.strip() for c in line.split("\t")]
+        if any(row):
+            rows.append(row)
     return rows
 
 
@@ -237,9 +196,9 @@ def _sort_within_sections(body, index: int):
 
     ⚠️ Two things this deliberately does NOT do.
 
-    It does not sort on the raw cell: a marked or linked value sorts on
-    `cells.plain()`, so markup cannot reorder a sheet. That was the constraint the whole
-    in-cell-prose feature had to satisfy.
+    It does not sort on the raw cell: a marked or linked value sorts on `cells.plain()`,
+    so markup cannot reorder a sheet. That was the constraint the whole in-cell-prose
+    feature had to satisfy.
 
     It does not sort numbers as text unless it has to. A column whose every value is a
     number sorts numerically -- otherwise `10` lands before `9`, which is the kind of
@@ -252,11 +211,10 @@ def _sort_within_sections(body, index: int):
     )
 
     def key(row):
-        raw = row[index] if index < len(row) else ""
-        text = cells.plain(raw)
+        text = cells.plain(row[index] if index < len(row) else "")
         if not text:
-            # Blanks last in both modes. A blank is "nobody has said", and floating it
-            # to the top of every section buries the rows that carry data.
+            # Blanks last in both modes. A blank is "nobody has said", and floating it to
+            # the top of every section buries the rows that carry data.
             return (1, 0.0, "")
         if numeric:
             return (0, cells.number(text) or 0.0, "")
@@ -543,7 +501,7 @@ def on_page_markdown(markdown, page, config, files):
     # A cell may itself contain `[x](@data:other_slot)`, and cells.render resolves that
     # through links.py, which reads this map. Filling it afterwards would make a
     # same-page reference resolve as broken on the first table and fine on the second --
-    # an ordering bug that looks like a typo.
+    # an ordering bug that reads as a typo.
     embedded = {b[2] for b in blocks}
     placed: dict[str, dict] = {
         slot: {"href": href_for(entry["file"]), "anchor": slot in embedded}
