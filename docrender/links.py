@@ -3,29 +3,52 @@
     [Main Stage](@main-stage)              a page in this site
     [the notes](@main-stage#venue-notes)   a heading on it
     [rep plot](@oph:rep-plot)              a page in a SIBLING site
+    [the schedule](@data:circuit_schedule) a data table on THIS page
 
-Moving the file, renaming its folder, or retitling the page cannot break an
-inbound link, because none of those things is what the link points at. Set
-`id:` once and never change it; that promise is the whole mechanism.
+Moving the file, renaming its folder, or retitling the page cannot break an inbound
+link, because none of those things is what the link points at. Set `id:` once and never
+change it; that promise is the whole mechanism.
+
+
+RESOLUTION ORDER (rewritten 2026-08-04, DL J8)
+==============================================
+
+0. A TOKEN CARRYING A FILE EXTENSION is refused, with the reason said out loud.
+1. RESERVED PREFIX. `@<prefix>:<rest>` claimed by a handler in docrender/prefixes.py.
+   `data` is claimed by datatable.py; `term` is decided and coming. Read that module
+   for why the registry is DERIVED from its handlers rather than typed as a list here.
+2. PEER SITE. `@<slug>:<id>` against the peer's published index.
+3. PAGE ID. `@<id>` in this site.
+
+THE ORDER IS THE FIX, NOT A PREFERENCE. This file used to run `token.partition(":")`
+first and treat everything left of the colon as a peer slug -- so `@data:inventory_table`
+reported "unknown peer site: data", naming the wrong subsystem on a page that was
+perfectly correct. Two namespaces built the same week by different hands is how the
+second merge silently reopens the first hole.
+
+And the extension refusal matters because the token charset accepts dots, so
+`[x](@circuits-and-dimmers.tsv)` matched this regex and resolved as a page id -- the
+wrong error, on a page one edit from right. Data files are reached by SLOT, never by
+filename; that is the entire point of a slot.
+
 
 CROSS-SITE, with the honest limit up front. Every site in the family publishes
-/doc-index.json at its root on every build. `@peer:id` resolves against the
-peer's index, fetched at BUILD time and cached to disk in the instance folder.
-If a sibling renames a page, our links stay wrong until we rebuild.
+/doc-index.json at its root on every build. `@peer:id` resolves against the peer's
+index, fetched at BUILD time and cached to disk in the instance folder. If a sibling
+renames a page, our links stay wrong until we rebuild.
 
-The cache is COMMITTED, not ignored. An unreachable peer then degrades to
-'last known good, marked stale' instead of taking our build down over somebody
-else's outage.
+The cache is COMMITTED, not ignored. An unreachable peer then degrades to 'last known
+good, marked stale' instead of taking our build down over somebody else's outage.
 
 WHAT A BROKEN REFERENCE LOOKS LIKE. A `<span>`: red, struck through, carrying a
-`[broken link]` badge and a tooltip naming what was not found. **It is NOT an
-anchor** -- no href, no navigation, nothing to click. The link does not ACT,
-and the failure is not hidden. A marked-but-dead reference is useful
-information on a site being written: it says a document is coming.
+`[broken link]` badge and a tooltip naming what was not found. **It is NOT an anchor**
+-- no href, no navigation, nothing to click. The link does not ACT, and the failure is
+not hidden. A marked-but-dead reference is useful information on a site being written:
+it says a document is coming.
 
-Code is skipped via util.sub_outside_code -- see that function for why.
-Same-site paths are resolved by util.relative_url -- see THAT function for the
-root-index bug this file shipped with, and do not reintroduce a `../` count.
+Code is skipped via util.sub_outside_code -- see that function for why. Same-site paths
+are resolved by util.relative_url -- see THAT function for the root-index bug this file
+shipped with, and do not reintroduce a `../` count.
 """
 
 from __future__ import annotations
@@ -36,12 +59,16 @@ import re
 import urllib.request
 from pathlib import Path
 
-from . import state
+from . import prefixes, state
 from .util import relative_url, sub_outside_code
 
 _LINK = re.compile(
     r"\[(?P<label>[^\]]*)\]\(@(?P<token>[A-Za-z0-9_.:-]+)(?P<anchor>#[A-Za-z0-9_-]+)?\)"
 )
+
+#: Suffixes that mean somebody named a FILE where an id or a slot belongs. Not a
+#: security check, a legibility one: the error has to name the right subsystem.
+_DATA_SUFFIXES = (".tsv", ".csv", ".json", ".yml", ".yaml", ".md", ".txt", ".xlsx")
 
 _TIMEOUT = 10
 
@@ -73,6 +100,9 @@ def on_files(files, config):
         }
 
     _load_peers()
+    # Every hook has been imported by now, so the registry is complete. A peer slugged
+    # with a reserved word would otherwise stop resolving and say nothing at all.
+    prefixes.audit_peers((state.INSTANCE.get("peers") or {}).keys(), state.note)
     return files
 
 
@@ -126,21 +156,50 @@ def on_page_markdown(markdown, page, config, files):
         token = match.group("token")
         anchor = match.group("anchor") or ""
 
+        if token.lower().endswith(_DATA_SUFFIXES):
+            state.note(
+                "dead_links",
+                src + ": '@" + token + "' names a FILE. References point at ids and "
+                + "data slots, never at filenames -- that is what makes renaming a "
+                + "file safe. For a table use @data:<slot> and declare the filename "
+                + "once in `data:` frontmatter.",
+            )
+            return _dead(label, "references point at ids, not filenames: " + token)
+
         if ":" in token:
-            slug, _, foreign_id = token.partition(":")
-            peer = state.PEERS.get(slug)
+            prefix, _, rest = token.partition(":")
+
+            handler = prefixes.resolver(prefix)
+            if handler:
+                resolved = handler(rest, page, label)
+                if resolved is None:
+                    state.note(
+                        "dead_links",
+                        src + ": '@" + token + "' did not resolve. "
+                        + prefixes.owner(prefix) + " owns the @" + prefix
+                        + ": namespace and does not know '" + rest + "'.",
+                    )
+                    return _dead(label, "unknown " + prefix + ": " + rest)
+                return resolved
+
+            peer = state.PEERS.get(prefix)
             if not peer:
-                state.note("dead_links", src + ": unknown peer site '" + slug + "'")
-                return _dead(label, "unknown peer site: " + slug)
+                state.note(
+                    "dead_links",
+                    src + ": unknown peer site '" + prefix + "'. Reserved prefixes on "
+                    + "this build: "
+                    + (", ".join(sorted(prefixes.reserved())) or "none") + ".",
+                )
+                return _dead(label, "unknown peer site: " + prefix)
             hit = next(
-                (c for c in peer.get("pages", []) if c.get("id") == foreign_id), None
+                (c for c in peer.get("pages", []) if c.get("id") == rest), None
             )
             if not hit:
                 state.note(
                     "dead_links",
-                    src + ": '" + foreign_id + "' not found in peer '" + slug + "'",
+                    src + ": '" + rest + "' not found in peer '" + prefix + "'",
                 )
-                return _dead(label, "not found in " + slug + ": " + foreign_id)
+                return _dead(label, "not found in " + prefix + ": " + rest)
             base = str(peer.get("base_url", "")).rstrip("/")
             return (
                 "[" + label + "](" + base + "/" + str(hit.get("url", "")) + anchor
@@ -152,8 +211,8 @@ def on_page_markdown(markdown, page, config, files):
             state.note("dead_links", src + ": no page with id '" + token + "'")
             return _dead(label, "no page yet with id: " + token)
 
-        # Resolved against THIS page, never from a separator count. The root
-        # index page reports its url as `./` and broke that arithmetic.
+        # Resolved against THIS page, never from a separator count. The root index
+        # page reports its url as `./` and broke that arithmetic.
         target = relative_url(str(hit.get("url", "")), page.file.url)
         return "[" + label + "](" + target + anchor + ")"
 

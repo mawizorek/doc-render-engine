@@ -8,3 +8,20 @@
 type: reference
 label: Reference
 extends: _base
+
+# The tables a reference page may carry. Named after WHAT THEY ARE, so the same
+# paragraph of prose reads correctly on the LX, audio and video copies of a page
+# and only the filenames underneath change.
+#
+# ⚠️ ADD TO THIS LIST DELIBERATELY, not on demand. Every name here is a word an
+# author has to guess correctly, and the value of a closed vocabulary is that
+# the guess is always the same word. A page needing a table that is genuinely
+# none of these is telling you something about the page.
+data_slots:
+  - schedule        # the tabular reference this page IS: a rack schedule, a
+                    # patch, a channel hookup. The page's primary table.
+  - survey          # what was found in the room, as opposed to what the
+                    # schedule says should be there. The two disagreeing is
+                    # the entire reason both exist as separate documents.
+  - inventory_table # what a department owns.
+  - revision_log    # what changed and when.

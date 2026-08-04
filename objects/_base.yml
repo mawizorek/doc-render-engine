@@ -56,3 +56,42 @@ optional:
                  # other sites. It does not touch the SEARCH index either;
                  # that is `status: unlisted`. It means one thing: the list of
                  # links at the foot of the parent index page.
+  - data         # the page's data tables, as a MAP of named slots. Added to
+                 # this list 2026-08-04, and the fact that it was ABSENT until
+                 # then is the point: datatable.py has honoured `data:` since
+                 # it shipped, so the engine was reading a field no type had
+                 # ever declared. Exactly the defect the type system exists to
+                 # prevent, sitting inside the type system.
+                 #
+                 # WHICH slots are legal is `data_slots` below, per type.
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DATA SLOTS -- the vocabulary of table names a page may carry.
+# ══════════════════════════════════════════════════════════════════════════════
+#
+#     data:
+#       inventory_table:
+#         file: audio-inventory.tsv
+#         caption: Audio inventory      # optional
+#
+# and in the body, `!!! data "inventory_table"` draws it.
+#
+# ⭐ WHY THE TYPE OWNS THE NAME AND NOT THE AUTHOR. The goal is one body of
+# prose that copies between LX, Audio and Video with only the frontmatter
+# changed. That only holds if the KEY is the same word on all three pages. Under
+# free naming, Audio writing `inventory_table` and Video writing `inventory`
+# breaks the shared paragraph on the paste -- and breaks it as a dead reference
+# on a page that otherwise looks completely fine.
+#
+# So a slot is a FIELD, visible to the type spec and reportable at build, for
+# the same reason the lede became one.
+#
+# ⚠️ EMPTY HERE ON PURPOSE. A slot legal on every page in the family is legal in
+# places it makes no sense (a procedure does not have an inventory). Declare
+# slots on the TYPE that needs them. A one-line global list was offered and
+# rejected; so was "declared slots plus page-local extras", which would have
+# reopened the free-naming hole through a side door.
+#
+# ⚠️ SLOTS ARE NOT INHERITED SIDEWAYS. Adding `revision_log` to `reference` does
+# NOT make it legal on `procedure`. That is the intended cost.
+data_slots: []
