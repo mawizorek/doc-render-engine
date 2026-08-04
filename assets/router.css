@@ -157,33 +157,53 @@
 }
 
 /* ---------------------------------------------------------------------------
- * THE REVEALED SIDEBAR (DL J14)
+ * THE REVEALED SIDEBAR (DL J14, corrected J18)
  *
  * A routed folder's children are removed from the nav at build time and their
- * titles ship sealed. router.js decrypts them on a correct code and builds this
- * list inside the section's own sidebar item.
+ * titles ship sealed. router.js decrypts them on a correct code and appends
+ * this list to the section's own `li.md-nav__item`.
  *
- * WHY THIS IS NOT MATERIAL'S OWN NAV MARKUP. A nested Material nav needs a
- * <nav>, a <label> and a hidden checkbox per level to drive its expand and
- * collapse behaviour. We are inserting a flat list into a tree that has already
- * rendered, so borrowing that structure would inherit the behaviour without any
- * of the state it depends on. Own classes, Material's variables -- so it
- * matches the sidebar in both colour schemes without knowing which one is on.
+ * WHY NOT MATERIAL'S OWN NAV MARKUP. A nested Material nav needs a <nav>, a
+ * <label> and a hidden checkbox per level to drive expand/collapse -- and on a
+ * phone that nested <nav> is a sliding panel positioned OFF-CANVAS until its
+ * toggle is checked. A sealed section has no toggle, so borrowing the structure
+ * would put the menu somewhere unreachable on mobile only. Own classes,
+ * Material's variables, so it still matches the sidebar in both schemes.
+ *
+ * 🔴 EVERY TYPOGRAPHIC PROPERTY HERE IS DECLARED RATHER THAN INHERITED, AND
+ * THAT IS THE FIX FOR A REAL BUG, NOT DEFENSIVENESS. In #48 this list was
+ * appended inside `div.md-nav__container`, which matches base.css's top-level
+ * caps rule -- and `text-transform`, `letter-spacing`, `font-weight` and
+ * `font-size` all INHERIT. The child pages rendered in bold 700 uppercase,
+ * shouting louder than the section above them, with nothing in this file
+ * saying so. router.js now hoists the list to the <li>, which carries none of
+ * those properties; these declarations are the second line of defence, because
+ * a site's own theme.css is loaded LAST and could put caps on anything.
  *
  * ⚠️ NOTHING HERE HIDES ANYTHING. If these rules fail to load, the list is
  * still only in the DOM once a code has been typed. The withholding is done by
- * the build, not by this stylesheet -- which is the opposite arrangement from
- * the curtain above, and the reason a reader with no JavaScript gets the body
- * and not the menu.
+ * the build, not by this stylesheet -- the opposite arrangement from the
+ * curtain above, and the reason a no-JS reader gets the body but not the menu.
  * ------------------------------------------------------------------------ */
 .dr-nav-revealed {
-  margin: 0.2rem 0 0.4rem;
+  margin: 0.1rem 0 0.5rem;
   padding: 0;
   list-style: none;
+  /* The <li> is not a flex container, but a future Material release or a site
+   * sheet could make one. A full-width basis means the menu stacks under the
+   * section link either way instead of trying to sit beside it. */
+  flex: 1 0 100%;
+  width: 100%;
 }
 
 .dr-nav-revealed__item {
   margin: 0;
+  /* ⚠️ Material puts a `border-top` on drawer items (see base.css on the double
+   * rule). These are not `md-nav__item`, so they get none -- stated because the
+   * absence is deliberate: the revealed pages are a sub-list, not more
+   * top-level sections, and ruling them would claim a weight they do not have.
+   */
+  border: 0;
   /* Staggered so the menu arrives as a sequence rather than a jolt. Capped by
    * arithmetic rather than by hope: a folder with forty pages must not animate
    * for two seconds, so the delay stops climbing after the eighth row. */
@@ -205,10 +225,15 @@
 
 .dr-nav-revealed__link {
   display: block;
-  padding: 0.35rem 0.6rem 0.35rem 1rem;
+  padding: 0.4rem 0.6rem 0.4rem 1rem;
   color: var(--md-typeset-color);
+  /* Declared, not inherited. See the red note above. */
+  font-family: var(--dr-font-body);
   font-size: 0.7rem;
-  line-height: 1.4;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1.5;
   text-decoration: none;
   overflow-wrap: anywhere;
 }
@@ -228,12 +253,18 @@ span.dr-nav-revealed__link {
 }
 
 /* Depth rides on an attribute rather than on nesting, because the manifest is a
- * flat list -- see docrender/state.py on why it is flat. Two levels are styled;
- * anything deeper stops indenting rather than marching off the sidebar, which
- * is the same choice Material makes. */
-.dr-nav-revealed__item[data-d="2"] .dr-nav-revealed__link { padding-left: 1.75rem; }
+ * flat list -- see docrender/state.py on why it is flat. Two levels indent and
+ * anything deeper stops, rather than marching off the sidebar, which is the
+ * same choice Material makes.
+ *
+ * ⚠️ THE STEPS ARE SMALL ON PURPOSE. A phone drawer is about 17rem wide and
+ * these titles are real sentences ("Vectorworks Doc Specs"), so a generous
+ * indent does not read as hierarchy -- it reads as a column three words wide.
+ * The #48 version stepped 0.75rem at every level inside a container that was
+ * already squeezed, and the result was a staircase. */
+.dr-nav-revealed__item[data-d="2"] .dr-nav-revealed__link { padding-left: 1.6rem; }
 .dr-nav-revealed__item[data-d="3"] .dr-nav-revealed__link,
-.dr-nav-revealed__item[data-d="4"] .dr-nav-revealed__link { padding-left: 2.5rem; }
+.dr-nav-revealed__item[data-d="4"] .dr-nav-revealed__link { padding-left: 2.2rem; }
 
 /* ⚠️ The WARM path gets no stagger either, for the same reason the curtain gets
  * no fade: a reader who already holds the code is navigating inside a folder
