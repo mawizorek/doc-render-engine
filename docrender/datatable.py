@@ -94,8 +94,13 @@ WHAT IT UNDERSTANDS ABOUT REAL SPREADSHEETS, because exported ones are messy:
     an export) renders blank instead of as a column name.
   * BLANK ROWS are skipped.
 
-The raw file is published beside the page, so every table offers a download link
-back to the exact TSV it was drawn from.
+🐛 THE DOWNLOAD LINK WAS A 404 AND THE OLD COMMENT ASSERTED IT WAS NOT. It said
+the href "is simply its name relative to the page's own URL," which is true only
+on an index page. Under `use_directory_urls: true` a page at `lighting/x.md` is
+served from `lighting/x/`, while its TSV stays at `lighting/x.tsv` -- one level
+UP. So a bare filename resolved to `lighting/x/x.tsv` and downloaded nothing.
+Resolved through util.relative_url now, which is the same helper that fixed the
+identical class of bug in links.py and router.py. Do not go back to a bare name.
 
 ⚠️ THE TABLE CARRIES A CLASS AND THAT IS LOAD-BEARING (fixed 2026-08-03).
 Material styles `.md-typeset table:not([class])` with `display: block` so wide
@@ -116,10 +121,12 @@ first cut of this file did.
 from __future__ import annotations
 
 import html
+import posixpath
 import re
 from pathlib import Path
 
 from . import prefixes, state, typespec
+from .util import relative_url
 
 #: The retired HTML-comment placement marker. Honoured, reported, going away.
 _LEGACY_MARKER = re.compile(
@@ -411,8 +418,15 @@ def on_page_markdown(markdown, page, config, files):
         return markdown
 
     here = Path(page.file.abs_src_path).parent
+    folder = posixpath.dirname(where)
     by_file = {name: slot for slot, name in declared.items()}
     placed: dict[str, dict] = {}
+
+    def href_for(filename: str) -> str:
+        """The TSV's URL relative to the page ASKING for it. See the docstring:
+        a bare filename is wrong on every page that is not an index."""
+        site_path = posixpath.join(folder, filename) if folder else filename
+        return relative_url(site_path, page.file.url)
 
     lines = markdown.splitlines()
     out: list[str] = []
@@ -482,10 +496,10 @@ def on_page_markdown(markdown, page, config, files):
                 )
                 continue
 
-            rendered, anchor = _render(path, filename, slot, opts, where)
+            rendered, anchor = _render(path, href_for(filename), slot, opts, where)
             if rendered:
                 out.append(rendered)
-                placed[slot] = {"href": filename, "anchor": anchor}
+                placed[slot] = {"href": href_for(filename), "anchor": anchor}
             continue
 
         legacy = _LEGACY_MARKER.fullmatch(line)
@@ -502,10 +516,10 @@ def on_page_markdown(markdown, page, config, files):
                 + "silently.",
             )
             if slot and (here / name).is_file():
-                rendered, anchor = _render(here / name, name, slot, {}, where)
+                rendered, anchor = _render(here / name, href_for(name), slot, {}, where)
                 if rendered:
                     out.append(rendered)
-                    placed[slot] = {"href": name, "anchor": anchor}
+                    placed[slot] = {"href": href_for(name), "anchor": anchor}
                     continue
             out.append(
                 '\n<p class="docrender-dead">Undeclared data file: '
@@ -533,7 +547,7 @@ def on_page_markdown(markdown, page, config, files):
                 + "' which does not exist beside this page",
             )
             continue
-        placed[slot] = {"href": filename, "anchor": None}
+        placed[slot] = {"href": href_for(filename), "anchor": None}
         state.note(
             "notes",
             where + ": slot '" + slot + "' (" + filename + ") is declared but never "
