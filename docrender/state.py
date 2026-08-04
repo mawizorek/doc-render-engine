@@ -37,23 +37,20 @@ PAGES: dict = {}
 #: Foreign page maps from peer sites, keyed by peer slug.
 PEERS: dict = {}
 
-#: (when, commit, pr, change) for every doc-touching commit, read out of git by
-#: revlog.py. Lives here because it is used in two events: the table is drawn
-#: during on_page_markdown and the downloadable TSV is written during
-#: on_post_build. Reading git twice could return two different answers to the
-#: same question, which is the sort of disagreement nobody reports.
+#: (when, change) for every row of the committed revision-log TSV, as read by
+#: revlog.py. Newest first, because the file is written that way.
 #:
-#: ⚠️ FOUR fields, and only two of them reach the page. `commit` and `pr` are
-#: file-only by house rule -- revlog.py's docstring says why, and it is a lock
-#: rather than an omission.
+#: ⚠️ TWO fields as of 2026-08-04, not four, and the reason is worth keeping:
+#: revlog.py no longer reads git and no longer WRITES anything. It renders the
+#: TSV the content repo's own workflow commits, and it only needs the two
+#: columns the table shows. The `commit` and `pr` columns exist in the file and
+#: are deliberately never carried into the site -- see revlog.py on the
+#: no-route-back-to-source lock.
+#:
+#: This is now single-consumer, so it does not strictly need to live here. It
+#: stays because the report line and any future stage that wants the log should
+#: read one parse of one file rather than open it again.
 REVLOG: list = []
-
-#: Site-relative output directories of the pages that carried a dr:revlog
-#: marker, e.g. `01-utility/automatic-revision-log`. The TSV is written into
-#: each one rather than at the site root, because the table links to it with a
-#: bare relative href and `use_directory_urls` puts the page one level deeper
-#: than its source file suggests. Root-writing was the 404 fixed 2026-08-04.
-REVLOG_DIRS: list = []
 
 #: Everything the build wants to tell a human. Printed in one block at the end
 #: rather than scattered through 400 lines of output where nobody reads it.
@@ -61,14 +58,13 @@ REPORT: dict = {}
 
 
 def reset() -> None:
-    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REVLOG, REVLOG_DIRS, REPORT
+    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REVLOG, REPORT
     INSTANCE = {}
     TYPES = {}
     BY_SRC = {}
     PAGES = {}
     PEERS = {}
     REVLOG = []
-    REVLOG_DIRS = []
     REPORT = {
         # Order here is the order the report prints, and it is deliberate:
         # a duplicate KEY is usually the CAUSE of the complaints under it, so
