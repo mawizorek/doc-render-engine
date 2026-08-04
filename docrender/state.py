@@ -11,6 +11,14 @@ instead of hiding it in a config key.
 
 `reset()` runs from the first hook so `mkdocs serve`, which rebuilds in-process
 on every save, never inherits the previous build's page map.
+
+⚠️ EVERY VALUE HERE NEEDS A WRITER AND A READER IN DIFFERENT HOOKS. That is the
+admission price, and it is worth stating because a shared namespace is the one
+place a dead global survives indefinitely: nothing imports it by name, so
+nothing breaks when its last user goes. `REVLOG` sat here after its reader went
+away, labelled as staying "by preference", and was deleted with its writer on
+2026-08-04. If a value is only ever touched by one module, it belongs in that
+module.
 """
 
 from pathlib import Path
@@ -37,21 +45,6 @@ PAGES: dict = {}
 #: Foreign page maps from peer sites, keyed by peer slug.
 PEERS: dict = {}
 
-#: (when, change) for every row of the committed revision-log TSV, as read by
-#: revlog.py. Newest first, because the file is written that way.
-#:
-#: ⚠️ TWO fields as of 2026-08-04, not four, and the reason is worth keeping:
-#: revlog.py no longer reads git and no longer WRITES anything. It renders the
-#: TSV the content repo's own workflow commits, and it only needs the two
-#: columns the table shows. The `commit` and `pr` columns exist in the file and
-#: are deliberately never carried into the site -- see revlog.py on the
-#: no-route-back-to-source lock.
-#:
-#: This is now single-consumer, so it does not strictly need to live here. It
-#: stays because the report line and any future stage that wants the log should
-#: read one parse of one file rather than open it again.
-REVLOG: list = []
-
 #: The nav entries a ROUTED folder index took out of the sidebar, keyed by the
 #: src_uri of that index page. Written by visibility.prune_nav (stage 00b),
 #: read by router.py (stage 04b), which seals each list under the page's own
@@ -65,12 +58,11 @@ REVLOG: list = []
 #:             the page's build url -- ABSENT on a folder heading, which is a
 #:             label rather than a destination.
 #:
-#: ⭐ THIS IS THE ONE VALUE IN THIS FILE THAT GENUINELY CANNOT LIVE ANYWHERE
-#: ELSE, worth saying because REVLOG above is honest about being here by
-#: preference. Nav membership is decided in `on_nav`; the form that unseals it
-#: is built in `on_page_content`. MkDocs runs EVERY hook's on_nav before ANY
-#: hook's on_page_content, so those are two different events -- not two lines
-#: that could have been moved next to each other.
+#: ⭐ THIS IS THE CLEAREST CASE IN THE FILE FOR SOMETHING THAT GENUINELY CANNOT
+#: LIVE ANYWHERE ELSE. Nav membership is decided in `on_nav`; the form that
+#: unseals it is built in `on_page_content`. MkDocs runs EVERY hook's on_nav
+#: before ANY hook's on_page_content, so those are two different events -- not
+#: two lines that could have been moved next to each other.
 #:
 #: ⚠️ `u` is the build url exactly as MkDocs made it, root-relative and NOT
 #: resolved against anything. Resolving it against the page doing the asking is
@@ -110,14 +102,13 @@ REPORT: dict = {}
 
 
 def reset() -> None:
-    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REVLOG, NAV_SEALED
+    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, NAV_SEALED
     global ROUTER_SALT, REPORT
     INSTANCE = {}
     TYPES = {}
     BY_SRC = {}
     PAGES = {}
     PEERS = {}
-    REVLOG = []
     NAV_SEALED = {}
     ROUTER_SALT = b""
     REPORT = {
