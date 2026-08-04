@@ -107,3 +107,88 @@
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * THE REVEALED SIDEBAR (DL J14)
+ *
+ * A routed folder's children are removed from the nav at build time and their
+ * titles ship sealed. router.js decrypts them on a correct code and builds this
+ * list inside the section's own sidebar item.
+ *
+ * WHY THIS IS NOT MATERIAL'S OWN NAV MARKUP. A nested Material nav needs a
+ * <nav>, a <label> and a hidden checkbox per level to drive its expand and
+ * collapse behaviour. We are inserting a flat list into a tree that has already
+ * rendered, so borrowing that structure would inherit the behaviour without any
+ * of the state it depends on. Own classes, Material's variables -- so it
+ * matches the sidebar in both colour schemes without knowing which one is on.
+ *
+ * ⚠️ NOTHING HERE HIDES ANYTHING. If these rules fail to load, the list is
+ * still only in the DOM once a code has been typed. The withholding is done by
+ * the build, not by this stylesheet -- which is the opposite arrangement from
+ * the curtain above, and the reason a reader with no JavaScript gets the body
+ * and not the menu.
+ * ------------------------------------------------------------------------ */
+.dr-nav-revealed {
+  margin: 0.2rem 0 0.4rem;
+  padding: 0;
+  list-style: none;
+}
+
+.dr-nav-revealed__item {
+  margin: 0;
+  /* Staggered so the menu arrives as a sequence rather than a jolt. Capped by
+   * arithmetic rather than by hope: a folder with forty pages must not animate
+   * for two seconds, so the delay stops climbing after the eighth row. */
+  animation: dr-nav-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.dr-nav-revealed__item:nth-child(1) { animation-delay: 0ms; }
+.dr-nav-revealed__item:nth-child(2) { animation-delay: 40ms; }
+.dr-nav-revealed__item:nth-child(3) { animation-delay: 80ms; }
+.dr-nav-revealed__item:nth-child(4) { animation-delay: 120ms; }
+.dr-nav-revealed__item:nth-child(5) { animation-delay: 160ms; }
+.dr-nav-revealed__item:nth-child(6) { animation-delay: 200ms; }
+.dr-nav-revealed__item:nth-child(7) { animation-delay: 240ms; }
+.dr-nav-revealed__item:nth-child(n + 8) { animation-delay: 280ms; }
+
+@keyframes dr-nav-in {
+  from { opacity: 0; transform: translateX(-0.35rem); }
+  to   { opacity: 1; transform: none; }
+}
+
+.dr-nav-revealed__link {
+  display: block;
+  padding: 0.35rem 0.6rem 0.35rem 1rem;
+  color: var(--md-typeset-color);
+  font-size: 0.7rem;
+  line-height: 1.4;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+/* A destination is a link and reacts to the pointer. A folder heading is a
+ * <span>, so it gets neither -- the difference in affordance is the only thing
+ * telling a reader which rows they can click. */
+a.dr-nav-revealed__link:hover,
+a.dr-nav-revealed__link:focus-visible {
+  color: var(--md-accent-fg-color);
+}
+
+span.dr-nav-revealed__link {
+  color: var(--dr-ink-muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Depth rides on an attribute rather than on nesting, because the manifest is a
+ * flat list -- see docrender/state.py on why it is flat. Two levels are styled;
+ * anything deeper stops indenting rather than marching off the sidebar, which
+ * is the same choice Material makes. */
+.dr-nav-revealed__item[data-d="2"] .dr-nav-revealed__link { padding-left: 1.75rem; }
+.dr-nav-revealed__item[data-d="3"] .dr-nav-revealed__link,
+.dr-nav-revealed__item[data-d="4"] .dr-nav-revealed__link { padding-left: 2.5rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dr-nav-revealed__item {
+    animation: none;
+  }
+}
