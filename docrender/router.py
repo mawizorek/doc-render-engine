@@ -1,13 +1,15 @@
 """Stage 04b -- ROUTERS. A pause, or a door to somewhere else.
 
+WHY decisions here are the way they are: the doc-render-engine Decision Log.
+This docstring is the CONTRACT and is deliberately kept under the warn line.
+
 =============================================================================
 THE FRONTMATTER KEYS, and how they relate to `status:`
 =============================================================================
 
     status:          REQUIRED on every page, and NOTHING to do with routers.
                      It decides whether the page is BUILT and whether it is
-                     LISTED. There is no default: a page with no status is not
-                     built at all. See docrender/visibility.py.
+                     LISTED. See docrender/visibility.py.
 
     router:          name of a table in instances/<slug>/routes.yml, or a LIST
                      of table names (REMOTE)
@@ -16,179 +18,137 @@ THE FRONTMATTER KEYS, and how they relate to `status:`
                      its own -- decoration for a router, not a router.
     router_inherit:  `false` on a page opts it out of a folder's cascade.
 
-A router does not gate anything and `status:` does not know it exists. They
-answer different questions: status decides what REACHES the site, a router
-decides what a reader sees FIRST once they are there. A `hidden` page with a
-router is still not built; a `public` page with a curtain is still fully public.
+A router does not gate anything and `status:` does not know it exists. Status
+decides what REACHES the site; a router decides what a reader sees FIRST once
+they are there. A `hidden` page with a router is still not built; a `public`
+page with a curtain is still fully public.
 
 =============================================================================
 EVERY SOURCE OF KEYS POOLS. REPEATING A FRONTMATTER KEY DOES NOT.
 =============================================================================
-One page may draw keys from any number of places, and they all end up in the
-same field:
-
-    ---
-    id: staff
-    status: public
     router: [pm, staff, guests]      # three REMOTE tables
-    router_code: [tryme, temp26]     # plus two LOCAL codes
-    ---
+    router_code: [tryme, temp26]     # plus two LOCAL codes -- all five pool
 
-⚠️ WHAT DOES NOT WORK IS WRITING THE SAME KEY TWICE:
+⚠️ WHAT DOES NOT WORK IS WRITING THE SAME KEY TWICE. `router:` on two lines is
+YAML keeping the LAST value, silently. Use a list. objects.py reports duplicate
+frontmatter keys FIRST because the symptom ("only one of my tables works")
+looks nothing like the cause.
 
-    router: pm
-    router: staff        # <- the first line is GONE
+A key defined in two different tables is reported and the FIRST table wins.
+Letting dict order decide would make the winner depend on the order somebody
+happened to type two unrelated files in.
 
-That is YAML, not this engine: a duplicate key silently keeps the LAST value.
-Use a list. objects.py reports duplicate frontmatter keys FIRST for exactly
-this reason -- the symptom ("only one of my tables works") looks nothing like
-the cause.
+=============================================================================
+LOCAL VS REMOTE
+=============================================================================
+LOCAL -- `router_code:` in the page. Throwaway, no engine deploy.
+REMOTE -- a table in `instances/<slug>/routes.yml`. Durable, one place to edit,
+and the only form that can send somebody to a DIFFERENT page.
 
-A key defined in two different tables is reported and the first table wins.
-Resolving that by dict iteration order would make the winner depend on the
-order somebody happened to type two files in.
+⚠️ A LOCAL CODE IS IN A PUBLIC REPO. Fine for a pause, wrong for anything you
+would mind a stranger typing. Local is for trash; remote is for real.
+
+=============================================================================
+THREE KINDS OF ENTRY, and the DESTINATION decides which -- never a mode flag
+=============================================================================
+
+    maw:                    -> PORTABLE CURTAIN. No destination, so it means
+                               "curtain on whatever page declares this table."
+                               One entry, reusable on any number of pages,
+                               never needs to know their ids. The form that
+                               makes a cascade useful.
+
+    staff26: staff          -> PINNED CURTAIN. Names the id of the page it is
+                               used on. Same behaviour, tied to one page.
+
+    loadin24: crew-sheet    -> REDIRECT. Names a different page; sends you
+                               there.
+
+⚠️ A PINNED curtain does NOT cascade usefully: inherited by a child, its id no
+longer matches, so it is read as a redirect BACK to the folder index. Coherent,
+rarely wanted. Use the portable form on any table you expect to inherit.
 
 =============================================================================
 A ROUTER ON A FOLDER'S index.md CASCADES TO EVERYTHING UNDER IT
 =============================================================================
     production/staff/index.md      router: pm     <- declared once
     production/staff/props.md                     <- inherits it
-    production/staff/notes/x.md                   <- inherits it too
 
-The NEAREST ancestor wins, so a subfolder can redeclare and override rather
-than stack. A page opts out with `router_inherit: false`.
+The NEAREST ancestor wins, so a subfolder redeclaring OVERRIDES rather than
+stacks. A page opts out with `router_inherit: false`. A folder is the unit
+people think in, and a pause that only covers the folder's front page is one a
+reader steps around by clicking any child.
 
-Why cascade at all: a folder is the unit people actually think in -- "the staff
-notes" -- and a pause that only applies to the folder's front page is a pause a
-reader steps around by clicking any child in the sidebar. It also costs the
-reader nothing extra, because an unlock is remembered for the session: one code
-at the index and the whole folder opens as they navigate.
-
-🔴 THIS DID NOT WORK FOR A DIRECT CHILD UNTIL 2026-08-03, AND THE EXAMPLE
-ABOVE IS THE CASE IT GOT WRONG. `_inherited` began its walk at the page's
-GRANDPARENT folder: for `production/staff/props.md` it looked at
-`production/index.md` and then the site root, and never at
-`production/staff/index.md` -- the one folder index the whole feature exists to
-read. `parts[:depth - 1]` where `parts[:depth]` was meant, guarded by a comment
-confidently explaining a different off-by-one. It is now an explicit list of
-ancestor paths, because index arithmetic is what made a wrong answer look
-deliberate.
-
-⚠️ AND IT IS STILL NOT PROTECTION. A direct link to a child page shows the
-curtain, but the body is in that page's source either way. Cascading makes the
-PAUSE consistent across a folder. It does not make the folder private, and
-nothing here ever will -- the content repo is public.
-
-A pause should be easy to reason about, so the nearest statement wins and a page
-can opt out. That is deliberately the opposite instinct from access control,
-where the most protective statement should win -- but note that publication
-states do not actually cascade at all. See visibility.py, which used to claim
-they did.
+🔴 THIS DID NOT WORK FOR A DIRECT CHILD UNTIL 2026-08-03, and the example above
+is the case it got wrong: `_inherited` began its walk at the GRANDPARENT, so it
+never read the one folder index the feature exists for. `parts[:depth - 1]`
+where `parts[:depth]` was meant, guarded by a comment confidently explaining a
+different off-by-one. Now an explicit list of ancestor paths, because index
+arithmetic is what made a wrong answer look deliberate.
 
 =============================================================================
-THE CASCADE NOW TAKES THE SIDEBAR WITH IT (DL Q10 -> J14, 2026-08-04)
+THE CASCADE TAKES THE SIDEBAR WITH IT (DL J14, 2026-08-04)
 =============================================================================
-A routed folder index has its whole subtree removed from the nav by
-visibility.py at stage 00b, which stashes what it took in `state.NAV_SEALED`.
-This file seals that manifest with `_wrap`, under EVERY code that opens the
-curtain and no others, and ships it on the form as `data-subtree`. A correct
-code decrypts it and router.js injects the entries under the section's own
-sidebar link.
-
-Sealed rather than shipped as text because a plaintext manifest would put every
-withheld title in the source of the page withholding it. The full argument, and
-the one that lost, are in the Decision Log -- not repeated here, because this
-docstring is already at the warn line.
+visibility.py strips a routed folder's subtree out of the nav at stage 00b and
+stashes it in `state.NAV_SEALED`. This file seals that manifest with `_wrap`,
+under EVERY code that opens the curtain and no others, and ships it as
+`data-subtree`. A correct code decrypts it and router.js injects the entries.
 
 ⚠️ A REDIRECT CODE NEVER UNSEALS THE NAV. It does not reveal this page, so it
-has no business revealing this page's children. Only curtain codes are used,
-which is why they are collected separately below rather than read back off the
-hashes.
+has no business revealing this page's children -- which is why curtain codes
+are collected separately below rather than read back off the hashes.
 
 =============================================================================
-LOCAL VS REMOTE
+A HELD CODE OPENS THE PAGE BEFORE FIRST PAINT (2026-08-04)
 =============================================================================
-LOCAL -- in the page. Throwaway, no engine edit, no engine deploy:
+Michael: "the lock menu kinda flashes on top of any page that's potentially
+locked... it's still like loading the menu each time and passing it immediately
+which seems like bad architecture." Correct on both counts, and they were two
+separate defects.
 
-    ---
-    id: staff
-    status: public
-    router_code: staff26
-    router_prompt: Got a code?
-    ---
+🔴 THE FLASH. `router.js` is `extra_javascript`, which Material puts at the END
+of the body, so the browser had already painted the form before any script ran.
+Hiding it from JS is by definition too late. Fixed with `_BOOT`, a tiny inline
+script emitted immediately after the form: it runs DURING PARSE, before the
+first paint, and puts a class on <html> that router.css acts on.
 
-REMOTE -- in the engine. Durable, one place to edit, and the only form that can
-send somebody to a DIFFERENT page:
+🔴 THE RE-DERIVATION, which is the architectural half. `_check()` used to mint
+a FRESH RANDOM SALT PER PAGE, so a code the reader had already typed could not
+be cached -- every navigation re-ran PBKDF2 at 120,000 iterations against a
+brand-new salt, per held key, sequentially, before the body appeared. Nothing
+was being loaded; it was being recomputed. One salt per BUILD (state.ROUTER_SALT)
+makes the derived verifier reusable, so page two costs a string comparison.
 
-    # instances/<slug>/routes.yml
-    staff:
-      staff26: staff                # curtain on the staff page (by id)
-      loadin24: crew-call-sheet     # redirect to another page
-    pm:
-      maw:                          # PORTABLE curtain -- see below
+The two fixes are the same fix: a cached verifier is what the pre-paint script
+compares, and it can only exist because the salt stops moving.
 
-Both may be present on one page; the keys pool. A code you are trying for an
-afternoon should not require touching the engine, and a code people are actually
-given should not sit in a public content repo.
-
-⚠️ A LOCAL CODE IS IN A PUBLIC REPO. Fine for a pause, wrong for anything you
-would mind a stranger typing. Local is for trash; remote is for real.
-
-=============================================================================
-THREE KINDS OF ENTRY, and the destination decides which -- never a mode flag
-=============================================================================
-
-    maw:                    -> PORTABLE CURTAIN. No destination at all, so it
-                               means "curtain on whatever page declares this
-                               table." One entry, reusable on any number of
-                               pages, and it never needs to know their ids.
-                               This is the form that makes a cascade useful.
-
-    staff26: staff          -> PINNED CURTAIN. Names the id of the page it is
-                               used on. Identical behaviour, tied to that one
-                               page -- what you want when one table mixes
-                               curtains for several different pages.
-
-    loadin24: crew-sheet    -> REDIRECT. Names a different page; sends you
-                               there.
-
-⚠️ A PINNED curtain does NOT cascade usefully: inherited by a child page, its
-id no longer matches, so it is read as a redirect BACK to the folder index.
-That is coherent but rarely wanted. Use the portable form on any table you
-expect to inherit.
+🚫 `_wrap` KEEPS ITS OWN RANDOM SALT AND NONCE PER CALL. That is AES-GCM
+encryption, where reusing key material across different plaintexts is a real
+weakness rather than a cosmetic one. The shared salt is for VERIFIERS only. Do
+not tidy the two into one.
 
 =============================================================================
 A CURTAIN IS A PAUSE. THE PAGE SOURCE PROVES IT.
 =============================================================================
 The body is hidden in the DOM. It is NOT encrypted. View source, open devtools,
-or read the markdown in the public repo and it is all there.
+or read the markdown in the public repo and it is all there. That is the design:
+*"just a screen before landing on content, a brief pause. not real
+encryption."* v1 encrypted page bodies and paid for it with a cipher shared
+across two files, a keyring and its own authoring document -- to protect content
+that was public in the repo the whole time.
 
-That is the design: *"just a screen before landing on content, a brief pause.
-not real encryption."* v1 encrypted page bodies and paid for it with a cipher
-shared across two files, a keyring and its own authoring document -- to protect
-content that was public in the repo the whole time.
-
-What IS withheld is the code: only a PBKDF2 hash ships, so a page does not hand
-the key to the next person who opens it. As of J14 the withheld NAV MANIFEST is
-sealed too -- which is not a contradiction of the paragraph above, because a
-manifest that shipped in the clear would defeat the feature that asked for it,
-while a body that ships in the clear defeats nothing that was ever claimed.
-
-REDIRECT still seals its destination, and the asymmetry is the point: a
-plaintext destination is not a router, it is a list of links with an input box
-in front of it. A curtain has no such problem -- the destination is the page you
-are already standing on.
+What IS withheld is the CODE (only a PBKDF2 verifier ships) and, since J14, the
+NAV MANIFEST. Not a contradiction: a manifest in the clear would defeat the only
+thing that feature does, while a body in the clear defeats nothing ever claimed.
 
 🔴 AND THE SEAL IS WHY A WRONG DESTINATION WAS INVISIBLE FOR TWO DAYS. This file
 built redirect URLs with `"../" * page.file.url.count("/")`, the separator-
-counting math that `util.relative_url` was written to replace. util.py's own
-docstring says it was lifted into util because TWO hooks had copied that math,
-and names this one as the worse copy for precisely the reason it then stayed
-broken: a curtain's mistakes are visible immediately, while a redirect's
-destination is encrypted, so a wrong URL surfaces only when a reader types a
-correct code and lands on a 404. links.py was converted; this file was not.
-**A docstring describing a fix is not the fix.** Every url the seal touches --
-now including the nav manifest -- goes through `relative_url` for that reason.
+counting math `util.relative_url` exists to replace -- and util.py's docstring
+named THIS file as the dangerous copy while this file kept it. A curtain's
+mistakes are visible immediately; a redirect's destination is encrypted, so a
+wrong URL only surfaces when somebody types a correct code and lands on a 404.
+**A docstring describing a fix is not the fix.** Every url the seal touches,
+now including the nav manifest, goes through `relative_url`.
 """
 
 from __future__ import annotations
@@ -203,6 +163,34 @@ from . import state
 from .util import load_yaml, relative_url
 
 ITERATIONS = 120_000
+
+# Runs during parse, BEFORE the first paint, which is the only moment that can
+# stop the form flashing. Deliberately dumb: it compares a cached verifier
+# against the ones on this page and sets a class. No crypto, no await, no
+# reflow -- if it needed either it would be too slow to be worth having.
+#
+#   dr-open      a cached verifier MATCHES an entry on this page, which is the
+#                same proof router.js computes, just precomputed. Body shown and
+#                form hidden at paint time.
+#   dr-checking  keys are held but none has a cached verifier (first unlock of
+#                the session, or the first page after a redeploy moved the
+#                salt). The outcome is unknown, so the form is hidden while the
+#                async trial runs and router.js puts it back if every key fails.
+#
+# Neither class hides the BODY. A reader whose JS dies mid-flight must never end
+# up staring at a blank page, so `hidden` on the curtain stays the only thing
+# withholding content and the <noscript> block below still overrides it.
+_BOOT = (
+    "<script>(function(){var f=document.querySelector('.dr-router');"
+    "if(!f)return;var h=document.documentElement,k=[];"
+    "try{k=JSON.parse(sessionStorage.getItem('docrender.keys'))||[]}"
+    "catch(e){}if(!k.length)return;var r=[];"
+    "try{r=JSON.parse(atob(f.dataset.routes))||[]}catch(e){}"
+    "for(var i=0;i<k.length;i++){var c=k[i];if(!c||!c.h)continue;"
+    "for(var j=0;j<r.length;j++){if(r[j].h&&r[j].s===c.s&&r[j].h===c.h){"
+    "h.className+=' dr-open';return}}}"
+    "h.className+=' dr-checking'})();</script>"
+)
 
 
 def _b64(raw: bytes) -> str:
@@ -219,14 +207,30 @@ def _derive(key: str, salt: bytes) -> bytes:
     )
 
 
+def _verifier_salt() -> bytes:
+    """One salt for every curtain verifier on this build. See state.ROUTER_SALT.
+
+    Minted lazily rather than at import, because a module-level value survives
+    `mkdocs serve`'s in-process rebuilds and would then outlive the build it
+    belongs to -- exactly what state.reset() exists to prevent.
+    """
+    if not state.ROUTER_SALT:
+        state.ROUTER_SALT = secrets.token_bytes(16)
+    return state.ROUTER_SALT
+
+
 def _check(key: str) -> dict:
     """A verifier for a curtain: prove the code without shipping the code."""
-    salt = secrets.token_bytes(16)
+    salt = _verifier_salt()
     return {"s": _b64(salt), "h": _b64(_derive(key, salt))}
 
 
 def _wrap(key: str, destination: str) -> dict | None:
-    """Seal a redirect destination, or a nav manifest, under its key."""
+    """Seal a redirect destination, or a nav manifest, under its key.
+
+    🚫 Random salt AND nonce, per call, never the shared verifier salt. This is
+    encryption, not verification.
+    """
     try:
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     except ImportError:
@@ -261,8 +265,7 @@ def _ancestor_indexes(src_uri: str) -> list[str]:
 
     Written as an explicit list rather than arithmetic on path indices, because
     the arithmetic version was wrong by one level for two days and read as
-    intentional: it carried a comment explaining, correctly, that a page's own
-    index is not its ancestor -- while actually skipping its PARENT's index too.
+    intentional. See the red note in the module docstring.
 
     For `production/staff/props.md`:
         production/staff/index.md, production/index.md, index.md
@@ -301,13 +304,12 @@ def _seal_nav(owner_src: str, codes: list[str], page) -> tuple[str, str]:
     """Seal the nav entries visibility.py withheld, once per curtain code.
 
     Returns (base64 payload, anchor url), both empty when there is nothing to
-    reveal -- which is the normal case for a page whose folder had no children.
+    reveal -- the normal case for a page whose folder had no children.
 
     ⚠️ EVERY url is resolved against the page ASKING, not against the page that
     owns the manifest. An inherited router puts this form on a child three
-    folders down, and a url that was correct for the index page is wrong there.
-    Sealed, so wrong would have meant invisible until somebody typed a real
-    code. See the red note in the module docstring.
+    folders down, where the index page's own urls are wrong. Sealed, so wrong
+    means invisible until somebody types a real code. See the module docstring.
     """
     sealed = state.NAV_SEALED.get(owner_src)
     if not sealed or not codes:
@@ -505,24 +507,32 @@ def on_page_content(html, page, config, files):
     rng.shuffle(redirects)
 
     if not curtain:
+        # No boot script on a redirect: there is nothing on this page to reveal
+        # early, and a held code must never navigate somebody who just arrived.
         return html + _field("redirect", redirects, prompt, "", "")
 
-    # CURTAIN. The body is held behind the `hidden` ATTRIBUTE rather than a CSS
+    # CURTAIN. The body ships behind the `hidden` ATTRIBUTE rather than a CSS
     # class, so it is withheld before any stylesheet loads -- no flash of
     # content on a slow connection.
     #
-    # The <noscript> block reveals it and removes the field. Correct rather than
-    # a compromise: this is a pause, not a lock, so a reader without JavaScript
-    # should get the document instead of an input box that can never work.
-    # `!important` in an author sheet beats the `hidden` attribute's user-agent
-    # rule, which is the only reason that works.
+    # `_BOOT` sits between the form and the body so it can hide the form before
+    # the first paint. It has to be INLINE and it has to be HERE: an external
+    # script is fetched too late, and the same code in router.js runs after
+    # Material's own scripts at the end of the body, which is after paint.
     #
-    # ⚠️ A no-JS reader gets the BODY and not the sidebar entries, which is the
-    # one place the two halves of this feature genuinely disagree. Injecting nav
-    # needs a decryption, and there is no non-JS way to do one. Stated rather
-    # than papered over: the content is reachable, the menu is not.
+    # The <noscript> block reveals the body and removes the field. Correct
+    # rather than a compromise: this is a pause, not a lock, so a reader without
+    # JavaScript should get the document instead of an input box that can never
+    # work. `!important` in an author sheet beats the `hidden` attribute's
+    # user-agent rule, which is the only reason that works.
+    #
+    # ⚠️ A no-JS reader gets the BODY and not the sidebar entries, the one place
+    # the two halves of this feature genuinely disagree. Injecting nav needs a
+    # decryption and there is no non-JS way to do one. Stated rather than
+    # papered over: the content is reachable, the menu is not.
     return (
         _field("curtain", curtain + redirects, prompt, subtree, anchor)
+        + _BOOT
         + "<noscript><style>"
         + ".dr-curtain{display:block !important}.dr-router{display:none}"
         + "</style></noscript>"
