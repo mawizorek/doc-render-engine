@@ -159,9 +159,19 @@ def _prune(items: list) -> list:
 # input." Decision Log Q10 -> J14, option B.
 #
 # Before this, `router:` curtained the page BODY and had no opinion about the
-# sidebar, so a folder's children were printed on every page of the site --
-# including the home page -- to a reader who never typed anything. The section
-# name was withheld and the table of contents was not.
+# sidebar at all, so a routed folder's children were listed to any reader who
+# had not typed anything. The section NAME was withheld and its table of
+# contents was not.
+#
+# ⚠️ AND THE FIRST VERSION OF THIS COMMENT OVERSTATED THAT, WHICH IS WORTH
+# LEAVING IN. It said the children were printed "on every page of the site,
+# including the home page." They were not: `navigation.prune` is enabled in
+# mkdocs.yml, so Material renders only the ancestors and siblings of the active
+# page -- the subtree appeared once a reader was already ON or UNDER the routed
+# index. That is exactly the screenshot Michael sent, so the complaint stands
+# unchanged and the feature is unaffected. The claim about its REACH was written
+# without being checked, in a file whose whole subject is claims that were not
+# checked.
 #
 # WHAT THIS DOES NOT DO, and it is the same sentence prune_nav has always
 # carried: it does not unbuild anything. Every sealed page still renders, still
@@ -190,7 +200,7 @@ def _prune(items: list) -> list:
 # on the router's own form, and a form only renders on a page that declares or
 # inherits the router. So an unlocked reader sees the revealed subtree on every
 # page INSIDE the routed folder, and the section collapses again on pages
-# outside it -- the home page, a sibling section -- until they navigate back.
+# outside it -- a sibling section, the home page -- until they navigate back.
 # The alternative is shipping the ciphertext into every page on the site, which
 # is more machinery for a cosmetic consistency. Revisit if it actually annoys
 # somebody.
@@ -261,8 +271,9 @@ def _collect(node, out: list, depth: int) -> None:
     index = _index_page(node)
 
     # A folder with an index page is ONE entry pointing at that page -- the
-    # sidebar has always shown it that way, and instance.py has already given
-    # the section the index page's own title. A folder without one is a label.
+    # sidebar has always shown it that way (`navigation.indexes` is on), and
+    # instance.py has already given the section the index page's own title. A
+    # folder without one is a label with nowhere to go.
     entry = {"t": _title(node), "d": depth}
     if index is not None:
         entry["u"] = index.file.url
@@ -350,7 +361,8 @@ def prune_nav(nav, config, files):
     ORDER WITHIN THIS FUNCTION IS ALSO LOAD-BEARING: unlisted first, routers
     second. An unlisted page inside a routed folder must not be sealed and
     revealed -- it was never in the sidebar to begin with, and injecting it on
-    unlock would put a deliberately unlisted page into a menu.
+    unlock would put a deliberately unlisted page into a menu. `safety/` has
+    exactly that case in it today.
 
     WHAT THIS DOES NOT DO: unbuild anything. Every pruned or sealed page still
     renders, still has a live URL, and is still linkable by `@id` from any other
