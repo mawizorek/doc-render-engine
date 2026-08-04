@@ -52,19 +52,48 @@ PEERS: dict = {}
 #: read one parse of one file rather than open it again.
 REVLOG: list = []
 
+#: The nav entries a ROUTED folder index took out of the sidebar, keyed by the
+#: src_uri of that index page. Written by visibility.prune_nav (stage 00b),
+#: read by router.py (stage 04b), which seals each list under the page's own
+#: codes and ships it as ciphertext.
+#:
+#: Shape, one entry per routed index:
+#:
+#:     anchor  the index page's own build url, so the client can find the one
+#:             sidebar link it has to inject underneath
+#:     items   the pruned entries in nav order. `t` title, `d` depth, and `u`
+#:             the page's build url -- ABSENT on a folder heading, which is a
+#:             label rather than a destination.
+#:
+#: ⭐ THIS IS THE ONE VALUE IN THIS FILE THAT GENUINELY CANNOT LIVE ANYWHERE
+#: ELSE, worth saying because REVLOG above is honest about being here by
+#: preference. Nav membership is decided in `on_nav`; the form that unseals it
+#: is built in `on_page_content`. MkDocs runs EVERY hook's on_nav before ANY
+#: hook's on_page_content, so those are two different events -- not two lines
+#: that could have been moved next to each other.
+#:
+#: ⚠️ `u` is the build url exactly as MkDocs made it, root-relative and NOT
+#: resolved against anything. Resolving it against the page doing the asking is
+#: router.py's job, through util.relative_url. Two hooks have already shipped
+#: the separator-counting version of that maths (see util.py) and a sealed url
+#: gets it wrong INVISIBLY: nothing renders until somebody types a correct
+#: code, and then it 404s.
+NAV_SEALED: dict = {}
+
 #: Everything the build wants to tell a human. Printed in one block at the end
 #: rather than scattered through 400 lines of output where nobody reads it.
 REPORT: dict = {}
 
 
 def reset() -> None:
-    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REVLOG, REPORT
+    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REVLOG, NAV_SEALED, REPORT
     INSTANCE = {}
     TYPES = {}
     BY_SRC = {}
     PAGES = {}
     PEERS = {}
     REVLOG = []
+    NAV_SEALED = {}
     REPORT = {
         # Order here is the order the report prints, and it is deliberate:
         # a duplicate KEY is usually the CAUSE of the complaints under it, so
@@ -86,6 +115,10 @@ def reset() -> None:
         "dead_links": [],
         "stale_xref": [],
         "markers": [],
+        # Nav sealing reports in here too, deliberately rather than in a bucket
+        # of its own: somebody asking what the routers did wants the curtain
+        # and the sealed subtree in one place, because each is misleading on
+        # its own.
         "routers": [],
         "oversize": [],
         "leaks": [],

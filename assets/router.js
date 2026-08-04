@@ -17,6 +17,14 @@
  * What the hash buys is that the page does not hand out the CODE. See
  * docrender/router.py for the full reasoning.
  *
+ * AND ONE THING THAT IS GENUINELY SEALED: THE NAV MANIFEST (DL J14).
+ * A routed folder's children are removed from the sidebar at build time, and
+ * the list of them ships as ciphertext in `data-subtree`. The code that opens
+ * the curtain decrypts it, and the entries are injected under the section's own
+ * sidebar link. The body being plaintext and the manifest being sealed is not
+ * an inconsistency: the body was never claimed to be protected, whereas a
+ * manifest in the clear would defeat the only thing this feature does.
+ *
  * An unlock is remembered for the session, so one code opens every curtain it
  * fits. sessionStorage, not localStorage: closing the tab re-locks, because a
  * shared machine in a shop or a booth is the normal case here.
@@ -46,12 +54,16 @@
     return btoa(out);
   }
 
-  function routes() {
+  function decode(attr) {
     try {
-      return JSON.parse(atob(form.dataset.routes)) || [];
+      return JSON.parse(atob(attr)) || [];
     } catch (e) {
       return [];
     }
+  }
+
+  function routes() {
+    return decode(form.dataset.routes);
   }
 
   function held() {
@@ -88,6 +100,16 @@
     });
   }
 
+  function open(code, entry) {
+    return derive(code, entry.s).then(function (key) {
+      return crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: bytes(entry.n) }, key, bytes(entry.w)
+      );
+    }).then(function (plain) {
+      return new TextDecoder().decode(plain);
+    });
+  }
+
   /* One code against every entry, sequentially. A curtain entry has a hash to
    * match; a redirect entry has a sealed destination to decrypt. Sequential on
    * purpose: the common case is a handful of keys, and firing every PBKDF2 at
@@ -102,21 +124,95 @@
 
       if (entry.h) {
         return derive(code, entry.s, 'bits').then(function (raw) {
-          if (b64(raw) === entry.h) return { reveal: true };
+          /* The code travels with the result because the NAV manifest is
+           * sealed under this same code and has to be decrypted after the
+           * reveal. A hash cannot be reversed to recover it later. */
+          if (b64(raw) === entry.h) return { reveal: true, code: code };
           return next();
         }).catch(next);
       }
 
-      return derive(code, entry.s).then(function (key) {
-        return crypto.subtle.decrypt(
-          { name: 'AES-GCM', iv: bytes(entry.n) }, key, bytes(entry.w)
-        );
-      }).then(function (plain) {
-        return { go: new TextDecoder().decode(plain) };
+      return open(code, entry).then(function (plain) {
+        return { go: plain };
       }).catch(next);
     }
 
     return attempt(0);
+  }
+
+  /* ------------------------------------------------------------------------
+   * THE SIDEBAR
+   *
+   * The entries were removed from the nav at build time, so there is nothing
+   * to un-hide -- they have to be built. Rendered with our own classes rather
+   * than Material's nested-nav markup, which needs a <nav>, a <label> and a
+   * hidden checkbox per level to work its expand/collapse machinery. We are
+   * inserting a flat list into an already-rendered tree; borrowing half of
+   * that structure would inherit its behaviour and none of its state.
+   * --------------------------------------------------------------------- */
+
+  function navAnchor() {
+    var href = form.dataset.subtreeAnchor;
+    if (!href) return null;
+
+    /* Scoped to the PRIMARY nav on purpose. The secondary nav is the
+     * table of contents, whose links are #fragments on the current page --
+     * so on the routed index page itself their pathname matches the anchor
+     * exactly, and an unscoped search would inject the menu into the TOC. */
+    var want = new URL(href, window.location.href).pathname;
+    var links = document.querySelectorAll('.md-nav--primary a.md-nav__link');
+    for (var i = 0; i < links.length; i++) {
+      if (new URL(links[i].href).pathname === want) return links[i];
+    }
+    return null;
+  }
+
+  function drawNav(items) {
+    var link = navAnchor();
+    if (!link || !items.length) {
+      /* Said out loud rather than returning quietly. A correct code that
+       * reveals the body and silently leaves the menu empty is exactly the
+       * kind of half-working feature this engine keeps digging out. */
+      if (!link) console.warn('docrender: nav anchor not found, menu not restored');
+      return;
+    }
+    if (link.parentNode.querySelector('.dr-nav-revealed')) return;
+
+    var list = document.createElement('ul');
+    list.className = 'dr-nav-revealed';
+
+    items.forEach(function (item) {
+      var row = document.createElement('li');
+      row.className = 'dr-nav-revealed__item';
+      row.setAttribute('data-d', String(item.d || 1));
+
+      /* An entry with no url is a folder heading, not a destination. */
+      var cell = document.createElement(item.u ? 'a' : 'span');
+      cell.className = 'dr-nav-revealed__link';
+      cell.textContent = item.t;
+      if (item.u) cell.href = item.u;
+
+      row.appendChild(cell);
+      list.appendChild(row);
+    });
+
+    link.parentNode.appendChild(list);
+  }
+
+  function revealNav(code) {
+    var wraps = form.dataset.subtree ? decode(form.dataset.subtree) : [];
+    if (!wraps.length || !code) return;
+
+    (function attempt(i) {
+      if (i >= wraps.length) return;
+      open(code, wraps[i]).then(function (plain) {
+        try {
+          drawNav(JSON.parse(plain));
+        } catch (e) { /* a manifest we cannot parse reveals nothing */ }
+      }).catch(function () {
+        attempt(i + 1);
+      });
+    })(0);
   }
 
   function apply(result) {
@@ -126,6 +222,7 @@
     }
     if (curtain) {
       curtain.hidden = false;
+      revealNav(result.code);
       form.remove();
     }
   }
@@ -156,7 +253,14 @@
    * Only for curtains: silently redirecting somebody who just arrived would be
    * hostile, and they did not ask to go anywhere. The field is hidden while the
    * check runs so a page the reader can already open does not flash a prompt
-   * and read as broken. */
+   * and read as broken.
+   *
+   * This is also what carries the revealed MENU across a folder: every page
+   * under a routed index inherits the router, so each one ships its own sealed
+   * manifest, and a held code re-injects the sidebar on arrival. A page OUTSIDE
+   * the routed folder has no form and therefore no manifest, so the section
+   * collapses again out there -- the known limit, written up in
+   * docrender/visibility.py. */
   if (curtain && held().length) {
     form.style.visibility = 'hidden';
 
