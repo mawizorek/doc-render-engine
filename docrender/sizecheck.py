@@ -46,6 +46,11 @@ THREE JOBS, all of which want to run last.
    built, so it is missing from the nav, so every link to it renders broken --
    three complaints, one cause, and only one of them worth reading first.
 
+   ⚠️ THE LOOP ITERATES `_LABELS`, NOT `state.REPORT`. A bucket declared in
+   state.reset() with no label here is collected all build and then dropped
+   without a word -- a check that runs, finds things, and tells nobody. Adding
+   a report section is always two edits, and the note is in both files.
+
    ⭐ Two sections are INVENTORY rather than complaints, and they are the most
    useful things here. `markers` lists every tbc / verify / gap / est / was on
    the site; `routers` lists every router and what kind it is. Neither counts
@@ -81,6 +86,8 @@ _LABELS = {
                      "usually explain everything below",
     "missing_status": "Pages with no usable status (NOT BUILT)",
     "missing_required": "Missing required fields",
+    "body_lede": "Lede in the wrong place -- `summary:` is the lede now, and "
+                 "these pages have it somewhere else (or nowhere)",
     "unknown_type": "Undeclared types (fell back to 'page')",
     "duplicate_id": "Duplicate ids",
     "dead_links": "Broken references (rendered as visible markers)",
