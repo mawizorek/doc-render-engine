@@ -1,15 +1,14 @@
 # A technical standard or a policy: the settled answer to a recurring question.
 #
-# `authority` and `review_cycle` exist because a standard with neither is
-# folklore. Who decided this, and when does somebody check it is still true.
+# ⚠️ applies_to, authority and review_cycle were REMOVED 2026-08-03 with the
+# rest of the spec-table fields.
+#
+# The argument they carried is still true and worth keeping in prose: a
+# standard that does not say who decided it, and when somebody next checks it,
+# is folklore. That is a reason to WRITE those facts on the page. It was never
+# a reason to put them in a header where only the renderer could see them --
+# and the renderer did nothing with them but print them back out.
 
 type: standard
 label: Standard
 extends: _base
-optional:
-  - applies_to
-  - authority
-  - review_cycle
-renders:
-  - spec_table: [applies_to, authority, review_cycle]
-  - callout_if_missing: [authority]
