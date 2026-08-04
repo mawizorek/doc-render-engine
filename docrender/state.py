@@ -57,6 +57,13 @@ def reset() -> None:
         "duplicate_key": [],
         "missing_status": [],
         "missing_required": [],
+        # Same rule one rung down: a page with no `summary` reports in
+        # missing_required AND here, and the terser statement of the fact
+        # should be read first. This bucket is the one that says what to DO
+        # about it -- move this paragraph, delete that one, the title and the
+        # H1 disagree -- so it earns its place under the plain list of what is
+        # absent rather than above it.
+        "page_head": [],
         "unknown_type": [],
         "duplicate_id": [],
         "dead_links": [],
