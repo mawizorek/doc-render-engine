@@ -109,6 +109,54 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * PRE-PAINT STATES (DL J17)
+ *
+ * Set on <html> by the inline `_BOOT` script docrender/router.py emits right
+ * after the form -- during PARSE, before the first paint. That timing is the
+ * entire point: router.js is loaded at the end of the body, so by the time it
+ * could hide anything the form has already been painted, which is the flash
+ * Michael reported.
+ *
+ *   .dr-open      a cached verifier already matched an entry on this page, so
+ *                 the reader has proven the code earlier in this session. Body
+ *                 shown, form gone, and no crypto runs at all.
+ *   .dr-checking  keys are held but none is cached for this page's salt. The
+ *                 outcome is genuinely unknown, so the form is held back while
+ *                 the derivation runs and router.js puts it back if all fail.
+ *                 `visibility` rather than `display` on purpose -- the space
+ *                 stays reserved, so a failed check drops the form into place
+ *                 without shifting the page under a reader's cursor.
+ *
+ * ⚠️ NEITHER CLASS EVER HIDES THE BODY, and no rule here may be written that
+ * does. `hidden` on the curtain stays the ONE thing withholding content, so a
+ * reader whose JS fails mid-flight cannot end up on a blank page.
+ * ------------------------------------------------------------------------ */
+.dr-open .dr-router {
+  display: none;
+}
+
+/* Beats the user-agent `[hidden] { display: none }` rule, which is the same
+ * mechanism the <noscript> block in router.py relies on. */
+.dr-open .dr-curtain[hidden] {
+  display: block !important;
+}
+
+/* 🔴 AND THIS RULE IS LOAD-BEARING, NOT TIDINESS. On the warm path the body is
+ * already on screen at paint, then router.js drops the `hidden` attribute so
+ * assistive technology stops treating it as hidden -- which makes
+ * `.dr-curtain:not([hidden])` start matching and would fade in content the
+ * reader is already looking at. Suppressed here rather than by removing the
+ * class in JS, because a class removed in the same tick cannot be relied on to
+ * still be present when style is recalculated. */
+.dr-open .dr-curtain {
+  animation: none !important;
+}
+
+.dr-checking .dr-router {
+  visibility: hidden;
+}
+
+/* ---------------------------------------------------------------------------
  * THE REVEALED SIDEBAR (DL J14)
  *
  * A routed folder's children are removed from the nav at build time and their
@@ -186,6 +234,14 @@ span.dr-nav-revealed__link {
 .dr-nav-revealed__item[data-d="2"] .dr-nav-revealed__link { padding-left: 1.75rem; }
 .dr-nav-revealed__item[data-d="3"] .dr-nav-revealed__link,
 .dr-nav-revealed__item[data-d="4"] .dr-nav-revealed__link { padding-left: 2.5rem; }
+
+/* ⚠️ The WARM path gets no stagger either, for the same reason the curtain gets
+ * no fade: a reader who already holds the code is navigating inside a folder
+ * they have opened, and re-animating the menu on every page would turn a fixed
+ * sidebar into something that twitches. */
+.dr-open .dr-nav-revealed__item {
+  animation: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .dr-nav-revealed__item {

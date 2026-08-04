@@ -1,33 +1,56 @@
-/* Client half of the router. Server half is docrender/router.py.
+/* Client half of the router. Server half is docrender/router.py, and the
+ * crypto it pairs with is docrender/seal.py.
  *
- * THESE TWO FILES SHARE THE KDF AND THE ITERATION COUNT. Change one without
- * the other and every router silently stops working, with no error a reader
- * could act on. They move in the same PR, always.
+ * ⚠️ THIS FILE AND docrender/seal.py SHARE THE KDF AND THE ITERATION COUNT.
+ * Change one without the other and every router silently stops working, with no
+ * error a reader could act on. They move in the same PR, always. The count is
+ * read off `data-iter` rather than hardcoded here, so there is one source for
+ * it -- but the pairing still has to be verified, because a mismatch is
+ * invisible.
  *
  * TWO MODES, read off `data-mode`:
  *
  *   curtain   the page's own body is sitting hidden in the DOM. Verify the
- *             code against a PBKDF2 hash and reveal it in place.
+ *             code against a PBKDF2 verifier and reveal it in place.
  *   redirect  each destination is sealed under its key. Try the code against
  *             each until one decrypts, then navigate there.
  *
- * Why curtain verifies a hash instead of decrypting: there is nothing to
- * decrypt. The body is hidden, not encrypted -- deliberately, because the
- * markdown is public in the content repo and encrypting it would be theatre.
- * What the hash buys is that the page does not hand out the CODE. See
- * docrender/router.py for the full reasoning.
+ * Why curtain verifies instead of decrypting: there is nothing to decrypt. The
+ * body is hidden, not encrypted -- deliberately, because the markdown is public
+ * in the content repo and encrypting it would be theatre. What the verifier
+ * buys is that the page does not hand out the CODE.
  *
- * AND ONE THING THAT IS GENUINELY SEALED: THE NAV MANIFEST (DL J14).
- * A routed folder's children are removed from the sidebar at build time, and
- * the list of them ships as ciphertext in `data-subtree`. The code that opens
- * the curtain decrypts it, and the entries are injected under the section's own
- * sidebar link. The body being plaintext and the manifest being sealed is not
- * an inconsistency: the body was never claimed to be protected, whereas a
- * manifest in the clear would defeat the only thing this feature does.
+ * AND TWO THINGS THAT ARE GENUINELY SEALED: redirect destinations, and THE NAV
+ * MANIFEST (DL J14). A routed folder's children are removed from the sidebar at
+ * build time and the list of them ships as ciphertext in `data-subtree`. The
+ * code that opens the curtain decrypts it and the entries are injected under
+ * the section's own sidebar link.
  *
- * An unlock is remembered for the session, so one code opens every curtain it
- * fits. sessionStorage, not localStorage: closing the tab re-locks, because a
- * shared machine in a shop or a booth is the normal case here.
+ * =========================================================================
+ * THE WARM PATH: A HELD CODE COSTS NO CRYPTO AT ALL (DL J17)
+ * =========================================================================
+ * Michael, on the version before this one: "it's still like loading the menu
+ * each time and passing it immediately which seems like bad architecture."
+ *
+ * It was. Every page used to mint its own salt, so a code already typed had to
+ * be re-derived at 120,000 iterations on arrival, per key, in sequence, while
+ * the reader watched. Now the salt is stable per build, so the DERIVED VERIFIER
+ * is cached beside the code and a later page is a string comparison.
+ * router.py's inline `_BOOT` script does that comparison BEFORE FIRST PAINT and
+ * leaves us one of two classes on <html>:
+ *
+ *   dr-open      already proven. Reveal, inject nav, remove the form. No
+ *                derivation runs on this path at all.
+ *   dr-checking  keys held, none cached (first unlock of the session, or the
+ *                first page after a deploy moved the salt). Form held back
+ *                while we derive; we put it back if every key fails.
+ *
+ * ⚠️ WHAT IS CACHED IS NOT A SECRET. The verifier is printed in the page it
+ * unlocks -- caching it stores something already public. The CODE is in
+ * sessionStorage either way, and has been since this file was written.
+ *
+ * sessionStorage, not localStorage: closing the tab re-locks, because a shared
+ * machine in a shop or a booth is the normal case here.
  */
 
 (function () {
@@ -42,6 +65,7 @@
   var error = form.querySelector('.dr-router__error');
   var curtain = document.querySelector('.dr-curtain');
   var iterations = parseInt(form.dataset.iter, 10);
+  var root = document.documentElement;
 
   function bytes(s) {
     return Uint8Array.from(atob(s), function (c) { return c.charCodeAt(0); });
@@ -66,21 +90,57 @@
     return decode(form.dataset.routes);
   }
 
+  /* Held keys, normalised. An entry is {k: code, s: salt, h: verifier}, where
+   * s and h are absent until a code has been proven once.
+   *
+   * ⚠️ TOLERATES THE OLD FORMAT ON PURPOSE. This store used to be a list of
+   * bare code strings, and a reader can be mid-session when a deploy lands. A
+   * string becomes {k: string} with no cached verifier, which is the slow path
+   * -- correct, just not warm. Dropping them instead would log somebody out
+   * mid-visit for a reason they could never work out. */
   function held() {
+    var raw;
     try {
-      var keys = JSON.parse(sessionStorage.getItem(STORE));
-      return Array.isArray(keys) ? keys : [];
+      raw = JSON.parse(sessionStorage.getItem(STORE));
     } catch (e) {
       return [];
     }
+    if (!Array.isArray(raw)) return [];
+    return raw.map(function (e) {
+      return typeof e === 'string' ? { k: e } : e;
+    }).filter(function (e) { return e && e.k; });
   }
 
-  function remember(code) {
-    var keys = held().filter(function (k) { return k !== code; });
-    keys.unshift(code);
+  function remember(code, entry) {
+    var keep = { k: code };
+    /* Only a CURTAIN verifier is cacheable. A redirect entry has no `h`, and
+     * caching its salt would let the warm path claim a match that proves
+     * nothing about this page. */
+    if (entry && entry.h) {
+      keep.s = entry.s;
+      keep.h = entry.h;
+    }
+    var keys = held().filter(function (e) { return e.k !== code; });
+    keys.unshift(keep);
     try {
       sessionStorage.setItem(STORE, JSON.stringify(keys.slice(0, LIMIT)));
     } catch (e) { /* private mode: unlocking works, it just is not sticky */ }
+  }
+
+  /* The code whose cached verifier matched an entry on THIS page. The boot
+   * script proved a match but cannot hand us a value, so we recompute which
+   * one it was -- string comparisons, no crypto. */
+  function warmCode() {
+    var all = routes();
+    var keys = held();
+    for (var i = 0; i < keys.length; i++) {
+      var c = keys[i];
+      if (!c.h) continue;
+      for (var j = 0; j < all.length; j++) {
+        if (all[j].h && all[j].s === c.s && all[j].h === c.h) return c.k;
+      }
+    }
+    return null;
   }
 
   function derive(code, salt, usage) {
@@ -110,10 +170,10 @@
     });
   }
 
-  /* One code against every entry, sequentially. A curtain entry has a hash to
-   * match; a redirect entry has a sealed destination to decrypt. Sequential on
-   * purpose: the common case is a handful of keys, and firing every PBKDF2 at
-   * once would burn a phone's battery to save nothing measurable. */
+  /* One code against every entry, sequentially. A curtain entry has a verifier
+   * to match; a redirect entry has a sealed destination to decrypt. Sequential
+   * on purpose: the common case is a handful of keys, and firing every PBKDF2
+   * at once would burn a phone's battery to save nothing measurable. */
   function resolve(code) {
     var all = routes();
 
@@ -124,10 +184,11 @@
 
       if (entry.h) {
         return derive(code, entry.s, 'bits').then(function (raw) {
-          /* The code travels with the result because the NAV manifest is
-           * sealed under this same code and has to be decrypted after the
-           * reveal. A hash cannot be reversed to recover it later. */
-          if (b64(raw) === entry.h) return { reveal: true, code: code };
+          /* The code and the matched entry both travel with the result: the
+           * code because the nav manifest is sealed under it and a verifier
+           * cannot be reversed, the entry because its salt and verifier are
+           * what get cached for the warm path. */
+          if (b64(raw) === entry.h) return { reveal: true, code: code, entry: entry };
           return next();
         }).catch(next);
       }
@@ -237,7 +298,7 @@
     button.textContent = 'Checking';
 
     resolve(code).then(function (result) {
-      remember(code);
+      remember(code, result.entry);
       apply(result);
     }).catch(function () {
       error.hidden = false;
@@ -248,34 +309,67 @@
     });
   });
 
-  /* Already hold a working code this session? Open without asking.
+  /* ------------------------------------------------------------------------
+   * ARRIVAL
    *
-   * Only for curtains: silently redirecting somebody who just arrived would be
-   * hostile, and they did not ask to go anywhere. The field is hidden while the
-   * check runs so a page the reader can already open does not flash a prompt
-   * and read as broken.
+   * Only curtains open by themselves. Silently redirecting somebody who just
+   * arrived would be hostile -- they did not ask to go anywhere.
    *
    * This is also what carries the revealed MENU across a folder: every page
-   * under a routed index inherits the router, so each one ships its own sealed
+   * under a routed index inherits the router, so each ships its own sealed
    * manifest, and a held code re-injects the sidebar on arrival. A page OUTSIDE
    * the routed folder has no form and therefore no manifest, so the section
    * collapses again out there -- the known limit, written up in
-   * docrender/visibility.py. */
-  if (curtain && held().length) {
-    form.style.visibility = 'hidden';
+   * docrender/visibility.py.
+   * --------------------------------------------------------------------- */
+  if (!curtain) return;
 
-    var keys = held();
-    (function tryKey(i) {
-      if (i >= keys.length) {
-        form.style.visibility = '';
-        return;
-      }
-      resolve(keys[i]).then(function (result) {
-        if (result.reveal) return apply(result);
-        tryKey(i + 1);
-      }).catch(function () {
-        tryKey(i + 1);
-      });
-    })(0);
+  /* WARM. The boot script already proved a cached verifier matches, so the body
+   * is showing and the form is hidden -- both from CSS, before paint. Nothing
+   * here re-derives anything; it finishes the job by dropping the `hidden`
+   * attribute (CSS was only overriding its DISPLAY, and assistive technology
+   * reads the attribute), decrypting the nav, and taking the dead form out.
+   *
+   * ⚠️ `dr-open` IS DELIBERATELY LEFT ON <html>. Removing it looks like tidying
+   * up and would reintroduce the exact flash this whole change removes: the
+   * curtain's fade-in keys off `.dr-curtain:not([hidden])`, which starts
+   * matching the moment the line below runs, so a body that was already on
+   * screen would animate in a second time. router.css suppresses that with a
+   * `.dr-open` rule, and a class removed in the same tick cannot be relied on
+   * to still be there when style is recalculated. */
+  if (root.classList.contains('dr-open')) {
+    curtain.hidden = false;
+    revealNav(warmCode());
+    form.remove();
+    return;
   }
+
+  /* COLD, with keys held. Nothing is cached for this page's salt, so the trial
+   * has to run. `dr-checking` is holding the form back; it comes off whether we
+   * succeed or fail, because a form nobody can see is worse than a flash. */
+  var keys = held();
+  if (!keys.length) {
+    root.classList.remove('dr-checking');
+    return;
+  }
+
+  (function tryKey(i) {
+    if (i >= keys.length) {
+      root.classList.remove('dr-checking');
+      return;
+    }
+    resolve(keys[i].k).then(function (result) {
+      if (result.reveal) {
+        /* Cache it now. This is the ONLY place a code held from a previous
+         * page gets its verifier, so without this line every navigation after
+         * a deploy would stay on the cold path forever. */
+        remember(keys[i].k, result.entry);
+        root.classList.remove('dr-checking');
+        return apply(result);
+      }
+      tryKey(i + 1);
+    }).catch(function () {
+      tryKey(i + 1);
+    });
+  })(0);
 })();

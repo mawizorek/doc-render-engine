@@ -80,13 +80,38 @@ REVLOG: list = []
 #: code, and then it 404s.
 NAV_SEALED: dict = {}
 
+#: ONE PBKDF2 salt for every curtain VERIFIER on this build, minted on first
+#: use by router.py and used by every `_check()` call on every page.
+#:
+#: ⭐ WHY THIS IS SHARED RATHER THAN PER-PAGE, WHICH IS WHAT IT WAS UNTIL
+#: 2026-08-04. A fresh salt per page meant a code the reader had ALREADY typed
+#: had to be re-derived at 120,000 iterations against a brand-new salt on every
+#: single page view -- so nothing could be cached, and each navigation paid
+#: 100-200ms per held key before the body appeared. Michael watched it happen:
+#: "it's still like loading the menu each time and passing it immediately which
+#: seems like bad architecture." It was. A shared salt makes the derived
+#: verifier reusable, so the second page costs a string comparison.
+#:
+#: ⚠️ AND IT COSTS NOTHING, WHICH IS THE PART TO CHECK BEFORE ANYBODY
+#: "HARDENS" IT BACK. A salt exists to stop ONE precomputed table being reused
+#: against many targets. Every page on a site ships the same set of codes, so
+#: per-page salts were defending the same secret from itself. The salt is still
+#: random per build, so a table built against yesterday's deploy is worthless.
+#:
+#: 🚫 THIS IS FOR VERIFIERS ONLY. `router.py:_wrap` keeps its own random salt
+#: and nonce per call, and must: that is AES-GCM ENCRYPTION, where reusing key
+#: material across different plaintexts is a real weakness rather than a
+#: cosmetic one. Do not tidy the two into one salt.
+ROUTER_SALT: bytes = b""
+
 #: Everything the build wants to tell a human. Printed in one block at the end
 #: rather than scattered through 400 lines of output where nobody reads it.
 REPORT: dict = {}
 
 
 def reset() -> None:
-    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REVLOG, NAV_SEALED, REPORT
+    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REVLOG, NAV_SEALED
+    global ROUTER_SALT, REPORT
     INSTANCE = {}
     TYPES = {}
     BY_SRC = {}
@@ -94,6 +119,7 @@ def reset() -> None:
     PEERS = {}
     REVLOG = []
     NAV_SEALED = {}
+    ROUTER_SALT = b""
     REPORT = {
         # Order here is the order the report prints, and it is deliberate:
         # a duplicate KEY is usually the CAUSE of the complaints under it, so
