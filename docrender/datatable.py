@@ -1,15 +1,16 @@
 """Stage 01b -- render a TSV sitting next to a page as a table.
 
 Decision history: doc-render-engine (repo) Decision Log in ClickUp, blocks J4/J5/J7/J17
-and Q3/Q4/Q5/Q8/Q9. **The argument lives THERE; this file states the contract.** That
-split is not a style preference -- this docstring has twice grown until the module failed
+and J20/J21. **The argument lives THERE; this file states the contract.** That split is
+not a style preference -- this docstring has three times grown until the module failed
 the size gate it enforces on everybody else.
 
-THREE MODULES, ONE FEATURE:
+FOUR MODULES, ONE FEATURE:
 
-    sheet.py    reading and shaping a TSV. Rows, header, sections, options, order, KIND.
+    sheet.py    reading and shaping a TSV. Rows, header, sections, options, order, kind.
     cells.py    one cell as prose. Markers, @refs, inline markdown, escaping.
-    this file    the frontmatter contract, the `!!! data` block, and the HTML.
+    table.py    shaped rows -> markup. Column classes, roles, labels, money, the shell.
+    this file   the frontmatter contract and the `!!! data` block.
 
 
 WHY DATA FILES ARE ALLOWED IN THE CONTENT TREE
@@ -44,40 +45,33 @@ THE CONTRACT
 body is byte-identical between Audio, LX and Video -- the whole reason this exists.
 
 ⚠️ Slot names belong to the TYPE (`objects/<type>.yml` → `data_slots`); an undeclared key
-is reported. That is what makes a copied paragraph safe rather than merely conventional.
-
-⚠️ ONE FRONTMATTER FORM. A slot is always a map with `file:`. Neither `slot: name.tsv` nor
-the old `data: [x.tsv]` list is a second legal spelling; the list form is reported by
-name, because an ignored key looks exactly like the feature never having worked.
-
-⚠️ The embed carries NO label -- the slot name and the heading above it already say it, and
-a label there is a second copy to keep in sync. The mention carries one because a sentence
-needs words. `data` is now a reserved admonition type; no genuine `!!! data` callout ever
-again.
+is reported. ⚠️ ONE FRONTMATTER FORM: a slot is always a map with `file:`. The old list
+form is reported by name, because an ignored key looks exactly like the feature never
+having worked. ⚠️ The embed carries NO label; the mention carries one because a sentence
+needs words. `data` is a reserved admonition type.
 
 
-EVERY CELL IS PROSE, AND EVERY COLUMN HAS A KIND
-================================================
+WHAT THE SHEET ITSELF CAN SAY
+=============================
 
-    Grid height\t[18'-0\"]{.est}\t\tmeasured off the old plot
-    Console\t[QL5](@term:yamaha-ql5)\t1\t**do not** repatch
+    thtr::id.key    slug    title::.key    credits::num    unit_cost::money
 
-A cell says anything a line of body text can say inline, and renders identically, because
-`cells.py` hands it to the same hooks the page body goes through. **Read that module
-before changing this one:** it carries the escaping order, the reason markers in cells
-used to emerge as entity gibberish, and the limits (no block markdown, raw HTML trusted).
+A header cell may DECLARE its column's type and role -- `sheet.split_header`, which also
+carries why derivation alone is not enough. It runs BEFORE `apply_options` here, so an
+option saying `sort: credits` still matches a column headed `credits::num`.
 
-⭐ MARKUP CANNOT REORDER A SHEET, which was the one non-negotiable -- see
-`sheet.sort_within_sections`. ⚠️ But a SPREADSHEET cannot read a marked cell as a number
-at all, and nothing here can fix that. A separate confidence COLUMN is still the end state
-(J17); in-cell marking ships because that column needs a FileMaker field to feed it.
+A cell may say anything a line of body text can say inline: markers, `@` references,
+bold, code. `cells.py` owns that, and owns the escaping order that makes it safe.
 
-⭐ `sheet.classify_columns` returns `num` / `tok` / `prose` per column, DERIVED from the
-values, and this module writes it on every cell as `dr-col--<kind>`. There is no option and
-no frontmatter key: a sheet declares its own shape. `assets/data.css` decides what each
-kind looks like; the consequence that matters is that **a prose column wraps and nothing
-else does**, because with nowrap everywhere the longest sentence in the sheet set the
-scroll width of the whole table. Reasoning: `classify_columns`, and DL J20.
+⭐ MARKUP CANNOT REORDER A SHEET (`sheet.sort_within_sections`). ⚠️ But a SPREADSHEET
+cannot read a marked cell as a number, and nothing here can fix that (J17).
+
+⭐ **THE RENDERER NEVER LEARNS WHAT DEVICE IT IS ON, AND CANNOT.** MkDocs builds one file
+and Pages serves those same bytes to every reader -- there is no request, no viewport, no
+user agent at build time. So `table.py` marks ROLES and `assets/data.css` restructures at
+read time with a CONTAINER query. One artifact, so a phone and a laptop cannot disagree
+about what the data says; and a container query rather than a viewport one because a table
+is a component, so it answers to the space it is given and not to the size of the glass.
 
 
 FAILURE POSTURE
@@ -89,34 +83,26 @@ is reported rather than silent, and it is the most important paragraph in this f
 
 NOT PROVIDED: filters, totals, renames, computed columns. Those edit the data and the
 sheet is the source of truth. `hide` is allowed because dropping a column from a VIEW does
-not change what the sheet says.
+not change what the sheet says. ⚠️ The one exception, deliberately narrow and argued in
+`table.py`, is that a `money` cell is padded to two decimals.
 
-⚠️ `pin:` EMITS MARKUP THE STYLESHEET DOES NOT YET HONOUR. The class is on the cells; the
-sticky rule is held until the older frozen-column claim is verified on the deployed site.
-Shipping CSS onto an unverified mechanism is the same silent failure one layer up.
+⚠️ `pin:` EMITS MARKUP THE STYLESHEET DOES NOT YET HONOUR. The sticky rule is held until
+the older frozen-column claim is verified on the deployed site. Shipping CSS onto an
+unverified mechanism is the same silent failure one layer up.
 
 
-THREE TRAPS IN THE HTML
-=======================
+THE TRAP THAT LIVES IN THIS FILE
+================================
 
 🐛 The download link was a 404 on every non-index page until 2026-08-04 while the comment
 beside it asserted a bare filename was correct: under `use_directory_urls` a page at
-`lighting/x.md` serves from `lighting/x/` while its TSV stays a sibling at
-`lighting/x.tsv`. It goes through `util.relative_url` now -- the helper that fixed the same
-class of bug in links.py, router.py and revlog.py. Do not go back to a bare filename, and
-do not count separators either.
+`lighting/x.md` serves from `lighting/x/` while its TSV stays a sibling. It goes through
+`util.relative_url` now -- the helper that fixed the same class of bug in links.py,
+router.py and revlog.py. Do not go back to a bare filename, and do not count separators.
 
-⚠️ THE TABLE CARRIES A CLASS AND THAT IS LOAD-BEARING (2026-08-03). Material styles
-`.md-typeset table:not([class])` with `display: block` so wide tables can scroll.
-`display: block` destroys the internal table layout, and a `position: sticky` cell inside a
-non-table has no row context to stick within -- so the frozen header and first column
-silently did nothing. The class makes `:not([class])` stop matching. Do not remove it.
-
-🐛 A SECTION BAND'S LABEL LIVES IN AN INNER `<span>` (2026-08-04). The band is a `<th
-colspan="N">`, so its width IS the scroll width and `position: sticky; left: 0` on it has
-no slack to move within -- the heading scrolled away and read as `WARE [2000]` three
-columns in. The span can stick; the cell never could. Same shape as the trap above: sticky
-failing silently because the box it sits in cannot honour it.
+*(The two `sticky` traps moved to `table.py` with the code that carries them. A trap
+described in one file and implemented in another is the two-homes defect with extra
+steps.)*
 """
 
 from __future__ import annotations
@@ -126,7 +112,7 @@ import posixpath
 import re
 from pathlib import Path
 
-from . import cells, prefixes, sheet, state
+from . import prefixes, sheet, state, table
 from .util import relative_url
 
 _BLOCK = re.compile(r"^[ \t]*!!![ \t]+data[ \t]+\"(?P<slot>[^\"\n]+)\"[ \t]*$")
@@ -139,66 +125,6 @@ _OPTION = re.compile(r"^[ \t]+(?P<key>[A-Za-z_]+)[ \t]*:[ \t]*(?P<value>.*?)[ \t
 #: `href` is resolved RELATIVE TO THE PAGE, not a bare filename -- links.py hands it
 #: straight to a reader, so a wrong value here is a 404 in two places rather than one.
 PLACED: dict[str, dict[str, dict]] = {}
-
-
-def _klass(index: int, pinned: int, kinds: list[str]) -> str:
-    """The class attribute for one cell: its column's kind, plus the pin flag."""
-    names = []
-    if index < len(kinds):
-        names.append("dr-col--" + kinds[index])
-    if index == pinned:
-        names.append("dr-data__pin")
-    if not names:
-        return ""
-    return ' class="' + " ".join(names) + '"'
-
-
-def _draw(rows, href, filename, slot, caption, pinned, page) -> str:
-    """The table as finished HTML. Every cell goes through cells.render exactly once."""
-    header, body = rows[0], rows[1:]
-    span = len(header)
-    # Once per table, from the shaped rows -- so `hide:` has already run and the kinds line
-    # up with the columns that survive to be drawn.
-    kinds = sheet.classify_columns(rows)
-
-    out = ['<div class="dr-data" id="data-' + html.escape(slot) + '">']
-    if caption:
-        out.append('<p class="dr-data__caption">' + cells.render(caption, page) + "</p>")
-    # The class is required, not decorative -- see the module docstring.
-    out.append('<table class="dr-data__table">')
-    out.append("<thead><tr>")
-    for i, cell in enumerate(header):
-        label = "" if sheet.is_junk(cell) else cells.render(cell, page)
-        out.append("<th" + _klass(i, pinned, kinds) + ">" + label + "</th>")
-    out.append("</tr></thead>")
-    out.append("<tbody>")
-
-    records = 0
-    for row in body:
-        if sheet.is_section(row):
-            # The label is the sticky element, NOT the cell -- see the module docstring.
-            out.append(
-                '<tr class="dr-data__section"><th colspan="' + str(span) + '">'
-                + '<span class="dr-data__section-label">' + cells.render(row[0], page)
-                + "</span></th></tr>"
-            )
-            continue
-        records += 1
-        out.append("<tr>")
-        for i, cell in enumerate(row):
-            out.append(
-                "<td" + _klass(i, pinned, kinds) + ">" + cells.render(cell, page) + "</td>"
-            )
-        out.append("</tr>")
-
-    out.append("</tbody></table>")
-    out.append(
-        '<p class="dr-data__source">' + str(records) + " rows &middot; "
-        + '<a href="' + html.escape(href) + '" download>' + html.escape(filename)
-        + "</a></p>"
-    )
-    out.append("</div>")
-    return "\n".join(out)
 
 
 def _slots_for_type(type_name: str) -> list[str]:
@@ -396,14 +322,16 @@ def on_page_markdown(markdown, page, config, files):
             placed[slot]["anchor"] = False
             continue
 
+        # BEFORE apply_options, so `sort: credits` still matches `credits::num`.
+        rows, specs = sheet.split_header(rows, slot, src, state.note)
         rows, pinned, override = sheet.apply_options(
             rows, options, slot, src, state.note
         )
         caption = override if override is not None else entry["caption"]
         replacements.append((
             start, end,
-            _draw(rows, href_for(entry["file"]), entry["file"], slot, caption, pinned,
-                  page),
+            table.draw(rows, specs, href_for(entry["file"]), entry["file"], slot,
+                       caption, pinned, page),
         ))
 
     for slot in declared:
