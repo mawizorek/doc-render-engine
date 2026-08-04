@@ -7,6 +7,16 @@ THREE JOBS, all of which want to run last.
    quietly breaks. 22KB hard, 18KB warn. v1 was over budget in four places and
    that is the single largest reason v2 was a rewrite rather than a copy.
 
+   ⚠️ IT COVERS assets/ AS OF 2026-08-04, AND THE HOLE WAS FOUND BY SOMEBODY
+   CITING A WARNING THAT COULD NEVER HAVE FIRED. This scan walked content *.md
+   and docrender *.py and nothing else, so every stylesheet and script in the
+   engine was unbudgeted -- including the two largest files it owns. base.css
+   crossed the warn line and was split on the strength of a rule that was not
+   being enforced on it. The split was still correct: the read-whole limit is a
+   property of the READ PATH, not of this hook, and a stylesheet clips on a read
+   exactly like a module does. But an unenforced rule is a rule that survives
+   only as long as everybody remembers it, which is not a mechanism.
+
 2. LEAK SCAN. The engine is only portable while it contains no site-specific
    BEHAVIOUR, and that claim decays the instant nobody checks it.
 
@@ -76,6 +86,16 @@ GUIDE_KB = 12
 
 _SCAN_SUFFIXES = {".py", ".css", ".js", ".yml", ".yaml", ".tsv", ".json", ".txt"}
 
+#: What the size budget walks. `assets` joined on 2026-08-04 -- see job 1 above.
+#: ⚠️ A DATA FILE IS NOT SOURCE AND IS NOT BUDGETED. A 40KB TSV is a big
+#: spreadsheet, not an unreadable module: nothing edits it from a partial read,
+#: because nothing edits it at all. Budgeting content would turn a size gate into
+#: an opinion about how much documentation somebody is allowed to have.
+_ENGINE_SOURCE = (
+    ("docrender", (".py",)),
+    ("assets", (".css", ".js")),
+)
+
 # Buckets that are inventory, not defects. Present in the report, ignored when
 # deciding whether the build was clean.
 _INVENTORY = {"markers", "routers"}
@@ -104,7 +124,11 @@ def _scan_sizes() -> None:
     targets = []
     if content.is_dir():
         targets += [p for p in content.rglob("*.md") if ".git" not in p.parts]
-    targets += list((state.ENGINE_ROOT / "docrender").rglob("*.py"))
+    for folder, suffixes in _ENGINE_SOURCE:
+        root = state.ENGINE_ROOT / folder
+        if not root.is_dir():
+            continue
+        targets += [p for p in root.rglob("*") if p.suffix in suffixes]
 
     for path in targets:
         try:
