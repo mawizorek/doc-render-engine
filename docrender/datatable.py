@@ -81,6 +81,29 @@ disabled the block degrades to a visible box naming the slot, not to silence.
 One-way door, taken knowingly.
 
 
+EVERY CELL IS PROSE
+===================
+
+    Grid height	[18'-0"]{.est}		measured off the old plot
+    Console	[QL5](@term:yamaha-ql5)	1	**do not** repatch
+
+A cell says anything a line of body text can say inline -- confidence markers, `@` page
+and peer references, `@term:`, `@data:`, bold, emphasis, code -- and it renders
+identically, because `docrender/cells.py` hands the cell to the same link and marker
+hooks the page body goes through. Read that module before changing this one: it carries
+the escaping order, the reason markers in cells used to come out as entity gibberish, and
+the limits (no block markdown, raw HTML trusted).
+
+⭐ SORTING IS UNAFFECTED BY MARKUP, which was the one non-negotiable. `sort:` orders on
+`cells.plain()` -- the cell stripped back to bare text -- and orders NUMERICALLY when
+every value in the column is a number. `[18'-0"]{.est}` sorts as `18'-0"`, and `10` sorts
+after `9` rather than before it.
+
+⚠️ A SPREADSHEET CANNOT DO THIS, and nothing here can fix that. Any non-digit in a cell
+makes it text to Excel and Numbers. A separate confidence COLUMN remains the end state
+(DL J17); in-cell marking ships because that column needs a FileMaker field to feed it.
+
+
 OPTIONS, AND A FAILURE POSTURE THAT MATTERS MORE THAN THE OPTIONS
 ================================================================
 
@@ -119,18 +142,13 @@ WHAT IT UNDERSTANDS ABOUT REAL SPREADSHEETS
   * JUNK HEADERS. A header cell that is only punctuation renders blank, not as a name.
   * BLANK ROWS are skipped.
 
-It does NOT sort, filter, total or reinterpret on its own. The raw file publishes beside
-the page, so every table offers a download link to the exact TSV it was drawn from.
-
-🐛 AND THAT DOWNLOAD LINK WAS A 404, WHILE THE COMMENT BESIDE IT ASSERTED OTHERWISE.
-It said the href "is simply its name relative to the page's own URL", which is true only
-on an index page. Under `use_directory_urls: true` a page at `lighting/x.md` is served
-from `lighting/x/`, while its TSV stays a sibling file at `lighting/x.tsv` -- one level
-UP. So a bare filename resolved to `lighting/x/x.tsv` and downloaded nothing, on every
-data page in the family. Resolved through `util.relative_url` now, the same helper that
-fixed this identical class of bug in links.py, router.py and revlog.py (#41). ⚠️ Do not
-go back to a bare filename, and do not count separators either -- see that function for
-why the arithmetic version was wrong on exactly one page per site.
+The raw file publishes beside the page, so every table offers a download link to the
+exact TSV it was drawn from. 🐛 That link was a 404 on every non-index page until
+2026-08-04, while the comment beside it asserted a bare filename was correct: under
+`use_directory_urls` a page at `lighting/x.md` serves from `lighting/x/` while its TSV
+stays a sibling at `lighting/x.tsv`. It goes through `util.relative_url` now, the helper
+that fixed the same class of bug in links.py, router.py and revlog.py. Do not go back to
+a bare filename, and do not count separators either.
 
 ⚠️ THE TABLE CARRIES A CLASS AND THAT IS LOAD-BEARING (fixed 2026-08-03). Material
 styles `.md-typeset table:not([class])` with `display: block` so wide tables can scroll.
@@ -147,7 +165,7 @@ import posixpath
 import re
 from pathlib import Path
 
-from . import prefixes, state
+from . import cells, prefixes, state
 from .util import relative_url
 
 _BLOCK = re.compile(r"^[ \t]*!!![ \t]+data[ \t]+\"(?P<slot>[^\"\n]+)\"[ \t]*$")
@@ -166,7 +184,12 @@ PLACED: dict[str, dict[str, dict]] = {}
 
 
 def _norm(name) -> str:
-    return re.sub(r"\s+", " ", str(name)).strip().lower()
+    """Loose comparison key for a COLUMN NAME.
+
+    Runs through cells.plain first, so `**Count**` in a header still matches
+    `sort: count`. An option names what a reader sees, not what the author typed.
+    """
+    return re.sub(r"\s+", " ", cells.plain(name)).strip().lower()
 
 
 def _read_rows(path: Path) -> list[list[str]]:
@@ -176,9 +199,9 @@ def _read_rows(path: Path) -> list[list[str]]:
         return []
     rows = []
     for line in text.splitlines():
-        cells = [c.strip() for c in line.split("\t")]
-        if any(cells):
-            rows.append(cells)
+        cells_ = [c.strip() for c in line.split("\t")]
+        if any(cells_):
+            rows.append(cells_)
     return rows
 
 
@@ -197,8 +220,8 @@ def _trim_columns(rows: list[list[str]]) -> list[list[str]]:
     return [[r[i] for i in keep] for r in rows]
 
 
-def _is_section(cells: list[str]) -> bool:
-    return bool(cells) and bool(cells[0]) and not any(cells[1:])
+def _is_section(row: list[str]) -> bool:
+    return bool(row) and bool(row[0]) and not any(row[1:])
 
 
 def _column_index(header: list[str], wanted) -> int:
@@ -210,27 +233,55 @@ def _column_index(header: list[str], wanted) -> int:
 
 
 def _sort_within_sections(body, index: int):
-    """Order rows by one column, never moving a record across a section heading."""
+    """Order rows by one column, never moving a record across a section heading.
+
+    ⚠️ Two things this deliberately does NOT do.
+
+    It does not sort on the raw cell: a marked or linked value sorts on
+    `cells.plain()`, so markup cannot reorder a sheet. That was the constraint the whole
+    in-cell-prose feature had to satisfy.
+
+    It does not sort numbers as text unless it has to. A column whose every value is a
+    number sorts numerically -- otherwise `10` lands before `9`, which is the kind of
+    wrong nobody reports because it looks like an ordering choice.
+    """
+    records = [r for r in body if not _is_section(r)]
+    values = [cells.plain(r[index]) for r in records if index < len(r)]
+    numeric = bool(values) and all(
+        cells.number(v) is not None for v in values if v
+    )
+
+    def key(row):
+        raw = row[index] if index < len(row) else ""
+        text = cells.plain(raw)
+        if not text:
+            # Blanks last in both modes. A blank is "nobody has said", and floating it
+            # to the top of every section buries the rows that carry data.
+            return (1, 0.0, "")
+        if numeric:
+            return (0, cells.number(text) or 0.0, "")
+        return (0, 0.0, text.lower())
+
     out: list[list[str]] = []
     block: list[list[str]] = []
 
     def flush():
-        block.sort(key=lambda r: _norm(r[index]) if index < len(r) else "")
+        block.sort(key=key)
         out.extend(block)
         block.clear()
 
-    for cells in body:
-        if _is_section(cells):
+    for row in body:
+        if _is_section(row):
             flush()
-            out.append(cells)
+            out.append(row)
             continue
-        block.append(cells)
+        block.append(row)
     flush()
     return out
 
 
 def _header_line(header) -> str:
-    return ", ".join(c for c in header if c)
+    return ", ".join(cells.plain(c) for c in header if c)
 
 
 def _apply_options(rows, options, slot, src, note):
@@ -296,36 +347,39 @@ def _apply_options(rows, options, slot, src, note):
     return [header] + body, pinned, options.get("caption")
 
 
-def _draw(rows, href, filename, slot, caption, pinned) -> str:
+def _draw(rows, href, filename, slot, caption, pinned, page) -> str:
+    """The table as finished HTML. Every cell goes through cells.render exactly once."""
     header, body = rows[0], rows[1:]
     span = len(header)
 
     out = ['<div class="dr-data" id="data-' + html.escape(slot) + '">']
     if caption:
-        out.append('<p class="dr-data__caption">' + html.escape(caption) + "</p>")
+        out.append(
+            '<p class="dr-data__caption">' + cells.render(caption, page) + "</p>"
+        )
     # The class is required, not decorative -- see the module docstring.
     out.append('<table class="dr-data__table">')
     out.append("<thead><tr>")
     for i, cell in enumerate(header):
-        label = "" if _JUNK_HEADER.match(cell) else html.escape(cell)
+        label = "" if _JUNK_HEADER.match(cell) else cells.render(cell, page)
         klass = ' class="dr-data__pin"' if i == pinned else ""
         out.append("<th" + klass + ">" + label + "</th>")
     out.append("</tr></thead>")
     out.append("<tbody>")
 
     records = 0
-    for cells in body:
-        if _is_section(cells):
+    for row in body:
+        if _is_section(row):
             out.append(
                 '<tr class="dr-data__section"><th colspan="' + str(span) + '">'
-                + html.escape(cells[0]) + "</th></tr>"
+                + cells.render(row[0], page) + "</th></tr>"
             )
             continue
         records += 1
         out.append("<tr>")
-        for i, cell in enumerate(cells):
+        for i, cell in enumerate(row):
             klass = ' class="dr-data__pin"' if i == pinned else ""
-            out.append("<td" + klass + ">" + html.escape(cell) + "</td>")
+            out.append("<td" + klass + ">" + cells.render(cell, page) + "</td>")
         out.append("</tr>")
 
     out.append("</tbody></table>")
@@ -473,7 +527,6 @@ def on_page_markdown(markdown, page, config, files):
 
     here = Path(page.file.abs_src_path).parent
     folder = posixpath.dirname(src)
-    placed: dict[str, dict] = {}
     replacements: list[tuple[int, int, str]] = []
 
     def href_for(filename: str) -> str:
@@ -485,6 +538,18 @@ def on_page_markdown(markdown, page, config, files):
         """
         site_path = posixpath.join(folder, filename) if folder else filename
         return relative_url(site_path, page.file.url)
+
+    # ⚠️ PLACED IS POPULATED BEFORE ANY CELL IS RENDERED, and the order is the point.
+    # A cell may itself contain `[x](@data:other_slot)`, and cells.render resolves that
+    # through links.py, which reads this map. Filling it afterwards would make a
+    # same-page reference resolve as broken on the first table and fine on the second --
+    # an ordering bug that looks like a typo.
+    embedded = {b[2] for b in blocks}
+    placed: dict[str, dict] = {
+        slot: {"href": href_for(entry["file"]), "anchor": slot in embedded}
+        for slot, entry in declared.items()
+    }
+    PLACED[src] = placed
 
     for start, end, slot, options in blocks:
         entry = declared.get(slot)
@@ -514,6 +579,7 @@ def on_page_markdown(markdown, page, config, files):
                 '<p class="docrender-dead">Missing data file: '
                 + html.escape(entry["file"]) + "</p>",
             ))
+            placed[slot]["anchor"] = False
             continue
 
         rows = _trim_columns(_read_rows(path))
@@ -523,26 +589,23 @@ def on_page_markdown(markdown, page, config, files):
                 src + ": data file " + entry["file"] + " is empty or unreadable.",
             )
             replacements.append((start, end, ""))
+            placed[slot]["anchor"] = False
             continue
 
         rows, pinned, override = _apply_options(rows, options, slot, src, state.note)
         caption = override if override is not None else entry["caption"]
-        href = href_for(entry["file"])
-        replacements.append(
-            (start, end, _draw(rows, href, entry["file"], slot, caption, pinned))
-        )
-        placed[slot] = {"href": href, "anchor": True}
+        replacements.append((
+            start, end,
+            _draw(rows, href_for(entry["file"]), entry["file"], slot, caption,
+                  pinned, page),
+        ))
 
-    embedded_slots = {b[2] for b in blocks}
-    for slot, entry in declared.items():
-        if slot in placed:
+    for slot in declared:
+        if slot in embedded:
             continue
         # Declared and never drawn. It is NOT quietly appended at the page foot: a table
         # silently landing at the bottom of a long page is the failure nobody notices
         # for a month, and that fallback is the second legal path this rewrite removed.
-        placed[slot] = {"href": href_for(entry["file"]), "anchor": False}
-        if slot in embedded_slots:
-            continue
         state.note(
             "missing_required",
             src + ": data slot '" + slot + "' is declared and never placed. Add "
@@ -550,8 +613,6 @@ def on_page_markdown(markdown, page, config, files):
             + "inline [mention](@data:" + slot + ") still resolves to the file "
             + "download, so this warns rather than breaking the page.",
         )
-
-    PLACED[src] = placed
 
     for start, end, replacement in reversed(replacements):
         lines[start:end] = [replacement]
