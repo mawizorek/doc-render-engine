@@ -360,6 +360,44 @@
   color: var(--dr-ink-muted);
 }
 
+/* `pin: none` on the data block.
+ *
+ * The frozen first column is right for a sheet whose column one is the thing
+ * you are tracing -- a circuit number, a channel, a unit. It is WRONG when
+ * column one is a date or a note, because then the engine is freezing a column
+ * nobody navigates by and stealing width from the ones they do.
+ *
+ * ⚠️ VERTICAL STICKINESS SURVIVES: `left: auto` releases the horizontal freeze
+ * and leaves `top: 0` alone. Writing `position: static` here would also drop
+ * the sticky HEADER, which nothing asked for and which is the bug this table
+ * shipped with for a fortnight.
+ *
+ * There is no `pin: <some other column>`. A second frozen column needs a left
+ * offset in pixels, and those do not exist until the browser has laid the
+ * table out -- so the engine reports that case instead of emitting CSS that
+ * quietly does nothing. See the module docstring.
+ * ------------------------------------------------------------------------ */
+.dr-data__table--nopin tbody td:first-child {
+  position: static;
+  background: transparent;
+  font-weight: inherit;
+  color: inherit;
+}
+.dr-data__table--nopin thead th:first-child,
+.dr-data__table--nopin .dr-data__section th {
+  left: auto;
+}
+
+/* The optional `caption:` line on a data block. Absent by default -- the
+ * heading above the table is usually already the caption, and a caption
+ * maintained in two places is the defect this whole feature removed. Below the
+ * table rather than above it: the table is the content, this is the footnote. */
+.md-typeset .dr-data__caption {
+  margin-top: -0.9rem;
+  font-size: 0.76rem;
+  color: var(--dr-ink-muted);
+}
+
 /* ---------------------------------------------------------------------------
  * A REFERENCE THAT RESOLVED NOWHERE
  *
