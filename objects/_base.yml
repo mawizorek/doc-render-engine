@@ -1,6 +1,6 @@
 # The parent every other declaration extends.
 #
-# These three fields are the contract. Everything else in the family is
+# These four fields are the contract. Everything else in the family is
 # optional somewhere, and these are optional nowhere.
 #
 #   id      IDENTITY, and a promise. Other pages link to this string, so moving
@@ -9,6 +9,20 @@
 #   title   what a human sees.
 #   status  the publication gate. Mandatory with no default, so a page that
 #           forgets it does not build. Nothing goes public by accident.
+#   summary THE LEDE. One or two lines: what this is and who needs it.
+#
+# ⭐ WHY summary IS REQUIRED (added 2026-08-03). It used to be "whatever
+# paragraph happens to sit under the H1", which meant it was defined three
+# times in three languages -- the stylesheet, this engine, and Material's
+# search plugin -- and nothing reconciled them. It is a field now, for the same
+# reason `status` is a field: the page cannot tell you it is missing. A page
+# with no lede looks completely normal until you meet it in a search result,
+# where it has no text under its title at all.
+#
+# ⚠️ Making it required reports EVERY page written before this change, because
+# they all carry their lede positionally. That is the migration worklist, not a
+# regression. Nothing fails; the build warns and publishes. See
+# docrender/lede.py for why there is deliberately no positional fallback.
 
 type: _base
 label: Page
@@ -16,6 +30,7 @@ requires:
   - id
   - title
   - status
+  - summary
 optional:
   - revised      # when this was last true. Provenance, not decoration.
   - order        # sort weight in the sidebar. Absent sorts alphabetically.
@@ -23,6 +38,13 @@ optional:
   - related      # ids, not paths
   - xref         # peer:id references to sibling sites
   - source       # where the facts came from
+  - also_known_as  # other names for this thing: [genie, personnel lift, MEWP]
+                 #
+                 # Renders as a quiet visible line at the foot, and is indexed
+                 # for exactly that reason -- the words are ON THE PAGE. A
+                 # hidden keywords block was the rejected alternative: nobody
+                 # can see it, so nobody can audit it, so it rots silently and
+                 # the first symptom is a search that stopped matching.
   - indexed      # `false` keeps this page out of the contents list drawn by
                  # the INDEX PAGE above it. Default true.
                  #
