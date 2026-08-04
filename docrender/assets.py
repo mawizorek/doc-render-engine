@@ -35,6 +35,12 @@ cached, which is a fair price for a check that cannot silently answer wrong.
 ⭐ FEATURE ASSETS ARE STILL PUBLISHED ONLY WHERE THE FEATURE IS USED. The
 principle was right; the implementation asked a question too early.
 
+⚠️ AND THAT IS WHY THE GENERATED SHEETS ARE UNCONDITIONAL. `tokens.css` and
+`marks.css` are built from theme/*.tsv, which is read straight off disk and does
+not care which event is running. Nothing about them can answer wrong early, so
+they are never gated on a usage check -- the trap above only bites a decision
+that needs the page map.
+
 =============================================================================
 ⚠️ EVERY ASSET URL CARRIES A CONTENT FINGERPRINT
 =============================================================================
@@ -54,7 +60,7 @@ from pathlib import Path
 
 from mkdocs.structure.files import File
 
-from . import state, theme
+from . import markers, state, theme
 from .util import load_yaml
 
 _ROUTER_KEYS = ("router:", "router_code:")
@@ -112,9 +118,14 @@ def _plan(config) -> list[tuple[str, bytes]]:
     """Every asset this build publishes, in load order, with its bytes.
 
     Built by both events -- `on_config` needs the URLs, `on_files` needs the
-    content -- and they must never disagree. Order is deliberate: base, then
-    generated tokens, then any feature sheet, then the instance sheet LAST so a
-    site always has the final word on its own look.
+    content -- and they must never disagree. Order is deliberate: base, then the
+    generated token sheet, then the generated marker-class sheet, then any
+    feature sheet, then the instance sheet LAST so a site always has the final
+    word on its own look.
+
+    `marks.css` sits after `tokens.css` because it CONSUMES those tokens, and it
+    is separate from them because they answer different questions: tokens.css
+    says what a colour IS, marks.css says which family USES it.
     """
     plan: list[tuple[str, bytes]] = []
 
@@ -123,6 +134,7 @@ def _plan(config) -> list[tuple[str, bytes]]:
         plan.append(("base.css", base))
 
     plan.append(("tokens.css", theme.build_css().encode("utf-8")))
+    plan.append(("marks.css", markers.build_css().encode("utf-8")))
 
     if _uses_router(config):
         for name in ("router.css", "router.js"):

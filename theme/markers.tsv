@@ -1,51 +1,59 @@
-# INLINE CONFIDENCE MARKERS.
+# INLINE MARKERS.
 #
 # Written in a page as   [some text]{.marker}   or bare as   {.marker}
 #
-# Each one says something about how much to TRUST the thing next to it. That is
-# the whole category, and it is deliberately narrow: these are not highlighters
-# and not decoration. A marker that does not change how a reader should weigh a
-# fact does not belong in this table.
+# EVERY ROW BELONGS TO A CLASS (theme/marker-classes.tsv), and the class supplies
+# the default shape and colour. Read that file first -- it is where the families
+# are defined and where the reasoning lives.
 #
 # ADDING ONE IS A ROW HERE. No code change, no CSS change.
 #
-# EVERY USE IS COUNTED IN THE BUILD REPORT, grouped by marker. That is the
-# actual point -- a marker nobody can list is just a colour. It means you can
-# ask 'what is unconfirmed across this whole site' and get an answer.
+# EVERY USE IS COUNTED IN THE BUILD REPORT, GROUPED BY CLASS. That is the actual
+# point -- a marker nobody can list is just a colour. It is what lets you ask
+# "what is unconfirmed across this whole site" and get an answer, and grouping by
+# class is what keeps that answer clean now that not every marker is a confidence
+# claim. A terminology marker used three hundred times must not drown the six
+# rows that mean something is unverified.
 #
 # ---------------------------------------------------------------------------
 # COLUMNS
 #
 # marker   the token you type: {.tbc}
+# class    which family this belongs to. REQUIRED. See marker-classes.tsv.
 # label    shown when used bare, with no text of its own
-# shape    HOW IT IS DRAWN. Four options, and this is a closed set on purpose
-#          (see below): box · plain · strike · soft
-# color    WHAT COLOUR IT IS DRAWN IN. Any theme token from colors.tsv --
-#          accent, warn, danger, ink-muted, rule -- or a literal value like
-#          #7c9c5a or oklch(72% 0.12 150). Blank inherits the body colour.
+# shape    OVERRIDE the class shape. Blank = inherit.
+#          box · plain · strike · soft
+# color    OVERRIDE the class colour. Blank = inherit -- and inheriting is the
+#          better path: the class colour is a generated CSS rule, so one cell
+#          repaints the whole family, where an override is inline on every span.
 # tooltip  hover text. Say what the READER should DO about it.
 #
-# ⭐ SHAPE AND COLOUR ARE SEPARATE, and that split is the whole flexibility.
-# Shape is structural -- does this thing have a border, is it struck out --
-# and there are only four because a reader can distinguish four shapes at a
-# glance and cannot distinguish nine. Colour is free. Any shape works with any
-# colour, so a boxed green confirmation and a boxed amber warning are the same
-# mechanism wearing different paint.
+# ⭐ SHAPE AND COLOUR ARE SEPARATE AXES, and that split is the whole flexibility.
+# Shape is structural -- does this thing have a border, is it struck out -- and
+# there are only FOUR because a reader can distinguish four shapes at a glance and
+# cannot distinguish nine. Colour is free. Any shape works with any colour, so a
+# boxed green confirmation and a boxed amber warning are the same mechanism
+# wearing different paint.
 #
 #   box     bordered chip, tinted background. Demands attention.
 #   plain   coloured text, no chrome. Present but not shouting.
 #   strike  struck through. Superseded, kept findable.
 #   soft    italic, prefixed with ~. Approximate rather than doubtful.
 #
-# ⚠️ PREFER A TOKEN OVER A HEX. A token follows the theme into light mode and
-# into every other site; a hex is frozen where you typed it and will be wrong
-# on the scheme you were not looking at. Hex is supported because you asked for
-# it and it is genuinely useful for a one-off, not because it is the good path.
+# ✅ THE CLASS AXIS COST THE SHAPE AXIS NOTHING. Terminology needed colour and
+# weight WITHOUT an underline, which is exactly `plain` -- it was already there.
+# Four shapes still cover every family.
+#
+# ⚠️ PREFER INHERITING, THEN A TOKEN, AND ONLY THEN A HEX. A token follows the
+# theme into light mode and into every other site; a hex is frozen where you typed
+# it and will be wrong on the scheme you were not looking at. Hex is supported
+# because it is genuinely useful for a one-off, not because it is the good path.
 # ---------------------------------------------------------------------------
-marker	label	shape	color	tooltip
-tbc	To be confirmed	box	warn	Not yet verified against a source. Do not rely on this without checking.
-verify	Verify on site	box	warn	Recorded once and never re-checked. Measure it before you build to it.
-gap	Not recorded	box	danger	This fact should exist and does not. The absence is known, not overlooked.
-conf	Confirmed	box	ok	Double-checked against the real thing. Trust it.
-est	Estimate	soft	ink-muted	Approximate. Close enough to plan with, not close enough to cut to.
-was	Superseded	strike	ink-muted	The old value, kept so paperwork quoting it can still be matched up.
+marker	class	label	shape	color	tooltip
+tbc	confidence	To be confirmed			Not yet verified against a source. Do not rely on this without checking.
+verify	confidence	Verify on site			Recorded once and never re-checked. Measure it before you build to it.
+gap	confidence	Not recorded		danger	This fact should exist and does not. The absence is known, not overlooked.
+conf	confidence	Confirmed		ok	Double-checked against the real thing. Trust it.
+est	confidence	Estimate	soft	ink-muted	Approximate. Close enough to plan with, not close enough to cut to.
+was	confidence	Superseded	strike	ink-muted	The old value, kept so paperwork quoting it can still be matched up.
+term	terminology				House terminology. Where it is also a link there is a page defining it.

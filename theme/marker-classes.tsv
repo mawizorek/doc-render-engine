@@ -1,0 +1,41 @@
+# MARKER CLASSES -- the family a marker belongs to, and what that family looks
+# like by default.
+#
+# A row in markers.tsv names its class; the class supplies the default SHAPE and
+# COLOUR, and the row overrides either one.
+#
+# ⭐ WHY CLASSES EXIST (DL J7, 2026-08-04). Every marker used to be a confidence
+# claim, and that narrowness was genuinely the feature: you can ask "what is
+# unconfirmed across this whole site" only while every row answers the same
+# question. When terminology arrived it was nearly built as a SECOND, parallel
+# family -- two mechanisms for one concept -- because the table had no way to say
+# which KIND a row was. Michael's ruling: it IS a marker, put it in markers, you
+# have found CLASSES. The report groups by class, so the confidence question stays
+# answerable no matter how many glossary terms a site marks.
+#
+# ADDING A MARKER is a row in markers.tsv. ADDING A WHOLE FAMILY is a row here.
+# Neither is a code change and neither is a CSS change -- the class colour is
+# emitted as generated CSS by docrender/markers.py.
+#
+# ---------------------------------------------------------------------------
+# COLUMNS
+#
+# class    the token a markers.tsv row names
+# shape    default shape for the family: box · plain · strike · soft
+# color    default colour: any token from colors.tsv, or a literal hex/oklch
+# label    what this family MEANS. For the reader of this file and the report.
+# ---------------------------------------------------------------------------
+#
+# ⚠️ `terminology` ASKS FOR A TOKEN THIS ENGINE CANNOT SEE YET, ON PURPOSE.
+# `accent-soft` is real -- it is in the canonical 33-token palette in
+# mawizorek/maw-themes -- but theme/colors.tsv here is the nine-token stand-in
+# that shares its filename and nothing else, and that file is on death row. So
+# this reports as an unknown token ONCE per build and falls back to the body
+# colour until the palette refit lands. Decided sequencing, not a defect
+# (maw-themes DL J11). ⭐ And the reason it is safe: the token is named in ONE
+# CELL, right here, so swapping it to accent-2 later is a data edit that touches
+# no code anywhere. Nothing else may hardcode it -- the moment a second surface
+# names it, that promise is dead.
+class	shape	color	label
+confidence	box	warn	how much to trust the value beside it
+terminology	plain	accent-soft	a defined term, with or without a page behind it
