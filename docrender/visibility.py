@@ -23,6 +23,11 @@ hook's on_files runs before any hook's on_nav, so `unlisted` -- keep the file,
 drop the sidebar entry -- needs both. See `prune_nav` for why its stage number
 is 00b and not 02.
 
+⚠️ AND THIS MODULE OWNS TWO on_nav STAGES, NOT ONE. `prune_nav` at 00b,
+`seal_nav` at 00bc, with navstate's 00bb deliberately BETWEEN them. They were
+one function until 2026-08-05; `seal_nav` carries the live bug that split them
+and the ordering law that keeps them apart.
+
 =============================================================================
 GATED IS NOT IMPLEMENTED, AND THAT IS DELIBERATE
 =============================================================================
@@ -143,30 +148,16 @@ def _prune(items: list) -> list:
 # ROUTED FOLDERS: TAKE THE SUBTREE OUT OF THE SIDEBAR (DL J14)
 # ===========================================================================
 # Michael, looking at the live Safety section: "routing safety should ONLY show
-# SAFETY in the nav and no subpages until the route code is input."
+# SAFETY in the nav and no subpages until the route code is input." Before this,
+# `router:` curtained the page BODY and had no opinion about the sidebar, so the
+# section NAME was withheld and its table of contents was not.
 #
-# Before this, `router:` curtained the page BODY and had no opinion about the
-# sidebar, so a routed folder's children were listed to any reader who had not
-# typed anything. The section NAME was withheld and its table of contents was
-# not.
-#
-# ⚠️ AN EARLIER VERSION OF THIS COMMENT OVERSTATED THE REACH and the correction
-# is worth keeping: it claimed the children showed "on every page of the site,
-# including the home page." They did not. `navigation.prune` is enabled, so
-# Material renders only the ancestors and siblings of the active page. The
-# complaint stands exactly as raised; the claim about its blast radius was
-# written without being checked, in a file whose whole subject is claims that
-# were not checked.
-#
-# WHAT THIS DOES NOT DO: unbuild anything. Every sealed page still renders,
-# still has a live URL, and is still linkable by `@id`. This is a PRESENTATION
-# feature -- the body of a routed page is plaintext in the DOM behind `hidden`,
-# in search_index.json, and markdown in a public repo.
-#
-# ⚠️ SO THE WORD "HIDDEN" DOES NOT APPEAR IN THE AUTHORING DOCS FOR THIS
-# FEATURE WITHOUT THE WORD "CASUAL" NEXT TO IT (J14). Sealing a table of
-# contents while the contents sit one <div> down protects nothing; it stops the
-# SHAPE of a section being handed to somebody with no code.
+# ⚠️ SEALING IS PRESENTATION, NOT PROTECTION, and the word "hidden" does not go
+# into the authoring docs for it without the word "casual" next to it (J14).
+# Every sealed page still renders, still has a live URL, and is still linkable
+# by `@id`; the body of a routed page is plaintext in the DOM behind `hidden`
+# and in search_index.json. What this stops is the SHAPE of a section being
+# handed to somebody with no code.
 #
 # The manifest is SEALED rather than shipped as text because the titles have to
 # come back on unlock, and a plaintext payload would put every withheld title in
@@ -177,6 +168,13 @@ def _prune(items: list) -> list:
 # the revealed subtree on every page INSIDE the folder and loses it on pages
 # outside. Shipping ciphertext into every page on the site is more machinery for
 # a cosmetic consistency. Revisit if it actually annoys somebody.
+#
+# ⚠️ ONE CORRECTION KEPT RATHER THAN DELETED, full version in the DL: an earlier
+# draft of this block claimed the children showed "on every page of the site,
+# including the home page." They did not -- `navigation.prune` renders only the
+# ancestors and siblings of the active page. The complaint was real; the blast
+# radius was asserted without being checked, in a file whose whole subject is
+# claims that were not checked.
 
 
 def _routed(meta: dict) -> bool:
@@ -195,20 +193,13 @@ def _find_index(section):
 def _mark_indexes(items: list) -> None:
     """Record every section's index page BEFORE anything is pruned.
 
-    🔴 THIS EXISTS BECAUSE READING IT AFTERWARDS WAS WRONG, AND THE BUG WAS
-    MINE TWICE OVER. `_seal_routers` used to find the index by scanning the
-    section's surviving children. An index page with `status: unlisted` has
-    already been dropped by `_prune` at that point, so the lookup returned None,
-    the section was never recognised as routed, and its children stayed in the
-    sidebar in full -- the exact thing the feature exists to prevent, failing
-    silently on the one page that needed it. Live instance:
-    `production/staff/index.md`, 2026-08-04.
-
-    ⚠️ AND THE ORDERING COMMENT IN `prune_nav` CAUSED IT. "Unlisted first,
-    routers second" was written to stop an unlisted CHILD being sealed and then
-    injected into a menu on unlock. That reason is still correct. It simply
-    never occurred to me that the same order hides the SWITCH. A rule defended
-    in one direction is not a rule that was thought about in both.
+    🔴 NEVER RE-DERIVE AN INDEX FROM LIVE CHILDREN AFTER THIS POINT. The seal
+    used to scan surviving children for it, and an index page with `status:
+    unlisted` has already been dropped by `_prune` by then -- so the lookup
+    returned None, the section was never recognised as routed, and its children
+    stayed listed in full. The feature failing silently on the one page that
+    needed it. Live instance: `production/staff/index.md`, 2026-08-04, and the
+    ordering comment in `prune_nav` is what caused it. Full account in the DL.
     """
     for item in items:
         if not getattr(item, "is_section", False):
@@ -257,6 +248,13 @@ def _collect(node, out: list, depth: int) -> None:
     Depth travels with each entry rather than the list being nested: the client
     only has to indent, and a flat list cannot be mis-nested by a bug in the
     injection.
+
+    ⭐ THIS FUNCTION KNOWS NOTHING ABOUT `nav:` AND MUST NOT LEARN. It walks a
+    tree navstate has already trimmed at 00bb, so a `nav: hidden` folder arrives
+    holding only its own index and contributes exactly one row for free. Teaching
+    it the key would be a second copy of a rule that is already enforced by the
+    stage order -- and a second copy is free to drift from the first. See
+    `seal_nav` for what happened when the order was wrong.
     """
     _unchain(node)
 
@@ -312,6 +310,20 @@ def _seal(section, index) -> bool:
         _collect(kid, items, 1)
 
     if not items:
+        # ⭐ A ROUTED FOLDER WITH NOTHING TO WITHHOLD, and since 2026-08-05 the
+        # usual cause is `nav: hidden` on this same index getting there first at
+        # stage 00bb. That is NOT a conflict and does not need resolving: never
+        # offered is a stronger claim than offered to a code, and the stronger
+        # one wins by arriving first. Reported because "router declared, no
+        # manifest" is otherwise a silent surprise to whoever wrote the router.
+        state.note(
+            "routers",
+            index.file.src_uri + " · router declared, nav manifest EMPTY · "
+            + "nothing under this folder to withhold. If it also declares "
+            + "`nav: hidden`, that is why: hidden takes the children out of the "
+            + "sidebar for everybody, which is stronger than sealing them "
+            + "behind a code. The body curtain works as normal.",
+        )
         return True
 
     state.NAV_SEALED[index.file.src_uri] = {
@@ -379,48 +391,91 @@ def _seal_routers(items: list) -> list:
 
 
 def prune_nav(nav, config, files):
-    """Stage 00b -- take `unlisted` pages, then routed subtrees, out of the sidebar.
+    """Stage 00b -- take `unlisted` pages out of the sidebar.
 
     🔴 WHY THIS IS NOT IN on_files WITH THE REST OF THE GATE, AND WHY ITS STAGE
-    NUMBER IS 00b RATHER THAN 02.
+    NUMBER IS 00b RATHER THAN 02. `unlisted` means built but not listed, so the
+    file has to survive on_files and the nav ENTRY has to be removed later.
+    MkDocs runs every hook's on_files before any hook's on_nav, so "later" is a
+    different event, not a different line.
 
-    `unlisted` means built but not listed, so the file has to survive on_files
-    and the nav ENTRY has to be removed later. MkDocs runs every hook's
-    on_files before any hook's on_nav, so "later" is a different event, not a
-    different line.
+    The number follows from a second constraint: `00c_nav.py` rebuilds prev/next
+    by flattening the nav tree, so this has to happen BEFORE it or the footer
+    Next button walks through pages that are not in the sidebar -- the same
+    disagreement 00c exists to fix, reintroduced from the other end.
 
-    The stage number follows from a second constraint: `00c_nav.py` rebuilds
-    prev/next by flattening the nav tree. If this ran at 02 it would happen
-    AFTER that, and the footer Next button would walk through pages that are not
-    in the sidebar -- the same disagreement 00c exists to fix, reintroduced from
-    the other end.
-
-    ⚠️ THE ROUTER PASS INHERITS THAT CONSTRAINT AND IS WHY IT MATTERS MOST. A
-    sealed page left in the prev/next chain would print its TITLE in the footer
-    of the page before it -- the one thing the seal exists to withhold, on a
-    surface nobody checks twice.
-
-    THREE PASSES, AND THE ORDER OF ALL THREE IS LOAD-BEARING:
+    TWO PASSES:
 
       1. MARK. Record each section's index page while the tree is untouched.
-         Pass 2 can delete an index, and pass 3 needs to know it was there.
+         Pass 2 can delete an index, and every later stage needs to know it was
+         there.
       2. PRUNE unlisted pages.
-      3. SEAL routed subtrees.
 
-    Pass 1 is new (2026-08-04) and exists because passes 2 and 3 were the whole
-    function and disagreed with each other -- see `_mark_indexes`.
-
-    Pruning still precedes sealing, for the reason it always did: an unlisted
-    page inside a routed folder must not be sealed and then INJECTED into a menu
-    on unlock, because it was deliberately not in the sidebar to begin with.
-
-    WHAT THIS DOES NOT DO: unbuild anything. Every pruned or sealed page still
-    renders, still has a live URL, and is still linkable by `@id`. That is the
-    definition of `unlisted`, it is the whole design of a curtain, and it is why
-    `status: hidden` exists separately for the other case.
+    Pass 1 exists because 2 and 3 used to be the whole function and disagreed
+    with each other -- see `_mark_indexes`. ⚠️ PASS 3 IS NOT HERE ANY MORE: the
+    router seal is `seal_nav` at stage 00bc, with navstate's 00bb between them,
+    and that split is not a tidy-up. See `seal_nav`.
     """
     _mark_indexes(nav.items)
     nav.items = _prune(nav.items)
+    return nav
+
+
+def seal_nav(nav, config, files):
+    """Stage 00bc -- seal routed subtrees, AFTER `nav:` has shaped the tree.
+
+    🔴 THIS WAS PASS 3 OF `prune_nav` UNTIL 2026-08-05, AND SHARING A FUNCTION
+    WITH THE PRUNE IS WHAT BROKE `nav: hidden`.
+
+    uritp declares `router: pm` on `courses/index.md` and `nav: hidden` on
+    `courses/course-info/`. The seal ran at 00b and harvested the WHOLE courses
+    subtree into the sealed manifest before navstate reached 00bb -- so by the
+    time `nav: hidden` was read, its folder was already out of the tree and the
+    cut had nothing to act on. All 43 course pages sat in the ciphertext and
+    reappeared in the sidebar the moment a correct code was typed. Michael, who
+    holds that code: "i never expect to see the exhaustive list of course info
+    docs in the nav."
+
+    ⚑ SIXTH INSTANCE OF ONE SHAPE HERE -- a rule correct in isolation and
+    unreachable in place -- and the ordering COMMENT caused this one. navstate
+    has to run after the prune because it reads index pages the prune can
+    delete. True, and exactly what let the seal reach the subtree first. Same
+    shape as `_mark_indexes` twenty lines up: a rule defended in one direction
+    is not a rule that was thought about in both.
+
+    ⭐ THE FIX IS THE ORDER, NOT A SECOND CHECK. `_collect` is not taught about
+    `nav:` at all -- see its docstring for why that restraint is the point.
+
+    THE on_nav CHAIN, AND EVERY LINK IS LOAD-BEARING:
+
+      00    sort     instance.py orders the tree
+      00b   prune    unlisted pages leave            <- prune_nav
+      00bb  shape    `nav: hidden` folders are cut   <- navstate.shape
+      00bc  seal     routers take what is LEFT       <- HERE
+      00c   chain    prev/next rebuilt from all of it
+
+    ⚠️ PRUNE AND SHAPE BOTH PRECEDE THE SEAL FOR ONE REASON, WORTH STATING ONCE:
+    a page the sidebar deliberately does not show must never be sealed and then
+    INJECTED into a menu on unlock. `unlisted` has always had that guarantee.
+    `nav: hidden` has it now.
+    """
+    if not state.NAV_SHAPED:
+        # 🔴 A REGRESSION DETECTOR, NOT A DEFENSIVE CROUCH, and it is the half of
+        # this fix that outlives me. If 00bb is ever unregistered, renamed or
+        # renumbered past this stage, the seal goes straight back to harvesting
+        # untrimmed subtrees -- silently, and invisible until somebody types a
+        # code and sees pages a folder had shut. The bug above was reachable for
+        # five hours because nothing could notice it. This can.
+        state.note(
+            "missing_required",
+            "STAGE ORDER BROKEN: the router nav-seal (00bc) ran before navstate "
+            + "(00bb), so any `nav: hidden` folder inside a routed folder was "
+            + "sealed with its children still in it -- and a correct router code "
+            + "will reveal pages that were meant to be out of the sidebar "
+            + "entirely. Check the `hooks:` list in mkdocs.yml: 00b, then 00bb, "
+            + "then 00bc, then 00c.",
+        )
+
     nav.items = _seal_routers(nav.items)
 
     # A router on the SITE ROOT index has no enclosing section, so there is no
