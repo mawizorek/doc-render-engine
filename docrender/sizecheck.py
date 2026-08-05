@@ -50,22 +50,31 @@ THREE JOBS, all of which want to run last.
    block, at the end. Warnings scattered through 400 lines of MkDocs output are
    warnings nobody reads.
 
-   ⭐ SECTION ORDER IS CAUSE-BEFORE-SYMPTOM, set in state.reset(). A duplicate
-   frontmatter KEY leads, because it is usually the reason for everything under
-   it: a page with two `status:` lines silently uses the second, so it is not
-   built, so it is missing from the nav, so every link to it renders broken --
-   three complaints, one cause, and only one of them worth reading first.
+   ⭐ SECTION ORDER IS CAUSE-BEFORE-SYMPTOM, and it is set HERE, in `_LABELS`.
+   A duplicate frontmatter KEY leads the page-level findings, because it is
+   usually the reason for everything under it: a page with two `status:` lines
+   silently uses the second, so it is not built, so it is missing from the nav,
+   so every link to it renders broken -- three complaints, one cause, and only
+   one of them worth reading first.
+
+   🔴 `state.reset()` USED TO CLAIM IT SET THIS ORDER. It does not and never
+   did; the loop below has always iterated `_LABELS`. The two dicts are not even
+   in the same order -- `leaks` is second-to-last over there and first here,
+   which is correct, because a site name in engine code FAILS THE BUILD and has
+   to be the first thing read. Corrected in that file 2026-08-05. Two places
+   stating one fact, and the wrong one was the one somebody would have edited.
 
    ⚠️ THE LOOP ITERATES `_LABELS`, NOT `state.REPORT`. A bucket declared in
    state.reset() with no label here is collected all build and then dropped
    without a word -- a check that runs, finds things, and tells nobody. Adding
    a report section is always two edits, and the note is in both files.
 
-   ⭐ Two sections are INVENTORY rather than complaints, and they are the most
-   useful things here. `markers` lists every tbc / verify / gap / est / was on
-   the site; `routers` lists every router and what kind it is. Neither counts
-   against a clean build. A thing you cannot enumerate is decoration; a thing
-   you can enumerate is a worklist.
+   ⭐ Three sections are INVENTORY rather than complaints, and they are among
+   the most useful things here. `markers` lists every tbc / verify / gap / est /
+   was on the site; `routers` lists every router and what kind it is;
+   `nav_default` states the site-wide sidebar default. None counts against a
+   clean build. A thing you cannot enumerate is decoration; a thing you can
+   enumerate is a worklist.
 """
 
 from __future__ import annotations
@@ -98,7 +107,12 @@ _ENGINE_SOURCE = (
 
 # Buckets that are inventory, not defects. Present in the report, ignored when
 # deciding whether the build was clean.
-_INVENTORY = {"markers", "routers"}
+#
+# ⚠️ `nav_default` IS IN HERE AND HAS TO BE. It reports on EVERY build -- the
+# site default is always either declared or absent, and both are worth stating.
+# Counting it as a finding would mean no build on any site ever prints "No
+# findings" again, and a clean signal that can never fire is worse than none.
+_INVENTORY = {"markers", "routers", "nav_default"}
 
 _LABELS = {
     "leaks": "SITE NAME LEAKED INTO ENGINE CODE (build will fail)",
@@ -113,6 +127,8 @@ _LABELS = {
     "dead_links": "Broken references (rendered as visible markers)",
     "stale_xref": "Cross-site index problems",
     "markers": "Marked unresolved -- every tbc / verify / gap / conf / est / was",
+    "nav_default": "SIDEBAR DEFAULT for this site -- `nav:` on the root "
+                   "index.md, and what every folder inherits from it",
     "routers": "Routers on this site",
     "oversize": "Over the size budget",
     "notes": "Notes",
