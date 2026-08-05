@@ -32,7 +32,8 @@ docrender/              THE APP. Knows nothing about any particular site.
   state.py              one shared namespace per build.
   util.py               frontmatter + table parsing. No mkdocs import.
   instance.py           stage 00: become this site. Nav ordering.
-  visibility.py         stage 00b/02: the publication gate. Router nav-seal.
+  visibility.py         stage 00b/00bc/02: the publication gate, and the
+                        router nav-seal. TWO on_nav stages, split on purpose.
   navstate.py           stage 00bb/06b: what a FOLDER does in the sidebar.
   objects.py            stage 01: validate frontmatter, draw the type.
   links.py              stage 03: @id and @peer:id resolution.
@@ -45,6 +46,8 @@ docrender/              THE APP. Knows nothing about any particular site.
 
 hooks/NN_*.py           thin shims. They hold the ORDER; the package holds the
                         logic. The order is load-bearing, see hooks/README.md.
+                        The five on_nav stages are a chain: 00, 00b, 00bb,
+                        00bc, 00c. That file says what each misordering breaks.
 
 objects/*.yml           WHAT A KIND OF PAGE IS. The schema layer.
 theme/*.tsv             WHAT IT LOOKS LIKE. Data, not code.
@@ -135,6 +138,28 @@ pages that belong in a table on the index, not in a drawer.
 
 Every build prints the resolved site default in its own report section, along
 with anything it refused. A site whose root declares nothing is named there too.
+
+#### `nav:` inside a ROUTED folder *(the seam, added 2026-08-05)*
+
+A `router:` on a folder index also seals that folder's subtree out of the
+sidebar until a code is typed (§7). Both features remove children from a
+sidebar, so what happens when they land on the same branch had to be decided.
+
+**`nav: hidden` wins, and it wins by running FIRST.** Stage `00bb` cuts hidden
+folders; stage `00bc` seals what is left. So a hidden folder inside a routed
+parent is gone before the seal sees it, and **a correct code cannot bring it
+back** — which is the point. *Never offered* is a stronger claim than *offered
+to whoever has the code*, and the stronger claim should not be quietly weakened
+by a feature on a page above it.
+
+⚠️ **A routed folder whose OWN index says `nav: hidden` seals nothing**, and the
+build report says so by name rather than leaving "router declared, no manifest"
+as a silent surprise. The body curtain on that page still works normally.
+
+**They are not alternatives.** `nav: hidden` takes a subtree away from
+everybody; a router takes it away from everybody *without a code*. Reach for the
+first when the pages belong somewhere else on the page (a table, a catalog), and
+the second when the shape of the section is the thing being withheld.
 
 ---
 
@@ -280,6 +305,15 @@ live in a variable; that would put the routine's shape in two places again.
     sidebar. Written down because the opposite was said out loud once in
     conversation, and a wrong intuition about a cost is how a working feature
     gets reverted by somebody reading this section six weeks from now.
+- **The nav stages have to run in order, and one misordering is invisible.**
+  `00b` prune → `00bb` `nav:` → `00bc` router seal → `00c` prev/next. Put the
+  seal before `nav:` and a hidden folder inside a routed folder gets sealed with
+  its children still in it, so a correct code reveals pages that were supposed
+  to be out of the sidebar for everybody — **with no error, no warning, and a
+  site that looks correct to anybody without the code.** Two things defend it:
+  the filenames (see `hooks/README.md`) and a runtime check in
+  `visibility.seal_nav` that reports if the `hooks:` list ever drifts. Live bug,
+  2026-08-05, five hours, 43 pages.
 - **Cross-site links resolve at BUILD time.** If a peer renames a page, links
   to it are wrong until the next build. ~~The nightly cron closes that to a
   day~~ — the poll closes it to the interval in §6c, *while the routine is
