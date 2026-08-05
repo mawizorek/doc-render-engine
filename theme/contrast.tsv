@@ -8,7 +8,7 @@
 #
 # ---------------------------------------------------------------------------
 # WHICH THEME ARE THESE? eos / eos-light, re-measured 2026-08-05 against the
-# canonical rows at blob 579bb57. Named because it was NOT named before, and
+# canonical rows at blob 003fb9c. Named because it was NOT named before, and
 # that is the deeper defect in this file:
 #
 # WARNING THIS TABLE IS THEME-BLIND. The rows are keyed `dark` and `light` as
@@ -23,9 +23,13 @@
 # WHICH GROUND IS "surface"? The aliases resolve `surface` -> canonical `bg`
 # and `surface-raised` -> `surface-1`, and every ground this engine actually
 # PAINTS is one of those two: the table body, the sticky header, the hover row,
-# the router panel, the section band. `surface-2` and `surface-3` are emitted
-# and consumed by nothing here, so they are deliberately not gated -- FileMaker
-# and the ClickUp app builds use the full ramp and gate it themselves.
+# the router panel, the section band.
+#
+# WARNING AND `surface-3` JOINED THEM ON 2026-08-05. It is the admonition
+# background now, so a link or a marker inside a `!!! note` sits on the
+# raised-most panel rather than on the page. That is why the `on callout` rows
+# exist: the tightest ground on the site used to be untested because nothing
+# painted it.
 #
 # ---------------------------------------------------------------------------
 # WHAT THIS TABLE MISSED UNTIL NOW, which is worth more than any single number:
@@ -52,6 +56,22 @@
 # would be choosing the number that suits the moment; whether a 3.0 hairline is
 # the right target for a documentation site is Michael's call, and a loud honest
 # failure is how it reaches him.
+#
+# ---------------------------------------------------------------------------
+# WARNING ONE ROW HERE IS NOT A PASS/FAIL AND IS RECORDED ANYWAY: `link vs
+# accent`, at 1.04 dark and 1.02 light with `min` 0.
+#
+# `link` was split out of `accent` on 2026-08-05 so a hyperlink would stop
+# sharing a token with the note callout, the active nav row and the sticky
+# column. The two colours are deliberately LEVEL in luminance -- subtler must not
+# mean harder to see -- and separated by 106 degrees of HUE instead.
+#
+# Which means a reader with red-green or blue-yellow deficiency may not
+# distinguish them. There is no floor to hold that to, so `min` is 0 and the
+# number is here to be READ rather than gated: `accent` never letters body prose,
+# so inside a paragraph the only coloured text is a link and it carries 7.31
+# against the page. The thin case is `.dr-term`, which is coloured prose that is
+# NOT clickable, and the fix for that is underlining real links.
 # ---------------------------------------------------------------------------
 pair	scheme	ratio	min
 ink on surface	dark	14.41	4.5
@@ -60,6 +80,12 @@ ink-muted on surface	dark	7.30	4.5
 ink-muted on surface	light	6.25	4.5
 accent on surface	dark	7.05	4.5
 accent on surface	light	5.84	4.5
+link on surface	dark	7.31	4.5
+link on surface	light	5.96	4.5
+link on callout	dark	5.02	4.5
+link on callout	light	4.89	4.5
+link vs accent	dark	1.04	0
+link vs accent	light	1.02	0
 accent-2 on surface	dark	6.63	4.5
 accent-2 on surface	light	5.81	4.5
 warn on surface	dark	9.91	4.5
