@@ -11,10 +11,12 @@
  * dressing it as security is how a reader comes to trust it as security. Full
  * reasoning in docrender/router.py.
  *
- * ⚠️ THE FIELD IS MASKED AS OF 2026-08-05 AND THAT DOES NOT CHANGE THE LINE
- * ABOVE. `type="password"` is shoulder-surfing protection; the body is still in
- * the DOM and the code still goes to sessionStorage. Dots are the most
- * security-shaped thing on this page, so resist styling the rest to match them.
+ * ⚠️ THE ONE EXCEPTION IS THE MASK, AND IT IS NOT A CONTRADICTION (2026-08-05).
+ * The field is `type="password"`. A padlock would claim the CONTENT is
+ * protected, which is false. The mask claims the CODE is worth not showing the
+ * room, which is true -- the code is the one thing this feature actually
+ * withholds. See docrender/router.py for the full argument and for what the
+ * mask costs.
  */
 
 .dr-router {
@@ -40,9 +42,11 @@
   gap: 0.5rem;
 }
 
-/* The extra letter-spacing is for the MASKED state: browser dots set solid read
- * as one grey smear, and a reader counting characters to find a typo is exactly
- * the person this field now makes life harder for. */
+/* ⚠️ THE letter-spacing IS FOR THE MASK, not for the text. A monospace face
+ * renders U+2022 tight and centred in its cell, so six masked characters read
+ * as four at a glance -- and the one thing a reader can still check about a
+ * field they cannot read is HOW MANY characters are in it. The tracking is
+ * small enough to be invisible on the unmasked label above it. */
 .dr-router__input {
   flex: 1 1 auto;
   min-width: 0;
@@ -53,52 +57,12 @@
   color: var(--dr-ink);
   font-family: var(--dr-font-mono);
   font-size: 0.9rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
 }
 .dr-router__input:focus {
   outline: 2px solid var(--dr-accent);
   outline-offset: 1px;
   border-color: transparent;
-}
-
-/* ---------------------------------------------------------------------------
- * ⭐ THE REVEAL -- the cost of the mask, not a garnish (2026-08-05)
- *
- * This form's error path is deliberately quiet AND IT WIPES THE INPUT, so a
- * mistyped code returns a cleared box and one grey sentence. That is a fair
- * trade when you can see what you typed and a bad one when you cannot -- and
- * these codes get typed on phones, off a text message, by guest artists.
- *
- * ⚠️ IT SHIPS WITH THE `hidden` ATTRIBUTE AND router.js REMOVES IT. A reader
- * with no JavaScript must never be handed a control that cannot work, and only
- * the script can know the script is alive. Same fail-open rule as the
- * <noscript> block. Do not add a rule here that shows it.
- *
- * Deliberately quieter than the Go button: outlined rather than filled, muted
- * rather than accented, so the primary action stays obvious. It takes the
- * accent only once it is doing something.
- * ------------------------------------------------------------------------ */
-.dr-router__reveal {
-  flex: 0 0 auto;
-  padding: 0.45rem 0.6rem;
-  border: var(--dr-border-w, 1px) solid var(--dr-rule);
-  border-radius: 3px;
-  background: transparent;
-  color: var(--dr-ink-muted);
-  font-family: var(--dr-font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.dr-router__reveal:hover,
-.dr-router__reveal[aria-pressed="true"] {
-  color: var(--dr-accent);
-  border-color: var(--dr-accent);
-}
-.dr-router__reveal:focus-visible {
-  outline: 2px solid var(--dr-accent);
-  outline-offset: 1px;
 }
 
 /* ⭐ THE ONLY CONSUMER OF `on-accent` ON THE WHOLE SITE (2026-08-05).
@@ -127,11 +91,20 @@
   font-weight: 600;
   cursor: pointer;
 }
-/* `accent-deep` is the canonical PRESSED/HOVER stop and had no consumer
- * anywhere in this engine until now. It is not held to 4.5 -- it is a state, not
- * body text -- and it exists precisely so a hover does not have to be invented
- * per site out of a filter or an opacity. */
-.dr-router__btn:hover:not(:disabled) {
+
+/* ⭐ AND THE FIRST CONSUMER OF `accent-deep`, ANYWHERE (2026-08-05).
+ *
+ * Its documented job in the canonical palette is "a hover/pressed stop, not
+ * body text" -- which is why it is deliberately NOT held to the 4.5 contrast
+ * floor. It has been emitted by every canonical theme and read by nothing since
+ * the join landed, because this is the only real BUTTON the engine draws and a
+ * pressed stop has nowhere else to live.
+ *
+ * ⚠️ The fallback is `accent`, not a literal. A nine-token local theme emits no
+ * accent-deep, and a button that visibly does nothing on hover reads as
+ * disabled -- so it falls back to no-change rather than to nothing. */
+.dr-router__btn:hover:not(:disabled),
+.dr-router__btn:focus-visible:not(:disabled) {
   background: var(--dr-accent-deep, var(--dr-accent));
 }
 .dr-router__btn:disabled {
@@ -140,7 +113,13 @@
 }
 
 /* Deliberately understated. A wrong code is the expected case for anybody who
- * was not given one, and shouting at them serves nothing. */
+ * was not given one, and shouting at them serves nothing.
+ *
+ * ⚠️ AND IT CARRIES MORE WEIGHT SINCE THE FIELD WAS MASKED. A reader can no
+ * longer proof-read what they typed, so a typo and a genuinely wrong code look
+ * identical from here. The wording stays neutral for exactly that reason: it
+ * must not accuse somebody of having the wrong code when they may simply have
+ * fumbled a character they could not see. */
 .dr-router__error {
   margin: 0.6rem 0 0;
   font-size: 0.82rem;
