@@ -23,16 +23,15 @@
  * and a bare var() would collapse the rule to NOTHING. A hairline that silently
  * vanishes is worse than one that never moved.
  *
- * ⚠️ NOT EVERY TOKEN HAS A CONSUMER, AND THIS FILE IS NO LONGER THE PLACE TO
- * LOOK FOR THE COUNT. `elev-1/2/3` and `lift` are still read by nothing here;
- * `motion-*` and `ease` moved to assets/router.css on 2026-08-05, and the
- * paragraph that used to sit here claiming this engine "declares no transitions
- * at all" was TRUE OF THIS FILE and false of the engine for two days. Section 4
- * of the token audit page derives the real list every build.
+ * ⚠️ THIS FILE IS NOT THE PLACE TO COUNT UNCONSUMED TOKENS. The paragraph that
+ * used to sit here claimed the engine "declares no transitions at all" -- true of
+ * this file, false of the engine for two days, because router.css and
+ * data-list.css both animate. Section 4 of the token audit page derives the real
+ * list every build.
  *
- * ⚠️ THE NAV LAYER LIVES IN assets/nav.css AND THE CALLOUTS IN
- * assets/admonition.css. Both split out rather than grown here. Do not add a nav
- * rule or an admonition rule to this file.
+ * ⚠️ SIBLING LAYERS, each with its own header and its own reasoning. Do not add a
+ * rule for one of these here: nav.css (sidebar), admonition.css (callouts),
+ * data.css + data-list.css (TSV tables), router.css (the code form).
  */
 
 [data-md-color-scheme="slate"],
@@ -159,11 +158,10 @@
  * legibility. Headings are the only surface in this engine big enough to want
  * it, which is why the token was written and why it had no home until now.
  *
- * ⚠️ THE FALLBACK IS `font-body`, NOT A LITERAL, and the difference matters more
- * here than anywhere else in this file. A nine-token local theme emits no
- * font-display, and a bare var() in a `font-family` list falls through to the
- * browser default -- Times New Roman, on every heading on the site. The fallback
- * keeps today's render exactly.
+ * ⚠️ THE FALLBACK IS `font-body`, NOT A LITERAL, and it matters more here than
+ * anywhere else in this file. A nine-token local theme emits no font-display,
+ * and a bare var() in a `font-family` list falls through to the browser default
+ * -- Times New Roman, on every heading on the site.
  *
  * 🚩 NOT FIXED HERE, AND IT IS A REAL DEFECT: Material styles h1 with
  * `--md-default-fg-color--light`, which this file maps to `ink-muted`. So a page
@@ -210,45 +208,18 @@
 }
 
 /* ---------------------------------------------------------------------------
- * THE NAV LAYER MOVED OUT -- assets/nav.css (2026-08-04)
+ * THE LEDE -- the first thing under the title, and the search snippet.
  *
- * The caps/rule treatment, the phones-only double-rule fix, the nested reset and
- * the active-section indicator all live there. It left because this file hit
- * 22,743 B -- past the 22KB HARD line, the point at which a file stops coming
- * back whole from one read and therefore stops being safely editable.
+ * ⚠️ TWO SELECTORS, IDENTICAL IN STYLE, AND THAT IS TEMPORARY. `.dr-lede` is the
+ * `summary:` FIELD; `h1 + p` is the old positional rule for pages that still
+ * keep their lede in the body. Both live so a page changes nothing visually as
+ * it migrates. The engine reports every page still relying on the second one, so
+ * this cannot quietly become permanent -- see docrender/lede.py, which owns the
+ * field and the migration.
  *
- * ⚠️ DO NOT ADD A NAV RULE HERE, not even a small override. Same rule as the
- * table layer: one surface, one address.
- * ------------------------------------------------------------------------ */
-
-/* ---------------------------------------------------------------------------
- * THE LEDE
- *
- * The first thing under the title, and also what a search result shows, so it is
- * styled as a real element rather than left to an author to fake with bold or a
- * blockquote.
- *
- * ⚠️ TWO SELECTORS, AND THAT IS TEMPORARY BY DESIGN (2026-08-03).
- *
- *   .dr-lede    what docrender/lede.py emits from the `summary:` field
- *   h1 + p      the old positional rule: whatever paragraph sat under the H1
- *
- * The lede became a FIELD, and the engine now reports every page still keeping
- * it in the body. But the content tree migrates one page at a time, and dropping
- * `h1 + p` before that finishes would strip the lede styling from every page not
- * yet moved -- a sitewide visual regression on pages that are otherwise perfectly
- * fine. So both are live and IDENTICAL in style, and a page changes nothing
- * visually as it crosses over.
- *
- * `h1 + p` comes out once the tree is migrated. It is a fallback in THIS FILE
- * ONLY: the engine reports every page relying on it, so this cannot quietly
- * become the permanent field-plus-fallback arrangement that was considered and
- * rejected. If you are reading this and the content is migrated, delete the
- * second selector.
- *
- * ⭐ `--dr-lede-size` now RESOLVES to canonical `fs-lead` through the bridge, and
- * `--dr-measure` does not -- canonical has no line-length primitive, so it stays
- * local. Two tokens, same rule, different layers, and that is the honest state.
+ * ⭐ `--dr-lede-size` resolves to canonical `fs-lead` through the bridge and
+ * `--dr-measure` does NOT, because canonical has no line-length primitive. Two
+ * tokens, one rule, different layers, and that is the honest state.
  * ------------------------------------------------------------------------ */
 .md-typeset h1 + p,
 .md-typeset .dr-lede {
@@ -258,20 +229,15 @@
   max-width: var(--dr-measure);
 }
 
-/* ---------------------------------------------------------------------------
- * THE AKA LINE
+/* THE AKA LINE, from `also_known_as:`.
  *
  *     Also called: genie, personnel lift, MEWP
  *
- * From `also_known_as:`. It sits at the foot, above the edit rule, and it is
- * VISIBLE on purpose: these words are indexed because they are genuinely on the
- * page, not because a hidden element was injected into a search index.
- *
- * A hidden keywords block was the rejected alternative. Nobody can see it, so
- * nobody can audit it, so it rots -- and the first symptom of a rotted one is a
- * search that quietly stopped matching, which is close to undiagnosable. Quiet
- * is the requirement here, not invisible.
- * ------------------------------------------------------------------------ */
+ * At the foot, above the edit rule, and VISIBLE on purpose: these words are
+ * indexed because they are genuinely on the page. A hidden keywords block was
+ * rejected -- nobody can see it, so nobody can audit it, and the first symptom of
+ * a rotted one is a search that quietly stopped matching. Quiet is the
+ * requirement here, not invisible. */
 .md-typeset .dr-aka {
   margin-top: var(--dr-gap-lg, 2rem);
   font-size: 0.78rem;
@@ -358,21 +324,6 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
-
-/* ---------------------------------------------------------------------------
- * THE TSV DATA TABLE MOVED OUT -- assets/data.css (2026-08-04)
- *
- * Every `.dr-data*` and `.dr-col--*` rule lives there, and there only. It left
- * because this file was 18.4KB, past the engine's own 18KB warn line, and the
- * per-column work would have carried it over the 22KB hard line.
- *
- * ⚠️ DO NOT ADD A TABLE RULE HERE, not even a small override. A second home for
- * one rule is how a stylesheet starts disagreeing with itself.
- *
- * ⭐ AND IT PICKED UP THE SPACING VECTOR FOR FREE. data.css already reads
- * `--dr-data-pad`, which the bridge now points at canonical `pad-cell` -- so the
- * table's density obeys the theme without that file being opened.
- * ------------------------------------------------------------------------ */
 
 /* ---------------------------------------------------------------------------
  * A REFERENCE THAT RESOLVED NOWHERE
