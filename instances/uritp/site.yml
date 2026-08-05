@@ -1,4 +1,4 @@
-# URITP — the first REAL site on the matrix publishing path.
+# URITP - the first REAL site on the matrix publishing path.
 #
 # Distinct from `template` in the one way that matters: this one is published
 # by build.yml into its own content repo's gh-pages branch, at its own address,
@@ -13,13 +13,16 @@ base_url: https://mawizorek.github.io/uritp-docs/
 content_repo: mawizorek/uritp-docs
 content_branch: main
 
-# ⭐ ONE LINE. Changing a site's entire look is a single word here, which is the
+# ONE LINE. Changing a site's entire look is a single word here, which is the
 # test of whether the theme layer is real rather than decorative: if this cost
 # a code change, the engine/site separation would be a claim and not a fact.
-# Named themes live in theme/themes.tsv.
+#
+# `eos` is a CANONICAL theme -- its values live in mawizorek/maw-themes and are
+# vendored, byte-verified, into theme/canonical/. Nineteen canonical themes are
+# selectable by name here, alongside the local ones in theme/themes.tsv.
 theme: eos
 
-# 🔀 THE LAST DOOR BACK TO THE SOURCE.
+# THE LAST DOOR BACK TO THE SOURCE.
 #
 # `true` keeps ONE quiet line at the foot of each page: "Edit this page on
 # GitHub". Nothing else in the rendered site mentions a repository -- the
@@ -31,17 +34,24 @@ theme: eos
 # One word, per site, no code change, no rebuild of anything else.
 edit_links: true
 
-# Chrome (header + sidebar) is Material's `palette`, NOT a CSS variable, and it
-# has to be set here. Setting --md-primary-fg-color in an unscoped :root looks
-# like it works, hits both colour schemes at once, and silently breaks the dark
-# toggle. Kept in step with the eos accent by hand.
-palette:
-  dark:
-    primary: black
-    accent: amber
-  light:
-    primary: blue grey
-    accent: amber
+# WARNING: THE `palette:` BLOCK IS GONE (2026-08-04). This note replaces it so
+# nobody puts it back.
+#
+# It set Material's header and accent to NAMED colours (`black`, `amber`) and
+# carried the comment "Kept in step with the eos accent by hand." That was the
+# hand mirroring, admitted in writing, and it went out of step the moment the
+# palette became canonical.
+#
+# It also cost more than a colour. Setting `palette.primary` is what makes
+# Material emit `data-md-color-primary`, and Material's own compound rule
+# [data-md-color-scheme="slate"][data-md-color-primary="black"] then outranked
+# our link colour and painted every dark-mode link blue -- for as long as this
+# site has had a black header, silently, because an amber link under an amber
+# accent looked correct.
+#
+# Chrome now resolves from the theme's canonical tokens in assets/base.css. The
+# light/dark TOGGLE is unaffected: it lives in mkdocs.yml and is a feature, not
+# a colour. Re-adding a `palette:` key here does nothing, and is reported.
 
 # Titles here are a FALLBACK. A folder that contains an index.md takes that
 # page's own title instead, so `venues/spac/` shows as "Swan Auditorium" rather
