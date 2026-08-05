@@ -13,34 +13,28 @@ base_url: https://mawizorek.github.io/uritp-docs/
 content_repo: mawizorek/uritp-docs
 content_branch: main
 
-# THE THEME IS A JOIN OF FOUR VECTORS (2026-08-04).
+# ONE LINE. A theme names FIVE pointers -- two colours, one typography, one
+# forms, one spacing -- so a single word here dresses the entire site in both
+# toggle states. The full contract is maw-themes docs/HOW-A-THEME-IS-CHOSEN.md.
 #
-# A theme binds exactly one entity from each of Colour, Typography, Forms and
-# Spacing. `sharp-mclaren` is colour `mclaren` + typography `sharp-racing` +
-# forms `sharp` + spacing `tight`.
+#     theme: eos          -> dark from eos, light from eos-light
 #
-# WARNING: NAME A THEME, NOT A PALETTE. Until tonight this key resolved against
-# colour slugs, so a site got a palette and nothing else -- no canonical type,
-# no radii, no density. `mclaren` is NOT a theme; the joins that use it are
-# `sharp-mclaren` and `mclaren-mobile`. A bare colour entity still resolves, for
-# compatibility, and the build says so when it happens.
+# A SECOND theme REPLACES the alt, and the app always owns which slot is which:
 #
-# ONE LINE IS USUALLY ENOUGH. `theme: eos` paints dark from the eos colour row
-# and light from `eos-light`, because the two share an `identity` and the
-# opposite mode is DERIVED. A map is for naming two DIFFERENT themes:
+#     theme:
+#       dark: sharp-mclaren
+#       light: papyrus        # papyrus's PRIMARY colour, not its alt
 #
-#     theme: eos                                  # one identity, both modes
-#     theme: {dark: sharp-mclaren, light: eos}     # two, deliberately
+# WARNING: NAME A THEME, NOT A PALETTE. `mclaren` is a colour entity; the themes
+# using it are `sharp-mclaren` and `mclaren-mobile`. A bare palette still
+# resolves for compatibility and gets colour ONLY -- no canonical type, radii or
+# density -- and the build says so when it happens.
 #
-# WARNING: TYPOGRAPHY, FORMS AND SPACING DO NOT SPLIT BY MODE. They are
-# scheme-independent -- type by documented design, and a radius or a cell
-# padding has no business changing when a reader hits the toggle. The DARK theme
-# supplies all three, so this site gets `sharp-racing` / `sharp` / `tight`. The
-# eos entities the light theme points at are NOT applied, and the build names
-# them rather than letting a font change arrive unexplained.
-theme:
-  dark: eos
-  light: eos
+# WARNING: the eos DARK row currently carries Michael's hand-authored
+# identification harness (2026-08-05) -- eighteen deliberately clashing colours
+# so every surface names the token painting it. Dark mode is SUPPOSED to look
+# like that right now. Light mode is the tasteful one.
+theme: eos
 
 # THE LAST DOOR BACK TO THE SOURCE.
 #
@@ -51,23 +45,22 @@ theme:
 # Set this to `false` and the site stops referring to git entirely. That is the
 # intended end state once these go out to designers, guest artists and
 # students: the line is scaffolding for now, not a feature of a finished site.
-# One word, per site, no code change, no rebuild of anything else.
 edit_links: true
 
 # WARNING: THE `palette:` BLOCK IS GONE (2026-08-04). This note replaces it so
 # nobody puts it back.
 #
 # It set Material's header and accent to NAMED colours (`black`, `amber`) and
-# carried the comment "Kept in step with the eos accent by hand." That was the
-# hand mirroring, admitted in writing, and it went out of step the moment the
-# palette became canonical.
+# carried the comment "Kept in step with the eos accent by hand." That was hand
+# mirroring, admitted in writing, and it went out of step the moment the palette
+# became canonical.
 #
 # It also cost more than a colour. Setting `palette.primary` is what makes
 # Material emit `data-md-color-primary`, and Material's own compound rule
 # [data-md-color-scheme="slate"][data-md-color-primary="black"] then outranked
 # our link colour and painted every dark-mode link blue -- for as long as this
-# site has had a black header, silently, because an amber link under an amber
-# accent looked correct.
+# site had a black header, silently, because an amber link under an amber accent
+# looked correct.
 #
 # Chrome now resolves from the theme's canonical tokens in assets/base.css. The
 # light/dark TOGGLE is unaffected: it lives in mkdocs.yml and is a feature, not
