@@ -30,10 +30,18 @@ content_branch: main
 # resolves for compatibility and gets colour ONLY -- no canonical type, radii or
 # density -- and the build says so when it happens.
 #
-# WARNING: the eos DARK row currently carries Michael's hand-authored
-# identification harness (2026-08-05) -- eighteen deliberately clashing colours
-# so every surface names the token painting it. Dark mode is SUPPOSED to look
-# like that right now. Light mode is the tasteful one.
+# THE EOS PALETTE IS THE ETC CONSOLE, AND ITS SEMANTICS ARE A LANGUAGE (2026-08-05).
+# The dark row is the console's blue-tinted charcoal in BLIND; the five semantic
+# tokens carry the board's own grammar -- magenta tracked, blue intensity-up,
+# green lower/marked, gold captured, red manual. Those are not taste. A board op
+# reads them faster than a label, so re-colouring one breaks a language rather
+# than a palette.
+#
+# (The per-token identification harness that lived on this row until 2026-08-05
+# is retired. It existed to prove every surface resolved to a named token, it
+# did that, and a fixture that has finished proving its point is just a broken
+# palette. Do not re-add loud values here to debug -- change ONE cell upstream in
+# maw-themes and publish, which is the whole reason the join exists.)
 theme: eos
 
 # THE LAST DOOR BACK TO THE SOURCE.
@@ -55,16 +63,14 @@ edit_links: true
 # mirroring, admitted in writing, and it went out of step the moment the palette
 # became canonical.
 #
-# It also cost more than a colour. Setting `palette.primary` is what makes
-# Material emit `data-md-color-primary`, and Material's own compound rule
-# [data-md-color-scheme="slate"][data-md-color-primary="black"] then outranked
-# our link colour and painted every dark-mode link blue -- for as long as this
-# site had a black header, silently, because an amber link under an amber accent
-# looked correct.
-#
-# Chrome now resolves from the theme's canonical tokens in assets/base.css. The
-# light/dark TOGGLE is unaffected: it lives in mkdocs.yml and is a feature, not
-# a colour. Re-adding a `palette:` key here does nothing, and is reported.
+# WARNING AND REMOVING IT DID NOT FIX THE BLUE LINK, WHICH IS WHAT THE COMMIT
+# THAT REMOVED IT CLAIMED (corrected 2026-08-05). Material writes
+# `data-md-color-primary="indigo"` on the body by DEFAULT, whether or not this
+# file sets a primary, and ships a compound rule that outranks a single-attribute
+# scope. The real fix is the armour block in assets/base.css, which matches the
+# ATTRIBUTE and never its value. Re-adding a `palette:` key here still does
+# nothing, and is still reported -- but do not expect deleting things to be what
+# fixed the links.
 
 # Titles here are a FALLBACK. A folder that contains an index.md takes that
 # page's own title instead, so `venues/spac/` shows as "Swan Auditorium" rather

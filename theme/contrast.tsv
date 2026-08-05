@@ -5,12 +5,39 @@
 # `min` is 4.5 for body text and 3.0 for large text and UI edges.
 # Re-measure when a colour changes. A stale row here is worse than no row,
 # because it reads as a check that passed.
+#
+# ---------------------------------------------------------------------------
+# WHICH THEME ARE THESE? eos / eos-light, measured 2026-08-05 against the
+# canonical rows at blob 4691aee. Named because it was NOT named before, and
+# that is the deeper defect in this file:
+#
+# WARNING THIS TABLE IS THEME-BLIND. The rows are keyed `dark` and `light` as
+# though the engine had one of each. It can render twenty. Any number here is a
+# claim about ONE palette wearing the label of a whole scheme, so the moment an
+# instance points at a different theme these rows are quietly about somebody
+# else's colours. The real fix is deriving this at build time from the RESOLVED
+# theme -- the same move that fixed section 1 of the token audit page -- and it is
+# a piece of work, not a line. Flagged, not done.
+#
+# RED AND THE `rule on surface` ROWS WERE NEVER TRUE, NOT MERELY STALE. They
+# recorded 3.2 dark and 3.1 light against a 3.0 floor; the real values are 2.34
+# and 1.47. A sweep of all 17 dark palettes in maw-themes says ZERO of them
+# clear 3.0 on a border, median 1.89 -- so this row has been certifying a bar
+# that NOTHING in the design system meets, and passing, for as long as it has
+# existed. Same shape as the accent/on-accent pair fixed this morning: a check
+# whose subject does not exist cannot fail.
+#
+# They are left FAILING on purpose. Loosening `min` to make the report quiet
+# would be choosing the number that suits the moment; whether a 3.0 hairline is
+# the right target for a documentation site is Michael's call, and a loud honest
+# failure is how it reaches him.
+# ---------------------------------------------------------------------------
 pair	scheme	ratio	min
-ink on surface	dark	13.9	4.5
-ink on surface	light	14.6	4.5
-ink-muted on surface	dark	7.1	4.5
-ink-muted on surface	light	7.4	4.5
-accent on surface	dark	7.8	4.5
-accent on surface	light	5.2	4.5
-rule on surface	dark	3.2	3.0
-rule on surface	light	3.1	3.0
+ink on surface	dark	14.41	4.5
+ink on surface	light	14.55	4.5
+ink-muted on surface	dark	7.30	4.5
+ink-muted on surface	light	6.93	4.5
+accent on surface	dark	7.05	4.5
+accent on surface	light	4.86	4.5
+rule on surface	dark	2.34	3.0
+rule on surface	light	1.47	3.0

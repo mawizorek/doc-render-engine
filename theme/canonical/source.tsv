@@ -25,6 +25,17 @@
 # ---------------------------------------------------------------------------
 # REFRESH LOG. Newest first.
 #
+# 2026-08-05  THE EOS HARNESS RETIRES. colors c576bcf -> 4691aee, themes.json
+#             e6b7c7e -> 7711cab. Michael: "i think i've proved my point with
+#             the eos wild themes... revert the one color row to a more stable
+#             'eos' blind mode blue and yellow and blue and purple." 22 of 24
+#             cells on the eos DARK row, re-authored from a photograph of an
+#             Element2 console sitting in BLIND; every chrome cell now lands
+#             within THREE degrees of hue 217 where the harness spanned 224.
+#             themes.json carries prose only -- the eos join's harness warning
+#             was now false and the semantic grammar is stated instead.
+#             WARNING colors.tsv is 7,719 B BEFORE AND AFTER. Third occurrence
+#             in this file of identical size with different content.
 # 2026-08-05  THE COLOUR TABLE BECOMES CLUELESS. colors 75b3f6c -> c576bcf
 #             (38 cols -> 24, 23 rows -> 39), themes.json 09e429b -> e6b7c7e
 #             (schemaVersion 4, +alt-color on every join).
@@ -56,8 +67,8 @@
 # 2026-08-04  --      -> 4f391aa  Initial vendor. 19 themes x 36 columns.
 # ---------------------------------------------------------------------------
 file	repo	path	blob_sha	bytes	verified	note
-canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	c576bcf282618df5375164342ec691e7a6420ac5	7719	2026-08-05	39 rows x 24 columns. One row is ONE COMPLETE PALETTE and the table expresses no relationship of any kind -- no identity, no alt- band. `mode` is descriptive only.
-canonical/themes.json	mawizorek/maw-themes	registry/_themes.json	e6b7c7e14a84cc54041472ca7873dbe45d569827	9134	2026-08-05	THE JOIN, schemaVersion 4. 12 themes, FIVE pointers each: color, alt-color, typography, forms, spacing. Pairing lives here and nowhere else.
+canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	4691aee8014d9e6af12a8337fe134a1f682596d6	7719	2026-08-05	39 rows x 24 columns. One row is ONE COMPLETE PALETTE and the table expresses no relationship of any kind -- no identity, no alt- band. `mode` is descriptive only.
+canonical/themes.json	mawizorek/maw-themes	registry/_themes.json	7711cab143c8b22913c28e8e9fc1390c1b4173d0	9381	2026-08-05	THE JOIN, schemaVersion 4. 12 themes, FIVE pointers each: color, alt-color, typography, forms, spacing. Pairing lives here and nowhere else.
 canonical/typography.tsv	mawizorek/maw-themes	vectors/typography.tsv	cbf0c9e1ef8e3ba7150a21ad2831a6fae12d9165	1148	2026-08-05	6 SHARED entities on their own slugs. Joined by pointer -- editing one moves every theme pointing at it.
 canonical/forms.tsv	mawizorek/maw-themes	vectors/forms.tsv	9433b6aeb08da191c3a2567edf24970cf81d945f	1322	2026-08-05	5 SHARED entities. Radii, border weight, gradient angle, shadows, elevation, motion.
 canonical/spacing.tsv	mawizorek/maw-themes	vectors/spacing.tsv	a355d55bd399a453e4d7f467fad003c9fc12bebf	256	2026-08-05	6 SHARED entities. Touch target, cell and card padding, three gaps.
