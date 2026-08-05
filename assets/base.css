@@ -23,14 +23,16 @@
  * and a bare var() would collapse the rule to NOTHING. A hairline that silently
  * vanishes is worse than one that never moved.
  *
- * ⚠️ NOT EVERY TOKEN HAS A CONSUMER. `elev-1/2/3`, the motion set and `lift` are
- * emitted and read by nothing here -- this file sets `box-shadow: none` on the
- * header deliberately and declares no transitions at all. Wiring them means
- * ADDING shadows and animation to a documentation site, which is a design
- * decision. Section 4 of the token audit page lists every literal that remains.
+ * ⚠️ NOT EVERY TOKEN HAS A CONSUMER, AND THIS FILE IS NO LONGER THE PLACE TO
+ * LOOK FOR THE COUNT. `elev-1/2/3` and `lift` are still read by nothing here;
+ * `motion-*` and `ease` moved to assets/router.css on 2026-08-05, and the
+ * paragraph that used to sit here claiming this engine "declares no transitions
+ * at all" was TRUE OF THIS FILE and false of the engine for two days. Section 4
+ * of the token audit page derives the real list every build.
  *
- * ⚠️ THE NAV LAYER LIVES IN assets/nav.css. Split out 2026-08-04 when this file
- * hit 22,743 B, past the 22KB hard read limit. Do not add a nav rule here.
+ * ⚠️ THE NAV LAYER LIVES IN assets/nav.css AND THE CALLOUTS IN
+ * assets/admonition.css. Both split out rather than grown here. Do not add a nav
+ * rule or an admonition rule to this file.
  */
 
 [data-md-color-scheme="slate"],
@@ -101,9 +103,9 @@
  * ⭐ THE ASYMMETRY IS THE FINGERPRINT. These compounds exist ONLY under
  * `[data-md-color-scheme=slate]` -- the plain `[data-md-color-primary=indigo]`
  * block sets primary colours and NOT `--md-typeset-a-color`. So light falls
- * through to us and paints the canonical accent while dark paints Material's
- * blue, from one declaration in one file. Any explanation that does not predict
- * that split is the wrong explanation.
+ * through to us and dark paints Material's blue, from one declaration in one
+ * file. Any explanation that does not predict that split is the wrong
+ * explanation.
  *
  * ⭐ MATCH THE ATTRIBUTE, NEVER ITS VALUE. `[data-md-color-primary]` is
  * (0,2,0) beside the scheme, level with Material, and this file loads after
@@ -140,6 +142,44 @@
 :root {
   --md-text-font: var(--dr-font-body);
   --md-code-font: var(--dr-font-mono);
+}
+
+/* ---------------------------------------------------------------------------
+ * HEADINGS -- the display face, finally consumed (2026-08-05)
+ *
+ * 🔴 `font-display` WAS READ BY NOTHING. Every canonical typography entity names
+ * one -- eos and sharp-racing want Chakra Petch, papyrus wants Gabarito,
+ * racing-archivo wants Archivo -- and every heading on every site rendered in
+ * `font-body`, because no rule anywhere asked for it. The most visible unwired
+ * token in the system, and invisible for the obvious reason: a heading set in
+ * the body face still looks like a heading.
+ *
+ * `track-tight` comes with it and belongs nowhere else. Negative tracking is
+ * something you do to LARGE type -- at body size it closes letters up and costs
+ * legibility. Headings are the only surface in this engine big enough to want
+ * it, which is why the token was written and why it had no home until now.
+ *
+ * ⚠️ THE FALLBACK IS `font-body`, NOT A LITERAL, and the difference matters more
+ * here than anywhere else in this file. A nine-token local theme emits no
+ * font-display, and a bare var() in a `font-family` list falls through to the
+ * browser default -- Times New Roman, on every heading on the site. The fallback
+ * keeps today's render exactly.
+ *
+ * 🚩 NOT FIXED HERE, AND IT IS A REAL DEFECT: Material styles h1 with
+ * `--md-default-fg-color--light`, which this file maps to `ink-muted`. So a page
+ * TITLE renders dimmer than the body text underneath it. One line to change, and
+ * it is a value question about whether a title should be the quietest thing on
+ * the page (it should not) -- so it is Michael's call rather than a side effect
+ * of wiring a font.
+ * ------------------------------------------------------------------------ */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  font-family: var(--dr-font-display, var(--dr-font-body));
+  letter-spacing: var(--dr-track-tight, normal);
 }
 
 /* ---------------------------------------------------------------------------
