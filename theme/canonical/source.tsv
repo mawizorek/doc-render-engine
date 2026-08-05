@@ -19,12 +19,45 @@
 # rather than implied, because a green check that answers a narrower question
 # than the reader assumes is worse than no check.
 #
+# RED AND THAT GAP FIRED ON MICHAEL'S OWN WORK ON 2026-08-05. He hand-committed
+# typography.tsv and spacing.tsv upstream at 16:38 and 16:36Z; both sat
+# unvendored for roughly fifty minutes, so a display face and a whole spacing
+# entity were live in the design system and absent from every site. Nothing here
+# could have caught it -- this file only compares against what we last copied --
+# and it was found by reading the refresh log for an unrelated reason. The remedy
+# named above is still the remedy.
+#
 # HOW TO REFRESH: replace the file wholesale from the source repo, put the new
 # blob SHA here, and re-run the build. Never edit a vendored file in place.
 #
 # ---------------------------------------------------------------------------
 # REFRESH LOG. Newest first.
 #
+# 2026-08-05  A LINK IS ITS OWN ROLE. colors 579bb57 -> 003fb9c, 24 -> 25
+#             columns: NEW `link`, authored on eos (#c495b5) and eos-light
+#             (#8a4374) and BLANK on the other 37 rows. Michael: "change the
+#             color that LINKS use to be not in the same family as note, active,
+#             and sticky columns... is there a free or better color column to
+#             use?" Measured answer: there was not one. accent-deep is 2 deg
+#             from accent and info is 12 -- same family, would read as a mistake;
+#             accent-2 is genuinely distinct but already letters @term: links, so
+#             a real link would become indistinguishable from a span that is not
+#             clickable; good/warn/bad each already mean something a link does
+#             not; data-1..4 are byte-identical in all 39 rows. Hue 319 is the
+#             one unoccupied region. WARNING a blank cell is not emitted, so
+#             `var(--dr-link, var(--dr-accent))` keeps all 37 other themes
+#             rendering byte-identically.
+# 2026-08-05  MICHAEL'S OWN EDITS, VENDORED ~50 MIN LATE (see the RED note
+#             above). typography cbf0c9e -> 5f6ec2d: eos display 'Chakra Petch'
+#             -> 'Archivo', mono 'JetBrains Mono' -> 'IBM Plex Mono'. spacing
+#             a355d55 -> a4996d0: eos pad-cell 6->3px, pad-card 12->8px, gap-md
+#             10->6px, gap-lg 20->12px, roughly halving all four.
+#             RED THE SPACING EDIT IS VISIBLE AND THE TYPOGRAPHY ONE IS NOT.
+#             Nothing in this engine fetches a webfont -- `theme.font` is never
+#             set in mkdocs.yml -- so a font NAME changes and no file is
+#             requested, and 'Archivo' falls through to system-ui. The type
+#             vector's three font columns have never rendered on any site. Full
+#             write-up in assets/type.css.
 # 2026-08-05  EOS-LIGHT JOINS THE CONSOLE. colors 4691aee -> 579bb57. Michael:
 #             "fix the eos light theme to now fit the same muted blue
 #             aesthetics? could do for more notable amber pops in both of them."
@@ -80,8 +113,8 @@
 # 2026-08-04  --      -> 4f391aa  Initial vendor. 19 themes x 36 columns.
 # ---------------------------------------------------------------------------
 file	repo	path	blob_sha	bytes	verified	note
-canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	579bb5735ddeb76b56b814e80a6e3525ad731765	7719	2026-08-05	39 rows x 24 columns. One row is ONE COMPLETE PALETTE and the table expresses no relationship of any kind -- no identity, no alt- band. `mode` is descriptive only.
-canonical/themes.json	mawizorek/maw-themes	registry/_themes.json	7711cab143c8b22913c28e8e9fc1390c1b4173d0	9381	2026-08-05	THE JOIN, schemaVersion 4. 12 themes, FIVE pointers each: color, alt-color, typography, forms, spacing. Pairing lives here and nowhere else.
-canonical/typography.tsv	mawizorek/maw-themes	vectors/typography.tsv	cbf0c9e1ef8e3ba7150a21ad2831a6fae12d9165	1148	2026-08-05	6 SHARED entities on their own slugs. Joined by pointer -- editing one moves every theme pointing at it.
+canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	003fb9c47c05dd289286c73ce6bed1098f320832	7777	2026-08-05	39 rows x 25 columns. One row is ONE COMPLETE PALETTE and the table expresses no relationship of any kind -- no identity, no alt- band. `mode` is descriptive only. `link` is authored on 2 rows and blank on 37; blank means UNAUTHORED, and the consumer falls back to accent.
+canonical/themes.json	mawizorek/maw-themes	registry/_themes.json	7711cab143c8b22913c28e8e9fc1390c1b4173d0	9381	2026-08-05	THE JOIN, schemaVersion 4. 12 themes, FIVE pointers each: color, alt-color, typography, forms, spacing. Pairing lives here and nowhere else. A new COLOUR column moves no pointer, so this file does not change when one is added.
+canonical/typography.tsv	mawizorek/maw-themes	vectors/typography.tsv	5f6ec2dd68d30198638b6602ead9e9a57e534ec4	1629	2026-08-05	6 SHARED entities on their own slugs. Joined by pointer -- editing one moves every theme pointing at it. WARNING the three FONT columns do not render: nothing in this engine fetches a webfont. See assets/type.css.
 canonical/forms.tsv	mawizorek/maw-themes	vectors/forms.tsv	9433b6aeb08da191c3a2567edf24970cf81d945f	1322	2026-08-05	5 SHARED entities. Radii, border weight, gradient angle, shadows, elevation, motion.
-canonical/spacing.tsv	mawizorek/maw-themes	vectors/spacing.tsv	a355d55bd399a453e4d7f467fad003c9fc12bebf	256	2026-08-05	6 SHARED entities. Touch target, cell and card padding, three gaps.
+canonical/spacing.tsv	mawizorek/maw-themes	vectors/spacing.tsv	a4996d0e6b3bed56740c9b76c750eed23b75bd65	256	2026-08-05	6 SHARED entities. Touch target, cell and card padding, three gaps.

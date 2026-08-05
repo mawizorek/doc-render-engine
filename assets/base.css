@@ -10,12 +10,6 @@
  * Setting a Material colour in an unscoped :root hits BOTH schemes at once and
  * silently breaks the dark toggle.
  *
- * CHROME IS SET HERE NOW, AS OF 2026-08-04. It used to be theme.palette, applied
- * by docrender/instance.py. That split existed to dodge the unscoped-:root trap
- * -- but the trap is about SCOPE, not about which file the rule lives in, and
- * everything here is already scoped. See THE CHROME BLOCK below for what the old
- * arrangement cost.
- *
  * ⭐ FOUR VECTORS, NOT ONE (2026-08-04). Colour, typography, forms and spacing
  * all reach this file now. Every metric below that reads a token carries its OLD
  * literal as the fallback -- `var(--dr-border-w, 1px)` -- and that is
@@ -23,12 +17,18 @@
  * and a bare var() would collapse the rule to NOTHING. A hairline that silently
  * vanishes is worse than one that never moved.
  *
- * ⚠️ THE TYPE LAYER LIVES IN assets/type.css. Split out 2026-08-05 so the
- * heading rules could be added without pushing this file toward the hard read
- * limit. Do not add a heading rule here.
+ * ⚠️ THREE LAYERS HAVE LEFT THIS FILE. Do not add their rules back here.
  *
- * ⚠️ THE NAV LAYER LIVES IN assets/nav.css. Split out 2026-08-04 when this file
- * hit 22,743 B, past the 22KB hard read limit. Do not add a nav rule here.
+ *   assets/chrome.css  the Material variable mapping, THE ARMOUR, .md-header
+ *   assets/nav.css     the sidebar
+ *   assets/type.css    headings, and the type vector's own notes
+ *   assets/data*.css   the TSV table and its list mode
+ *
+ * Every one left because this file passed a read limit, and every one is a
+ * distinct surface rather than a bag of leftover bytes. Load order for all of
+ * them is set in docrender/assets.py and is NOT alphabetical -- chrome.css in
+ * particular must stay after this file or every dark-mode link reverts to
+ * Material's blue.
  */
 
 [data-md-color-scheme="slate"],
@@ -37,7 +37,29 @@
   --md-default-fg-color: var(--dr-ink);
   --md-default-fg-color--light: var(--dr-ink-muted);
   --md-typeset-color: var(--dr-ink);
-  --md-typeset-a-color: var(--dr-accent);
+
+  /* ⭐ A HYPERLINK IS ITS OWN ROLE (2026-08-05). This read `var(--dr-accent)`,
+   * which meant every link shared one token with the note callout, the active
+   * nav row, the sticky first column, the section band, the open chevron, the
+   * focus ring and the Go button. Michael: "change the color that LINKS use to
+   * be not in the same family as note, active, and sticky columns."
+   *
+   * `accent` is the site's IDENTITY colour; a link is a CONTROL. They were one
+   * token because the canonical palette had no word for the second idea, and
+   * Material itself never made that mistake -- it keeps `--md-typeset-a-color`
+   * separate from `--md-accent-fg-color`, which is the corroboration that turned
+   * this from a preference into a missing column.
+   *
+   * ⚠️ SET TWICE. The other is THE ARMOUR in assets/chrome.css, which has to win
+   * a specificity tie against Material. Changing only one of them leaves one
+   * SCHEME on the old colour, which is precisely the dark/light asymmetry that
+   * took a day to diagnose. If you change this line, grep for the other.
+   *
+   * ⚠️ THE FALLBACK IS THE MIGRATION. 37 of 39 palette rows leave `link` blank
+   * and the emitter skips a blank cell, so every theme that has not authored one
+   * renders byte-identically to before. */
+  --md-typeset-a-color: var(--dr-link, var(--dr-accent));
+
   --md-code-bg-color: var(--dr-surface-raised);
   --md-footer-bg-color: var(--dr-surface-raised);
   --md-footer-bg-color--dark: var(--dr-surface);
@@ -46,127 +68,10 @@
   --md-footer-fg-color--lighter: var(--dr-ink-muted);
 }
 
-/* ---------------------------------------------------------------------------
- * THE CHROME BLOCK -- header, drawer and interactive accents (2026-08-04)
- *
- * The header colour used to be `palette.primary` in site.yml, a NAMED Material
- * colour hand-picked to sit near whatever the theme's accent happened to be.
- * site.yml said so: "Kept in step with the eos accent by hand." A documented
- * hand-sync is a drift defect with a note attached, and it went out of step the
- * moment the palette became canonical.
- *
- * ⚠️ EVERY VALUE HERE CARRIES A FALLBACK AND THEY ARE NOT DECORATION. A
- * canonical theme emits --dr-surface-1 and --dr-on-accent; the local nine-token
- * table does not. Without the fallback, `utility`, `database` and `base` would
- * paint their chrome with an empty variable -- and an empty custom property is
- * not an error, it is a blank, which is the class of failure this engine keeps
- * catching.
- * ------------------------------------------------------------------------ */
-[data-md-color-scheme="slate"],
-[data-md-color-scheme="default"] {
-  --md-primary-fg-color: var(--dr-surface-1, var(--dr-surface-raised));
-  --md-primary-fg-color--light: var(--dr-surface-raised);
-  --md-primary-fg-color--dark: var(--dr-surface);
-  --md-primary-bg-color: var(--dr-ink);
-  --md-primary-bg-color--light: var(--dr-ink-muted);
-
-  --md-accent-fg-color: var(--dr-accent);
-  --md-accent-fg-color--transparent: var(--dr-accent-soft, transparent);
-  --md-accent-bg-color: var(--dr-on-accent, var(--dr-surface));
-  --md-accent-bg-color--light: var(--dr-on-accent, var(--dr-surface));
-
-  /* ⭐ THE ELEVATION SCALE, AND ITS FIRST CONSUMERS ARE MATERIAL'S OWN
-   * (2026-08-05). `--md-shadow-z1/z2/z3` are real Material variables, read by
-   * the admonition box, kbd keys, the code-block nav and the consent dialog. So
-   * three lines here reach four surfaces without a rule of ours.
-   *
-   * ⚠️ THIS RETIRES AN EXCUSE THIS FILE WROTE AND WAS WRONG ABOUT. The header
-   * comment used to say elev-* and the motion set have no consumer because this
-   * file sets `box-shadow: none` on the header and declares no transitions, so
-   * wiring them would mean ADDING shadows to a documentation site -- a design
-   * decision. True of base.css. False of the engine: Material has been painting
-   * these shadows from its own defaults since day one. Nothing is added; the
-   * paint changes hands.
-   *
-   * ⚠️ THE FALLBACKS ARE MATERIAL'S OWN LITERALS AND THEY ARE LOAD-BEARING. A
-   * local nine-token theme emits no elev-*, and `box-shadow: var(--md-shadow-z1)`
-   * with nothing behind it is invalid at computed-value time -- which means NO
-   * SHADOW, silently, on three of the four sites. A callout that loses its
-   * shadow reads as a rendering fault. */
-  --md-shadow-z1: var(--dr-elev-1, 0 0.2rem 0.5rem #0000000d, 0 0 0.05rem #0000001a);
-  --md-shadow-z2: var(--dr-elev-2, 0 0.2rem 0.5rem #0000001a, 0 0 0.05rem #00000040);
-  --md-shadow-z3: var(--dr-elev-3, 0 0.2rem 0.5rem #0003, 0 0 0.05rem #00000059);
-
-  /* A callout is the raised-most panel on the page, not the same colour as the
-   * canvas Material defaults it to. MEASURED IN BOTH SCHEMES BEFORE SHIPPING,
-   * because body text sits on it: ink 9.90 dark / 11.98 light, ink-muted 5.02 /
-   * 5.13. `surface-3` had no consumer anywhere before this line.
-   *
-   * The per-family border, title bar, icon and marker colours are generated
-   * from theme/blocks.tsv into blocks.css -- see docrender/blocks.py. */
-  --md-admonition-bg-color: var(--dr-surface-3, var(--dr-surface));
-}
-
-/* ---------------------------------------------------------------------------
- * 🔴 THE ARMOUR -- because the 2026-08-04 fix was WRONG (2026-08-05)
- *
- * READ OUT OF MATERIAL'S palette.css, NOT REMEMBERED THIS TIME:
- *
- *     [data-md-color-scheme=slate][data-md-color-primary=indigo]
- *       { --md-typeset-a-color: #5488e8 }
- *
- * TWO attribute selectors, (0,2,0), against the ONE the block above scopes
- * with. It wins on SPECIFICITY, so loading later cannot save us.
- *
- * 🔴 The note that used to sit here claimed Material writes
- * `data-md-color-primary` ONLY when palette.primary is set, so deleting the key
- * was "structural -- no way for the override to return." Both halves false: the
- * key is gone and the published body still reads
- * `data-md-color-primary="indigo"`. Material DEFAULTS it, so it was never ours
- * to remove, and the guessed value was `black`. That paragraph was written from
- * memory of a stylesheet nobody had opened and shipped as a fix; the symptom
- * outlived it by a day. ⚠️ DO NOT DELETE THIS BLOCK AS REDUNDANT.
- *
- * ⭐ THE ASYMMETRY IS THE FINGERPRINT. These compounds exist ONLY under
- * `[data-md-color-scheme=slate]` -- the plain `[data-md-color-primary=indigo]`
- * block sets primary colours and NOT `--md-typeset-a-color`. So light falls
- * through to us and paints the canonical accent while dark paints Material's
- * blue, from one declaration in one file. Any explanation that does not predict
- * that split is the wrong explanation.
- *
- * ⭐ MATCH THE ATTRIBUTE, NEVER ITS VALUE. `[data-md-color-primary]` is
- * (0,2,0) beside the scheme, level with Material, and this file loads after
- * palette.css, so we take the tie. Matching `=indigo` would win today and break
- * the day the default moves or somebody sets a primary on purpose.
- *
- * ⚠️ IT IS A SPECIFICITY TIE AND THAT IS ITS ONLY HONEST NAME. A structural
- * fix was never available: the attribute comes from the theme's own template.
- *
- * Only what Material contests belongs here. `.md-header` is armed alongside
- * because `[data-md-color-primary=black] .md-header` sets a background
- * directly, which would beat the variable indirection rather than tie with it.
- * ------------------------------------------------------------------------ */
-[data-md-color-scheme="slate"][data-md-color-primary],
-[data-md-color-scheme="default"][data-md-color-primary] {
-  --md-typeset-a-color: var(--dr-accent);
-}
-
-[data-md-color-primary] .md-header {
-  background-color: var(--dr-surface-1, var(--dr-surface-raised));
-}
-
-/* The header sits on the page rather than above it: a hairline instead of
- * Material's drop shadow, because the chrome is now a canonical surface and a
- * shadow would make it read as a floating bar in a different palette.
- *
- * ⚠️ This `box-shadow: none` is deliberate on the HEADER and is not a statement
- * about the engine. Material's own shadow scale is mapped to elev-1/2/3 above
- * and paints callouts and kbd keys; this rule opts one surface out of it. */
-.md-header {
-  box-shadow: none;
-  border-bottom: var(--dr-border-w, 1px) solid var(--dr-rule);
-}
-
+/* ⚠️ THESE TWO CHANGE A NAME AND FETCH NOTHING. The full finding -- that the
+ * typography vector's font FACES have never rendered on any site, because
+ * nothing in this engine requests a webfont -- is written up in assets/type.css,
+ * which is the type layer and therefore where it belongs. */
 :root {
   --md-text-font: var(--dr-font-body);
   --md-code-font: var(--dr-font-mono);
@@ -198,18 +103,6 @@
 .md-nav__icon.md-status {
   display: none !important;
 }
-
-/* ---------------------------------------------------------------------------
- * THE NAV LAYER MOVED OUT -- assets/nav.css (2026-08-04)
- *
- * The caps/rule treatment, the phones-only double-rule fix, the nested reset and
- * the active-section indicator all live there. It left because this file hit
- * 22,743 B -- past the 22KB HARD line, the point at which a file stops coming
- * back whole from one read and therefore stops being safely editable.
- *
- * ⚠️ DO NOT ADD A NAV RULE HERE, not even a small override. Same rule as the
- * table layer: one surface, one address.
- * ------------------------------------------------------------------------ */
 
 /* ---------------------------------------------------------------------------
  * THE LEDE
@@ -350,21 +243,6 @@
 }
 
 /* ---------------------------------------------------------------------------
- * THE TSV DATA TABLE MOVED OUT -- assets/data.css (2026-08-04)
- *
- * Every `.dr-data*` and `.dr-col--*` rule lives there, and there only. It left
- * because this file was 18.4KB, past the engine's own 18KB warn line, and the
- * per-column work would have carried it over the 22KB hard line.
- *
- * ⚠️ DO NOT ADD A TABLE RULE HERE, not even a small override. A second home for
- * one rule is how a stylesheet starts disagreeing with itself.
- *
- * ⭐ AND IT PICKED UP THE SPACING VECTOR FOR FREE. data.css already reads
- * `--dr-data-pad`, which the bridge now points at canonical `pad-cell` -- so the
- * table's density obeys the theme without that file being opened.
- * ------------------------------------------------------------------------ */
-
-/* ---------------------------------------------------------------------------
  * A REFERENCE THAT RESOLVED NOWHERE
  *
  *     Electrics - Lighting Inventory [err]
@@ -404,7 +282,15 @@
 }
 
 /* Page foot: the edit link. Quiet, at the bottom, with words rather than an
- * icon. Removed entirely per site with `edit_links: false`. */
+ * icon. Removed entirely per site with `edit_links: false`.
+ *
+ * ⚠️ THE HOVER STAYS `accent` AND IS NOT AN OVERSIGHT. This is a link, so it
+ * could have moved to `link` with the rest -- but its RESTING state is
+ * deliberately `ink-muted` rather than a link colour, because it is furniture
+ * and must not read as part of the document. Its hover is therefore doing the
+ * same job as Material's link hover: move toward the identity colour to say
+ * "this is interactive". Consistent with the link rule above, not exempt from
+ * it. */
 .pagefoot__rule {
   margin-top: var(--dr-gap-lg, 2.6rem);
   border: 0;
