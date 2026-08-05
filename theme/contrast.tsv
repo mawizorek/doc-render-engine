@@ -8,7 +8,7 @@
 #
 # ---------------------------------------------------------------------------
 # WHICH THEME ARE THESE? eos / eos-light, measured 2026-08-05 against the
-# canonical rows at blob 4691aee. Named because it was NOT named before, and
+# canonical rows at blob 579bb57. Named because it was NOT named before, and
 # that is the deeper defect in this file:
 #
 # WARNING THIS TABLE IS THEME-BLIND. The rows are keyed `dark` and `light` as
@@ -21,8 +21,8 @@
 #
 # RED AND THE `rule on surface` ROWS WERE NEVER TRUE, NOT MERELY STALE. They
 # recorded 3.2 dark and 3.1 light against a 3.0 floor; the real values are 2.34
-# and 1.47. A sweep of all 17 dark palettes in maw-themes says ZERO of them
-# clear 3.0 on a border, median 1.89 -- so this row has been certifying a bar
+# and 1.56. A sweep of all 19 dark palettes in maw-themes says ZERO of them
+# clear 3.0 on a border, median 2.10 -- so this row has been certifying a bar
 # that NOTHING in the design system meets, and passing, for as long as it has
 # existed. Same shape as the accent/on-accent pair fixed this morning: a check
 # whose subject does not exist cannot fail.
@@ -31,13 +31,18 @@
 # would be choosing the number that suits the moment; whether a 3.0 hairline is
 # the right target for a documentation site is Michael's call, and a loud honest
 # failure is how it reaches him.
+#
+# WARNING `rule on surface light` MOVED 1.47 -> 1.56 AND THAT IS NOT PROGRESS.
+# The whole light chrome ramp was re-authored for the console palette and the
+# border came with it; nobody was aiming at this number. Recorded so the next
+# reader does not mistake a side effect for an attempt.
 # ---------------------------------------------------------------------------
 pair	scheme	ratio	min
 ink on surface	dark	14.41	4.5
-ink on surface	light	14.55	4.5
+ink on surface	light	14.60	4.5
 ink-muted on surface	dark	7.30	4.5
-ink-muted on surface	light	6.93	4.5
+ink-muted on surface	light	6.25	4.5
 accent on surface	dark	7.05	4.5
-accent on surface	light	4.86	4.5
+accent on surface	light	5.84	4.5
 rule on surface	dark	2.34	3.0
-rule on surface	light	1.47	3.0
+rule on surface	light	1.56	3.0
