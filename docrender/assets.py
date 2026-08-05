@@ -13,7 +13,7 @@ somewhere else entirely -- here the engine's own assets/ and the instance's
 folder. MkDocs treats them as ordinary site files from that point on.
 
 =============================================================================
-🐛 ON_CONFIG CANNOT SEE THE PAGES. THIS BROKE THE ROUTER COMPLETELY.
+BUG: ON_CONFIG CANNOT SEE THE PAGES. THIS BROKE THE ROUTER COMPLETELY.
 =============================================================================
 MkDocs runs EVERY hook's `on_config` before ANY hook's `on_files`. So at
 `on_config` time `state.BY_SRC` is empty -- nothing has read a frontmatter block
@@ -32,26 +32,26 @@ both cheap: the instance's `routes.yml`, and a scan of the content tree for the
 frontmatter keys. The scan is one pass over small text files, done once and
 cached, which is a fair price for a check that cannot silently answer wrong.
 
-⭐ FEATURE ASSETS ARE STILL PUBLISHED ONLY WHERE THE FEATURE IS USED. The
+STAR FEATURE ASSETS ARE STILL PUBLISHED ONLY WHERE THE FEATURE IS USED. The
 principle was right; the implementation asked a question too early.
 
-⚠️ AND THAT IS WHY THE GENERATED SHEETS ARE UNCONDITIONAL. `tokens.css` and
-`marks.css` are built from theme/*.tsv, which is read straight off disk and does
-not care which event is running. Nothing about them can answer wrong early, so
-they are never gated on a usage check -- the trap above only bites a decision
+WARNING: AND THAT IS WHY THE GENERATED SHEETS ARE UNCONDITIONAL. `tokens.css`
+and `marks.css` are built from theme/*.tsv, which is read straight off disk and
+does not care which event is running. Nothing about them can answer wrong early,
+so they are never gated on a usage check -- the trap above only bites a decision
 that needs the page map.
 
-⚠️ THE THREE DATA-TABLE ASSETS ARE UNCONDITIONAL TOO, FOR A DIFFERENT REASON
+WARNING: THE DATA-TABLE ASSETS ARE UNCONDITIONAL TOO, FOR A DIFFERENT REASON
 WORTH STATING (2026-08-04). They are feature assets and they look gateable, but
 the question "does this site embed a table" cannot be answered cheaply or safely
 at on_config: a `!!! data` block lives in the BODY of a page, not in the first
 2000 bytes a frontmatter scan reads, so the router's trick does not transfer. The
 choice is between a whole-body scan of every page and ~24KB that matches nothing
-and binds no listener when no table exists. **A check that can answer wrong is
-more expensive than the bytes** -- that is the whole lesson of the section above.
+and binds no listener when no table exists. A check that can answer wrong is more
+expensive than the bytes -- the whole lesson of the section above.
 
 =============================================================================
-⚠️ EVERY ASSET URL CARRIES A CONTENT FINGERPRINT
+WARNING: EVERY ASSET URL CARRIES A CONTENT FINGERPRINT
 =============================================================================
     assets/base.a41f7c92.css
 
@@ -74,12 +74,27 @@ from .util import load_yaml
 
 _ROUTER_KEYS = ("router:", "router_code:")
 
-#: Load order is deliberate and is NOT alphabetical. `data.css` is base.css --
-#: the table layer was split out of it when that file passed the warn line -- so
-#: it loads immediately after. `data-list.css` overrides table rules inside a
-#: container query, so it loads after the rules it overrides. `data.js` drives
-#: both. Reorder these and list mode loses to the table it is meant to replace.
-_DATA_ASSETS = ("base.css", "data.css", "data-list.css", "data.js")
+#: Load order is deliberate and is NOT alphabetical. Every entry has a reason:
+#:
+#:   base.css       the Material mapping everything else builds on
+#:   nav.css        split out of base.css 2026-08-04 at the 22KB hard line. It
+#:                  OVERRIDES Material's drawer borders, so it must land AFTER
+#:                  the base mapping -- move it earlier and the phones-only
+#:                  double rule comes back, a defect that is invisible at desktop
+#:                  width and was found from a screenshot.
+#:   data.css       the table layer, itself split out of base.css
+#:   data-list.css  overrides table rules inside a container query, so it loads
+#:                  after the rules it overrides
+#:   data.js        drives both table layers
+#:
+#: Reorder these and list mode loses to the table it is meant to replace.
+_DATA_ASSETS = (
+    "base.css",
+    "nav.css",
+    "data.css",
+    "data-list.css",
+    "data.js",
+)
 
 
 def _uses_router(config) -> bool:
@@ -134,10 +149,10 @@ def _plan(config) -> list[tuple[str, bytes]]:
     """Every asset this build publishes, in load order, with its bytes.
 
     Built by both events -- `on_config` needs the URLs, `on_files` needs the
-    content -- and they must never disagree. Order: base and the data-table
-    layers (see `_DATA_ASSETS`), then the generated token sheet, then the
-    generated marker-class sheet, then any feature sheet, then the instance sheet
-    LAST so a site always has the final word on its own look.
+    content -- and they must never disagree. Order: base, the nav layer and the
+    data-table layers (see `_DATA_ASSETS`), then the generated token sheet, then
+    the generated marker-class sheet, then any feature sheet, then the instance
+    sheet LAST so a site always has the final word on its own look.
 
     `marks.css` sits after `tokens.css` because it CONSUMES those tokens, and it
     is separate from them because they answer different questions: tokens.css
