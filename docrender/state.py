@@ -16,7 +16,7 @@ on every save, never inherits the previous build's page map.
 admission price, and it is worth stating because a shared namespace is the one
 place a dead global survives indefinitely: nothing imports it by name, so
 nothing breaks when its last user goes. `REVLOG` sat here after its reader went
-away, labelled as staying "by preference", and was deleted with its writer on
+away, labelled as staying \"by preference\", and was deleted with its writer on
 2026-08-04. If a value is only ever touched by one module, it belongs in that
 module.
 """
@@ -72,6 +72,22 @@ PEERS: dict = {}
 #: code, and then it 404s.
 NAV_SEALED: dict = {}
 
+#: Folder indexes that declared `nav: expanded`, keyed by the index page's build
+#: url with the slashes stripped. Written by navstate.shape (stage 00b, reached
+#: through visibility.prune_nav), read by navstate.on_post_page (stage 06b),
+#: which checks the matching toggle in the rendered sidebar.
+#:
+#: ⭐ IT PAYS THE ADMISSION PRICE ABOVE THE SAME WAY NAV_SEALED DOES, and for a
+#: reason worth stating rather than assuming: what a folder does in the sidebar
+#: is settled in `on_nav`, but Material expresses it as ONE attribute written
+#: while rendering a page. Every hook's on_nav runs before any page is rendered,
+#: so those are two events, not two lines.
+#:
+#: ⚠️ A SET WEARING A DICT, deliberately. The membership test runs once per nav
+#: toggle per page, nothing here has ever needed a set, and one shape for every
+#: value in this module is what keeps `reset()` readable at a glance.
+NAV_OPEN: dict = {}
+
 #: ONE PBKDF2 salt for every curtain VERIFIER on this build, minted on first
 #: use by router.py and used by every `_check()` call on every page.
 #:
@@ -102,7 +118,7 @@ REPORT: dict = {}
 
 
 def reset() -> None:
-    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, NAV_SEALED
+    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, NAV_SEALED, NAV_OPEN
     global ROUTER_SALT, REPORT
     INSTANCE = {}
     TYPES = {}
@@ -110,6 +126,7 @@ def reset() -> None:
     PAGES = {}
     PEERS = {}
     NAV_SEALED = {}
+    NAV_OPEN = {}
     ROUTER_SALT = b""
     REPORT = {
         # Order here is the order the report prints, and it is deliberate:
