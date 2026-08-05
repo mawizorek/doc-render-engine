@@ -89,27 +89,34 @@ property survives for a ROW override only: a rule per class is cheap, a rule per
 marker was not, which is what the inline property existed to avoid.
 
 
-🔴 THE VALIDATION LIST WENT STALE WHEN THE PALETTE MOVED (fixed 2026-08-05)
-==========================================================================
+🔴 THE VALIDATOR WAS A SECOND OPINION ABOUT WHAT A COLOUR IS (fixed 2026-08-05)
+==============================================================================
 
-`_known_tokens()` read theme/colors.tsv and nothing else -- the NINE-TOKEN
-stand-in, the file whose own header says it is on death row. Meanwhile the
-engine has been emitting the CANONICAL 22 since the four-vector join landed, and
-exactly two of those (`accent`, `warn`) happen to share a name with the
-stand-in. Every other canonical token was REFUSED by a validator that had never
-heard of it.
+`_known_tokens()` read theme/colors.tsv -- the NINE-TOKEN stand-in that this
+engine has been retiring for two days -- and REFUSED anything absent from it. The
+canonical palette emits 22 tokens. Markers could see two of them.
 
-The visible cost was one line in marker-classes.tsv asking for `accent-soft`,
-reporting unknown once per build, and quietly rendering in the body colour --
-for long enough that the comment explaining it read as a plan rather than a bug.
+So the canonical join landed and this file never noticed, for hours, in a repo
+that spent the same night wiring four vectors into every other surface. ⚑ The
+generalisable shape: A VALIDATION LIST IS A SECOND SOURCE OF TRUTH ABOUT ITS
+SUBJECT, and it goes stale exactly like a manifest -- this repo has killed three
+manifests for that and then kept one in a function. It now reads the canonical
+header row, which IS the list, so there is nothing left to keep in step.
 
-⚑ A PALETTE MOVED AND THE LIST OF WHAT IS ALLOWED DID NOT. Same shape as the
-hardcoded `_SHEETS` list in tokenaudit.py that went stale in under two hours,
-and as contrast.tsv certifying a floor nothing in the design system meets: a
-second place stating a fact the first place already owns.
+⚠️ AND THE FALLBACK IS THE LOAD-BEARING HALF. A site on a local theme emits no
+canonical properties at all, and `var(--dr-accent-2)` with nothing behind it
+resolves to NOTHING -- an invisible marker, worse than a wrong colour because it
+reports nothing and looks like an authoring mistake. Canonical tokens are emitted
+as `var(--dr-x, currentColor)`; local ones stay bare because they are always
+there. The old refusal painted currentColor too, so the floor is unchanged and no
+site can render worse than it did yesterday.
 
-The union is read from the canonical table's own HEADER ROW, so a column added
-upstream is usable the day it is vendored. No third list.
+🔴 IT ALSO HID A REAL DEFECT FOR A WEEK. `terminology` asked for `accent-soft`,
+which measures 1.29 on the dark canvas and 1.12 on the light against a floor of
+4.5 -- it is the tinted BACKGROUND behind a chip, not a letters colour. The
+refusal was the only thing standing between that cell and an invisible glossary.
+Measured before wiring, changed to `accent-2`. ⚑ Removing a guard means checking
+what it was holding back, not just that it was wrong to hold it.
 
 Defined in theme/markers.tsv + theme/marker-classes.tsv. Adding one is a row.
 """
@@ -156,66 +163,73 @@ def _classes() -> dict[str, dict]:
     return {r["class"]: r for r in _rows("marker-classes.tsv") if r.get("class")}
 
 
-def _known_tokens() -> set[str]:
-    """Every colour token a marker may legally name.
+def _local_tokens() -> set[str]:
+    """The nine-token stand-in. ALWAYS emitted, so these need no fallback."""
+    return {r["token"] for r in _rows("colors.tsv") if r.get("token")}
 
-    THE UNION OF BOTH TABLES, and the union is the whole point -- see the red
-    section in the module docstring for what a single-table version cost.
 
-      LOCAL      theme/colors.tsv, the nine-token stand-in. Still contributes
-                 `dead`, which canonical genuinely lacks (maw-themes D11) and
-                 which is the only reason that file is still loaded at all.
-      CANONICAL  theme/canonical/colors.tsv, read from its HEADER ROW rather
-                 than from a list kept here. A column added upstream is usable
-                 the day it is vendored, and there is no third place to update.
+def _canonical_tokens() -> set[str]:
+    """Every token the canonical palette can emit, read off its header row.
 
-    ⚠️ THIS ANSWERS "MAY A MARKER NAME IT", NOT "IS IT EMITTED". A canonical
-    token is emitted only by a theme that has a join; a nine-token local theme
-    emits a handful. A marker naming a token the ACTIVE theme does not emit
-    resolves to `var(--dr-x)` with no fallback, which paints nothing -- so the
-    honest widening is to accept the name and let the theme decide, exactly as
-    every stylesheet in this engine already does with `var(--dr-x, fallback)`.
+    Derived rather than listed. A hardcoded copy here would be a second opinion
+    about what the design system contains, which is the defect that kept this
+    validator two days behind the join it was supposed to be validating.
+
+    Empty if the canonical table is missing, which degrades to exactly the old
+    local-only behaviour rather than to a crash.
     """
-    local = {r["token"] for r in _rows("colors.tsv") if r.get("token")}
-
-    canonical: set[str] = set()
-    for row in vectors.rows("colors.tsv"):
-        canonical = {k for k in row if k not in vectors.META and k}
-        break
-
-    return local | canonical
+    rows = vectors.rows("colors.tsv")
+    if not rows:
+        return set()
+    return {k for k in rows[0] if k and k not in vectors.META}
 
 
-def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> str:
+def _colour(value: str, where: str, tokens: tuple[set, set], report: bool = True) -> str:
     """Resolve a colour to something CSS can use.
+
+    `tokens` is (local, canonical) and the split decides the FALLBACK, not the
+    validity. A local token is emitted bare because the local table is always
+    read; a canonical one carries `, currentColor` because a site on a local
+    theme emits no canonical properties and a bare var() would render the marker
+    INVISIBLE -- silent, unreported, and indistinguishable from a typo.
 
     `report` exists because build_css() runs from assets._plan, which is called by
     BOTH on_config and on_files and would therefore complain twice about one bad
     cell. The single honest complaint comes from _build_table, which runs once.
     """
+    local, canonical = tokens
     value = (value or "").strip()
     if not value:
         return "currentColor"
     if not _TOKEN.match(value):
         return value
-    if value in tokens:
+    if value in local:
         return "var(--dr-" + value + ")"
+    if value in canonical:
+        return "var(--dr-" + value + ", currentColor)"
     if report:
         # Falling back silently would render an INVISIBLE marker -- var() with no
         # fallback resolves to nothing -- so it is reported and given a real colour.
+        # The two lists are printed SEPARATELY because "accent-2 is not a token"
+        # was the baffling part of this defect, and a merged list would keep it so.
         state.note(
             "notes",
-            where + " asks for colour token '" + value + "', which is in neither "
-            + "theme/colors.tsv nor theme/canonical/colors.tsv. Using the body "
-            + "colour. Known tokens: " + ", ".join(sorted(tokens)),
+            where + " asks for colour token '" + value + "', which no theme in "
+            + "this engine emits. Using the body colour. Canonical: "
+            + (", ".join(sorted(canonical)) or "none") + ". Local: "
+            + ", ".join(sorted(local)) + ".",
         )
     return "currentColor"
+
+
+def _token_sets() -> tuple[set, set]:
+    return _local_tokens(), _canonical_tokens()
 
 
 def _build_table() -> dict[str, dict]:
     """Merge every marker row with its class defaults. Once per build."""
     classes = _classes()
-    tokens = _known_tokens()
+    tokens = _token_sets()
     table: dict[str, dict] = {}
 
     if not classes:
@@ -294,7 +308,7 @@ def build_css() -> str:
     Shape stays in base.css -- only colour is generated.
     """
     classes = _classes()
-    tokens = _known_tokens()
+    tokens = _token_sets()
 
     lines = [
         "/* GENERATED by docrender/markers.py -- do not edit.",
@@ -325,8 +339,8 @@ def build_css() -> str:
     # no-op.
     #
     # Emitted HERE rather than in base.css for a boring reason worth stating:
-    # base.css is ~18.9KB, past its warn line, and a wholesale rewrite from one
-    # read is the clobber that ate util.py on 2026-08-03. This file already
+    # base.css is close enough to the read ceiling that a wholesale rewrite from
+    # one read is the clobber that ate util.py on 2026-08-03. This file already
     # generates the colour half.
     lines.append(
         ".md-typeset a." + _TERM_LINK_CLASS + " { color: var(--dr-mark-color);"
