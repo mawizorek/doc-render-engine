@@ -36,10 +36,11 @@ name: Publish automatically (the routine)
 #     flagged rather than folded in, because the template is the engine's own
 #     live gold standard and freezing it is a different decision.
 #
-# ⚠️ FIVE MINUTES IS THE PLATFORM FLOOR. GitHub rejects tighter. Read it as
-# "usually within a quarter hour": scheduled runs queue under load, drift 5-20
-# minutes, and are dropped outright during heavy periods. Never build anything
-# that needs this to be punctual.
+# ⚠️ FIVE MINUTES IS THE PLATFORM FLOOR -- GitHub rejects tighter. That is a
+# fact about GitHub, NOT our setting: we run every 20 (see below). Read any
+# scheduled interval as "usually within a quarter hour of the tick": scheduled
+# runs queue under load, drift 5-20 minutes, and are dropped outright during
+# heavy periods. Never build anything that needs this to be punctual.
 #
 # ⚠️ CRON IS UTC AND DOES NOT FOLLOW DST. Irrelevant at this interval, recorded
 # because the nightly value this replaced silently shifted an hour twice a year
@@ -50,13 +51,24 @@ name: Publish automatically (the routine)
 # switch uses. Not a live risk at this repo's pace, but if the routine ever
 # stops for no reason you remember, look here first: the symptom is silence.
 #
-# 📏 CHANGING THE FREQUENCY is one line below. The interval deliberately does
-# NOT live in a variable: that would put the routine's shape in two places
-# again, which is the mistake this file exists to undo.
+# 📏 CHANGING THE FREQUENCY IS TWO LINES IN THIS FILE: the `cron:` below and
+# the job `name:` at the bottom. The interval deliberately does NOT live in a
+# variable -- that would put the routine's shape in two places again, which is
+# the mistake this file exists to undo -- but the job name IS the only place
+# the interval is visible from the Actions tab without opening anything, so it
+# carries the number too and must move with it. A row reading "every 5 minutes"
+# on a 20-minute routine is the exact rot this repo keeps catching elsewhere.
+#
+# ⏱️ WHY 20 AND NOT 5 (2026-08-05). Nothing downstream needs a five-minute
+# door. Content arrives by commit and these sites are read, not watched, so the
+# routine is a safety net for a push that did not fire -- not the delivery
+# mechanism. */5 meant 288 runs a day across four matrix rows, almost all of
+# them logging "nothing changed" and burying the ones that did. The scheduler's
+# own 5-20 minute drift meant */5 was never really five anyway.
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/20 * * * *"
   # Kept so the routine can be fired by hand without waiting for the next tick,
   # and so the workflow has a Run button while disabled-state is being tested.
   workflow_dispatch:
@@ -66,7 +78,9 @@ permissions:
 
 jobs:
   run:
-    name: every 5 minutes
+    # ⚠️ KEEP IN STEP WITH THE CRON ABOVE. This string is what the Actions tab
+    # prints on every row, so it is the interval's only visible home.
+    name: every 20 minutes
     uses: ./.github/workflows/build.yml
     # ⚠️ LOAD-BEARING. A called workflow receives NO secrets by default, and
     # DOCRENDER_TOKEN is what both the private content checkout and the
