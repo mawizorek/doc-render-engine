@@ -33,33 +33,33 @@ name: Build and deploy doc sites
 # the deploy step, so it is the honest thing to key a read credential to.
 #
 # =============================================================================
-# ⭐ THE AUTOPUBLISH TOGGLE (2026-08-04) -- read this before changing a cron
+# ⭐ THIS FILE NO LONGER HOLDS A SCHEDULE (2026-08-04, same night it gained one)
 # =============================================================================
-# Repository variable `AUTOPUBLISH`, at
-#   Settings -> Secrets and variables -> Actions -> Variables
+# The routine lives in `poll.yml`, which does nothing but hold the cron and
+# call this workflow. THE REASON IS THE OFF SWITCH: GitHub can disable a
+# WORKFLOW from the Actions tab, and a disabled workflow shows a banner saying
+# so -- but there is no way to disable one TRIGGER of a workflow that also
+# handles pushes. Splitting the trigger into its own file is what makes
+# "Disable workflow" mean exactly "stop the routine" and nothing else.
 #
-#   on / unset   auto. The poll below renders and deploys. This is today's
-#                behaviour and it is the DEFAULT ON PURPOSE: an unset variable
-#                must never silently stop publishing a live site.
-#   off          truly off. The scheduled run does not start at all, and a push
-#                to this repo still renders every site as a regression check
-#                but deploys NOTHING. Sandbox mode.
+# 🪦 `AUTOPUBLISH` IS GONE, one commit after it shipped, and the reason it was
+# wrong is worth more than the variable was. It gated a schedule that still
+# existed, so `off` did not mean "no routine" -- it meant "a routine that
+# declines," which still burned a row in the Actions tab every five minutes and
+# still left the live state invisible unless you opened Settings. Michael:
+# "either auto-publish on a routine, or don't publish at all... I don't think
+# we should have an 'on routine' and an 'off routine'." A disabled workflow IS
+# the off state, it is legible on the screen you turn it back on from, and it
+# cannot drift out of step with itself the way a variable a workflow must
+# remember to read can.
 #
-# ⚠️ `off` GATES THE DEPLOY, NOT JUST THE CRON, and that is the whole point. A
-# toggle that only silenced the schedule would still publish in-progress
-# content the moment an unrelated engine PR merged -- which is exactly the
-# surprise somebody flips this to avoid. The two conditions are therefore
-# stated in two places (the job `if` and the deploy `if`) and they are NOT
-# redundant: the job gate skips pointless work, the deploy gate is the promise.
+# ⚑ GENERALISABLE: when a toggle and the platform disagree about where state
+# lives, the platform wins. A variable is a second copy of a fact GitHub is
+# already tracking.
 #
-# ⚠️ A VARIABLE, NOT A SECRET. `vars` can be read inside an `if:`; `secrets`
-# cannot, which is why HAS_DEPLOY_TOKEN below has to be resolved into `env`
-# first. Anyone reaching for a secret here will rediscover that the hard way.
-#
-# 🚫 THE MANUAL PUBLISH BUTTON IS DELIBERATELY NOT GATED. publish.yml is an
-# explicit human act with a preview mode; making a toggle able to silently
-# refuse it would be a footgun, not a safety feature. `off` means "nothing goes
-# public unless I say so," never "I cannot publish."
+# 🚫 STILL NOT GATED, and still deliberately: `publish.yml` is an explicit human
+# act with a preview mode. Turning the routine off must never mean "I cannot
+# publish."
 
 on:
   push:
@@ -72,41 +72,12 @@ on:
         default: ""
   repository_dispatch:
     types: [content-changed]
-  schedule:
-    # ⭐ FIVE MINUTES, WHICH IS THE PLATFORM FLOOR (2026-08-04). GitHub rejects
-    # anything tighter. The old value was `23 7 * * *` -- a nightly 3:23am ET
-    # poll -- and the reasoning that chose it is kept below because it is still
-    # the correct argument, it just lost to a different requirement.
-    #
-    # SUPERSEDED: "Nobody publishes venue specs on a stopwatch, so a nightly
-    # poll is enough to pick up content edits, and workflow_dispatch covers the
-    # impatient case. It also refreshes cross-site links, which resolve at
-    # build time and go stale when a peer renames a page."
-    #
-    # What changed is not the publishing rhythm, it is that `uritp-docs` went
-    # private, so a doc edit is no longer visible to anybody until it is
-    # rendered. A day-long delay between saving and seeing was acceptable when
-    # the markdown was readable on github.com in the meantime. It is not now.
-    #
-    # ⚠️ THE SCHEDULE IS A HINT, NOT A CLOCK. Scheduled runs queue under load
-    # and routinely drift 5-20 minutes; GitHub also drops them outright during
-    # heavy periods. Read `*/5` as "usually within a quarter hour" and never
-    # build anything that needs it to be punctual.
-    #
-    # ⚠️ CRON IS UTC AND DOES NOT FOLLOW DST. Irrelevant at this interval, and
-    # recorded because the nightly value it replaced silently shifted an hour
-    # twice a year and nothing said so.
-    #
-    # ⚠️ COST OF THE FLOOR: with AUTOPUBLISH `off`, the job gate below skips
-    # instantly and burns no minutes -- but a skipped run is still a ROW in the
-    # Actions tab, ~288 a day, which buries real runs. If that noise gets
-    # annoying the honest fix is to widen this to `*/15` or `*/30`, not to
-    # remove the toggle. One character, no other change.
-    #
-    # ⚠️ GitHub AUTO-DISABLES a scheduled workflow after 60 days with no repo
-    # activity. Not a live risk at this repo's pace; a real one if the engine
-    # ever goes quiet, and the symptom is silence rather than an error.
-    - cron: "*/5 * * * *"
+  # Called by poll.yml. `secrets: inherit` there is what carries DOCRENDER_TOKEN
+  # across the call -- a called workflow gets NO secrets by default, and the
+  # symptom of forgetting it is not an error: HAS_DEPLOY_TOKEN resolves false,
+  # every deploy is skipped, and the run summary politely reports a setup gap on
+  # a green build.
+  workflow_call:
 
 permissions:
   contents: read
@@ -114,13 +85,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # THE JOB GATE. A scheduled render that is forbidden to deploy is pure
-    # waste, so it does not start. Every OTHER trigger still runs: a push must
-    # keep working as the engine's regression check even in sandbox mode, which
-    # is the one thing `off` must not take away.
-    if: >-
-      github.event_name != 'schedule'
-      || vars.AUTOPUBLISH != 'off'
     strategy:
       fail-fast: false
       matrix:
@@ -140,8 +104,7 @@ jobs:
     name: ${{ matrix.instance }}
     env:
       # A secret cannot be read inside an `if:`, so its presence is resolved
-      # once, here, into something a step can test. (A VARIABLE can be read in
-      # an `if:` directly -- see the AUTOPUBLISH note in the header.)
+      # once, here, into something a step can test.
       HAS_DEPLOY_TOKEN: ${{ secrets.DOCRENDER_TOKEN != '' }}
     steps:
       - name: Check out the engine
@@ -248,23 +211,18 @@ jobs:
           mkdocs build --config-file mkdocs.yml
 
       - name: Deploy to the content repo's gh-pages
-        # Four conditions, each a real thing that goes wrong:
+        # Three conditions, each a real thing that goes wrong:
         #  - no PAT yet, so the cross-repo write dies confusingly
         #  - this row is published somewhere else (see the header)
         #  - a PR must never publish
-        #  - AUTOPUBLISH is `off`, so nothing reaches the web unattended
         #
-        # ⭐ THE LAST ONE IS THE TOGGLE'S ACTUAL PROMISE and it is here rather
-        # than only on the job so that a PUSH to this repo still renders every
-        # site (the regression check) while deploying none of them. Gating only
-        # the schedule would have left an unrelated engine merge publishing
-        # half-written content, which is the exact surprise `off` exists to
-        # prevent.
+        # ⚠️ THERE IS NO LONGER A FOURTH. The AUTOPUBLISH condition that stood
+        # here for one commit is gone with the variable; the routine is turned
+        # off by disabling poll.yml. See the header.
         if: >-
           env.HAS_DEPLOY_TOKEN == 'true'
           && matrix.publisher == 'matrix'
           && github.event_name != 'pull_request'
-          && vars.AUTOPUBLISH != 'off'
         uses: peaceiris/actions-gh-pages@v4
         with:
           # A fine-grained PAT with Contents: write on every content repo.
@@ -294,18 +252,15 @@ jobs:
               echo "\`publish-default.yml\` to this repository's own Pages, not"
               echo "to \`${{ matrix.repo }}\`. Nothing was pushed from here, and"
               echo "that is correct."
-            elif [ "${{ vars.AUTOPUBLISH }}" = "off" ]; then
-              echo "Rendered, NOT published: \`AUTOPUBLISH\` is **off**, so this"
-              echo "was a regression check only. Sandbox mode is working as"
-              echo "intended -- this is not a failure."
-              echo
-              echo "Publish on purpose with the **Publish a site** workflow, or"
-              echo "set \`AUTOPUBLISH\` back to \`on\` in Settings -> Secrets and"
-              echo "variables -> Actions -> Variables."
             elif [ "$HAS_DEPLOY_TOKEN" != "true" ]; then
               echo "Rendered, NOT published: \`DOCRENDER_TOKEN\` is not set, so"
               echo "the write to \`${{ matrix.repo }}\` was skipped. A setup gap,"
               echo "not a build failure. See README section 6."
+              echo
+              echo "⚠️ If this run came from \`poll.yml\`, check that it calls"
+              echo "this workflow with \`secrets: inherit\` -- a called workflow"
+              echo "receives no secrets without it, and this is what that looks"
+              echo "like."
             else
               echo "Published to \`${{ matrix.repo }}\` on \`gh-pages\`."
               echo
