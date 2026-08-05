@@ -7,7 +7,7 @@
 # because it reads as a check that passed.
 #
 # ---------------------------------------------------------------------------
-# WHICH THEME ARE THESE? eos / eos-light, measured 2026-08-05 against the
+# WHICH THEME ARE THESE? eos / eos-light, re-measured 2026-08-05 against the
 # canonical rows at blob 579bb57. Named because it was NOT named before, and
 # that is the deeper defect in this file:
 #
@@ -18,6 +18,27 @@
 # else's colours. The real fix is deriving this at build time from the RESOLVED
 # theme -- the same move that fixed section 1 of the token audit page -- and it is
 # a piece of work, not a line. Flagged, not done.
+#
+# ---------------------------------------------------------------------------
+# WHICH GROUND IS "surface"? The aliases resolve `surface` -> canonical `bg`
+# and `surface-raised` -> `surface-1`, and every ground this engine actually
+# PAINTS is one of those two: the table body, the sticky header, the hover row,
+# the router panel, the section band. `surface-2` and `surface-3` are emitted
+# and consumed by nothing here, so they are deliberately not gated -- FileMaker
+# and the ClickUp app builds use the full ramp and gate it themselves.
+#
+# ---------------------------------------------------------------------------
+# WHAT THIS TABLE MISSED UNTIL NOW, which is worth more than any single number:
+# it covered FOUR pairs while the engine paints eight things with a canonical
+# token. accent-2, warn and on-accent were all being rendered and none was
+# measured. A gate that covers half of what renders is not a gate, so the rows
+# below were added with the palette rather than after somebody noticed.
+#
+# THE `warn on its own chip` ROWS ARE THE ONES TO KEEP. `warn` paints the
+# `confidence` marker class, whose shape is `box` -- the chip draws the text in
+# the colour ON A 10% WASH OF THE SAME COLOUR, so the marker fights its own
+# background and the page ground is the WRONG thing to measure it against.
+# Three amber candidates cleared the page and failed the chip.
 #
 # RED AND THE `rule on surface` ROWS WERE NEVER TRUE, NOT MERELY STALE. They
 # recorded 3.2 dark and 3.1 light against a 3.0 floor; the real values are 2.34
@@ -31,11 +52,6 @@
 # would be choosing the number that suits the moment; whether a 3.0 hairline is
 # the right target for a documentation site is Michael's call, and a loud honest
 # failure is how it reaches him.
-#
-# WARNING `rule on surface light` MOVED 1.47 -> 1.56 AND THAT IS NOT PROGRESS.
-# The whole light chrome ramp was re-authored for the console palette and the
-# border came with it; nobody was aiming at this number. Recorded so the next
-# reader does not mistake a side effect for an attempt.
 # ---------------------------------------------------------------------------
 pair	scheme	ratio	min
 ink on surface	dark	14.41	4.5
@@ -44,5 +60,13 @@ ink-muted on surface	dark	7.30	4.5
 ink-muted on surface	light	6.25	4.5
 accent on surface	dark	7.05	4.5
 accent on surface	light	5.84	4.5
+accent-2 on surface	dark	6.63	4.5
+accent-2 on surface	light	5.81	4.5
+warn on surface	dark	9.91	4.5
+warn on surface	light	5.30	4.5
+warn on its own chip	dark	8.33	4.5
+warn on its own chip	light	4.64	4.5
+on-accent on accent	dark	7.23	4.5
+on-accent on accent	light	6.57	4.5
 rule on surface	dark	2.34	3.0
 rule on surface	light	1.56	3.0

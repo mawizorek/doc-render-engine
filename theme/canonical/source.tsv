@@ -25,18 +25,19 @@
 # ---------------------------------------------------------------------------
 # REFRESH LOG. Newest first.
 #
-# 2026-08-05  EOS-LIGHT JOINS THE CONSOLE. colors 4691aee -> 579bb57. themes.json
-#             NOT re-vendored -- no pointer moved. Michael: "fix the eos light
-#             theme to now fit the same muted blue aesthetics? could do for more
-#             notable amber pops in both of them." 14 cells on eos-light, 1 on
-#             eos dark. The light row was still the 08-04 PROOF palette: violet
-#             chrome at hue ~255, a 100%-saturation magenta accent and an
-#             electric blue accent-2. Now 215-217 to match the dark row, accent
-#             #2f5f96 at the dark row's own hue, accent-2 the tracked violet.
-#             Both ambers louder -- and the old LIGHT one was hue 33, an
-#             orange-brown that was never amber at all.
-#             WARNING 7,719 B BEFORE AND AFTER, the FOURTH occurrence on this
-#             file. Only the hash can see this change.
+# 2026-08-05  EOS-LIGHT JOINS THE CONSOLE. colors 4691aee -> 579bb57. Michael:
+#             "fix the eos light theme to now fit the same muted blue
+#             aesthetics? could do for more notable amber pops in both of them."
+#             14 cells on eos-light, 1 on eos dark. The light row was still from
+#             the proof era -- violet chrome, 100%-sat magenta accent, electric
+#             blue accent-2 -- so the pair had a violet half and a blue half.
+#             Chrome now 215.0-216.9, a 1.9 degree spread against the dark row's
+#             2.8 at 216; accent matched in HUE (212.0 vs 212.7) and separated
+#             in weight. RED the amber was decided by the marker CHIP, not by
+#             the page: `warn` paints the confidence box, whose text sits on a
+#             10% wash of ITSELF, and three more saturated candidates cleared
+#             the page while failing that. WARNING 7,719 B before and after --
+#             FOURTH occurrence on this file.
 # 2026-08-05  THE EOS HARNESS RETIRES. colors c576bcf -> 4691aee, themes.json
 #             e6b7c7e -> 7711cab. Michael: "i think i've proved my point with
 #             the eos wild themes... revert the one color row to a more stable
