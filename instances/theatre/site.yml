@@ -11,6 +11,15 @@ base_url: https://mawizorek.github.io/theatre-docs/
 content_repo: mawizorek/theatre-docs
 content_branch: main
 
+# ⭐ OTHER NAMES THIS SITE ANSWERS TO ON THE COMMAND LINE (added 2026-08-05).
+# Contract + the reasoning for why these live in the repo: instances/uritp/site.yml.
+#
+# ⭐ `oph` IS HERE ON PURPOSE. This instance was renamed from it on 2026-08-03,
+# and a retired name is precisely what a hand types from memory six months
+# later. An alias is the cheapest possible home for one: it resolves, and it
+# documents the rename in the file the rename happened in.
+aliases: [theatre-docs, "Theatre Notes", oph]
+
 # ⭐ ONE LINE, same as every other site. `database` treats a table as the
 # primary content rather than an illustration of it, which is the right call
 # for a site whose first real pages are 130-row circuit schedules.
