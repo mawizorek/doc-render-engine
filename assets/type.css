@@ -1,0 +1,69 @@
+/* THE TYPE LAYER. Headings, and the tokens only headings read.
+ *
+ * Split from base.css on 2026-08-05 rather than added to it: base.css was at
+ * 18,874 B against a 22,528 B hard read limit -- the point where a file stops
+ * coming back whole from one read and therefore stops being safely editable.
+ * nav.css and data.css left for the same reason, and this is the same shape of
+ * seam: one surface, its own tokens, its own history.
+ *
+ * WARNING: LOADS AFTER base.css AND BEFORE THE TABLE LAYERS. Order is set in
+ * docrender/assets.py `_DATA_ASSETS`. These rules override Material's own
+ * heading styles, so they must land after the base Material mapping.
+ *
+ * STAR WHY THIS FILE EXISTS AT ALL: `font-display` had ZERO consumers. Every
+ * canonical typography entity names a display face -- eos Chakra Petch, papyrus
+ * Gabarito, racing-archivo Archivo -- and no heading on any site had ever used
+ * one. Headings rendered in the BODY font from the day the vector was vendored.
+ * The token was emitted, documented, and read by nothing.
+ */
+
+/* ---------------------------------------------------------------------------
+ * HEADINGS TAKE THE DISPLAY FACE
+ *
+ * h1, h2 and h3 only. h4/h5/h6 stay on the body font deliberately: by that
+ * depth a heading is a run-in label inside prose rather than a piece of
+ * structure, and a display face at 0.8em reads as a font mistake.
+ *
+ * WARNING: SPECIFICITY. Material's rules are `.md-typeset h1` = (0,1,1), so
+ * these MATCH rather than beat them and win on load order -- assets.py puts
+ * this file after base.css and Material's own sheet is earlier still. Same
+ * mechanism as THE ARMOUR in base.css, and the same honest name for it: a tie
+ * won on source order, not a structural fix.
+ *
+ * WARNING: `letter-spacing` CHANGES NOTHING ON THIS SITE TODAY. Material sets
+ * -.01em and eos's `track-tight` is -0.01em, identical. It is wired because
+ * `grounded` and `racing-archivo` set -0.02em, and a site adopting either
+ * should get its own tracking without an engine edit. A token wired at parity
+ * is not a no-op: it is the difference between a value that follows the theme
+ * and one that only happens to agree with it.
+ *
+ * NO `font-weight`. Material sets 300 on h1/h2 and 400 on h3, and the canonical
+ * typography vector has no weight column at all -- so there is nothing to read.
+ * An honest gap, and forcing a display face to 300 when Chakra Petch ships no
+ * 300 cut would make the browser synthesise one.
+ * ------------------------------------------------------------------------ */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  font-family: var(--dr-font-display, var(--dr-font-body));
+  letter-spacing: var(--dr-track-tight, -0.01em);
+}
+
+/* ---------------------------------------------------------------------------
+ * WHAT IS DELIBERATELY NOT HERE: `fs-body`
+ *
+ * The obvious rule is `.md-typeset { font-size: var(--dr-fs-body) }`, and it is
+ * a trap. Material's value is 0.8rem; eos's fs-body is 0.9rem. Because every
+ * size inside `.md-typeset` is em-relative, that one line makes EVERY WORD ON
+ * THE SITE 12.5% bigger -- headings, tables, callouts, captions, all of it.
+ *
+ * WARNING: THAT IS THE EXACT SHAPE OF THE BRIDGE ROW PR #82 HAD TO REVERT.
+ * `data-size -> fs-sm` was justified as byte-different and visually identical,
+ * which was true of ONE typography entity and false of the site actually being
+ * rendered. Michael reported it as the table font being massive. This would be
+ * the same mistake with the whole page as its blast radius.
+ *
+ * So fs-body stays an honest gap. It is a design decision about how big this
+ * site's text should be, it is one line whenever that is ruled, and the token
+ * audit lists it as unconsumed until then.
+ * ------------------------------------------------------------------------ */

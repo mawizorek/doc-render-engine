@@ -1,0 +1,95 @@
+# BLOCK FAMILIES -- the `!!!` and `???` callouts, and which theme token paints
+# each one.
+#
+# Written in a page as:
+#
+#     !!! warning "Rigging plot"        an open box
+#     ??? note "Long detail"           a collapsed box
+#     ???+ tip "Start open"            collapsible, open by default
+#
+# ⭐ THIS FILE ANSWERS Q14, WHICH WAS OPEN FROM 2026-08-04 TO 08-05. Before it,
+# DL J20 recorded the state plainly: the block vocabulary was "defined NOWHERE
+# -- two lines in mkdocs.yml turn the syntax on and that is all." So a reader
+# could type twelve different callout colours and not one of them came from the
+# design system. This is the largest surface on a documentation site and it was
+# the last big one Material owned outright.
+#
+# ADDING OR RECOLOURING ONE IS A ROW HERE. No code change, no CSS change --
+# docrender/blocks.py emits the rules as generated CSS, exactly like
+# markers.py emits the marker class colours.
+#
+# ---------------------------------------------------------------------------
+# WHY THE ROWS ARE THE TWELVE MATERIAL NAMES
+#
+# These are not names we chose and they are not ours to rename: `note`,
+# `warning`, `danger` and the rest are what a reader TYPES, and Material ships
+# an icon keyed to each one. So the table is keyed on the block name.
+#
+# ⚠️ THAT IS THE ONE PLACE THIS DIVERGES FROM markers.tsv, deliberately. Q14's
+# option A proposed sharing markers' `class` column so a block and a marker in
+# one family would paint from a single cell. Attractive, and wrong at this size:
+# markers have TWO families and blocks have TWELVE. Sharing the column would
+# have meant inventing ten marker classes nobody needs to serve a vocabulary we
+# do not control.
+#
+# ⚠️ AND THERE IS NO `collapse` COLUMN, also against Q14's option A. Open versus
+# collapsed is decided by whether the author types `!!!` or `???`, at the point
+# of use, and no hook in this engine rewrites that. A column that silently loses
+# to the markdown sitting beside it is worse than no column at all.
+#
+# 🚫 AND NO `icon` COLUMN. Material exposes the icon as a real variable
+# (`--md-admonition-icon--note`), so it is genuinely reachable -- but changing
+# one means authoring an SVG data URL, and image data does not belong in a
+# colour table. Recorded as available rather than done.
+#
+# ---------------------------------------------------------------------------
+# COLUMNS
+#
+# block   the word a reader types after `!!!` or `???`
+# color   the token that paints it: any token this engine emits, or a hex
+# note    what the family MEANS, and why this token
+# ---------------------------------------------------------------------------
+#
+# 🔴 `data-1..4` WERE TRIED HERE FIRST AND THE MEASUREMENT REJECTED THEM. The
+# first version of this file painted abstract / question / bug / example from the
+# four chart-series tokens, on the argument that a chart series and a callout
+# family want the same property: several colours that are mutually
+# distinguishable and carry no meaning of their own.
+#
+# The reasoning held. The VALUES did not. Border contrast against the callout
+# ground, measured in both schemes:
+#
+#     abstract  data-1   dark 4.45   LIGHT 2.08
+#     question  data-2   dark 4.60   LIGHT 2.02
+#     bug       data-3   dark 5.75   LIGHT 1.61
+#     example   data-4   dark 5.97   LIGHT 1.55
+#
+# All four clear the 3.0 UI-edge floor in dark, all four fail it badly in light.
+#
+# ⚠️ AND THE CAUSE IS UPSTREAM, NOT HERE: `data-1..4` ARE BYTE-IDENTICAL IN ALL
+# 39 ROWS of maw-themes vectors/colors.tsv. Same four hexes on every dark row and
+# every light row of every theme. They are not theme-aware and never have been --
+# authored once against a dark ground, then carried through the alt-band
+# transposition faithfully, because that is what a transposition does.
+#
+# So they cannot be used as theme tokens by ANY consumer until real values exist,
+# and that is a bigger finding than the four rows it cost. Raised upstream.
+#
+# ⚠️ SEMANTIC TOKENS ARE DELIBERATELY REUSED ACROSS FAMILIES. `tip` and
+# `success` are both `good`; `failure`, `danger` and `bug` are all `bad`. They
+# mean the same thing to a reader, so giving them different colours would invent
+# a distinction the words do not carry. Material ships them as different hues; we
+# are choosing not to, and twelve families across eight tokens is the result.
+block	color	note
+note	accent	the house voice. A note from us, so it takes the site's own identity colour rather than a semantic one.
+abstract	accent-2	A summary or TL;DR, in the secondary identity voice. Was data-1; see the warning above.
+info	info	FINALLY A CONSUMER FOR `info`. The token has been emitted by every canonical theme and read by nothing since the join landed, because until now this engine had no surface that meant "informational".
+tip	good	Advice that helps. Same meaning as success to a reader, same token.
+success	good	Something worked or is confirmed. Shares `good` with tip on purpose.
+question	info	An open question or FAQ. Shares `info`: a question and an informational aside are the same register, and the icon already tells them apart. Was data-2.
+warning	warn	Proceed carefully. The same token that paints every confidence marker chip, which is correct: both mean "do not lean on this yet".
+failure	bad	Something did not work. Shares `bad` with danger and bug.
+danger	bad	A hazard. In a venue and production context this is the one that matters most, and it must read as the same alarm as failure.
+bug	bad	A known defect. I argued for a separate colour -- a bug is a RECORD of something broken rather than a warning about it -- and dropped it: that distinction is not worth a border nobody can see in light mode. Was data-3.
+example	text-faint	A worked example. Quiet, like quote, and the FIRST CONSUMER of text-faint anywhere in this engine. Was data-4.
+quote	text-soft	A quotation. Deliberately the muted text colour and not a hue: a quote is quieter than the page, not a category of alert.
