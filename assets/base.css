@@ -51,35 +51,11 @@
 /* ---------------------------------------------------------------------------
  * THE CHROME BLOCK -- header, drawer and interactive accents (2026-08-04)
  *
- * Until tonight the header colour was `palette.primary` in site.yml, a NAMED
- * Material colour, hand-picked to sit near whatever the theme's accent happened
- * to be. site.yml said so in a comment: "Kept in step with the eos accent by
- * hand." A documented hand-sync is a drift defect with a note attached, and it
- * went out of step the moment the palette became canonical.
- *
- * IT ALSO COST MORE THAN A COLOUR, WHICH IS THE REAL REASON THIS EXISTS.
- * Material emits `data-md-color-primary` on the body ONLY when palette.primary
- * is set, and it ships a rule for the case where that primary cannot serve as a
- * link colour:
- *
- *     [data-md-color-scheme="slate"][data-md-color-primary="black"]
- *
- * TWO attribute selectors, against the ONE this file scopes with -- so it won,
- * and `--md-typeset-a-color: var(--dr-accent)` above was silently overridden.
- * Live symptom: every link and the active nav row rendered BLUE in dark mode
- * while rendering the canonical accent in light mode, from the same declaration
- * in the same file. Michael found it in a screenshot of the drawer, where one
- * rule painted the active row's TEXT blue and its BORDER magenta.
- *
- * ⚠️ THE PRE-CANONICAL BASELINE PROVES THIS WAS ALWAYS BROKEN. With the old
- * local palette the accent was amber and the links were already blue -- close
- * enough to pass for correct for weeks. A wrong value hides best when the right
- * value looks similar.
- *
- * THE FIX IS STRUCTURAL, NOT A SPECIFICITY WAR. instance.py no longer sets
- * primary or accent, so the attribute is never written, so the compound rule has
- * nothing to match. No !important, and no way for the override to return by
- * accident, because the hook it hangs from is gone.
+ * The header colour used to be `palette.primary` in site.yml, a NAMED Material
+ * colour hand-picked to sit near whatever the theme's accent happened to be.
+ * site.yml said so: "Kept in step with the eos accent by hand." A documented
+ * hand-sync is a drift defect with a note attached, and it went out of step the
+ * moment the palette became canonical.
  *
  * ⚠️ EVERY VALUE HERE CARRIES A FALLBACK AND THEY ARE NOT DECORATION. A
  * canonical theme emits --dr-surface-1 and --dr-on-accent; the local nine-token
@@ -100,6 +76,54 @@
   --md-accent-fg-color--transparent: var(--dr-accent-soft, transparent);
   --md-accent-bg-color: var(--dr-on-accent, var(--dr-surface));
   --md-accent-bg-color--light: var(--dr-on-accent, var(--dr-surface));
+}
+
+/* ---------------------------------------------------------------------------
+ * 🔴 THE ARMOUR -- because the 2026-08-04 fix was WRONG (2026-08-05)
+ *
+ * READ OUT OF MATERIAL'S palette.css, NOT REMEMBERED THIS TIME:
+ *
+ *     [data-md-color-scheme=slate][data-md-color-primary=indigo]
+ *       { --md-typeset-a-color: #5488e8 }
+ *
+ * TWO attribute selectors, (0,2,0), against the ONE the block above scopes
+ * with. It wins on SPECIFICITY, so loading later cannot save us.
+ *
+ * 🔴 The note that used to sit here claimed Material writes
+ * `data-md-color-primary` ONLY when palette.primary is set, so deleting the key
+ * was "structural -- no way for the override to return." Both halves false: the
+ * key is gone and the published body still reads
+ * `data-md-color-primary="indigo"`. Material DEFAULTS it, so it was never ours
+ * to remove, and the guessed value was `black`. That paragraph was written from
+ * memory of a stylesheet nobody had opened and shipped as a fix; the symptom
+ * outlived it by a day. ⚠️ DO NOT DELETE THIS BLOCK AS REDUNDANT.
+ *
+ * ⭐ THE ASYMMETRY IS THE FINGERPRINT. These compounds exist ONLY under
+ * `[data-md-color-scheme=slate]` -- the plain `[data-md-color-primary=indigo]`
+ * block sets primary colours and NOT `--md-typeset-a-color`. So light falls
+ * through to us and paints the canonical accent while dark paints Material's
+ * blue, from one declaration in one file. Any explanation that does not predict
+ * that split is the wrong explanation.
+ *
+ * ⭐ MATCH THE ATTRIBUTE, NEVER ITS VALUE. `[data-md-color-primary]` is
+ * (0,2,0) beside the scheme, level with Material, and this file loads after
+ * palette.css, so we take the tie. Matching `=indigo` would win today and break
+ * the day the default moves or somebody sets a primary on purpose.
+ *
+ * ⚠️ IT IS A SPECIFICITY TIE AND THAT IS ITS ONLY HONEST NAME. A structural
+ * fix was never available: the attribute comes from the theme's own template.
+ *
+ * Only what Material contests belongs here. `.md-header` is armed alongside
+ * because `[data-md-color-primary=black] .md-header` sets a background
+ * directly, which would beat the variable indirection rather than tie with it.
+ * ------------------------------------------------------------------------ */
+[data-md-color-scheme="slate"][data-md-color-primary],
+[data-md-color-scheme="default"][data-md-color-primary] {
+  --md-typeset-a-color: var(--dr-accent);
+}
+
+[data-md-color-primary] .md-header {
+  background-color: var(--dr-surface-1, var(--dr-surface-raised));
 }
 
 /* The header sits on the page rather than above it: a hairline instead of
