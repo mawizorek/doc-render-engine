@@ -50,34 +50,46 @@
 # note    what the family MEANS, and why this token
 # ---------------------------------------------------------------------------
 #
-# ⚠️ FOUR FAMILIES ARE PAINTED FROM `data-1..4` AND THAT IS THE ROW TO ARGUE
-# WITH. Those tokens are documented in the canonical palette as CHART SERIES
-# colours. The case for using them here: a chart series and a callout family
-# want the identical property -- several colours that are mutually
-# distinguishable and carry no meaning of their own -- and `data-*` is the only
-# place in the design system that supplies it. The case against: a chart is not
-# a callout, and borrowing a token blurs what it means.
+# 🔴 `data-1..4` WERE TRIED HERE FIRST AND THE MEASUREMENT REJECTED THEM. The
+# first version of this file painted abstract / question / bug / example from the
+# four chart-series tokens, on the argument that a chart series and a callout
+# family want the same property: several colours that are mutually
+# distinguishable and carry no meaning of their own.
 #
-# The four families in question (abstract, question, example, bug) have no
-# semantic equivalent at all. The alternatives were to reuse a semantic token
-# and lie -- an abstract is not a warning -- or to write hexes here and abandon
-# the whole premise. One cell each if Michael rules the other way.
+# The reasoning held. The VALUES did not. Border contrast against the callout
+# ground, measured in both schemes:
+#
+#     abstract  data-1   dark 4.45   LIGHT 2.08
+#     question  data-2   dark 4.60   LIGHT 2.02
+#     bug       data-3   dark 5.75   LIGHT 1.61
+#     example   data-4   dark 5.97   LIGHT 1.55
+#
+# All four clear the 3.0 UI-edge floor in dark, all four fail it badly in light.
+#
+# ⚠️ AND THE CAUSE IS UPSTREAM, NOT HERE: `data-1..4` ARE BYTE-IDENTICAL IN ALL
+# 39 ROWS of maw-themes vectors/colors.tsv. Same four hexes on every dark row and
+# every light row of every theme. They are not theme-aware and never have been --
+# authored once against a dark ground, then carried through the alt-band
+# transposition faithfully, because that is what a transposition does.
+#
+# So they cannot be used as theme tokens by ANY consumer until real values exist,
+# and that is a bigger finding than the four rows it cost. Raised upstream.
 #
 # ⚠️ SEMANTIC TOKENS ARE DELIBERATELY REUSED ACROSS FAMILIES. `tip` and
-# `success` are both `good`; `failure` and `danger` are both `bad`. They mean
-# the same thing to a reader, so giving them different colours would invent a
-# distinction the words do not carry. Material ships them as different hues; we
-# are choosing not to.
+# `success` are both `good`; `failure`, `danger` and `bug` are all `bad`. They
+# mean the same thing to a reader, so giving them different colours would invent
+# a distinction the words do not carry. Material ships them as different hues; we
+# are choosing not to, and twelve families across eight tokens is the result.
 block	color	note
 note	accent	the house voice. A note from us, so it takes the site's own identity colour rather than a semantic one.
-abstract	data-1	A summary or TL;DR. No semantic equivalent -- see the data-* warning above.
+abstract	accent-2	A summary or TL;DR, in the secondary identity voice. Was data-1; see the warning above.
 info	info	FINALLY A CONSUMER FOR `info`. The token has been emitted by every canonical theme and read by nothing since the join landed, because until now this engine had no surface that meant "informational".
 tip	good	Advice that helps. Same meaning as success to a reader, same token.
 success	good	Something worked or is confirmed. Shares `good` with tip on purpose.
-question	data-2	An open question or FAQ. No semantic equivalent.
+question	info	An open question or FAQ. Shares `info`: a question and an informational aside are the same register, and the icon already tells them apart. Was data-2.
 warning	warn	Proceed carefully. The same token that paints every confidence marker chip, which is correct: both mean "do not lean on this yet".
-failure	bad	Something did not work. Shares `bad` with danger.
+failure	bad	Something did not work. Shares `bad` with danger and bug.
 danger	bad	A hazard. In a venue and production context this is the one that matters most, and it must read as the same alarm as failure.
-bug	data-3	A known defect. Arguably `bad`, but a bug is a RECORD of something broken rather than a warning about it, and collapsing the two would lose that.
-example	data-4	A worked example. No semantic equivalent.
+bug	bad	A known defect. I argued for a separate colour -- a bug is a RECORD of something broken rather than a warning about it -- and dropped it: that distinction is not worth a border nobody can see in light mode. Was data-3.
+example	text-faint	A worked example. Quiet, like quote, and the FIRST CONSUMER of text-faint anywhere in this engine. Was data-4.
 quote	text-soft	A quotation. Deliberately the muted text colour and not a hue: a quote is quieter than the page, not a category of alert.
