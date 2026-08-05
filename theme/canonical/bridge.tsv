@@ -7,9 +7,9 @@
 # WHY THIS EXISTS, AND WHY IT IS NOT A SECOND VOCABULARY
 # ------------------------------------------------------
 # The stylesheets were never full of raw numbers everywhere -- they already read
-# tokens for the things that matter most. Those tokens are SEMANTIC: `data-pad`
-# means "the padding inside a data cell", `lede-size` means "the opening
-# paragraph". The canonical vectors are PRIMITIVES: `pad-cell`, `fs-lead`.
+# tokens for the things that matter most. Those tokens are SEMANTIC: `lede-size`
+# means "the opening paragraph", `spec-label` means "a field name in a generated
+# spec table". The canonical vectors are PRIMITIVES: `fs-lead`, `fs-xs`.
 #
 # A semantic name is the right thing for a stylesheet to read -- it says WHY,
 # and it survives the primitive behind it changing. So the join between the two
@@ -21,14 +21,43 @@
 # vectors. Same argument every time: keep the consumer's vocabulary, point it at
 # the canonical value, never find-and-replace across the asset layer.
 #
-# WARNING: A ROW HERE CHANGES WHAT A PAGE LOOKS LIKE. It is not plumbing. When
-# `data-pad` starts resolving to `pad-cell`, table density changes to whatever
-# the theme's spacing entity says -- which is the entire point, and also the
-# reason each row records the shift.
+# WARNING: A ROW HERE CHANGES WHAT A PAGE LOOKS LIKE. It is not plumbing.
 #
 # WARNING: ONLY MAP A GENUINE EQUIVALENT. A near-miss forced into a row is worse
 # than an honest gap: it looks wired, it renders wrong, and nothing reports it.
 # `measure` has no canonical primitive and is therefore NOT here.
+#
+# ===========================================================================
+# TWO ROWS WERE CUT ON 2026-08-05, AND THE TEST THEY FAILED IS THE ONE DIRECTLY
+# ABOVE THIS BLOCK. Michael, on the published desktop table: "the font in the
+# TABLE is massive and the table columns don't fit right." Both halves were
+# these two rows.
+#
+#   data-pad -> pad-cell     A DIMENSION MISMATCH, not a near miss. The local
+#     value is `0.34rem 0.6rem`: TWO axes, 5.4px vertical and 9.6px horizontal,
+#     and the asymmetry is the entire point -- a data row wants to be SHORT so
+#     more rows fit and WIDE so columns separate. `pad-cell` is ONE number, so
+#     `tight` (8px) made every row 48% taller and every column 17% narrower at
+#     the same time. A one-axis primitive cannot express a two-axis value, and
+#     no amount of choosing a better spacing entity fixes that.
+#
+#     ⚠️ Its own note called it "the single highest-leverage row here" and that
+#     was the argument FOR it. Leverage is the reason a mismatch here is the
+#     most expensive kind, not the reason to take it.
+#
+#   data-size -> fs-sm       The note read "Local 0.80rem -> sharp-racing 0.8rem.
+#     Byte-different, visually identical." True of sharp-racing. This site does
+#     not render sharp-racing. ⚠️ A BRIDGE ROW DOES NOT HAVE ONE VALUE -- it has
+#     one per theme, and only one of them was ever measured. A row is safe when
+#     it is safe under EVERY entity a join can name, and nothing here checks
+#     that.
+#
+# ⭐ WHAT GENERALISES, FOR THE NEXT ROW SOMEBODY WANTS TO ADD: a token that a
+# DENSE surface reads is not the same question as the primitive a page reads,
+# even when both are "padding" or both are "a small font size". Table density is
+# a property of the table. It belongs to theme/typography.tsv, where it can be
+# stated per theme and per axis, and where `database` and `eos` already state it.
+# ===========================================================================
 #
 # ---------------------------------------------------------------------------
 # consumer    the semantic token the stylesheets already read
@@ -37,7 +66,5 @@
 # note        what the value was, what it becomes, and where it shows
 # ---------------------------------------------------------------------------
 consumer	canonical	vector	note
-lede-size	fs-lead	typography	The opening paragraph, and the search snippet. Local 1.15rem (18.4px) -> whatever the theme's typography entity sets; sharp-racing is 1rem (16px), so ledes get slightly tighter on this site.
-spec-label	fs-xs	typography	Field names in a generated spec table. Local 0.78rem (12.5px) -> sharp-racing 0.7rem (11.2px).
-data-size	fs-sm	typography	Rows in a TSV data table. Local 0.80rem -> sharp-racing 0.8rem. Byte-different, visually identical: the value was already right, and now it is right BECAUSE the theme says so rather than by coincidence.
-data-pad	pad-cell	spacing	Cell padding in a data table -- the single highest-leverage row here, because it is what `tight` vs `database` vs `loose` actually MEANS on a rendered page. Local 0.34rem 0.6rem -> a single value from the spacing entity; tight is 8px.
+lede-size	fs-lead	typography	The opening paragraph, and the search snippet. Local 1.15rem (18.4px) -> whatever the theme's typography entity sets; sharp-racing is 1rem (16px), so ledes get slightly tighter on this site. Single axis, one question, safe under any entity.
+spec-label	fs-xs	typography	Field names in a generated spec table. Local 0.78rem (12.5px) -> sharp-racing 0.7rem (11.2px). Single axis, and a spec label is a label wherever it appears.
