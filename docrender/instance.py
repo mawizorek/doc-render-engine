@@ -1,21 +1,51 @@
 """Hook 00 -- become this site.
 
 The engine starts every build as nobody. This reads instances/<slug>/site.yml
-and applies it: name, URL, edit target, palette, section titles and order.
+and applies it: name, URL, edit target, section titles and order.
 
 This file is what makes "one app, many sites" literally true rather than
 aspirational. There is exactly one place a site's identity enters a build, and
 it is a data file the engine READS, not code the engine CONTAINS.
 
-THE CHROME-COLOUR TRAP (inherited from v1, and the reason primary/accent are
-set here rather than in a stylesheet): Material's header and sidebar colour
-comes from `theme.palette`, not from CSS custom properties. Setting
-`--md-primary-fg-color` in an unscoped `:root` looks like it works, hits BOTH
-colour schemes at once, and silently breaks the dark toggle. So chrome is
-config and only finer detail is CSS. That split is not cosmetic and it cost
-real time to learn the first time.
+CHROME COLOUR IS NO LONGER SET HERE (2026-08-04), and the reversal is worth
+keeping because the reasoning it replaces was half right.
 
-🚫 THE SITE NEVER ADVERTISES ITS REPOSITORY (LOCKED 2026-08-03, Michael).
+This file used to copy `palette.primary` and `palette.accent` out of site.yml
+onto Material's theme config, and its docstring defended that: Material's header
+and sidebar colour comes from `theme.palette`, and setting
+`--md-primary-fg-color` in an UNSCOPED `:root` looks like it works, hits BOTH
+colour schemes at once, and silently breaks the dark toggle.
+
+Every sentence of that is still true. The CONCLUSION was wrong. It read a
+SCOPING problem as a FILE-PLACEMENT problem -- and `assets/base.css` has been
+setting every other Material variable inside a `[data-md-color-scheme]` block
+for months, so the trap was already solved over there. Chrome simply never
+moved with the rest.
+
+What that cost, measured rather than argued:
+
+  1. A named Material colour cannot be read from a table, so a canonical theme
+     could never reach the header. site.yml carried `accent: amber` under the
+     comment "Kept in step with the eos accent by hand" -- a documented manual
+     mirror, which went out of step the instant the palette became canonical.
+
+  2. Worse, and invisible for weeks: setting `palette.primary` is what makes
+     Material emit `data-md-color-primary` on the body, and Material ships
+     `[data-md-color-scheme="slate"][data-md-color-primary="black"]` -- two
+     attribute selectors -- which outranked base.css's single-attribute scheme
+     scope and repainted every dark-mode link and active nav row BLUE. Light
+     mode was unaffected, so one declaration in one file produced two different
+     answers depending on the scheme.
+
+So the loop is gone rather than trimmed, and the attribute is never emitted, so
+the override has nothing to hang from. The `palette:` block in mkdocs.yml stays:
+it carries the light/dark TOGGLE, which is a real feature and not a colour.
+
+A `palette:` key left in an instance's site.yml is now inert. It is reported, not
+silently ignored -- a config key that does nothing while looking like it does
+something is the failure this engine keeps writing down.
+
+NO ROUTE BACK TO THE SOURCE (LOCKED 2026-08-03, Michael).
 `repo_url` is deliberately NOT set. Setting it makes Material render a repo
 widget in the header with the owner/name and a star count, and these are
 reference documents for designers and guest artists -- not a project asking
@@ -94,19 +124,22 @@ def on_config(config):
     if inst.get("base_url"):
         config.site_url = inst["base_url"]
 
-    # 🚫 repo_url / repo_name / edit_uri are NOT set. See the module docstring.
+    # repo_url / repo_name / edit_uri are NOT set. See the module docstring.
     # If you set them to "fix" the edit link, you also put the repo widget back
     # in the header, which is the thing that was explicitly removed.
 
-    palette = inst.get("palette") or {}
-    for scheme in (config.theme.get("palette") or []):
-        if not isinstance(scheme, dict):
-            continue
-        chosen = palette.get("dark" if scheme.get("scheme") == "slate" else "light") or {}
-        if chosen.get("primary"):
-            scheme["primary"] = chosen["primary"]
-        if chosen.get("accent"):
-            scheme["accent"] = chosen["accent"]
+    # CHROME IS CANONICAL. Nothing is copied onto theme.palette any more -- see
+    # the module docstring for what the old loop cost. Reported rather than
+    # ignored, because a key that looks live and is not is worse than an error.
+    if inst.get("palette"):
+        state.note(
+            "notes",
+            "instances/" + slug + "/site.yml still declares `palette:`. It is "
+            "INERT as of 2026-08-04 -- header, drawer and accent colours now "
+            "come from the theme's canonical tokens via assets/base.css. "
+            "Delete the block; leaving it implies a control that no longer "
+            "exists.",
+        )
 
     return config
 
