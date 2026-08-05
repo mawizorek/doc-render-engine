@@ -39,7 +39,7 @@ content_branch: main
 # eos entities the light theme points at are NOT applied, and the build names
 # them rather than letting a font change arrive unexplained.
 theme:
-  dark: sharp-mclaren
+  dark: eos
   light: eos
 
 # THE LAST DOOR BACK TO THE SOURCE.
