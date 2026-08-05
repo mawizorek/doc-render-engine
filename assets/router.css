@@ -52,13 +52,28 @@
   border-color: transparent;
 }
 
+/* ⭐ THE ONLY CONSUMER OF `on-accent` ON THE WHOLE SITE (2026-08-05).
+ *
+ * This button used to be lettered `var(--dr-surface)` -- the PAGE BACKGROUND --
+ * which is right by coincidence on any palette with a dark canvas and a bright
+ * accent, and therefore right on every palette shipped so far. `on-accent`
+ * means "the colour that goes ON the accent" and this is the one filled,
+ * lettered surface the engine draws, so this is where it belongs.
+ *
+ * ⚠️ IT ALSO MAKES THE CONTRAST GATE MEAN SOMETHING. Until now nothing rendered
+ * an accent/on-accent pair, so that measurement was being taken and reported
+ * against a combination no reader could see.
+ *
+ * Fallback matches base.css, and is load-bearing for the same reason: the local
+ * nine-token themes emit no on-accent, and a bare var() would make the label
+ * transparent -- a button that reads as empty rather than as wrong. */
 .dr-router__btn {
   flex: 0 0 auto;
   padding: 0.45rem 1rem;
   border: 1px solid transparent;
   border-radius: 3px;
   background: var(--dr-accent);
-  color: var(--dr-surface);
+  color: var(--dr-on-accent, var(--dr-surface));
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
