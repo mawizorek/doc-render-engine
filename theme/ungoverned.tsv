@@ -11,6 +11,12 @@
 # WATCHING, the build says what is TRUE. The day somebody adds a rule for
 # admonitions, that row flips to governed on its own with no edit here.
 #
+# ⭐ THAT PROMISE CAME DUE ON 2026-08-05 AND IT HELD. theme/blocks.tsv now
+# governs all twelve admonition families, and the three admonition rows below
+# flipped from NOT OURS to a rule count without anybody touching the verdict
+# column. Only the NOTES needed rewriting, because they described a state of the
+# world rather than a thing to watch.
+#
 # A row going stale therefore costs a row nobody needed, never a wrong answer.
 #
 # ADDING ONE is a row. `probe` is a plain substring matched against our selector
@@ -23,18 +29,18 @@
 # note      why it matters, and what it would take to govern it
 # ---------------------------------------------------------------------------
 surface	probe	note
-Admonition / callout blocks	.admonition	The !!! and ??? boxes. Border, tint, icon and title bar are ALL Material's, keyed off the type word you type. This is the single largest ungoverned surface on a documentation site, and DL J20 already found the other half of it: the block vocabulary is defined nowhere, so there is no table to add a colour to even if we wanted one. Governing it means a blocks table (Q14) plus rules that map each family onto a token.
-Admonition title bar	.admonition-title	The coloured strip with the icon. Same owner, same fix.
-Collapsible blocks	details	The ??? variant. Inherits everything from the admonition rules above.
-Tabbed content	.tabbed	Tab labels, the active underline and the panel border. Material's, and the active colour follows its accent rather than ours.
+Admonition / callout blocks	.admonition	GOVERNED as of 2026-08-05. The border, the title bar wash, the icon colour and the collapsible marker all come from theme/blocks.tsv via blocks.css, and the box structure (width, radius, size, shadow) from the forms and typography vectors. STILL MATERIAL'S: the icon GEOMETRY and the SVG itself, reachable through --md-admonition-icon--<name> but only by authoring image data, which does not belong in a colour table.
+Admonition title bar	.admonition-title	GOVERNED. The 10% wash is color-mix over the family token, computed in the browser because Material computes its own at Sass time from a literal. The icon inside it is a mask whose COLOUR we set and whose SHAPE we do not.
+Collapsible blocks	details	GOVERNED. Every rule blocks.css emits is written for both spellings -- .admonition.<name> and details.<name>, .admonition-title and summary -- because the rule making Material treat them alike lives in a file that pass did not read. A selector matching nothing costs bytes; a missing one costs a family that stays blue.
+Tabbed content	.tabbed	Tab labels, the active underline and the panel border. Material's, and the active colour follows its accent rather than ours. The likeliest next candidate: the structure is simpler than an admonition and the vocabulary is ours to name.
 Search panel	.md-search	The overlay, the input, the result list and the term highlight.
 Footnotes	.footnote	The rule above them, the backref arrow and the numbering.
-Code block chrome	.highlight	Syntax colours come from a Pygments stylesheet, not from our tokens. Our --dr-code-bg only sets the surface behind it, so a theme change repaints the box and not the code.
+Code block chrome	.highlight	Syntax colours come from a Pygments stylesheet, not from our tokens. Our --dr-code-bg only sets the surface behind it, so a theme change repaints the box and not the code. Governing this means generating a Pygments theme from the palette, which is a real piece of work rather than a rule.
 Copy-to-clipboard button	.md-clipboard	Position, icon and hover state.
-Keyboard keys	kbd	The raised key styling on ++ctrl+c++.
+Keyboard keys	kbd	The raised key styling on ++ctrl+c++. NOTE its box-shadow reads --md-shadow-z1, which base.css now maps to elev-1 -- so the elevation is ours and the colours are not.
 Task list checkboxes	.task-list	The tick, the box and its accent colour.
 Table of contents	.md-nav--secondary	The right-hand contents rail and its active marker. Distinct from the primary nav, which we DO govern.
-Blockquote	blockquote	The left rule and indent on a plain markdown quote.
+Blockquote	blockquote	The left rule and indent on a plain markdown quote. ⚠️ Not the same thing as the `quote` ADMONITION, which is governed -- a reader typing `>` and a reader typing `!!! quote` currently get different treatments.
 Horizontal rule	hr	Material draws its own colour and weight.
 Anchor permalink	.headerlink	The paragraph mark beside a heading on hover.
 Announcement bar	.md-banner	Not in use today; listed so a future one is not mistaken for a themed surface.

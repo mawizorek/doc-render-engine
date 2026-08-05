@@ -58,17 +58,35 @@ from, so any claim on the page is checkable in ten seconds -- which matters more
 than parser completeness. It cannot see inline styles, and it cannot see what
 Material's own stylesheet does; section 5 exists because of that second limit.
 
-WARNING: `_SHEETS` MUST LIST EVERY STYLESHEET WE SHIP. It went stale within two
-hours when `nav.css` was split out of `base.css`, and a scanner that silently
-misses a file under-reports rather than failing -- which is the worst shape for a
-page whose entire job is to be trusted. Cross-check it against
-`docrender/assets.py` `_DATA_ASSETS` whenever either changes.
+=============================================================================
+STAR THE SHEET LIST IS DERIVED NOW, NOT HELD HERE (fixed 2026-08-05)
+=============================================================================
+
+This file used to carry `_SHEETS`, a hardcoded tuple of stylesheet names, and
+the warning that replaced this section recorded its own failure: it went stale
+WITHIN TWO HOURS when `nav.css` was split out of `base.css`, so the audit
+under-reported silently -- the worst possible shape for a page whose entire job
+is to be trusted. The remedy it proposed was to cross-check the tuple against
+`assets.py` whenever either changed, which is a manifest with a reminder
+attached.
+
+It now calls `assets.hand_written_css()`. One list, in the file that has to be
+right or nothing ships at all. `type.css` would have been invisible to this page
+on the very build that introduced it.
 
 WARNING: SECTION 5's LIST IS DECLARED, ITS ANSWERS ARE DERIVED. A human says
 which surfaces are worth watching (theme/ungoverned.tsv); the build says whether
-our CSS mentions them. So the day somebody starts governing admonitions, that row
-flips on its own. A fully hand-written verdict would rot; a fully derived list is
-not possible without a manifest of every class Material ships.
+our CSS mentions them. That promise came due on 2026-08-05: blocks.css started
+governing all twelve admonition families and those rows flipped from NOT OURS to
+a rule count with no edit to the table.
+
+RED AND THAT ONLY WORKS BECAUSE GENERATED SHEETS NOW CONTRIBUTE THEIR SELECTORS.
+The scan used ONE flag to answer TWO questions -- skip the literal scan, and skip
+the selector list -- which read as tidy while both answers happened to be the
+same. A generated sheet's literals ARE the design system and must be skipped; its
+SELECTORS are ours and must not be. The first sheet where those differed is
+blocks.css, and before this was split section 5 would have gone on calling
+admonitions ungoverned forever, on the one page nobody would think to doubt.
 
 The WHY behind the design lives in the doc-render-engine Decision Log, per this
 engine's standing split: the file states the contract, the log carries the
@@ -82,7 +100,7 @@ import re
 import traceback
 from pathlib import Path
 
-from . import markers, state, theme, vectors
+from . import assets, blocks, markers, state, theme, vectors
 from .util import load_tsv
 
 _BLOCK = re.compile(r"(?m)^!!![ \t]+tokens[ \t]*(?:\"[^\"]*\")?[ \t]*$")
@@ -91,10 +109,6 @@ _BLOCK = re.compile(r"(?m)^!!![ \t]+tokens[ \t]*(?:\"[^\"]*\")?[ \t]*$")
 #: three vectors do not, so one scheme is the whole picture for them. Matches
 #: theme.py's `_PRIMARY`.
 _SCHEME = "dark"
-
-#: Every hand-written stylesheet this engine ships, in load order. Keep in step
-#: with assets.py `_DATA_ASSETS` -- see the docstring warning.
-_SHEETS = ("base.css", "nav.css", "data.css", "data-list.css", "router.css")
 
 #: (label, canonical file, local file, resolve key). The canonical design system
 #: defines FOUR vectors; `key` is how vectors.resolve() names each one, and None
@@ -168,13 +182,16 @@ def _rules(css: str) -> list[tuple[str, list[tuple[str, str]]]]:
 def _sheets() -> list[tuple[str, str, bool]]:
     """(label, css, generated) for every stylesheet this build ships.
 
-    Generated sheets are scanned for CONSUMERS but excluded from the literal
-    scan -- their literals ARE the canonical table, and reporting the design
-    system as ungoverned would be exactly backwards.
+    The name list comes from assets.hand_written_css() rather than from a tuple
+    here. See the docstring: the tuple that used to live in this file went stale
+    within two hours of being written.
+
+    `generated` is False for everything returned here -- these are files a human
+    wrote, so their literals count against them.
     """
     root = Path(state.ENGINE_ROOT)
     out: list[tuple[str, str, bool]] = []
-    for name in _SHEETS:
+    for name in assets.hand_written_css():
         path = root / "assets" / name
         if path.is_file():
             out.append((name, path.read_text(encoding="utf-8"), False))
@@ -433,6 +450,10 @@ def _build() -> str:
         for r in load_tsv(Path(state.ENGINE_ROOT) / "theme" / "colors.tsv")
     }
 
+    # Said once, from a caller that runs once. blocks.build_css() cannot report
+    # because assets._plan calls it from both on_config and on_files.
+    blocks.report()
+
     consumers: dict[str, list[tuple[str, str, str]]] = {}
     literals: list[tuple[str, str, str, str, str]] = []
     selectors: list[str] = []
@@ -440,12 +461,19 @@ def _build() -> str:
     scanned = _sheets() + [
         ("tokens.css", tokens_css, True),
         ("marks.css", markers.build_css(), True),
+        ("blocks.css", blocks.build_css(), True),
     ]
 
     for sheet, css, generated in scanned:
         for selector, decls in _rules(css):
-            if not generated:
-                selectors.append(selector)
+            # RED EVERY SELECTOR COUNTS, GENERATED OR NOT, and splitting this
+            # from the literal skip below is what lets section 5 tell the truth.
+            # A generated sheet's LITERALS are the design system and must not be
+            # reported as ungoverned; its SELECTORS are ours. One flag used to
+            # answer both questions, which read as tidy right up until
+            # blocks.css started governing admonitions -- and then section 5
+            # would have gone on calling them ungoverned forever.
+            selectors.append(selector)
             for prop, value in decls:
                 used = _VAR.findall(value)
                 for token in used:
@@ -461,7 +489,8 @@ def _build() -> str:
     state.note(
         "notes",
         "token audit: " + str(len(values)) + " tokens declared, "
-        + str(sum(len(v) for v in consumers.values())) + " consumers, "
+        + str(len(consumers)) + " of them consumed by "
+        + str(sum(len(v) for v in consumers.values())) + " rules, "
         + str(len(literals)) + " hardcoded values in our own stylesheets ("
         + str(ungoverned_colours) + " of them colours).",
     )
