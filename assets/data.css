@@ -37,38 +37,16 @@
  * silently did nothing. Three defences: the table carries a class, display:table
  * is forced anyway, and Material's JS scroll wrapper is neutralised if it shows.
  *
- * ===========================================================================
- * THE CONTAINER IS NAMED, AND THE BREAKPOINT IS IN PIXELS. BOTH DELIBERATE.
- * ===========================================================================
- * `container-type: inline-size` makes the rules in data-list.css answer to the
- * width of THIS BOX rather than the window, so the table behaves inside a narrow
- * column or a split view and not only on a phone. A table is a component; it
- * should answer to the space it is given, not the size of the glass.
+ * CONTAINER, NOT VIEWPORT (2026-08-04). container-type makes the rules that need
+ * it answer to the width of THIS BOX rather than the window, so the table behaves
+ * inside a narrow column or a split view and not only on a phone. A table is a
+ * component; it should answer to the space it is given, not the size of the
+ * glass. data-list.css queries this container too.
  *
- * 🐛 IT SHIPPED AS AN UNNAMED CONTAINER QUERIED IN `em`, AND ON 2026-08-05 BOTH
- * TABLES RENDERED AS LISTS ON A 1457px DESKTOP. Two independent reasons that
- * could each cause it, which is exactly why both are now closed:
- *
- *   `container-name` -- an UNNAMED @container binds to the nearest ancestor
- *     that happens to be a container. That is a promise about the whole ancestor
- *     chain, made by a file that can only see itself, in a tree other sessions
- *     add layers to. A name makes the binding explicit and unbreakable.
- *
- *   `px` not `em` -- font-relative units in a container query resolve against
- *     the QUERY CONTAINER's own font size, NOT the root. `.dr-data` inherits
- *     Material's typeset sizing, so `45em` was never 720px and its real value
- *     depended on a number this file does not set and cannot see.
- *
- * ⚠️ AND THE NUMBER WAS WRONG ON ITS OWN MERITS, WHICH IS THE PART WORTH
- * KEEPING. 45em was chosen against a phone and never checked against this site's
- * DESKTOP content column, which measures ~756px. A 720px threshold against a
- * 756px column is a 5% margin -- one scrollbar, one padding change, one theme
- * with a larger base size and it flips. 640px sits below every phone (390-430),
- * below a narrow split view, and 116px clear of the desktop column.
- *
- * ⚑ Same shape as every other defect in this feature: a rule written against the
- * case in front of me, correct there, and never measured against the case it
- * would meet next. A breakpoint is a MEASUREMENT and it was set from taste.
+ * ⚠️ THE CONTAINER IS NAMED. An unnamed @container binds to the NEAREST
+ * ancestor container, which is whatever happens to be closest on the day -- and
+ * this tree gained layers all through 2026-08-04. `container-name` makes the
+ * binding explicit so a query cannot silently start answering a different box.
  * ------------------------------------------------------------------------ */
 .dr-data {
   container-type: inline-size;
@@ -79,8 +57,8 @@
   /* Stop a sideways swipe that runs out of table from becoming a browser
    * back-navigation, which on iOS is one flick away at all times. */
   overscroll-behavior-x: contain;
-  border: var(--dr-border-w, 1px) solid var(--dr-rule);
-  border-radius: var(--dr-radius, 3px);
+  border: 1px solid var(--dr-rule);
+  border-radius: 3px;
   background: var(--dr-surface);
 }
 
@@ -112,8 +90,8 @@
 .dr-data__table th,
 .dr-data__table td {
   padding: var(--dr-data-pad);
-  border-bottom: var(--dr-border-w, 1px) solid var(--dr-rule);
-  border-right: var(--dr-border-w, 1px) solid var(--dr-rule);
+  border-bottom: 1px solid var(--dr-rule);
+  border-right: 1px solid var(--dr-rule);
   white-space: nowrap;
   text-align: left;
   vertical-align: top;
@@ -150,6 +128,11 @@
  * second into `:first-child` -- so hiding ID on the audio inventory rendered
  * `Count`, a right-aligned number, as the accent identifier. The stylesheet was
  * asserting something about the data that the data no longer supported.
+ *
+ * ⚑ FOURTH INSTANCE OF THAT SHAPE TODAY (the two `sticky` traps below and above,
+ * the eyebrow bound to the `id` type in data-list.css, this). A rule bound to
+ * POSITION standing in for a rule about MEANING survives exactly as long as the
+ * two happen to coincide.
  *
  * A num or money column is never an identifier -- `sheet.classify_columns` and
  * the `::type` declaration both already know which columns those are, so the
@@ -291,12 +274,17 @@
  *
  * 🐛 A TABLE CELL CANNOT MAKE THE LINE LONGER. A 40-character `.conf` note in a
  * verify column is one unbreakable box inside a grid column that has a fixed
- * width, so it clipped off the right edge mid-sentence.
+ * width, so it clipped off the right edge mid-sentence -- found by Michael on an
+ * expanded row: "I don't think we need to wrap the entire 40-character prose in
+ * our markers, especially if it's in a table like this."
  *
- * ⚑ THIRD TIME nowrap has been correct for VALUES and wrong for PROSE. The
- * pattern is not that nowrap is wrong -- it is that a rule written for the short
- * case gets applied to the long one by inheritance, and nothing about the rule
- * says which case it was for.
+ * ⚑ THIRD TIME nowrap has been correct for VALUES and wrong for PROSE (see the
+ * column kinds above, and PR #50). The pattern is not that nowrap is wrong -- it
+ * is that a rule written for the short case gets applied to the long one by
+ * inheritance, and nothing about the rule says which case it was for.
+ *
+ * Scoped INSIDE .dr-data only. Page prose is untouched, the box shape survives,
+ * and a marked note still reads as marked -- it just breaks like text.
  * ------------------------------------------------------------------------ */
 .dr-data .dr-mark {
   white-space: normal;
@@ -314,13 +302,24 @@
  * with the row and a reader three columns in saw WARE [2000] where the sheet said
  * HARDWARE [2000]. An inline-block inside it has all the slack in the world.
  * Geometry, not paint.
+ *
+ * ⭐ THE BAND READS `accent-2`, NOT `accent` (2026-08-05), and that is a
+ * distinction rather than a decoration. The sticky first column above is
+ * `accent` because it is the IDENTIFIER a reader is tracing. This band is
+ * STRUCTURE -- where one group of rows ends and the next begins. They were the
+ * same colour, so neither was saying anything the other was not, which is the
+ * whole job the second accent exists to do.
+ *
+ * ⚠️ The fallback is load-bearing: the three local nine-token themes emit no
+ * `accent-2`, and a bare var() here would collapse the rule and take the band's
+ * only visible edge with it. Falls back to the colour it used to be.
  * ------------------------------------------------------------------------ */
 .md-typeset .dr-data__table .dr-data__section th,
 .dr-data__table .dr-data__section th {
   position: static;
   padding: 0;
   background: var(--dr-surface-raised);
-  border-top: 2px solid var(--dr-accent);
+  border-top: 2px solid var(--dr-accent-2, var(--dr-accent));
   white-space: nowrap;
 }
 
@@ -377,9 +376,18 @@
  * a narrower measure when the box is tight, so the prose column stops setting
  * the scroll width for everything to its right.
  *
- * LIST MODE ITSELF LIVES IN assets/data-list.css, and queries this same NAMED
- * container at the same threshold. Keep the two numbers in step or a sheet gets
- * a narrow measure and a wide layout at once.
+ * LIST MODE ITSELF LIVES IN assets/data-list.css. It moved there when this file
+ * passed the warn line and an attempted trim recovered 22 bytes -- the clearest
+ * possible evidence that prose was not the problem and the file was doing two
+ * jobs. Do not re-add a .dr-data--list rule here.
+ *
+ * ⚠️ THE THRESHOLD IS PX AND THE CONTAINER IS NAMED, and both halves are a fix
+ * (2026-08-05). `em` inside a container query resolves against the QUERY
+ * CONTAINER's own font size, not the root -- and .dr-data inherits Material's
+ * .md-typeset sizing, which is not 16px. 45em was therefore not 720px and
+ * nobody could say what it was. 640px is below every phone (390-430) and 116px
+ * clear of this site's real desktop content column (~756px), where 45em was
+ * firing list mode on a 1457px desktop.
  * ------------------------------------------------------------------------ */
 @container dr-table (max-width: 640px) {
   .md-typeset .dr-data__table td.dr-col--prose,
@@ -399,6 +407,12 @@
  * compromise. On a phone the page scrolls vertically and the table scrolls
  * sideways; a 78vh box that swallows a vertical swipe is the worst thing on this
  * page on a small screen and the best thing on it on a large one.
+ *
+ * WARNING: EVERY DEFECT THIS FILE FIXES WAS FOUND ON A PHONE AND WAS INVISIBLE ON
+ * A LAPTOP, three times in two days (see base.css on the double nav rule, and
+ * router.css on the revealed menu). The engine has a build report, a size gate, a
+ * leak scan and a contrast gate, and nothing that looks at a rendered page at
+ * 390px. Until it does, this is where the phone gets thought about on purpose.
  * ------------------------------------------------------------------------ */
 @media screen and (max-width: 44.9375em) {
   .dr-data { max-height: none; }

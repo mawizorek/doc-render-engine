@@ -88,10 +88,28 @@ Class colour is emitted as a REAL CSS RULE by `build_css()`. The inline custom
 property survives for a ROW override only: a rule per class is cheap, a rule per
 marker was not, which is what the inline property existed to avoid.
 
-⚠️ THE SHIPPED COLOUR IS NOT IN theme/colors.tsv YET, ON PURPOSE. `terminology`
-asks for `accent-soft` -- real in the canonical maw-themes palette, absent from
-the nine-token stand-in this engine still reads. Reports as unknown ONCE and
-falls back to the body colour until the palette refit lands (J11).
+
+🔴 THE VALIDATION LIST WENT STALE WHEN THE PALETTE MOVED (fixed 2026-08-05)
+==========================================================================
+
+`_known_tokens()` read theme/colors.tsv and nothing else -- the NINE-TOKEN
+stand-in, the file whose own header says it is on death row. Meanwhile the
+engine has been emitting the CANONICAL 22 since the four-vector join landed, and
+exactly two of those (`accent`, `warn`) happen to share a name with the
+stand-in. Every other canonical token was REFUSED by a validator that had never
+heard of it.
+
+The visible cost was one line in marker-classes.tsv asking for `accent-soft`,
+reporting unknown once per build, and quietly rendering in the body colour --
+for long enough that the comment explaining it read as a plan rather than a bug.
+
+⚑ A PALETTE MOVED AND THE LIST OF WHAT IS ALLOWED DID NOT. Same shape as the
+hardcoded `_SHEETS` list in tokenaudit.py that went stale in under two hours,
+and as contrast.tsv certifying a floor nothing in the design system meets: a
+second place stating a fact the first place already owns.
+
+The union is read from the canonical table's own HEADER ROW, so a column added
+upstream is usable the day it is vendored. No third list.
 
 Defined in theme/markers.tsv + theme/marker-classes.tsv. Adding one is a row.
 """
@@ -101,7 +119,7 @@ from __future__ import annotations
 import html
 import re
 
-from . import prefixes, state
+from . import prefixes, state, vectors
 from .util import load_tsv, relative_url, sub_outside_code
 
 # [text]{.marker} with optional whitespace, or bare {.marker}.
@@ -139,7 +157,33 @@ def _classes() -> dict[str, dict]:
 
 
 def _known_tokens() -> set[str]:
-    return {r["token"] for r in _rows("colors.tsv") if r.get("token")}
+    """Every colour token a marker may legally name.
+
+    THE UNION OF BOTH TABLES, and the union is the whole point -- see the red
+    section in the module docstring for what a single-table version cost.
+
+      LOCAL      theme/colors.tsv, the nine-token stand-in. Still contributes
+                 `dead`, which canonical genuinely lacks (maw-themes D11) and
+                 which is the only reason that file is still loaded at all.
+      CANONICAL  theme/canonical/colors.tsv, read from its HEADER ROW rather
+                 than from a list kept here. A column added upstream is usable
+                 the day it is vendored, and there is no third place to update.
+
+    ⚠️ THIS ANSWERS "MAY A MARKER NAME IT", NOT "IS IT EMITTED". A canonical
+    token is emitted only by a theme that has a join; a nine-token local theme
+    emits a handful. A marker naming a token the ACTIVE theme does not emit
+    resolves to `var(--dr-x)` with no fallback, which paints nothing -- so the
+    honest widening is to accept the name and let the theme decide, exactly as
+    every stylesheet in this engine already does with `var(--dr-x, fallback)`.
+    """
+    local = {r["token"] for r in _rows("colors.tsv") if r.get("token")}
+
+    canonical: set[str] = set()
+    for row in vectors.rows("colors.tsv"):
+        canonical = {k for k in row if k not in vectors.META and k}
+        break
+
+    return local | canonical
 
 
 def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> str:
@@ -161,9 +205,9 @@ def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> st
         # fallback resolves to nothing -- so it is reported and given a real colour.
         state.note(
             "notes",
-            where + " asks for colour token '" + value + "', which is not in "
-            + "theme/colors.tsv. Using the body colour. Known tokens: "
-            + ", ".join(sorted(tokens)),
+            where + " asks for colour token '" + value + "', which is in neither "
+            + "theme/colors.tsv nor theme/canonical/colors.tsv. Using the body "
+            + "colour. Known tokens: " + ", ".join(sorted(tokens)),
         )
     return "currentColor"
 
@@ -281,9 +325,9 @@ def build_css() -> str:
     # no-op.
     #
     # Emitted HERE rather than in base.css for a boring reason worth stating:
-    # base.css is ~16.4KB, close enough to the read ceiling that a wholesale
-    # rewrite from one read is the clobber that ate util.py on 2026-08-03. This
-    # file already generates the colour half.
+    # base.css is ~18.9KB, past its warn line, and a wholesale rewrite from one
+    # read is the clobber that ate util.py on 2026-08-03. This file already
+    # generates the colour half.
     lines.append(
         ".md-typeset a." + _TERM_LINK_CLASS + " { color: var(--dr-mark-color);"
         + " text-decoration: underline; text-decoration-thickness: 1px;"

@@ -48,12 +48,25 @@
 # theme into light mode and into every other site; a hex is frozen where you typed
 # it and will be wrong on the scheme you were not looking at. Hex is supported
 # because it is genuinely useful for a one-off, not because it is the good path.
+#
+# ⚠️ THE BOX SHAPE MEANS A COLOUR HAS TO SURVIVE ITS OWN BACKGROUND. `box` tints
+# the chip with 10% of the marker's own colour, so the text is not sitting on the
+# page ground -- it is sitting on a wash of itself. A value measured only against
+# the page can still fail inside the chip, and three amber candidates did exactly
+# that on 2026-08-05. Measure the chip, not the page.
+#
+# 🔴 `conf` AND `gap` MOVED TO CANONICAL TOKEN NAMES ON 2026-08-05, and it is not
+# a rename. `ok` and `danger` exist ONLY in the nine-token stand-in, so a
+# confirmed value and a known gap were being painted by a table nobody maintains
+# while every other colour on the page followed the design system. `good` and
+# `bad` are the canonical names for the same two meanings, and they were
+# unreachable until the validator learned to read both tables.
 # ---------------------------------------------------------------------------
 marker	class	label	shape	color	tooltip
 tbc	confidence	To be confirmed			Not yet verified against a source. Do not rely on this without checking.
 verify	confidence	Verify on site			Recorded once and never re-checked. Measure it before you build to it.
-gap	confidence	Not recorded		danger	This fact should exist and does not. The absence is known, not overlooked.
-conf	confidence	Confirmed		ok	Double-checked against the real thing. Trust it.
+gap	confidence	Not recorded		bad	This fact should exist and does not. The absence is known, not overlooked.
+conf	confidence	Confirmed		good	Double-checked against the real thing. Trust it.
 est	confidence	Estimate	soft	ink-muted	Approximate. Close enough to plan with, not close enough to cut to.
 was	confidence	Superseded	strike	ink-muted	The old value, kept so paperwork quoting it can still be matched up.
 term	terminology				House terminology. Where it is also a link there is a page defining it.

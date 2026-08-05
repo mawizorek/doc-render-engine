@@ -135,6 +135,44 @@ What IS withheld is the CODE (only a verifier ships) and, since J14, the NAV
 MANIFEST. Not a contradiction: a manifest in the clear would defeat the only
 thing that feature does, while a body in the clear defeats nothing ever claimed.
 
+=============================================================================
+⭐ THE FIELD IS MASKED, AND THAT IS NOT A CONTRADICTION OF THE LINE ABOVE
+=============================================================================
+Michael, 2026-08-05: *"add a privacy screen [to] our router gate input field so
+that when i type a code it's not visible on my screen. the black dots should
+appear instead."*
+
+`type="password"`. One attribute, and it sits directly against this feature's
+own design note -- *no padlock, no red, no "restricted"* -- so the distinction
+has to be written down or somebody will correctly delete it later.
+
+A PADLOCK CLAIMS THE CONTENT IS PROTECTED. That claim is false here and the
+section above says so at length: the body is in the DOM and the markdown is in
+a public repo.
+
+THE MASK CLAIMS THE CODE IS WORTH NOT SHOWING THE ROOM. That claim is TRUE, and
+it is the only true one available: the code is the single thing this feature
+genuinely withholds, since only a PBKDF2 verifier is ever printed. The input is
+therefore the one surface where a real secret is handled, and the only place a
+privacy affordance is honest rather than decorative.
+
+The threat is mundane rather than cryptographic and it is the reason it matters:
+these pages are opened in a booth, a shop, or backstage with somebody standing
+behind you. Shoulder surfing does not care that the body is unencrypted.
+
+⚠️ WHAT IT COSTS. A masked field cannot be proof-read, so a TYPO and a genuinely
+wrong code are now indistinguishable to the reader -- both get "that code does
+not go anywhere." The error path already clears and refocuses, which is the
+right recovery, but on a phone this is a real usability cost paid for a real
+privacy gain. A reveal toggle is the standard answer and is deliberately NOT
+built: it is new UI and new JS on a feature whose entire argument is restraint.
+
+⚠️ NO `name` ATTRIBUTE, AND IT MATTERS MORE NOW THAN IT DID. A password input
+WITH a name is what browsers and password managers offer to save. This field has
+never had one -- the form is intercepted in JS and never serialised -- so the
+mask adds no save prompt and nothing lands in a keychain. Do not add one.
+
+=============================================================================
 🔴 AND THE SEAL IS WHY A WRONG DESTINATION WAS INVISIBLE FOR TWO DAYS. This file
 built redirect URLs with `"../" * page.file.url.count("/")`, the separator-
 counting math `util.relative_url` exists to replace -- and util.py's docstring
@@ -299,7 +337,10 @@ def _field(mode: str, payload: list, prompt: str, subtree: str, anchor: str) -> 
         + '<label class="dr-router__label" for="dr-router-key">'
         + prompt + "</label>"
         + '<div class="dr-router__row">'
-        + '<input class="dr-router__input" id="dr-router-key" type="text"'
+        # ⭐ MASKED. See THE FIELD IS MASKED in the module docstring for why this
+        # is not the padlock the design note forbids -- and note there is still
+        # no `name` attribute, which is what keeps password managers out of it.
+        + '<input class="dr-router__input" id="dr-router-key" type="password"'
         + ' autocomplete="off" autocapitalize="off" spellcheck="false">'
         + '<button class="dr-router__btn" type="submit">Go</button>'
         + "</div>"
