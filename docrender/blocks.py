@@ -84,6 +84,14 @@ fallback means invalid at computed-value time, which sets `mask-image: none`,
 which removes the mask entirely and leaves the ::before painting its full
 background-color as a solid 20x20px SQUARE.
 
+🔴 AND THE SAME SQUARE ARRIVES FROM AN OLD BROWSER, WHICH THE GUARD ABOVE CANNOT
+SEE (found 2026-08-05 by running the generator). Unprefixed `mask-image` needs
+Safari 16.4; below that the declaration is dropped as unknown, the mask is gone,
+and a CORRECT icon name paints the square. Material's own compiled stylesheet
+emits both spellings -- read off the published `main.ec1eaa64.min.css`, not
+recalled -- so `_icon` emits both too. ⚑ A guard against one CAUSE of a symptom
+is not a guard against the symptom.
+
 =============================================================================
 SPECIFICITY IS A TIE, WON ON SOURCE ORDER, AND THAT IS THE HONEST NAME
 =============================================================================
@@ -194,6 +202,20 @@ _MATERIAL = (
     "warning", "failure", "danger", "bug", "example", "quote",
 )
 
+#: `mask-image`, both spellings, prefix first.
+#:
+#: 🔴 THE PREFIX IS NOT COURTESY. Unprefixed `mask-image` needs Safari 16.4
+#: (March 2023); below that the declaration is dropped, the mask is gone, and the
+#: ::before paints its full background-color as a solid 20x20px square -- the
+#: exact failure `_icon` refuses a bad NAME to prevent, arriving from a correct
+#: name on an old browser. Material's compiled stylesheet emits both spellings
+#: for its own masked icons, which is where this was read from.
+#:
+#: Prefix FIRST: a browser that understands both takes the later unprefixed
+#: declaration, and one that understands only the prefix ignores the line it
+#: cannot parse. Reversed, the old browser would win.
+_MASK = ("-webkit-mask-image", "mask-image")
+
 
 def _rows() -> list[dict]:
     return load_tsv(state.ENGINE_ROOT / "theme" / "blocks.tsv")
@@ -233,10 +255,11 @@ def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> st
 
 
 def _icon(name: str, icon: str, report: bool = True) -> str:
-    """The mask-image declaration for one family, or "" to leave Material's.
+    """The mask declarations for one family, or "" to leave Material's.
 
-    Returns a complete CSS line so the caller can build a declaration list
-    rather than concatenate a conditional into a string -- see build_css.
+    Returns COMPLETE CSS lines -- both spellings of `mask-image`, newline
+    separated -- so the caller extends a declaration list rather than
+    concatenating a conditional into a string. See build_css.
 
     THREE CASES, and only one of them emits anything:
 
@@ -278,7 +301,12 @@ def _icon(name: str, icon: str, report: bool = True) -> str:
             )
         return ""
 
-    return "  mask-image: var(--md-admonition-icon--" + icon + ");"
+    # Both spellings. See `_MASK` on why the prefix is load-bearing and why it
+    # comes first.
+    return "\n".join(
+        "  " + prop + ": var(--md-admonition-icon--" + icon + ");"
+        for prop in _MASK
+    )
 
 
 def _selectors(name: str) -> tuple[str, str, str, str]:
@@ -354,10 +382,11 @@ def build_css(report: bool = False) -> str:
         wash = "color-mix(in oklch, " + value + " 10%, transparent)"
 
         # ⭐ A LIST OF COMPLETE LINES, NOT A CONCATENATED STRING. The icon rule
-        # carries one declaration or two depending on the row, and building that
-        # by joining a conditional into a string is where a missing semicolon
-        # merges two properties into one invalid declaration. Whole lines joined
-        # by newline cannot do that.
+        # carries one declaration or three depending on the row, and building
+        # that by joining a conditional into a string is where a missing
+        # semicolon merges two properties into one invalid declaration. Whole
+        # lines joined by newline cannot do that -- which is why adding the
+        # `-webkit-` spelling later cost one line and no risk.
         icon_decls = ["  background-color: " + value + ";"]
         borrowed = _icon(name, row.get("icon", ""), report=report)
         if borrowed:
