@@ -85,6 +85,36 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # ⏱️ A HUNG JOB IS NOT A SLOW JOB, AND WITHOUT THIS LINE GITHUB CANNOT TELL
+    # THE DIFFERENCE. The default ceiling is SIX HOURS, which is not a guardrail,
+    # it is the absence of one.
+    #
+    # Found 2026-08-05: the `theatre` render HANGS rather than fails -- step 7
+    # starts, never returns, and the job sat at six hours before GitHub killed
+    # it. Two things went wrong downstream of that, and only the second one was
+    # visible:
+    #
+    #   1. The routine kept working. uritp rendered and deployed in ~30 seconds
+    #      on every single run, exactly as designed, because fail-fast is off.
+    #   2. The RUN stayed amber for six hours anyway, because a run is only as
+    #      finished as its slowest job -- so the Actions tab read as "the cron
+    #      is stuck" when the cron was the one part that was fine.
+    #
+    # ⚑ GENERALISABLE, and the real lesson: fail-fast: false isolates FAILURE
+    # between matrix rows. It does not isolate TIME. One row that never returns
+    # still holds the run open, still holds a runner, and still paints the whole
+    # matrix with its own status. A per-job timeout is what actually buys the
+    # independence the matrix was built for.
+    #
+    # 📏 TEN MINUTES IS 20x THE OBSERVED CEILING, deliberately loose. Real
+    # numbers on 2026-08-05: whole job ~30s, install ~12s, the slowest healthy
+    # render (uritp) ~7s. This cannot fire on a working build; if it ever does,
+    # something is wrong and the timeout is the messenger, not the cause.
+    # Raise it only against measured evidence, never against a hunch that a
+    # build "might need longer."
+    timeout-minutes: 10
+
     strategy:
       fail-fast: false
       matrix:
