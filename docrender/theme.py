@@ -16,32 +16,38 @@ PER SCHEME (colour only -- the one vector that legitimately differs by mode):
 
   1. local `base` rows       carries `dead`, which canonical has no token for
   2. the canonical row       the real palette
-  3. the aliases             --dr-ink: var(--dr-text), and six more
-
-ORDER IS LOAD-BEARING and its failure mode is SILENCE. Later declarations win at
-equal specificity, so the aliases MUST come last -- put them anywhere else and
-`--dr-ink` keeps the stand-in's value while every file involved still looks
-correct.
+  3. the colour aliases      --dr-ink: var(--dr-text), and six more
 
 ONCE, IN :root (the three scheme-independent vectors):
 
   4. local `base` typography  seven tokens canonical has no equivalent for
-  5. canonical typography     9 tokens, wins on the two that overlap
+  5. canonical typography     9 tokens
   6. canonical forms          14 tokens
   7. canonical spacing        6 tokens
+  8. the BRIDGE               --dr-data-pad: var(--dr-pad-cell), and three more
 
-STAR THE LOCAL-UNDERNEATH PATTERN IS NOW USED THREE TIMES, and it is the same
-argument each time: the local table is not legacy to be deleted, it is the only
-source for tokens the canonical system does not model yet (`dead`, `lede-size`,
-`measure`, `data-pad`...). Emit it first, let canonical win where they overlap,
-and the gap stays visible instead of becoming a fork.
+ORDER IS LOAD-BEARING IN BOTH BLOCKS AND ITS FAILURE MODE IS SILENCE. Later
+declarations win at equal specificity, so the aliases and the bridge MUST come
+last -- put either anywhere else and the local value quietly survives while every
+file involved still looks correct.
 
-WARNING: EMITTING A TOKEN IS NOT CONSUMING IT. 29 canonical tokens now reach
-every page, and assets/*.css still hardcode their own radii, paddings and gaps.
-So a spacing change moves nothing YET. Section 4 of the token audit page lists
-every one of those literals by file and selector; converting them is the next
-pass and was deliberately kept out of this one -- a shape change and a value
-change in one commit means you cannot tell which broke it.
+STAR THE SAME PATTERN, THREE TIMES, AND IT IS THE SPINE OF THE WHOLE JOIN.
+Colour aliases rename per scheme; local-underneath fills what canonical does not
+model; the bridge points a SEMANTIC token at a canonical PRIMITIVE. Every one of
+them keeps the consumer's own vocabulary and moves only where the value comes
+from -- which is why no stylesheet had to be found-and-replaced, and therefore
+why none of them could be missed.
+
+STAR THE BRIDGE IS WHAT MAKES A VECTOR CONTROL SOMETHING. Emitting `--dr-pad-cell`
+puts a number on the page; nothing reads it. Emitting `--dr-data-pad:
+var(--dr-pad-cell)` makes every table cell in data.css obey the theme's spacing
+entity -- in a file this change never opened. See `canonical/bridge.tsv`.
+
+WARNING: STILL NOT EVERYTHING. `elev-1/2/3`, the motion set and `lift` have NO
+consumer anywhere in this engine's CSS -- base.css sets `box-shadow: none` and
+declares no transitions at all. Giving them one means ADDING shadows and
+animation to a documentation site, which is a DESIGN decision and not a wiring
+one. Section 4 of the token audit page lists every literal that remains.
 
 What is deliberately NOT shared between sites: the look. TOKEN NAMES are shared
 and VALUES are per theme, so the day somebody edits a colour to fix one site is
@@ -69,14 +75,14 @@ _SCHEMES = (
 _PRIMARY = "dark"
 
 
-def _aliases() -> list[tuple[str, str]]:
-    """(local name, canonical name) pairs that actually need an alias.
+def _pairs(file: str) -> list[tuple[str, str]]:
+    """(consumer, canonical) rows from an alias-shaped table.
 
     A row pointing a name at itself is dropped: it is a no-op in CSS and a trap
     in a table, because it reads as a mapping somebody chose.
     """
     out = []
-    for row in load_tsv(vectors.theme_dir() / "canonical" / "aliases.tsv"):
+    for row in load_tsv(vectors.theme_dir() / "canonical" / file):
         local = (row.get("consumer") or "").strip()
         canon = (row.get("canonical") or "").strip()
         if local and canon and local != canon:
@@ -90,9 +96,7 @@ def _color_decls(row: dict, scheme: str) -> list[tuple[str, str]]:
     The row's `mode` names its NATIVE ramp; when the requested scheme is the
     other one an `alt-<token>` column wins if the row carries a value there.
     Both row shapes resolve here -- a COMPLETE row (empty alt band, paired by
-    identity) and a LEGACY row (alt band carrying its opposite mode). The
-    wrong-scheme case is detected in vectors.resolve(), which can also name the
-    sibling to use.
+    identity) and a LEGACY row (alt band carrying its opposite mode).
     """
     native = (row.get("mode") or "dark").strip()
     opposite = native in ("dark", "light") and scheme != native
@@ -125,24 +129,56 @@ def _local_color(themes: tuple[str, ...], scheme: str) -> list[tuple[str, str]]:
     return decls
 
 
-def _entity_decls(file: str, slug: str) -> list[str]:
-    """Every token on one shared-vector row, as declarations."""
+def _entity_decls(file: str, slug: str) -> tuple[list[str], set[str]]:
+    """Every token on one shared-vector row, plus the names it defined.
+
+    The name set is what lets the bridge skip a row whose primitive this theme
+    never emitted.
+    """
     row = vectors.entity(file, slug)
     if not row:
-        return []
-    return [
-        "  --dr-" + token + ": " + (value or "").strip() + ";"
-        for token, value in row.items()
-        if token != "slug" and (value or "").strip()
-    ]
+        return [], set()
+    out, names = [], set()
+    for token, value in row.items():
+        clean = (value or "").strip()
+        if token == "slug" or not clean:
+            continue
+        out.append("  --dr-" + token + ": " + clean + ";")
+        names.add(token)
+    return out, names
+
+
+def _bridge(available: set[str]) -> list[str]:
+    """Point each semantic token at its canonical primitive.
+
+    WARNING: a row whose primitive is NOT in `available` is SKIPPED, not emitted
+    as a dangling `var()`. A local theme with no join emits no `pad-cell`, and
+    `--dr-data-pad: var(--dr-pad-cell)` would then resolve to nothing and
+    collapse every table cell's padding to zero -- a blank rather than an error,
+    which is the class of failure this engine keeps catching.
+    """
+    out, skipped = [], []
+    for local, canon in _pairs("bridge.tsv"):
+        if canon in available:
+            out.append("  --dr-" + local + ": var(--dr-" + canon + ");")
+        else:
+            skipped.append(local + " -> " + canon)
+    if skipped:
+        state.note(
+            "notes",
+            "bridge: " + ", ".join(skipped) + " not wired -- this theme emits "
+            "no such canonical primitive, so the local value stands. Expected "
+            "for a theme with no join; a bug for one with a join.",
+        )
+    return out
 
 
 def _shared(primary: dict, other: dict) -> list[str]:
     """Typography, forms and spacing. Emitted ONCE, from the primary scheme.
 
-    Local typography goes first: it carries seven tokens canonical does not
-    model (lede-size, measure, data-pad...) and this engine's stylesheets read
-    all of them. Canonical is emitted after and wins where they overlap.
+    Local typography goes first: it carries tokens canonical does not model
+    (`measure` above all) and this engine's stylesheets read them. Canonical
+    follows, then the bridge points the semantic names at the primitives.
     """
     out = []
     for row in vectors.local("typography.tsv"):
@@ -153,10 +189,15 @@ def _shared(primary: dict, other: dict) -> list[str]:
         if token and value:
             out.append("  --dr-" + token + ": " + value + ";")
 
+    available: set[str] = set()
     for file, key in vectors.SHARED:
         slug = primary.get(key) or ""
         if slug:
-            out += _entity_decls(file, slug)
+            decls, names = _entity_decls(file, slug)
+            out += decls
+            available |= names
+
+    out += _bridge(available)
 
     differing = [
         key + " '" + str(other.get(key)) + "'"
@@ -209,7 +250,7 @@ def build_css() -> str:
             # LAST. See the ordering note in the module docstring.
             decls += [
                 ("--dr-" + local, "var(--dr-" + canon + ")")
-                for local, canon in _aliases()
+                for local, canon in _pairs("aliases.tsv")
             ]
         else:
             decls += _local_color(("base", got["color"]), scheme)
