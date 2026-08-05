@@ -46,7 +46,7 @@ PAGES: dict = {}
 PEERS: dict = {}
 
 #: The nav entries a ROUTED folder index took out of the sidebar, keyed by the
-#: src_uri of that index page. Written by visibility.prune_nav (stage 00b),
+#: src_uri of that index page. Written by visibility.seal_nav (stage 00bc),
 #: read by router.py (stage 04b), which seals each list under the page's own
 #: codes and ships it as ciphertext.
 #:
@@ -63,6 +63,12 @@ PEERS: dict = {}
 #: unseals it is built in `on_page_content`. MkDocs runs EVERY hook's on_nav
 #: before ANY hook's on_page_content, so those are two different events -- not
 #: two lines that could have been moved next to each other.
+#:
+#: ⚠️ WHAT GOES IN HERE DEPENDS ON A STAGE ORDER, as of 2026-08-05. The seal
+#: moved from 00b to 00bc so that navstate (00bb) cuts `nav: hidden` folders
+#: FIRST -- otherwise their pages end up in this manifest and come back into the
+#: sidebar on a correct code, which is exactly the bug that split the stages.
+#: NAV_SHAPED below is how the seal checks it was not run too early.
 #:
 #: ⚠️ `u` is the build url exactly as MkDocs made it, root-relative and NOT
 #: resolved against anything. Resolving it against the page doing the asking is
@@ -91,6 +97,22 @@ NAV_SEALED: dict = {}
 #: toggle per page, nothing here has ever needed a set, and one shape for every
 #: value in this module is what keeps `reset()` readable at a glance.
 NAV_OPEN: dict = {}
+
+#: Did stage 00bb run? Written by navstate.shape, read by visibility.seal_nav
+#: (00bc), which reports loudly if it finds this false.
+#:
+#: ⭐ A CLAIM ABOUT THE PIPELINE, NOT A CACHED RESULT, and that is the only
+#: reason a bare flag belongs in this module. Everything else here is data one
+#: stage computed for another to consume. This answers "did the stage that must
+#: precede me actually run" -- a question with no answer after the fact, because
+#: a tree navstate never touched looks exactly like a tree where every folder
+#: resolved to `collapsed`.
+#:
+#: ⚠️ SET UNCONDITIONALLY, AT THE TOP OF shape(), BEFORE ANY WALKING. It means
+#: "the stage ran," never "the stage changed something": a site with no `nav:`
+#: anywhere still shaped its tree, and keying this off whether anything moved
+#: would report a broken hook list on every ordinary build.
+NAV_SHAPED: bool = False
 
 #: ONE PBKDF2 salt for every curtain VERIFIER on this build, minted on first
 #: use by router.py and used by every `_check()` call on every page.
@@ -123,7 +145,7 @@ REPORT: dict = {}
 
 def reset() -> None:
     global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, NAV_SEALED, NAV_OPEN
-    global ROUTER_SALT, REPORT
+    global NAV_SHAPED, ROUTER_SALT, REPORT
     INSTANCE = {}
     TYPES = {}
     BY_SRC = {}
@@ -131,6 +153,7 @@ def reset() -> None:
     PEERS = {}
     NAV_SEALED = {}
     NAV_OPEN = {}
+    NAV_SHAPED = False
     ROUTER_SALT = b""
     REPORT = {
         # THE BUCKETS THAT EXIST. Roughly print order as a courtesy, and only
