@@ -90,7 +90,9 @@ forgot a line.
 3. Add one row to the matrix in `.github/workflows/build.yml`.
 4. **Add the new repo to the `DOCRENDER_TOKEN` PAT's repository list.** Easy to
    forget, and the failure is a 403 at the very last step of an otherwise green
-   build.
+   build. ⚠️ **If the content repo is PRIVATE the same omission fails much
+   earlier and much less legibly** — `exit code 128` on the checkout, which
+   reads as a broken build rather than a missing checkbox. See §6c.
 5. Enable Pages on the content repo: **deploy from branch → `gh-pages`**.
 
 That this is five steps rather than a fork is the point.
@@ -149,6 +151,33 @@ Order matters: the first successful build CREATES that branch, so the setting
 cannot be flipped until after the first run. Run the workflow, set Pages, run
 it once more.
 
+### c. The `AUTOPUBLISH` variable, on THIS repo *(2026-08-04)*
+
+**Settings → Secrets and variables → Actions → Variables → `AUTOPUBLISH`.**
+
+| value | what happens |
+| --- | --- |
+| `on` *(or unset)* | Auto. The 5-minute poll in `build.yml` renders and deploys every site. |
+| `off` | Sandbox. The poll does not start; a push to this repo still renders every site as a regression check but **deploys nothing**. |
+
+**Unset means ON, deliberately.** A variable nobody has created yet must never
+be the reason a live site quietly stopped updating. The failure of an absent
+toggle should be "it kept doing what it did yesterday."
+
+⚠️ **`off` gates the DEPLOY STEP, not just the schedule.** A toggle that only
+silenced the cron would still publish in-progress content the moment an
+unrelated engine PR merged — the exact surprise somebody flips this to avoid.
+The condition is therefore written twice in `build.yml`, on the job and on the
+deploy, and the two are not redundant: the job gate skips pointless work, the
+deploy gate is the promise.
+
+🚫 **The manual Publish button is deliberately NOT gated.** `publish.yml` is an
+explicit human act with a preview mode. `off` means *nothing goes public unless
+I say so*, never *I cannot publish*.
+
+**A variable, not a secret** — `vars` can be read inside an `if:` and `secrets`
+cannot, which is why `HAS_DEPLOY_TOKEN` has to be resolved into `env` first.
+
 ---
 
 ## 7. Known limits, stated rather than discovered later
@@ -158,16 +187,30 @@ it once more.
   control but is not is worse than shipping none, because people put things
   behind it. See `docrender/visibility.py`.
 - **Cross-site links resolve at BUILD time.** If a peer renames a page, links
-  to it are wrong until the next build. The nightly cron closes that to a day;
-  a `repository_dispatch` from a peer's deploy closes it to minutes. Closing it
-  further means adding a server, which is a bad trade for a doc archive.
+  to it are wrong until the next build. ~~The nightly cron closes that to a
+  day~~ — the 5-minute poll now closes it to minutes (§6c), *when `AUTOPUBLISH`
+  is on. With it off, the staleness window is however long you sandbox for,
+  which is a fair trade you are making on purpose.*
 - **A Pages site is public even from a private repo.** Privately published
-  Pages requires GitHub Enterprise Cloud. Publication states control what
-  reaches the SITE, never what is readable in the repo. If it would matter that
-  a stranger read it, it does not belong in a doc repo at all.
-- **Content repos cannot trigger their own rebuild**, because they hold no
-  workflow. That is the cost of purity and it is paid on purpose. Cron plus
-  manual dispatch covers it.
+  Pages requires GitHub Enterprise Cloud. ⭐ **As of 2026-08-04 that is the
+  architecture rather than a caveat:** `uritp-docs` is PRIVATE and its site is
+  PUBLIC, which is the whole point — swapping `github.io` for `github.com` on
+  a served URL now 404s instead of handing over the source tree, while readers
+  need no account. Publication states still control what reaches the SITE,
+  never what is readable in the repo. ⚠️ **Files the renderer copies verbatim
+  are still public**, and a TSV a download link points at is the live example.
+- ~~**Content repos cannot trigger their own rebuild**, because they hold no
+  workflow. That is the cost of purity and it is paid on purpose.~~
+  **CORRECTED 2026-08-04:** `uritp-docs` holds one workflow by explicit
+  exception (its revision-log TSV), so it *could* fire the `content-changed`
+  dispatch. It deliberately does not — the exception was granted for one job
+  and does not license a second. The poll covers it. Recorded rather than
+  rewritten, because "impossible" and "chosen against" are different arguments
+  and only one of them survives a new workflow.
+- **A scheduled run is a hint, not a clock.** GitHub queues them under load,
+  drifts 5–20 minutes, and drops them outright during heavy periods. It also
+  **auto-disables a schedule after 60 days of repo inactivity**, and the
+  symptom of that is silence rather than an error.
 
 ---
 

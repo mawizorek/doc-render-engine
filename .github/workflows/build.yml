@@ -31,6 +31,35 @@ name: Build and deploy doc sites
 # the long note on the content checkout below -- the short version is that
 # `publisher: matrix` is exactly the set of repos whose PAT access is PROVEN by
 # the deploy step, so it is the honest thing to key a read credential to.
+#
+# =============================================================================
+# ⭐ THE AUTOPUBLISH TOGGLE (2026-08-04) -- read this before changing a cron
+# =============================================================================
+# Repository variable `AUTOPUBLISH`, at
+#   Settings -> Secrets and variables -> Actions -> Variables
+#
+#   on / unset   auto. The poll below renders and deploys. This is today's
+#                behaviour and it is the DEFAULT ON PURPOSE: an unset variable
+#                must never silently stop publishing a live site.
+#   off          truly off. The scheduled run does not start at all, and a push
+#                to this repo still renders every site as a regression check
+#                but deploys NOTHING. Sandbox mode.
+#
+# ⚠️ `off` GATES THE DEPLOY, NOT JUST THE CRON, and that is the whole point. A
+# toggle that only silenced the schedule would still publish in-progress
+# content the moment an unrelated engine PR merged -- which is exactly the
+# surprise somebody flips this to avoid. The two conditions are therefore
+# stated in two places (the job `if` and the deploy `if`) and they are NOT
+# redundant: the job gate skips pointless work, the deploy gate is the promise.
+#
+# ⚠️ A VARIABLE, NOT A SECRET. `vars` can be read inside an `if:`; `secrets`
+# cannot, which is why HAS_DEPLOY_TOKEN below has to be resolved into `env`
+# first. Anyone reaching for a secret here will rediscover that the hard way.
+#
+# 🚫 THE MANUAL PUBLISH BUTTON IS DELIBERATELY NOT GATED. publish.yml is an
+# explicit human act with a preview mode; making a toggle able to silently
+# refuse it would be a footgun, not a safety feature. `off` means "nothing goes
+# public unless I say so," never "I cannot publish."
 
 on:
   push:
@@ -44,30 +73,40 @@ on:
   repository_dispatch:
     types: [content-changed]
   schedule:
-    # Nobody publishes venue specs on a stopwatch, so a nightly poll is enough
-    # to pick up content edits, and workflow_dispatch covers the impatient case.
-    # It also refreshes cross-site links, which resolve at build time and go
-    # stale when a peer renames a page.
+    # ⭐ FIVE MINUTES, WHICH IS THE PLATFORM FLOOR (2026-08-04). GitHub rejects
+    # anything tighter. The old value was `23 7 * * *` -- a nightly 3:23am ET
+    # poll -- and the reasoning that chose it is kept below because it is still
+    # the correct argument, it just lost to a different requirement.
     #
-    # ⚠️ THE ORIGINAL REASON FOR THIS POLL IS NO LONGER TRUE, and it is corrected
-    # rather than deleted (2026-08-04). It read: "a content repo holds NO
-    # workflow of its own -- that is the purity rule -- so it cannot trigger its
-    # own rebuild. This poll is the price of that."
+    # SUPERSEDED: "Nobody publishes venue specs on a stopwatch, so a nightly
+    # poll is enough to pick up content edits, and workflow_dispatch covers the
+    # impatient case. It also refreshes cross-site links, which resolve at
+    # build time and go stale when a peer renames a page."
     #
-    # `uritp-docs` now holds one workflow, by Michael's explicit exception, so
-    # that repo COULD fire the `content-changed` repository_dispatch above and
-    # make the poll unnecessary for itself. It deliberately does not. Two
-    # reasons, and the second is the real one:
+    # What changed is not the publishing rhythm, it is that `uritp-docs` went
+    # private, so a doc edit is no longer visible to anybody until it is
+    # rendered. A day-long delay between saving and seeing was acceptable when
+    # the markdown was readable on github.com in the meantime. It is not now.
     #
-    #   1. the exception was granted for ONE job, the revision-log TSV, and
-    #      explicitly does not license a second;
-    #   2. rendering on every doc commit would make publishing automatic, and
-    #      publish.yml exists precisely because going live is an editorial
-    #      decision rather than a side effect of saving a file.
+    # ⚠️ THE SCHEDULE IS A HINT, NOT A CLOCK. Scheduled runs queue under load
+    # and routinely drift 5-20 minutes; GitHub also drops them outright during
+    # heavy periods. Read `*/5` as "usually within a quarter hour" and never
+    # build anything that needs it to be punctual.
     #
-    # The poll therefore stays, but it is now a CHOICE rather than a constraint.
-    # The three other content repos still hold no workflow at all.
-    - cron: "23 7 * * *"
+    # ⚠️ CRON IS UTC AND DOES NOT FOLLOW DST. Irrelevant at this interval, and
+    # recorded because the nightly value it replaced silently shifted an hour
+    # twice a year and nothing said so.
+    #
+    # ⚠️ COST OF THE FLOOR: with AUTOPUBLISH `off`, the job gate below skips
+    # instantly and burns no minutes -- but a skipped run is still a ROW in the
+    # Actions tab, ~288 a day, which buries real runs. If that noise gets
+    # annoying the honest fix is to widen this to `*/15` or `*/30`, not to
+    # remove the toggle. One character, no other change.
+    #
+    # ⚠️ GitHub AUTO-DISABLES a scheduled workflow after 60 days with no repo
+    # activity. Not a live risk at this repo's pace; a real one if the engine
+    # ever goes quiet, and the symptom is silence rather than an error.
+    - cron: "*/5 * * * *"
 
 permissions:
   contents: read
@@ -75,6 +114,13 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # THE JOB GATE. A scheduled render that is forbidden to deploy is pure
+    # waste, so it does not start. Every OTHER trigger still runs: a push must
+    # keep working as the engine's regression check even in sandbox mode, which
+    # is the one thing `off` must not take away.
+    if: >-
+      github.event_name != 'schedule'
+      || vars.AUTOPUBLISH != 'off'
     strategy:
       fail-fast: false
       matrix:
@@ -94,7 +140,8 @@ jobs:
     name: ${{ matrix.instance }}
     env:
       # A secret cannot be read inside an `if:`, so its presence is resolved
-      # once, here, into something a step can test.
+      # once, here, into something a step can test. (A VARIABLE can be read in
+      # an `if:` directly -- see the AUTOPUBLISH note in the header.)
       HAS_DEPLOY_TOKEN: ${{ secrets.DOCRENDER_TOKEN != '' }}
     steps:
       - name: Check out the engine
@@ -201,14 +248,23 @@ jobs:
           mkdocs build --config-file mkdocs.yml
 
       - name: Deploy to the content repo's gh-pages
-        # Three conditions, each a real thing that goes wrong:
+        # Four conditions, each a real thing that goes wrong:
         #  - no PAT yet, so the cross-repo write dies confusingly
         #  - this row is published somewhere else (see the header)
         #  - a PR must never publish
+        #  - AUTOPUBLISH is `off`, so nothing reaches the web unattended
+        #
+        # ⭐ THE LAST ONE IS THE TOGGLE'S ACTUAL PROMISE and it is here rather
+        # than only on the job so that a PUSH to this repo still renders every
+        # site (the regression check) while deploying none of them. Gating only
+        # the schedule would have left an unrelated engine merge publishing
+        # half-written content, which is the exact surprise `off` exists to
+        # prevent.
         if: >-
           env.HAS_DEPLOY_TOKEN == 'true'
           && matrix.publisher == 'matrix'
           && github.event_name != 'pull_request'
+          && vars.AUTOPUBLISH != 'off'
         uses: peaceiris/actions-gh-pages@v4
         with:
           # A fine-grained PAT with Contents: write on every content repo.
@@ -238,6 +294,14 @@ jobs:
               echo "\`publish-default.yml\` to this repository's own Pages, not"
               echo "to \`${{ matrix.repo }}\`. Nothing was pushed from here, and"
               echo "that is correct."
+            elif [ "${{ vars.AUTOPUBLISH }}" = "off" ]; then
+              echo "Rendered, NOT published: \`AUTOPUBLISH\` is **off**, so this"
+              echo "was a regression check only. Sandbox mode is working as"
+              echo "intended -- this is not a failure."
+              echo
+              echo "Publish on purpose with the **Publish a site** workflow, or"
+              echo "set \`AUTOPUBLISH\` back to \`on\` in Settings -> Secrets and"
+              echo "variables -> Actions -> Variables."
             elif [ "$HAS_DEPLOY_TOKEN" != "true" ]; then
               echo "Rendered, NOT published: \`DOCRENDER_TOKEN\` is not set, so"
               echo "the write to \`${{ matrix.repo }}\` was skipped. A setup gap,"
