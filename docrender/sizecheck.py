@@ -40,9 +40,28 @@ THREE JOBS, all of which want to run last.
    literals via `tokenize` before scanning, CSS of `/* */`, and YAML/TSV of
    `#` lines. What survives is identifiers and operators -- the actual code.
 
+   🔴 AND THERE IS A WHOLE FILE TYPE THE DISTINCTION CANNOT REACH: JSON.
+   `.json` is in _SCAN_SUFFIXES, so it IS scanned, but `_code_only` has no
+   branch for it and cannot have one -- JSON HAS NO COMMENT SYNTAX, so every
+   word in a .json file is a string literal and there is nothing to strip.
+   Prose in a .json file therefore reads exactly like a dependency. It failed a
+   real site build on 2026-08-05: a theme's `intendedUse` sentence described
+   what a look was FOR by naming a company whose name is also a site slug.
+   The fix is not more stripping -- there is nothing to strip. It is a stricter
+   DATA rule, written into the JSON files themselves: never name a customer, a
+   site or a slug in engine JSON, prose included. See theme/canonical/themes.json
+   `rules.no-customers-no-sites`, and note the sibling shape -- v1 of this check
+   died of treating prose as code, and JSON is the one place it still does.
+
    ⚠️ Known and accepted hole: a site name hidden in a NON-literal expression
    walks straight through. Not worth defending against. This catches the honest
    mistake of typing a site into the engine, not somebody smuggling one in.
+
+   ⚠️ AND IT DOES NOT SCAN instances/, WHICH IS CORRECT. That tree is the DATA
+   the engine reads, and naming a site there is the entire purpose of the file --
+   this scan's own error message sends leaks there. An `aliases:` entry reading
+   "HML LLC" in instances/hml/site.yml is right; the same words in theme/ are a
+   build failure. Same words, opposite verdicts, one rule.
 
    Still the ONE hard failure in the pipeline. Everything else warns.
 
@@ -69,11 +88,12 @@ THREE JOBS, all of which want to run last.
    without a word -- a check that runs, finds things, and tells nobody. Adding
    a report section is always two edits, and the note is in both files.
 
-   ⭐ Three sections are INVENTORY rather than complaints, and they are among
+   ⭐ Four sections are INVENTORY rather than complaints, and they are among
    the most useful things here. `markers` lists every tbc / verify / gap / est /
    was on the site; `routers` lists every router and what kind it is;
-   `nav_default` states the site-wide sidebar default. None counts against a
-   clean build. A thing you cannot enumerate is decoration; a thing you can
+   `nav_default` states the site-wide sidebar default; `aliases` states every
+   name `publish <name>` accepts for this site. None counts against a clean
+   build. A thing you cannot enumerate is decoration; a thing you can
    enumerate is a worklist.
 """
 
@@ -112,7 +132,11 @@ _ENGINE_SOURCE = (
 # site default is always either declared or absent, and both are worth stating.
 # Counting it as a finding would mean no build on any site ever prints "No
 # findings" again, and a clean signal that can never fire is worse than none.
-_INVENTORY = {"markers", "routers", "nav_default"}
+#
+# ⚠️ `aliases` IS IN HERE FOR THE SAME REASON, added 2026-08-05. It also reports
+# on every build: a site either declares alternate names or it does not, and
+# "none declared" is a useful thing to read rather than a complaint.
+_INVENTORY = {"markers", "routers", "nav_default", "aliases"}
 
 _LABELS = {
     "leaks": "SITE NAME LEAKED INTO ENGINE CODE (build will fail)",
@@ -129,6 +153,7 @@ _LABELS = {
     "markers": "Marked unresolved -- every tbc / verify / gap / conf / est / was",
     "nav_default": "SIDEBAR DEFAULT for this site -- `nav:` on the root "
                    "index.md, and what every folder inherits from it",
+    "aliases": "NAMES THIS SITE ANSWERS TO -- what `publish <name>` accepts",
     "routers": "Routers on this site",
     "oversize": "Over the size budget",
     "notes": "Notes",
@@ -172,6 +197,23 @@ def _code_only(path: Path) -> str:
 
     Prose is where a site gets EXPLAINED; code is where it gets DEPENDED ON.
     Only the second is a portability defect, so only the second is scanned.
+
+    🔴 EXCEPT FOR .json, WHICH FALLS THROUGH UNSTRIPPED, AND THAT IS A REAL
+    HOLE RATHER THAN AN OVERSIGHT (documented 2026-08-05, after it failed a
+    build). `.json` is in _SCAN_SUFFIXES so it reaches this function, matches
+    none of the branches, and returns as raw text via the fallback at the
+    bottom. There is no fix available here: JSON has no comment syntax, so
+    every word in the file is a string literal and there is nothing this
+    function could strip that would leave the code behind.
+
+    The consequence is that for JSON, and ONLY for JSON, this scan behaves like
+    the v1 raw-text version the redesign replaced -- prose reads as a
+    dependency. Handle it as a DATA rule in the JSON file itself, never by
+    loosening the scan: theme/canonical/themes.json carries
+    `rules.no-customers-no-sites` for exactly this.
+
+    ⚠️ An unparseable Python file also returns raw, deliberately (see below).
+    Two different reasons, one behaviour, and neither is a silent skip.
     """
     try:
         text = path.read_text(encoding="utf-8")
@@ -198,6 +240,7 @@ def _code_only(path: Path) -> str:
     if path.suffix in (".yml", ".yaml", ".tsv", ".txt"):
         return re.sub(r"(?m)^\s*#.*$", " ", text)
 
+    # .json lands here, raw. See the 🔴 block in this function's docstring.
     return text
 
 

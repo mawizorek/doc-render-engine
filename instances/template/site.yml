@@ -13,6 +13,20 @@ name: Doc Family Template
 description: The executable gold standard for every doc site in this family.
 slug: template
 
+# ⭐ OTHER NAMES THIS SITE ANSWERS TO ON THE COMMAND LINE (added 2026-08-05).
+# Contract + the reasoning for why these live in the repo: instances/uritp/site.yml.
+#
+# DELIBERATELY ORDINARY, per this file's own rule: the repo name and the display
+# name, nothing clever. The gold standard has to DEMONSTRATE an optional key or
+# the key is not really part of the spec -- an instance copied from here should
+# find the block already present and obvious to edit.
+#
+# ⚠️ OPTIONAL, THOUGH. Omitting `aliases:` entirely is legal and reported as
+# "none declared"; the slug always resolves on its own. So this does NOT become
+# a fourth required edit when adding a site -- the three in publish.yml's header
+# are still the three.
+aliases: [template-docs, "Doc Family Template", gold-standard]
+
 # ⚠️ THE ONE PLACE THIS INSTANCE IS NOT ORDINARY.
 #
 # Every real site lives at its own content repo's Pages URL. This one is served

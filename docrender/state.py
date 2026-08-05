@@ -187,6 +187,20 @@ def reset() -> None:
         # governing every folder on the site cannot be the line under forty size
         # warnings. INVENTORY, not a defect -- see sizecheck._INVENTORY.
         "nav_default": [],
+        # The names `publish <name>` accepts for this site: the slug plus the
+        # `aliases:` block in site.yml. INVENTORY like nav_default -- a list of
+        # names a site answers to is a worklist, never a defect, and counting it
+        # would mean no build on any site ever prints "No findings" again.
+        #
+        # ⭐ WHY THE BUILD REPORTS THIS AT ALL, given that only a shell function
+        # consumes the aliases: because the alternative is a config key with no
+        # reader anywhere in the engine, and this repo already writes down what
+        # that costs -- "a config key that does nothing while looking like it
+        # does something is the failure this engine keeps writing down"
+        # (instance.py, on the inert `palette:` block). Printing them makes the
+        # key demonstrably live, and puts a typo'd alias in front of a human on
+        # the next build instead of at 10pm on the command line.
+        "aliases": [],
         # Nav sealing reports in here too, deliberately rather than in a bucket
         # of its own: somebody asking what the routers did wants the curtain
         # and the sealed subtree in one place, because each is misleading on

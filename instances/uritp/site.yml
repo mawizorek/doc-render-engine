@@ -13,6 +13,29 @@ base_url: https://mawizorek.github.io/uritp-docs/
 content_repo: mawizorek/uritp-docs
 content_branch: main
 
+# ⭐ OTHER NAMES THIS SITE ANSWERS TO ON THE COMMAND LINE (added 2026-08-05).
+#
+# `publish` (the terminal helper) resolves whatever you type against the slug
+# first and then this list. Case-insensitive; declare them however reads best.
+#
+# WHY THEY LIVE HERE AND NOWHERE ELSE. The alternative was an alias table in
+# one laptop's ~/.zshrc, which is a fourth hand-maintained copy of the site
+# list -- invisible to this repo, unreviewable, and true on exactly one
+# machine. This family already forgot the THIRD copy once (`hml` shipped
+# buildable-but-unpublishable for two days because publish.yml's dropdown was
+# not touched). A name that resolves to a site is a fact about the site.
+#
+# ⚠️ NOT A TITLE, AND THIS IS THE POINT. `name:` above is prose and Michael is
+# about to change it to "URITP PRP". An alias survives that rename because it
+# is an identifier that happens to be readable, not a copy of a heading. Never
+# bind a command to a title -- the title is the thing most likely to be edited.
+#
+# ⚠️ KEEP IT A ONE-LINE FLOW LIST. The engine parses this with real YAML and
+# does not care, but the terminal helper reads it with a regex over one line,
+# because a shell function cannot depend on PyYAML being installed. A block
+# list still builds and still reports; it just will not resolve in the shell.
+aliases: [uritp-docs, "URITP PRP", "URITP Production Resources", prp]
+
 # ONE LINE. A theme names FIVE pointers -- two colours, one typography, one
 # forms, one spacing -- so a single word here dresses the entire site in both
 # toggle states. The full contract is maw-themes docs/HOW-A-THEME-IS-CHOSEN.md.
@@ -98,3 +121,9 @@ peers:
 # and genuinely meaningful here -- unlike `template` and `theatre`, whose slugs
 # are ordinary words. This instance is the one that actually proves the engine
 # is site-agnostic.
+#
+# ⚠️ THE ALIASES ABOVE ARE NOT SCANNED, and that is correct rather than an
+# oversight: the scan walks docrender/, objects/, theme/, assets/ and hooks/,
+# which is ENGINE code. instances/ is the data the engine reads, and naming this
+# site here is the entire purpose of the file. sizecheck's own error message says
+# so -- "Move it to instances/<slug>/site.yml" is where it sends a leak.

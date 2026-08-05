@@ -45,6 +45,15 @@ A `palette:` key left in an instance's site.yml is now inert. It is reported, no
 silently ignored -- a config key that does nothing while looking like it does
 something is the failure this engine keeps writing down.
 
+⭐ AND THAT LAST SENTENCE IS WHY `aliases:` IS READ HERE (2026-08-05). The only
+CONSUMER of an alias is the `publish` shell helper, which resolves a typed name
+to a slug before it dispatches the workflow. Nothing in the engine needs one to
+render a page. Left unread, the block would have been precisely the defect the
+paragraph above condemns: a config key that looks live and is not. So this file
+normalises them, checks them against the rest of the family, and prints them in
+the build report -- which makes the key demonstrably live, and puts a typo in
+front of a human on the next build rather than at a command line.
+
 NO ROUTE BACK TO THE SOURCE (LOCKED 2026-08-03, Michael).
 `repo_url` is deliberately NOT set. Setting it makes Material render a repo
 widget in the header with the owner/name and a star count, and these are
@@ -71,6 +80,97 @@ from .util import load_yaml, slug_title
 def _fail(message: str) -> None:
     print(f"::error::docrender: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def _register_aliases(inst: dict, slug: str) -> None:
+    """Normalise this site's command-line aliases and prove they resolve here.
+
+    An alias is an extra NAME the `publish` helper accepts for this site --
+    the content repo's name, a house abbreviation, a retired slug. The engine
+    never uses one; see the ⭐ block in the module docstring for why it reads
+    them anyway.
+
+    ⚠️ AN ALIAS IS AN IDENTIFIER, NOT A TITLE, and the distinction is the whole
+    reason the block exists. `name:` is prose and gets edited; a command bound
+    to prose breaks when somebody improves a heading. An alias is allowed to
+    LOOK like a title while being immutable in practice, because nothing
+    renders it.
+
+    WARNS, NEVER FAILS. Only the portability leak fails a build. A bad alias
+    cannot render a wrong page -- the worst it does is fail to resolve, which
+    the resolver reports at the command line with the real list.
+    """
+    mine: list[str] = []
+    for raw in inst.get("aliases") or []:
+        alias = str(raw).strip().lower()
+        if not alias:
+            continue
+        if alias == slug:
+            state.note(
+                "notes",
+                "instances/" + slug + "/site.yml lists '" + alias + "' as an "
+                "alias, which is this site's own slug. It already resolves; "
+                "the line adds nothing.",
+            )
+            continue
+        if alias in mine:
+            state.note(
+                "notes",
+                "instances/" + slug + "/site.yml lists the alias '" + alias
+                + "' twice (case-insensitively).",
+            )
+            continue
+        mine.append(alias)
+
+    inst["aliases"] = mine
+
+    # Everybody else's slug and claims, so a name is checked against the FAMILY
+    # rather than trusted. Reading sibling instance data is not a portability
+    # violation: it is the engine reading its own config tree generically, with
+    # no site named in code.
+    others: dict[str, list[str]] = {}
+    for path in sorted((state.ENGINE_ROOT / "instances").glob("*/site.yml")):
+        other = path.parent.name
+        if other == slug:
+            continue
+        decl = load_yaml(path) or {}
+        others[other] = [
+            str(a).strip().lower() for a in (decl.get("aliases") or []) if str(a).strip()
+        ]
+
+    for alias in mine:
+        # An alias equal to ANOTHER site's slug is the dangerous one: the
+        # resolver checks slugs first, so this name silently publishes the
+        # wrong site and never once looks wrong.
+        if alias in others:
+            state.note(
+                "notes",
+                "ALIAS COLLISION: '" + alias + "' is declared here but is the "
+                "SLUG of instance '" + alias + "'. A resolver checks slugs "
+                "first, so this name publishes THAT site, not this one. "
+                "Rename or remove it.",
+            )
+        for other, their in others.items():
+            if alias in their:
+                state.note(
+                    "notes",
+                    "ALIAS COLLISION: '" + alias + "' is claimed by both '"
+                    + slug + "' and '" + other + "'. Whichever is read first "
+                    "wins, which makes the target of that name a coin flip.",
+                )
+
+    if mine:
+        state.note(
+            "aliases",
+            "`" + slug + "` (the slug) plus " + str(len(mine)) + ": "
+            + ", ".join("'" + a + "'" for a in mine),
+        )
+    else:
+        state.note(
+            "aliases",
+            "none declared -- `" + slug + "` is the only name that resolves to "
+            "this site.",
+        )
 
 
 def on_config(config):
@@ -140,6 +240,11 @@ def on_config(config):
             "Delete the block; leaving it implies a control that no longer "
             "exists.",
         )
+
+    # The reader that keeps `aliases:` from becoming the same kind of dead key
+    # as the block above. Runs AFTER state.INSTANCE is set so the normalised
+    # list is what anything downstream would see.
+    _register_aliases(inst, slug)
 
     return config
 
