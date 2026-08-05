@@ -72,16 +72,20 @@ PEERS: dict = {}
 #: code, and then it 404s.
 NAV_SEALED: dict = {}
 
-#: Folder indexes that declared `nav: expanded`, keyed by the index page's build
-#: url with the slashes stripped. Written by navstate.shape (stage 00b, reached
-#: through visibility.prune_nav), read by navstate.on_post_page (stage 06b),
-#: which checks the matching toggle in the rendered sidebar.
+#: Folder indexes that resolved to `nav: expanded`, keyed by the index page's
+#: build url with the slashes stripped. Written by navstate.shape (stage 00bb),
+#: read by navstate.on_post_page (stage 06b), which checks the matching toggle
+#: in the rendered sidebar.
 #:
 #: ⭐ IT PAYS THE ADMISSION PRICE ABOVE THE SAME WAY NAV_SEALED DOES, and for a
 #: reason worth stating rather than assuming: what a folder does in the sidebar
 #: is settled in `on_nav`, but Material expresses it as ONE attribute written
 #: while rendering a page. Every hook's on_nav runs before any page is rendered,
 #: so those are two events, not two lines.
+#:
+#: ⚠️ RESOLVED, not declared. A folder lands here because it said `expanded`
+#: ITSELF, because an ancestor did, or because the SITE ROOT did -- navstate
+#: settles the cascade before writing, so nothing downstream has to know which.
 #:
 #: ⚠️ A SET WEARING A DICT, deliberately. The membership test runs once per nav
 #: toggle per page, nothing here has ever needed a set, and one shape for every
@@ -129,26 +133,37 @@ def reset() -> None:
     NAV_OPEN = {}
     ROUTER_SALT = b""
     REPORT = {
-        # Order here is the order the report prints, and it is deliberate:
-        # a duplicate KEY is usually the CAUSE of the complaints under it, so
-        # it has to be read first. A reader who fixes a symptom before seeing
-        # its cause fixes the wrong file.
+        # THE BUCKETS THAT EXIST. Roughly print order as a courtesy, and only
+        # roughly -- see the warning below.
         #
-        # ⚠️ DECLARING A BUCKET HERE IS NOT ENOUGH TO MAKE IT PRINT. The report
-        # loop iterates sizecheck._LABELS, so a bucket with no label is
-        # collected and then silently dropped -- a check that runs, finds
-        # things, and tells nobody. Add both, always.
+        # 🔴 THIS DICT DOES NOT DECIDE THE PRINT ORDER AND THIS COMMENT USED TO
+        # SAY IT DID. sizecheck's report loop iterates `_LABELS`, not this, so
+        # the order that matters lives there. The two are not even the same
+        # today: `leaks` is second-to-last here and FIRST in _LABELS, which is
+        # correct, because a site name in engine code fails the build and has to
+        # be read first. Reordering this dict to move a report section does
+        # nothing at all.
+        #
+        # ⚠️ AND DECLARING A BUCKET HERE IS NOT ENOUGH TO MAKE IT PRINT. A
+        # bucket with no label in _LABELS is collected all build and then
+        # silently dropped -- a check that runs, finds things, and tells nobody.
+        # Adding a report section is always TWO edits, here and there.
         "duplicate_key": [],
         "missing_status": [],
         "missing_required": [],
-        # Directly under missing_required, cause before symptom again: that
-        # check says `summary` is absent, this one says where the text is.
+        # Directly under missing_required, cause before symptom: that check says
+        # `summary` is absent, this one says where the text is.
         "body_lede": [],
         "unknown_type": [],
         "duplicate_id": [],
         "dead_links": [],
         "stale_xref": [],
         "markers": [],
+        # The site-wide sidebar default, from the root index's `nav:`. Sits with
+        # the nav reports rather than in `notes`, which prints last: a fact
+        # governing every folder on the site cannot be the line under forty size
+        # warnings. INVENTORY, not a defect -- see sizecheck._INVENTORY.
+        "nav_default": [],
         # Nav sealing reports in here too, deliberately rather than in a bucket
         # of its own: somebody asking what the routers did wants the curtain
         # and the sealed subtree in one place, because each is misleading on

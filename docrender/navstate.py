@@ -1,104 +1,89 @@
 '''The `nav:` frontmatter key -- what a FOLDER does in the sidebar.
 
 WHY decisions here are the way they are: the doc-render-engine Decision Log.
-This docstring is the CONTRACT and is kept under the read-whole line.
+Stage ordering (why 00bb, why 06b): hooks/README.md. Reader-facing contract and
+the cost of `expanded`: README section 3 and section 7. This docstring holds
+what someone EDITING this file has to know, and points at the rest.
 
-Declared on a folder's `index.md`, and NOWHERE ELSE. Three values:
+Declared on a folder's `index.md`, and NOWHERE ELSE. Three values, each with a
+bare-verb alias, because Michael asked for one and a vocabulary where only one
+value has a short form is a vocabulary you have to remember:
 
-    hidden     the folder keeps its own sidebar row and loses its children.
-               The pages are still BUILT, still have live URLs, still resolve
-               by `@id`. This is the curtain, not the lock -- same family as
-               `unlisted` and the router seal, and the same warning applies.
-    collapsed  THE DEFAULT. The folder is a closed row you click to open.
-    expanded   the folder opens by itself, and so does everything under it,
-               until a descendant index says `collapsed` or `hidden`.
+    hidden | hide         the folder keeps its own sidebar row and loses its
+                          children. Still BUILT, still live URLs, still resolve
+                          by `@id`. The curtain, not the lock -- same family as
+                          `unlisted` and the router seal, same warning.
+    collapsed | collapse  a closed row you click to open.
+    expanded | expand     opens by itself, and so does everything under it,
+                          until a descendant index says otherwise.
 
-=============================================================================
-WHY THIS IS ADD-ONLY, AND WHY THAT IS THE WHOLE DESIGN
-=============================================================================
-Michael, 2026-08-05: *active stays open.*
+THE SITE ROOT DECLARES THE DEFAULT; THIS FILE ONLY HOLDS THE FALLBACK.
+Michael, 2026-08-05: *SITE md index file gets nav: collapsed to dictate that.
+no other back end should control that.* `DEFAULT` below is not the site's answer
+any more, it is what a site that never gave one gets.
 
-Material decides a section's open state in ONE place -- `nav-item.html` writes
-`checked` onto the toggle input if `nav_item.active`. `navigation.expand` is not
-enabled here, so **the only checked toggles in a rendered page are the ancestors
-of the page you are on.**
+🔴 AND THE KEY WAS ALREADY DEAD IN THAT EXACT SLOT, which is why this is a
+filled hole rather than a new feature. `_misplaced` exempts `index.md` from the
+wrong-place warning -- but `_walk` only visits SECTIONS, and the root index is a
+top-level PAGE. So a `nav:` written there parsed, was excused from the one check
+that would have flagged it, and did nothing. An exemption with no implementation
+behind it is the worst-shaped dead control available: the engine had already
+promised to take the key seriously there.
 
-So 'active stays open' is implemented by NEVER REMOVING `checked`, and
-'collapsed by default' is implemented by DOING NOTHING, because that is already
-what Material does. The entire feature is: add `checked` where `expanded`
-resolved true.
+🚫 ROOT `nav: hidden` IS REFUSED, OUT LOUD. Inherited by every top-level folder
+it leaves a sidebar of bare labels. `_walk`'s non-cascade rule would already
+degrade it, but silently, as a side effect of a rule written for something else.
+A refusal nobody can see is not a refusal.
 
-⭐ That matters beyond tidiness. An add-only pass over rendered HTML cannot
-break a sidebar: the worst failure available to it is a folder that is open when
-it should have been shut. Fail-open, on the surface a reader navigates by.
+⚠️ A ROOT WITH NO `nav:` IS REPORTED AND COLLAPSES. Michael floated a build
+failure and ruled against his own suggestion, correctly: this engine warns and
+never dies, with exactly one hard failure in the pipeline (the leak scan). It
+reports into its own SECTION rather than `notes`, because notes print last and a
+fact governing every folder cannot be the line under forty size warnings.
 
-=============================================================================
-TWO STAGES, BECAUSE MKDOCS SPLITS THE TWO QUESTIONS
-=============================================================================
-`hidden` is a question about the nav TREE, answered in `on_nav`.
-`expanded` is a question about rendered HTML, answered in `on_post_page`.
+WHY THIS IS ADD-ONLY, AND WHY THAT IS THE WHOLE DESIGN. Michael: *active stays
+open.* Material writes `checked` onto a toggle only when the section is an
+ancestor of the current page, so 'active stays open' is implemented by NEVER
+REMOVING it and 'collapsed by default' by DOING NOTHING. The entire feature is:
+add `checked` where `expanded` resolved true.
 
-    shape()          stage 00bb. Applies `hidden`, resolves the cascade,
-                     fills NAV_OPEN.
+⭐ An add-only pass over rendered HTML cannot break a sidebar. The worst failure
+available to it is a folder open when it should have been shut. Fail-open, on
+the surface a reader navigates by.
+
+TWO STAGES, BECAUSE MKDOCS SPLITS THE TWO QUESTIONS. `hidden` is a question
+about the nav TREE (`on_nav`); `expanded` is a question about rendered HTML
+(`on_post_page`). They are two events, not two lines that could have been moved
+next to each other.
+
+    shape()          stage 00bb. Reads the site default, applies `hidden`,
+                     resolves the cascade, fills NAV_OPEN.
     on_post_page()   stage 06b. Reads NAV_OPEN, checks the toggles.
 
-⚠️ STAGE 00bb IS A SLOT BETWEEN TWO EXISTING HOOKS AND THE FILENAME IS HOW IT
-SAYS SO. `hidden` has to land AFTER 00b prunes unlisted pages and seals routed
-subtrees -- it reads the same index pages those passes can delete -- and BEFORE
-00c rewires prev/next, or a hidden page keeps a footer Next button pointing into
-a chain it is no longer in, which is the exact defect 00c exists to fix,
-reintroduced from the other end. `00bb` sorts after `00b_unlisted.py` and before
-`00c_nav.py` on disk as well as in mkdocs.yml, so the two orderings cannot
-disagree with each other.
-
 ⚠️ THE SHIM PASSES IN `_index_of` AND `_unchain` FROM visibility.py, AND THAT IS
-THE POINT RATHER THAN A SHORTCUT. Both belong to visibility: `_index_of` returns
-the index each section had BEFORE pruning (recorded in its pass 1, precisely
-because reading it afterwards was a live bug), and `_unchain` is the prev/next
-detachment every removal in this engine owes. Copying either into this module
-would create a second copy free to drift from the first. Wiring them in the shim
-puts the dependency at the one place that already knows the order.
+THE POINT RATHER THAN A SHORTCUT. Both belong to visibility -- `_index_of`
+returns the index a section had BEFORE pruning, recorded in its pass 1 precisely
+because reading it afterwards was a live bug, and `_unchain` is the prev/next
+detachment every removal in this engine owes. Copying either here would create a
+second copy free to drift.
 
-🚫 THE REJECTED ALTERNATIVE was calling `shape()` from inside
-`visibility.prune_nav` as a fourth pass. It reads better and costs too much:
-that file is already 20,266 B against a 22KB hard read limit, and a file that
-cannot be read whole cannot be safely edited.
+⚠️ `navigation.prune` AND `expanded` CANNOT BOTH BE ON. A pruned nav renders no
+children for any section the reader is not inside, so checking that toggle opens
+an empty box. `shape()` drops the feature -- but only when something actually
+resolved to `expanded`, so a site that never uses it never pays. NOT available
+per-subtree: prune is one boolean for the whole theme. Cost and consequences in
+README section 7.
 
-=============================================================================
-KNOWN LIMIT, HANDLED: `navigation.prune` AND `expanded` CANNOT BOTH BE ON
-=============================================================================
-🔴 THIS IS THE PART THAT WOULD HAVE MADE `expanded` A DEAD CONTROL, so it is
-handled here rather than documented and forgotten.
+⚠️ THE TIMING IS THE ONLY REASON THAT DROP IS LEGAL. Every `on_nav` runs before
+any page renders, and the template reads `features` at render time. `on_config`
+would NOT work -- `state.BY_SRC` is empty then, the trap `assets.py` already
+fell into and documented.
 
-`navigation.prune` renders only the ancestors and siblings of the active page.
-Every other section arrives in the DOM with NO CHILDREN AT ALL. Checking that
-section's toggle opens an empty box -- the control works perfectly and produces
-nothing, on every page except the ones where the section was already open.
-
-This log has five entries about rules that were correct in isolation and
-unreachable in place. Rather than write the sixth, `shape()` DROPS
-`navigation.prune` from `config.theme['features']` -- but ONLY if some page in
-this content repo actually declared `expanded`. A site that never uses the
-feature never pays for it, and the report says so on any build where it happens.
-
-⚠️ THE TIMING IS THE ONLY REASON THIS IS LEGAL. Every hook's `on_nav` runs
-before any page is rendered, and the template reads `features` at render time.
-`on_config` would NOT work -- `state.BY_SRC` is empty then, which is the trap
-`assets.py` already fell into and documented.
-
-⚠️ THE COST IS REAL: without pruning, every page ships the whole nav tree.
-Material's own figure is ~33% of page weight. `hidden` claws a large part of
-that back, which is not an accident -- it is why both values live in one key.
-
-=============================================================================
-WHAT THIS DOES NOT DO
-=============================================================================
-It does not unbuild anything, it does not touch search, and it has no opinion
-about `status:`. A `hidden` folder is exactly as public as it was before.
-
-🚫 And it is NOT a status cascade. `nav:` on a non-index page does nothing at
-all, and is REPORTED rather than ignored, because a key that silently does
-nothing is the failure this whole file was written to avoid.
+WHAT THIS DOES NOT DO: unbuild anything, touch search, or have any opinion about
+`status:`. A `hidden` folder is exactly as public as it was before. 🚫 And it is
+NOT a status cascade -- `nav:` on a non-index page does nothing at all, and is
+REPORTED rather than ignored, because a key that silently does nothing is the
+failure this whole file was written to avoid.
 '''
 
 from __future__ import annotations
@@ -108,10 +93,29 @@ import re
 
 from . import state
 
-#: The vocabulary. Anything else is reported and treated as the default.
+#: The content repo's own landing page. Its `nav:` is the site-wide default.
+SITE_ROOT = 'index.md'
+
+#: The vocabulary, in the spelling everything else in this engine uses.
 VALUES = ('hidden', 'collapsed', 'expanded')
 
-#: Michael, 2026-08-05: default should now be fully collapsed all the time.
+#: Michael, 2026-08-05: *I'd like to be able to say "expanded" or "expand".*
+#:
+#: ⭐ ALL THREE GOT A SHORT FORM, not just the one asked for. A vocabulary where
+#: `expand` works and `collapse` does not is one you have to remember rather
+#: than guess, and the failure is silent: an unknown value falls back to the
+#: default, which on a `collapse` typo is indistinguishable from success.
+ALIASES = {
+    'hide': 'hidden',
+    'hidden': 'hidden',
+    'collapse': 'collapsed',
+    'collapsed': 'collapsed',
+    'expand': 'expanded',
+    'expanded': 'expanded',
+}
+
+#: What a site that has NOT declared a default gets. No longer the site's answer
+#: -- the root index is -- just the answer for a site that never gave one.
 DEFAULT = 'collapsed'
 
 
@@ -120,34 +124,101 @@ DEFAULT = 'collapsed'
 # ===========================================================================
 
 
+def _canon(raw):
+    '''Normalise a declared value, or None if it is not one of ours.'''
+    return ALIASES.get(str(raw).strip().lower())
+
+
 def _value(src_uri: str):
-    '''This index page's own declared `nav:`, validated. None if it has none.'''
+    '''This index page's own declared `nav:`, canonical. None if it has none.'''
     raw = state.BY_SRC.get(src_uri, {}).get('nav')
     if raw is None:
         return None
-    value = str(raw).strip().lower()
-    if value in VALUES:
+    value = _canon(raw)
+    if value:
         return value
     state.note(
         'notes',
         src_uri + ': `nav: ' + str(raw) + '` is not a value this engine knows. '
-        + 'Valid: ' + ' | '.join(VALUES) + ". Treated as '" + DEFAULT + "'.",
+        + 'Valid: ' + ' | '.join(VALUES) + ' (or hide | collapse | expand). '
+        + 'Falling back to the site default.',
     )
     return None
 
 
+def _site_default() -> str:
+    '''What every folder inherits: the root index's `nav:`, or the fallback.
+
+    ⚠️ THE ROOT IS THE ONE PLACE A MISSING DECLARATION IS WORTH A REPORT. On a
+    folder, silence means "whatever my parent said", which is the feature. On the
+    site index there is no parent, so silence means the site never answered a
+    question about every folder in it.
+    '''
+    raw = state.BY_SRC.get(SITE_ROOT, {}).get('nav')
+
+    if raw is None:
+        state.note(
+            'nav_default',
+            SITE_ROOT + " declares no `nav:`, so every folder on this site "
+            + "defaults to '" + DEFAULT + "'. That is almost certainly what you "
+            + 'want, and it is reported anyway because the alternative is a '
+            + 'site-wide behaviour nobody chose. Write `nav: ' + DEFAULT + '` to '
+            + 'say so on purpose, or `nav: expanded` to open every folder that '
+            + 'does not shut itself.',
+        )
+        return DEFAULT
+
+    value = _canon(raw)
+
+    if value is None:
+        state.note(
+            'nav_default',
+            SITE_ROOT + ': `nav: ' + str(raw) + '` is not a value this engine '
+            + "knows, so the site default is '" + DEFAULT + "'. Valid: "
+            + ' | '.join(VALUES) + ' (or hide | collapse | expand).',
+        )
+        return DEFAULT
+
+    if value == 'hidden':
+        # 🚫 Inherited by every top-level folder, this renders a sidebar of bare
+        # labels with nothing under any of them. `_walk` would already degrade
+        # it -- `hidden` does not cascade -- but as a side effect of a rule
+        # written to stop an inherited value reaching past a cut, not as an
+        # answer to this.
+        state.note(
+            'nav_default',
+            SITE_ROOT + ': `nav: hidden` cannot be the SITE default -- inherited '
+            + 'by every top-level folder it empties the whole sidebar and leaves '
+            + "a row of labels. Using '" + DEFAULT + "'. Put `nav: hidden` on the "
+            + 'individual folders you meant.',
+        )
+        return DEFAULT
+
+    state.note(
+        'nav_default',
+        SITE_ROOT + ': site default is `nav: ' + value + '`. Every folder '
+        + 'inherits it until an index page under it says otherwise.',
+    )
+    return value
+
+
 def _misplaced() -> None:
-    '''Report `nav:` on any page that is not a folder index.
+    '''Report `nav:` on any page that is not a folder index or the site root.
 
     A folder's open state is a fact about the FOLDER, so the only page that can
     speak for it is the one MkDocs already treats as the folder's own page. On a
     leaf page the key resolves to nothing, renders nothing, and errors nowhere
     -- so it gets said out loud here instead of being absorbed.
+
+    ⭐ THE `index.md` EXEMPTION IS LOAD-BEARING NOW AND WAS NOT BEFORE. It was
+    written when the root index could not be read by anything, which made it an
+    exemption protecting a dead key. `_site_default` is the implementation it
+    was always implying.
     '''
     for src, meta in state.BY_SRC.items():
         if 'nav' not in meta:
             continue
-        if src == 'index.md' or src.endswith('/index.md'):
+        if src == SITE_ROOT or src.endswith('/index.md'):
             continue
         state.note(
             'notes',
@@ -236,9 +307,9 @@ def _walk(items, index_of, unchain, inherited: str) -> None:
 
 
 def shape(items, config, index_of, unchain) -> None:
-    '''Stage 00bb. See this module's docstring for why the number has two b's.'''
+    '''Stage 00bb. See hooks/README.md for why the number has two b's.'''
     _misplaced()
-    _walk(items, index_of, unchain, DEFAULT)
+    _walk(items, index_of, unchain, _site_default())
 
     if not state.NAV_OPEN:
         return
@@ -249,13 +320,14 @@ def shape(items, config, index_of, unchain) -> None:
 
     config.theme['features'] = [f for f in features if f != 'navigation.prune']
     state.note(
-        'notes',
+        'nav_default',
         'navigation.prune DISABLED for this build: ' + str(len(state.NAV_OPEN))
-        + ' folder(s) declare `nav: expanded`, and a pruned nav renders no '
+        + ' folder(s) resolved to `nav: expanded`, and a pruned nav renders no '
         + 'children for any section the reader is not already inside -- so the '
         + 'expansion would open an empty box. Every page now ships the whole '
-        + 'nav tree. Remove the `nav: expanded` declarations to get pruning '
-        + 'back.',
+        + "nav tree (~33% of page weight, Material's own figure). Not available "
+        + 'per-subtree: prune is one boolean for the theme. Remove every '
+        + '`expanded` declaration, INCLUDING the site default, to get it back.',
     )
 
 
@@ -263,16 +335,13 @@ def shape(items, config, index_of, unchain) -> None:
 # STAGE 06b -- check the toggles in the rendered page
 # ===========================================================================
 #
-# ⚠️ THIS READS RENDERED HTML, WHICH IS A THING THIS REPO HAS NOT DONE BEFORE,
-# so the reason is written down rather than left as a preference.
-#
+# ⚠️ THIS READS RENDERED HTML, WHICH IS A THING THIS REPO HAS NOT DONE BEFORE.
 # Open state is decided by Material's `nav-item.html` and expressed as ONE
-# attribute. There are exactly three ways to reach it: fork the partial into a
-# `custom_dir` (a copy of somebody else's truth that we then maintain forever --
-# the same defect that killed roster.json, registry.json and app-index.md), do it
-# in the browser (a visible flap of the sidebar on every page load), or edit the
-# attribute on the way out. The third is the only one that adds no second copy
-# of anything.
+# attribute. Forking that partial into a `custom_dir` would be a copy of
+# somebody else's truth that we then maintain forever -- the defect that killed
+# roster.json, registry.json and app-index.md -- and doing it in the browser
+# flaps the sidebar on every page load. Editing the attribute on the way out is
+# the only option that adds no second copy of anything.
 #
 # It is written to be UNABLE to do damage: it only ever INSERTS ` checked`, only
 # into a tag it has fully matched, and only when the adjacent href resolves to a

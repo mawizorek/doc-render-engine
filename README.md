@@ -90,18 +90,36 @@ forgot a line.
 
 ### `nav:` — what a FOLDER does in the sidebar *(2026-08-05)*
 
-Declared on a folder's `index.md` and **nowhere else**. A `nav:` on a leaf page
-is ignored and reported.
+Declared on an `index.md` and **nowhere else**. A `nav:` on a leaf page is
+ignored and reported. Each value has a bare-verb alias; they are identical.
 
-| value | the sidebar |
-| --- | --- |
-| `collapsed` | **the default.** A closed row you click to open. |
-| `expanded` | opens by itself, and so does everything under it. |
-| `hidden` | the folder keeps its own row and loses its children. |
+| value | alias | the sidebar |
+| --- | --- | --- |
+| `collapsed` | `collapse` | a closed row you click to open |
+| `expanded` | `expand` | opens by itself, and so does everything under it |
+| `hidden` | `hide` | the folder keeps its own row and loses its children |
+| *(absent)* | | **inherit** — see below. This is the normal case. |
 
-**`expanded` cascades; a descendant index overrides it.** Parent `expanded` and
+**Absence is the normal case, so inheritance is the rule that matters.** A
+folder with no `nav:` takes the value of the nearest ancestor index that has
+one, and failing that the value on the **site root `index.md`**. There is no
+per-folder default to remember.
+
+**The site root declares the default for the whole site.** `nav: collapsed`
+there is the sane setting and the one to write; `nav: expanded` is the one-line
+flip that opens every folder which does not shut itself. Nothing in the engine
+overrides it — the fallback constant in `navstate.py` only applies to a site
+that has not answered, and that build says so in the report.
+
+**`expanded` cascades; a descendant index overrides it.** Root `expanded` with
 a subfolder `collapsed` means the tree opens down to that subfolder and stops —
 which is the whole reason the key has three values rather than being a boolean.
+🚫 `hidden` does **not** cascade, and does not need to: the subtree leaves the
+sidebar in one cut, so there is nothing underneath for a value to reach.
+
+🚫 **`nav: hidden` is refused on the site root** and reported. Inherited by
+every top-level folder it empties the entire sidebar and leaves a row of
+labels. Put it on the folders you meant.
 
 **The branch you are IN is always open, whatever it says.** That is not a rule
 the engine implements; it is Material's own behaviour, and `navstate.py` is
@@ -114,6 +132,9 @@ live URLs, still resolve by `@id`, and are still in search. `status:` is the
 feature that controls what reaches the site; this one controls what a reader is
 OFFERED. `courses/course-info/` on `uritp` is the reference case: 43 course
 pages that belong in a table on the index, not in a drawer.
+
+Every build prints the resolved site default in its own report section, along
+with anything it refused. A site whose root declares nothing is named there too.
 
 ---
 
@@ -131,8 +152,10 @@ pages that belong in a table on the index, not in a drawer.
 5. Enable Pages on the content repo: **deploy from branch → `gh-pages`**.
 6. Add it to the dropdown in `publish.yml`, or it builds and cannot be
    published by hand. (`hml` shipped that way on 2026-08-03.)
+7. Write `nav: collapsed` on the new repo's root `index.md`. The build works
+   without it and reports that nobody chose the sidebar default. See §3.
 
-That this is six steps rather than a fork is the point.
+That this is seven steps rather than a fork is the point.
 
 **Pin by tag, never by branch, once other sites are consuming this repo.** The
 reason these are separate repos is that they fail separately; a floating
@@ -199,8 +222,13 @@ Back on from the same menu. Works on a phone.
 
 | state | what happens |
 | --- | --- |
-| enabled | every 5 minutes, every site renders and deploys |
+| enabled | every 20 minutes, every site renders and deploys |
 | disabled | no routine at all — publish by hand with **Publish a site** |
+
+⚠️ **The interval moved 5 → 20 minutes in PR #77** and this table said 5 until
+2026-08-05. `poll.yml` states the live value in the cron AND in the job name,
+which is the copy the Actions tab prints; this table is a third home for it and
+is the one that rotted. If they ever disagree again, the workflow file wins.
 
 **The state is legible, and that is why this beat a variable.** A disabled
 workflow greys out in the sidebar and carries a banner saying it was disabled
@@ -241,9 +269,20 @@ live in a variable; that would put the routine's shape in two places again.
   is every page carrying the full nav tree — Material's own figure is ~33% of
   page weight. `nav: hidden` is the discount. A site that never writes
   `expanded` never pays either.
+  - ⚠️ **It is not available per-subtree, and that is the first thing anybody
+    asks.** `navigation.prune` is one boolean for the entire theme. There is no
+    form of it that trims some branches and not others, so keeping it on while
+    honouring one `expanded` folder is not a cheaper version of this — it is
+    the dead control the drop exists to prevent.
+  - ⭐ **And turning pruning off does not EXPAND anything.** It stops the DOM
+    being trimmed. No folder opens that would not have opened anyway, and a
+    root `nav: collapsed` with pruning off still renders a fully collapsed
+    sidebar. Written down because the opposite was said out loud once in
+    conversation, and a wrong intuition about a cost is how a working feature
+    gets reverted by somebody reading this section six weeks from now.
 - **Cross-site links resolve at BUILD time.** If a peer renames a page, links
   to it are wrong until the next build. ~~The nightly cron closes that to a
-  day~~ — the 5-minute poll closes it to minutes, *while the routine is
+  day~~ — the poll closes it to the interval in §6c, *while the routine is
   enabled. With it disabled the window is however long you sandbox for, which
   is a trade you are making on purpose.*
 - **A Pages site is public even from a private repo.** Privately published

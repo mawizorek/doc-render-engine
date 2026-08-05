@@ -25,5 +25,39 @@ label: Index
 extends: _base
 optional:
   - contents      # `false` draws nothing. `auto` opts IN from any other type.
+  - nav           # WHAT THIS FOLDER DOES IN THE SIDEBAR. The only key in the
+                  # family that is legal HERE and nowhere else: a folder's open
+                  # state is a fact about the FOLDER, and the index page is the
+                  # only page that can speak for one. navstate.py reports it on
+                  # any other page rather than ignoring it.
+                  #
+                  #     hidden | hide         keep the folder's row, drop its
+                  #                           children from the sidebar. Still
+                  #                           built, still live, still in search
+                  #     collapsed | collapse  a closed row you click to open
+                  #     expanded | expand     opens itself and everything under
+                  #                           it, until a descendant says other-
+                  #                           wise
+                  #
+                  # Absent means INHERIT: from the nearest ancestor index that
+                  # declared one, and failing that from the SITE ROOT index.
+                  # There is no per-page default to memorise.
+                  #
+                  # ⚠️ THIS IS A RECORD, NOT AN ENFORCEMENT. objects.py checks
+                  # `requires` and never reads `optional`, so nothing here
+                  # validates a `nav:` or rejects one written elsewhere. It is
+                  # listed so the key exists in the spec a reader consults and
+                  # in what doc-index.json publishes, instead of living only
+                  # inside a Python module.
+                  #
+                  # ⭐ AND THE SITE ROOT IS A SPECIAL CASE THIS DECLARATION
+                  # CANNOT COVER. navstate reads the root's `nav:` by FILENAME,
+                  # so the site-wide default works even when the root page is
+                  # typed as its subject -- which frontmatter.md explicitly
+                  # blesses. A root typed `venue` still sets the default while
+                  # carrying a type that never lists the key.
+                  #
+                  # 🚫 It is a CURTAIN, never a lock. `status:` controls what
+                  # reaches the site; this controls what a reader is offered.
 renders:
   - child_list: []

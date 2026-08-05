@@ -81,6 +81,30 @@ optional:
                  # WHICH slots are legal is `data_slots` below, per type.
 
 # ══════════════════════════════════════════════════════════════════════════════
+# 🚫 `nav:` IS NOT HERE, AND THE ABSENCE IS THE DECLARATION.
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# It lives on `index.yml` alone, because what a folder does in the sidebar is a
+# fact about the FOLDER and the index page is the only page that can speak for
+# one. Listing it here would make it legal on every page in the family and
+# contradict the single rule the key has. docrender/navstate.py REPORTS a `nav:`
+# found anywhere else rather than ignoring it, on the same principle as the
+# renamed keys above: a line that parses, does nothing, and says nothing is
+# indistinguishable from a feature that is broken.
+#
+# ⭐ ONE CASE THIS SPLIT CANNOT EXPRESS, so it is written down instead. The SITE
+# ROOT index.md declares the default every folder inherits, and navstate finds it
+# by FILENAME rather than by type. A root page typed as its subject -- `venue`,
+# `reference`, whatever it is genuinely about, which frontmatter.md explicitly
+# blesses -- therefore still sets the site-wide sidebar default while carrying a
+# type that never lists the key. The type system cannot see that relationship.
+#
+# ⚠️ Nothing in this file or index.yml VALIDATES any of it. objects.py checks
+# `requires` and never reads `optional`, so these lists are the record a reader
+# consults, not a gate. Said plainly because a declaration that looks like
+# enforcement is worse than an honest gap.
+
+# ══════════════════════════════════════════════════════════════════════════════
 # DATA SLOTS -- the vocabulary of table names a page may carry.
 # ══════════════════════════════════════════════════════════════════════════════
 #
