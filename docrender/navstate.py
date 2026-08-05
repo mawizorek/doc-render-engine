@@ -60,12 +60,13 @@ next to each other.
                      resolves the cascade, fills NAV_OPEN.
     on_post_page()   stage 06b. Reads NAV_OPEN, checks the toggles.
 
-⚠️ THE SHIM PASSES IN `_index_of` AND `_unchain` FROM visibility.py, AND THAT IS
-THE POINT RATHER THAN A SHORTCUT. Both belong to visibility -- `_index_of`
-returns the index a section had BEFORE pruning, recorded in its pass 1 precisely
-because reading it afterwards was a live bug, and `_unchain` is the prev/next
-detachment every removal in this engine owes. Copying either here would create a
-second copy free to drift.
+⚠️ `_index_of` AND `_unchain` ARRIVE FROM visibility.py THROUGH THE SHIM, which
+is the point rather than a shortcut: both belong to visibility, and a copy here
+would be free to drift from it. Full argument: hooks/00bb_navstate.py.
+
+⚠️ ONE QUESTION IS ANSWERED THE OTHER WAY. `hides_children` below is read BY
+visibility, at stage 00b, before this module runs -- see its docstring for the
+single property that makes that legal.
 
 ⚠️ `navigation.prune` AND `expanded` CANNOT BOTH BE ON. A pruned nav renders no
 children for any section the reader is not inside, so checking that toggle opens
@@ -144,6 +145,23 @@ def _value(src_uri: str):
         + 'Falling back to the site default.',
     )
     return None
+
+
+def hides_children(src_uri: str) -> bool:
+    '''Does this folder index declare `nav: hidden` ITSELF?
+
+    ⭐ READ AT STAGE 00b BY `visibility._collect`, BEFORE THIS MODULE RUNS, AND
+    THAT IS ONLY LEGAL BECAUSE `hidden` DOES NOT CASCADE. An own declaration is
+    the entire answer, so there is no resolved cascade to wait for -- which is
+    why this one question can be asked early and `expanded` cannot. Make
+    `hidden` inherit and this quietly becomes a lie.
+
+    ⚠️ Reads `_canon`, NOT `_value`: `_value` reports an unknown value and
+    `_walk` reports the same page moments later. One key named twice in one
+    report reads as two problems.
+    '''
+    raw = state.BY_SRC.get(src_uri, {}).get('nav')
+    return raw is not None and _canon(raw) == 'hidden'
 
 
 def _site_default() -> str:
