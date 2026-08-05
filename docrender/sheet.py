@@ -221,13 +221,7 @@ def classify_columns(rows) -> list[str]:
     holds inventory numbers or half a sentence, so the common case needs no authoring
     surface at all. `split_header` above lets a header override this where the values are
     genuinely ambiguous -- the two compose, and derivation is what runs when nobody said
-    anything.
-
-    Why it matters, and it is not decoration. `white-space: nowrap` was CORRECT when a
-    cell was a value: a wrapped cell turns one row into three and destroys the horizontal
-    scan. It stopped being correct the moment a cell became prose (PR #50), because then
-    **the longest sentence in the sheet sets the scroll width of the entire table** and
-    every column past it lives off the right edge of a phone.
+    anything. Why the prose/value split matters at all is argued once, in `data.css`.
 
     The rules, in order, first match wins:
 
