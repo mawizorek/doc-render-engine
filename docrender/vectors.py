@@ -35,7 +35,7 @@ written into the theme join... so app still sets the actual pointer ultimately
 but the theme join gracefully handles alternative entry points."*
 
     theme: eos                                    # toggles eos <-> eos-light
-    theme: {dark: sharp-mclaren, light: papyrus}   # explicit, always wins
+    theme: {dark: sharp-mclaren, light: papyrus}   # two themes, app's choice
 
 STAR AND IT COST NO NEW COLUMN, which matters because maw-themes S1 explicitly
 refused one (*"No `toggle` in _themes.json"*). `identity` on the COLOUR row
@@ -44,9 +44,18 @@ identity, and the sibling is the row with the same identity in the other mode.
 DERIVED, never declared. Cleo's W2 argument paying a second time -- a declared
 toggle is a pointer that can dangle; grouping cannot.
 
-WARNING: DERIVATION FIRES ONLY ON A SCALAR DECLARATION. An explicit map is the
-app stating both pointers, and nothing may override it. That is what "app keeps
-mode, hands down" has to mean once it is code rather than a principle.
+RED WHAT "APP KEEPS MODE" MEANS IN CODE, AND I GOT IT WRONG ONCE ALREADY.
+It means the app decides WHICH THEME occupies each slot. It does NOT mean the
+app picks a hex. Choosing the mode-appropriate ROW inside the theme the app
+named is RESOLUTION, not substitution: when a site says `light: eos`, "the eos
+theme at light" IS eos-light, and handing it the dark row is a worse answer by
+every measure.
+
+So derivation is UNCONDITIONAL -- it fires on a scalar and on an explicit map
+alike. The first cut gated it on "the app did not state this scheme," which
+looked like respect for the ruling and would have painted a dark ramp into light
+mode the first time anybody wrote `light: eos`. Found by WRITING the config and
+tracing it, not by reading the code.
 
 WARNING: ONLY THE COLOUR SWAPS. Typography, forms and spacing are
 scheme-independent -- type by documented design (two type systems that drift is
@@ -207,15 +216,21 @@ def verify() -> None:
             )
 
 
-def _declared(scheme: str) -> tuple[str, bool]:
-    """(name, explicit) for a scheme. `explicit` blocks mode derivation."""
+def _declared(scheme: str) -> str:
+    """The theme name this scheme asked for.
+
+    A map missing a scheme borrows the other rather than dropping to `base`: a
+    half-declared toggle almost certainly means one line was forgotten, and
+    inheriting the sibling is far closer to the intent than the unskinned
+    default.
+    """
     decl = state.INSTANCE.get("theme", "base")
     if not isinstance(decl, dict):
-        return str(decl), False
+        return str(decl)
 
     pick = decl.get(scheme)
     if pick:
-        return str(pick), True
+        return str(pick)
 
     other = "light" if scheme == "dark" else "dark"
     borrowed = decl.get(other) or "base"
@@ -224,19 +239,17 @@ def _declared(scheme: str) -> tuple[str, bool]:
         "theme: no '" + scheme + "' entry; borrowing '" + str(borrowed)
         + "' from '" + other + "'. Name both schemes explicitly.",
     )
-    # Borrowed, not stated -- so derivation is allowed to improve on it.
-    return str(borrowed), False
+    return str(borrowed)
 
 
 def resolve(scheme: str) -> dict:
     """Everything this scheme needs: the four vector slugs and their rows.
 
     Returns `{name, join, color, colorRow, typography, forms, spacing,
-    derived}`. `color` may differ from the join's colour when the opposite-mode
-    sibling was derived; `derived` says so, and only ever happens on a scalar
-    declaration.
+    derived}`. `color` differs from the named theme's colour when the
+    opposite-mode sibling was derived; `derived` records that it happened.
     """
-    name, explicit = _declared(scheme)
+    name = _declared(scheme)
 
     if name not in known():
         state.note(
@@ -266,7 +279,9 @@ def resolve(scheme: str) -> dict:
     row = color_row(color)
     derived = None
 
-    if row and not explicit:
+    # UNCONDITIONAL. See the docstring: picking the mode-appropriate row inside
+    # the theme the app named is resolution, not substitution.
+    if row:
         native = (row.get("mode") or "").strip()
         if native in ("dark", "light") and native != scheme:
             found = sibling(row, scheme)
@@ -274,17 +289,14 @@ def resolve(scheme: str) -> dict:
                 derived = found
                 color = found
                 row = color_row(found)
-
-    if row and not explicit and derived is None:
-        native = (row.get("mode") or "").strip()
-        if native in ("dark", "light") and native != scheme and is_complete(row):
-            state.note(
-                "notes",
-                "theme '" + color + "' is a COMPLETE " + native + " palette "
-                "and no row shares its identity at " + scheme + ", so it is "
-                "painting its " + native + " ramp there. Author the sibling, "
-                "or name a " + scheme + " theme explicitly.",
-            )
+            elif is_complete(row):
+                state.note(
+                    "notes",
+                    "theme '" + color + "' is a COMPLETE " + native
+                    + " palette and no row shares its identity at " + scheme
+                    + ", so it is painting its " + native + " ramp there. "
+                    "Author the sibling, or name a " + scheme + " theme.",
+                )
 
     return {
         "name": name,
