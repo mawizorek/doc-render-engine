@@ -47,9 +47,20 @@ theme:
     # wanted here: the sidebar should open as a short list of DEPARTMENTS a
     # reader can scan, and expand only where they are working.
     #
-    # Without it, and with `navigation.expand` also absent, every section is
-    # collapsed until clicked -- and the section holding the current page opens
-    # by itself, which is the one exception anybody actually wants.
+    # ⚠️ `navigation.expand` IS ALSO ABSENT, AND THAT ABSENCE IS NOW LOAD-
+    # BEARING RATHER THAN INCIDENTAL. Without it, Material writes `checked`
+    # onto a section's toggle for exactly one reason -- the section contains
+    # the page you are on. docrender/navstate.py is built directly on top of
+    # that: it ADDS `checked` for folders that declared `nav: expanded` and
+    # never removes one, so "the active branch stays open" needs no code at
+    # all. Enabling this feature checks everything, collapses that rule into
+    # nothing, and silently turns the `nav:` key into a no-op.
+    #
+    # ⚠️ `navigation.prune` IS CONDITIONAL AT RUNTIME. navstate drops it from
+    # this list during on_nav if any page in the content repo declares
+    # `nav: expanded`, because a pruned nav renders no children for a section
+    # the reader is not inside, so expanding one would open an empty box. The
+    # build report says so on any build where it happens.
     - navigation.indexes
     - navigation.prune
     - navigation.top
@@ -97,13 +108,18 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
-# ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and three chains depend on it:
-#   00 sorts the nav  ->  00b prunes it  ->  00c rewires prev/next from what is
-#      left. Put 00b after 00c and the footer Next button walks through pages
-#      that are not in the sidebar.
+# ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and four chains depend on it:
+#   00 sorts the nav  ->  00b prunes it  ->  00bb applies `nav:` to what is
+#      left  ->  00c rewires prev/next from what survived all three. Put 00b or
+#      00bb after 00c and the footer Next button walks through pages that are
+#      not in the sidebar.
 #   01 reads frontmatter -> 02 prunes files -> 03 indexes what survived
 #   01d emits marker syntax -> 03b renders it. Move 01d after 03b and the token
 #      audit page ships its specimens as literal text.
+#   00bb decides which folders open -> 06b writes that onto the rendered page.
+#      Two different EVENTS (on_nav, on_post_page), so this pair cannot be
+#      reordered into a bug -- it is listed because the dependency is real even
+#      where the ordering is free.
 #   09 runs last, because it describes the finished site
 # Renumbering without reading hooks/README.md will break something silently.
 #
@@ -123,6 +139,7 @@ markdown_extensions:
 hooks:
   - hooks/00_instance.py
   - hooks/00b_unlisted.py
+  - hooks/00bb_navstate.py
   - hooks/00c_nav.py
   - hooks/01_objects.py
   - hooks/01b_data.py
@@ -133,6 +150,7 @@ hooks:
   - hooks/04b_router.py
   - hooks/05_assets.py
   - hooks/06_pagefoot.py
+  - hooks/06b_navstate.py
   - hooks/07_buildstamp.py
   - hooks/08_sizecheck.py
   - hooks/09_index.py
