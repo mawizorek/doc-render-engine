@@ -136,6 +136,27 @@ jobs:
           repository: ${{ steps.site.outputs.repo }}
           ref: main
           path: content
+          # ⚠️ AUTHENTICATED AS OF 2026-08-04, for the same reason as build.yml
+          # and with the same shape, so the two files cannot drift.
+          #
+          # `uritp-docs` went private on 2026-08-04 so that the repo page 404s
+          # to anyone who swaps `github.io` for `github.com`, while Pages keeps
+          # serving `gh-pages` publicly. GITHUB_TOKEN is scoped to THIS
+          # repository, so an unauthenticated checkout of a private content
+          # repo dies with `exit code 128` -- which reads as a broken build
+          # rather than a missing credential, and build.yml carried a written
+          # prediction of exactly that failure long before it happened.
+          #
+          # ⭐ THE CONDITION MIRRORS THE DEPLOY STEP'S OWN, deliberately, rather
+          # than inventing a second rule about privacy. Every site this workflow
+          # can actually publish is written to with this PAT below, so the PAT's
+          # read access to it is proven rather than assumed. `template` is the
+          # one exception in both places: it deploys from publish-default.yml
+          # and never from here, so nothing has ever demonstrated the PAT can
+          # see `template-docs`, and it stays on GITHUB_TOKEN -- which is all a
+          # public repo needs. One exception, stated the same way twice, so a
+          # reader of either line finds the other.
+          token: ${{ inputs.site != 'template' && secrets.DOCRENDER_TOKEN || github.token }}
           # ⚠️ NO LONGER LOAD-BEARING, AND THE OLD REASON IS RECORDED RATHER
           # THAN DELETED (2026-08-04).
           #
