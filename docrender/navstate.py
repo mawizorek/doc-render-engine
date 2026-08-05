@@ -57,7 +57,9 @@ about the nav TREE (`on_nav`); `expanded` is a question about rendered HTML
 next to each other.
 
     shape()          stage 00bb. Reads the site default, applies `hidden`,
-                     resolves the cascade, fills NAV_OPEN.
+                     resolves the cascade, fills NAV_OPEN. Raises NAV_SHAPED,
+                     which visibility.seal_nav (00bc) checks to prove this ran
+                     before it -- see shape() for why that is not paranoia.
     on_post_page()   stage 06b. Reads NAV_OPEN, checks the toggles.
 
 ⚠️ THE SHIM PASSES IN `_index_of` AND `_unchain` FROM visibility.py, AND THAT IS
@@ -308,6 +310,19 @@ def _walk(items, index_of, unchain, inherited: str) -> None:
 
 def shape(items, config, index_of, unchain) -> None:
     '''Stage 00bb. See hooks/README.md for why the number has two b's.'''
+    # ⭐ FIRST, AND UNCONDITIONALLY. visibility.seal_nav (00bc) reads this to
+    # prove this stage ran before it, because it MUST: the seal harvests a routed
+    # subtree into ciphertext, and a `nav: hidden` folder that has not been cut
+    # yet goes into that payload and comes back into the sidebar on a correct
+    # code. That was the live bug on uritp courses, 2026-08-05.
+    #
+    # It means "the stage ran", never "the stage changed something". A site with
+    # no `nav:` anywhere still shapes its tree -- every folder resolves to the
+    # site default and nothing is cut -- so keying this off whether anything
+    # moved would fire the warning on every ordinary build, and a detector that
+    # cries on healthy sites is a detector nobody reads.
+    state.NAV_SHAPED = True
+
     _misplaced()
     _walk(items, index_of, unchain, _site_default())
 
