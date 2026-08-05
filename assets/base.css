@@ -37,7 +37,28 @@
   --md-default-fg-color: var(--dr-ink);
   --md-default-fg-color--light: var(--dr-ink-muted);
   --md-typeset-color: var(--dr-ink);
-  --md-typeset-a-color: var(--dr-accent);
+
+  /* ⭐ A HYPERLINK IS ITS OWN ROLE (2026-08-05). This read `var(--dr-accent)`,
+   * which meant every link shared one token with the note callout, the active
+   * nav row, the sticky first column, the section band, the open chevron, the
+   * focus ring and the Go button. Michael: "change the color that LINKS use to
+   * be not in the same family as note, active, and sticky columns."
+   *
+   * `accent` is the site's IDENTITY colour; a link is a CONTROL. They were one
+   * token because the canonical palette had no word for the second idea, and
+   * Material itself never made that mistake -- it keeps `--md-typeset-a-color`
+   * separate from `--md-accent-fg-color`, which is the corroboration that turned
+   * this from a preference into a missing column.
+   *
+   * ⚠️ SET TWICE IN THIS FILE. See THE ARMOUR below: changing only one of them
+   * would leave one SCHEME on the old colour, which is precisely the dark/light
+   * asymmetry that took a day to diagnose.
+   *
+   * ⚠️ THE FALLBACK IS THE MIGRATION. 37 of 39 palette rows leave `link` blank
+   * and the emitter skips a blank cell, so every theme that has not authored one
+   * renders byte-identically to before. */
+  --md-typeset-a-color: var(--dr-link, var(--dr-accent));
+
   --md-code-bg-color: var(--dr-surface-raised);
   --md-footer-bg-color: var(--dr-surface-raised);
   --md-footer-bg-color--dark: var(--dr-surface);
@@ -70,6 +91,12 @@
   --md-primary-bg-color: var(--dr-ink);
   --md-primary-bg-color--light: var(--dr-ink-muted);
 
+  /* ⭐ AND THIS IS WHERE A LINK'S HOVER STATE COMES FROM, which is why it stays
+   * `accent` now that the resting state does not. Material's
+   * `.md-typeset a:hover` reads `--md-accent-fg-color`, so a link sits in its
+   * own quiet colour and moves TOWARD the site identity under the pointer.
+   * Unchanged on purpose: splitting the two colours is what turned an unnoticed
+   * sameness into a deliberate transition. */
   --md-accent-fg-color: var(--dr-accent);
   --md-accent-fg-color--transparent: var(--dr-accent-soft, transparent);
   --md-accent-bg-color: var(--dr-on-accent, var(--dr-surface));
@@ -142,13 +169,19 @@
  * ⚠️ IT IS A SPECIFICITY TIE AND THAT IS ITS ONLY HONEST NAME. A structural
  * fix was never available: the attribute comes from the theme's own template.
  *
+ * ⚠️ AND THIS IS THE SECOND PLACE `--md-typeset-a-color` IS SET, WHICH IS WHY
+ * THE LINK ROLE HAD TO BE CHANGED IN BOTH (2026-08-05). Leaving this one on
+ * `accent` would have put dark mode on the old colour and light mode on the new
+ * one -- the identical dark/light split this block exists to fix, recreated by
+ * a half-finished edit. If you change one, grep for the other.
+ *
  * Only what Material contests belongs here. `.md-header` is armed alongside
  * because `[data-md-color-primary=black] .md-header` sets a background
  * directly, which would beat the variable indirection rather than tie with it.
  * ------------------------------------------------------------------------ */
 [data-md-color-scheme="slate"][data-md-color-primary],
 [data-md-color-scheme="default"][data-md-color-primary] {
-  --md-typeset-a-color: var(--dr-accent);
+  --md-typeset-a-color: var(--dr-link, var(--dr-accent));
 }
 
 [data-md-color-primary] .md-header {
@@ -171,6 +204,39 @@
   --md-text-font: var(--dr-font-body);
   --md-code-font: var(--dr-font-mono);
 }
+
+/* ---------------------------------------------------------------------------
+ * 🔴 THE TWO LINES ABOVE CHANGE A NAME AND FETCH NOTHING (found 2026-08-05)
+ *
+ * Material's own font loading is driven by `theme.font` in mkdocs.yml, which
+ * this engine has never set. So the published page carries Material's default
+ * loader and its default values:
+ *
+ *     <link href="...fonts.googleapis.com/css?family=Roboto...">
+ *     <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+ *
+ * The two declarations above then OVERRIDE those variables. So the font NAME
+ * becomes 'Inter' or 'IBM Plex Mono', and the font FILE is never requested --
+ * the name resolves against locally installed families, finds nothing, and falls
+ * through to `system-ui`.
+ *
+ * ⚑ CONSEQUENCE, AND IT IS OLDER THAN TODAY: the typography vector's three font
+ * columns have NEVER rendered on any site in this family. Body text has been
+ * system-ui since the vector was vendored, not Inter. The SIZES and the TRACKING
+ * work correctly -- those are just numbers -- but the FACES are a name with
+ * nothing behind it. `assets/type.css` wiring `font-display` onto h1-h3 was
+ * correct and is not sufficient.
+ *
+ * ⭐ Same shape as the accent/on-accent pair: a token that is emitted, read by a
+ * real consumer, and still produces nothing, because the gap is further out than
+ * anybody was looking. The token audit reports `font-display` as CONSUMED and is
+ * telling the truth about the CSS while being wrong about the page.
+ *
+ * 🚫 NOT FIXED HERE. The fix is a font loader and it is a real decision, not a
+ * wiring change: Google Fonts adds a third-party request to every page of a
+ * reference site read in venues on variable connections, and self-hosting means
+ * committing font binaries to a repo that currently holds only text.
+ * ------------------------------------------------------------------------ */
 
 /* ---------------------------------------------------------------------------
  * NO ROUTE BACK TO THE SOURCE (LOCKED 2026-08-03, Michael)
@@ -404,7 +470,15 @@
 }
 
 /* Page foot: the edit link. Quiet, at the bottom, with words rather than an
- * icon. Removed entirely per site with `edit_links: false`. */
+ * icon. Removed entirely per site with `edit_links: false`.
+ *
+ * ⚠️ THE HOVER STAYS `accent` AND IS NOT AN OVERSIGHT. This is a link, so it
+ * could have moved to `link` with the rest -- but its RESTING state is
+ * deliberately `ink-muted` rather than a link colour, because it is furniture
+ * and must not read as part of the document. Its hover is therefore doing the
+ * same job as Material's link hover: move toward the identity colour to say
+ * "this is interactive". Consistent with the link rule above, not exempt from
+ * it. */
 .pagefoot__rule {
   margin-top: var(--dr-gap-lg, 2.6rem);
   border: 0;
