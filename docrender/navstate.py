@@ -28,7 +28,7 @@ So 'active stays open' is implemented by NEVER REMOVING `checked`, and
 what Material does. The entire feature is: add `checked` where `expanded`
 resolved true.
 
-[STAR] That matters beyond tidiness. An add-only pass over rendered HTML cannot
+⭐ That matters beyond tidiness. An add-only pass over rendered HTML cannot
 break a sidebar: the worst failure available to it is a folder that is open when
 it should have been shut. Fail-open, on the surface a reader navigates by.
 
@@ -42,7 +42,7 @@ TWO STAGES, BECAUSE MKDOCS SPLITS THE TWO QUESTIONS
                      Applies `hidden`, resolves the cascade, fills NAV_OPEN.
     on_post_page()   stage 06b. Reads NAV_OPEN, checks the toggles.
 
-[!] `shape()` IS CALLED FROM visibility.py RATHER THAN FROM A HOOK OF ITS OWN,
+⚠️ `shape()` IS CALLED FROM visibility.py RATHER THAN FROM A HOOK OF ITS OWN,
 and that is deliberate. `hidden` has to land AFTER unlisted-pruning and router-
 sealing (it reads the same index pages those two can delete) and BEFORE
 `00c_nav.py` rewires prev/next -- otherwise a hidden page keeps a footer Next
@@ -51,7 +51,7 @@ exists to fix, reintroduced from the other end. That is a slot BETWEEN two
 existing hooks, and a hook filename cannot express 'between' without renumbering
 two files that already work.
 
-[!] IT TAKES `index_of` AND `unchain` AS ARGUMENTS INSTEAD OF IMPORTING THEM.
+⚠️ IT TAKES `index_of` AND `unchain` AS ARGUMENTS INSTEAD OF IMPORTING THEM.
 visibility imports this module, so this module importing visibility is a cycle.
 Passing the two functions in is not ceremony: it makes the dependency visible at
 the call site, and it means neither copy of `_unchain` can drift from the other,
@@ -60,7 +60,7 @@ because there is only one.
 =============================================================================
 KNOWN LIMIT, HANDLED: `navigation.prune` AND `expanded` CANNOT BOTH BE ON
 =============================================================================
-[RED] THIS IS THE PART THAT WOULD HAVE MADE `expanded` A DEAD CONTROL, so it is
+🔴 THIS IS THE PART THAT WOULD HAVE MADE `expanded` A DEAD CONTROL, so it is
 handled here rather than documented and forgotten.
 
 `navigation.prune` renders only the ancestors and siblings of the active page.
@@ -74,12 +74,12 @@ unreachable in place. Rather than write the sixth, `shape()` DROPS
 this content repo actually declared `expanded`. A site that never uses the
 feature never pays for it, and the report says so on any build where it happens.
 
-[!] THE TIMING IS THE ONLY REASON THIS IS LEGAL. Every hook's `on_nav` runs
+⚠️ THE TIMING IS THE ONLY REASON THIS IS LEGAL. Every hook's `on_nav` runs
 before any page is rendered, and the template reads `features` at render time.
 `on_config` would NOT work -- `state.BY_SRC` is empty then, which is the trap
 `assets.py` already fell into and documented.
 
-[!] THE COST IS REAL: without pruning, every page ships the whole nav tree.
+⚠️ THE COST IS REAL: without pruning, every page ships the whole nav tree.
 Material's own figure is ~33% of page weight. `hidden` claws a large part of
 that back, which is not an accident -- it is why both values live in one key.
 
@@ -89,7 +89,7 @@ WHAT THIS DOES NOT DO
 It does not unbuild anything, it does not touch search, and it has no opinion
 about `status:`. A `hidden` folder is exactly as public as it was before.
 
-[NO] And it is NOT a status cascade. `nav:` on a non-index page does nothing at
+🚫 And it is NOT a status cascade. `nav:` on a non-index page does nothing at
 all, and is REPORTED rather than ignored, because a key that silently does
 nothing is the failure this whole file was written to avoid.
 '''
@@ -162,7 +162,7 @@ def _count_pages(nodes) -> int:
 def _hide(section, index, unchain) -> None:
     '''Strip a folder back to its own row and drop the subtree.
 
-    [!] The removed branch is unchained by hand for the same reason `_prune` and
+    ⚠️ The removed branch is unchained by hand for the same reason `_prune` and
     `_seal` do it: 00c rebuilds prev/next by flattening the tree, so anything no
     longer IN the tree keeps whatever MkDocs wired while building it.
     '''
@@ -201,9 +201,8 @@ def _walk(items, index_of, unchain, inherited: str) -> None:
                 # -- so this is defensive only.
                 continue
             if index not in (getattr(item, 'children', None) or []):
-                # [RED] SAME CONTRADICTION SHAPE AS A SEALED ROUTER ON AN
-                # UNLISTED INDEX, and resolved the same way: reported, never
-                # guessed.
+                # 🔴 SAME CONTRADICTION SHAPE AS A SEALED ROUTER ON AN UNLISTED
+                # INDEX, and resolved the same way: reported, never guessed.
                 #   unlisted    says: this page is not in the sidebar.
                 #   nav hidden  says: ONLY this page is in the sidebar.
                 # With the index already pruned there is no row left to hang the
@@ -257,7 +256,7 @@ def shape(items, config, index_of, unchain) -> None:
 # STAGE 06b -- check the toggles in the rendered page
 # ===========================================================================
 #
-# [!] THIS READS RENDERED HTML, WHICH IS A THING THIS REPO HAS NOT DONE BEFORE,
+# ⚠️ THIS READS RENDERED HTML, WHICH IS A THING THIS REPO HAS NOT DONE BEFORE,
 # so the reason is written down rather than left as a preference.
 #
 # Open state is decided by Material's `nav-item.html` and expressed as ONE
