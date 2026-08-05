@@ -29,6 +29,18 @@
 # this last move, and why" -- which is the first question anybody asks when a
 # colour changes and nobody remembers approving it.
 #
+# 2026-08-05  667e4a9 -> 75b3f6c  OUTLANDISH ACCENTS, 30 cells across the six
+#             split rows. maw-themes 1616949. DELIBERATE PROOF VALUES, not a
+#             design pass: Material's fallback blue survived on the live site
+#             for weeks because it read as "docs site" rather than as broken.
+#             A colour nobody can mistake for a framework default is the
+#             cheapest test that the theme layer reaches a surface.
+#             eos #00ffd0 | mclaren #ffea00 | default-dark #00e0ff |
+#             eos-light #c400a8 | mclaren-light #b8008f | default-light #7a00cc
+#             All measured against canvas AND card AND their own on-accent;
+#             two first-choice candidates rejected on measurement (4.44, 4.36).
+#             SAME 6,674 BYTES as the previous vendor -- the second
+#             identical-size content change tonight.
 # 2026-08-05  e14e3a6 -> 667e4a9  THE SPLIT. maw-themes c7c7e86. 37 -> 38 cols,
 #             19 -> 23 rows. J10/S1 implemented for THREE identities: eos,
 #             mclaren and default each now have a COMPLETE dark row and a
@@ -55,11 +67,9 @@
 #             clears eos from maw-themes D7, which measured 3.82:1); magenta
 #             demoted to accent-2; deep and soft stops follow the new hue.
 #             WHY THE COLUMN: `accent` is shared across modes, and amber on the
-#             light ground measures 1.58:1. alt-accent keeps LIGHT on magenta,
-#             which is what "leave the light theme alone" requires. It is D5
-#             (brand colours authored per mode) implemented for the first row
-#             that needs it. NO CODE CHANGED -- _canonical_decls() looks for
-#             alt-<token> for every token, not from a hardcoded list.
+#             light ground measures 1.58:1. alt-accent keeps LIGHT on magenta.
+#             NO CODE CHANGED -- _canonical_decls() looks for alt-<token> for
+#             every token, not from a hardcoded list.
 # 2026-08-05  4f391aa -> 27b5327  ONE CELL: eos alt-text #1c1a24 -> #39ff14.
 #             maw-themes commit 8db6302. A deliberate PROOF VALUE, not a design
 #             decision: Michael asked for a wild colour in the eos LIGHT ramp to
@@ -69,4 +79,4 @@
 # 2026-08-04  --      -> 4f391aa  Initial vendor. 19 themes x 36 columns.
 # ---------------------------------------------------------------------------
 file	repo	path	blob_sha	bytes	verified	note
-canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	667e4a960b8638f5a50f4b57ad041a39d0b61a12	6674	2026-08-05	23 rows x 38 columns. 6 rows are COMPLETE palettes (empty alt band, paired by identity); 13 still carry the legacy alt band; default-theme is mid and has neither. SHA computed locally and matched against the SHA GitHub returned for the upstream write, before this file was committed.
+canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	75b3f6c9a9d1062cf7b6d60ef2230106c3f84db7	6674	2026-08-05	23 rows x 38 columns. 6 rows are COMPLETE palettes (empty alt band, paired by identity) and currently carry deliberate PROOF-VALUE accents; 13 still carry the legacy alt band; default-theme is mid and has neither. SHA computed locally and matched against the SHA GitHub returned for the upstream write, before this file was committed.
