@@ -38,24 +38,31 @@ TWO STAGES, BECAUSE MKDOCS SPLITS THE TWO QUESTIONS
 `hidden` is a question about the nav TREE, answered in `on_nav`.
 `expanded` is a question about rendered HTML, answered in `on_post_page`.
 
-    shape()          called by visibility.prune_nav as its FOURTH pass.
-                     Applies `hidden`, resolves the cascade, fills NAV_OPEN.
+    shape()          stage 00bb. Applies `hidden`, resolves the cascade,
+                     fills NAV_OPEN.
     on_post_page()   stage 06b. Reads NAV_OPEN, checks the toggles.
 
-⚠️ `shape()` IS CALLED FROM visibility.py RATHER THAN FROM A HOOK OF ITS OWN,
-and that is deliberate. `hidden` has to land AFTER unlisted-pruning and router-
-sealing (it reads the same index pages those two can delete) and BEFORE
-`00c_nav.py` rewires prev/next -- otherwise a hidden page keeps a footer Next
-button pointing into a chain it is no longer in, which is the exact defect 00c
-exists to fix, reintroduced from the other end. That is a slot BETWEEN two
-existing hooks, and a hook filename cannot express 'between' without renumbering
-two files that already work.
+⚠️ STAGE 00bb IS A SLOT BETWEEN TWO EXISTING HOOKS AND THE FILENAME IS HOW IT
+SAYS SO. `hidden` has to land AFTER 00b prunes unlisted pages and seals routed
+subtrees -- it reads the same index pages those passes can delete -- and BEFORE
+00c rewires prev/next, or a hidden page keeps a footer Next button pointing into
+a chain it is no longer in, which is the exact defect 00c exists to fix,
+reintroduced from the other end. `00bb` sorts after `00b_unlisted.py` and before
+`00c_nav.py` on disk as well as in mkdocs.yml, so the two orderings cannot
+disagree with each other.
 
-⚠️ IT TAKES `index_of` AND `unchain` AS ARGUMENTS INSTEAD OF IMPORTING THEM.
-visibility imports this module, so this module importing visibility is a cycle.
-Passing the two functions in is not ceremony: it makes the dependency visible at
-the call site, and it means neither copy of `_unchain` can drift from the other,
-because there is only one.
+⚠️ THE SHIM PASSES IN `_index_of` AND `_unchain` FROM visibility.py, AND THAT IS
+THE POINT RATHER THAN A SHORTCUT. Both belong to visibility: `_index_of` returns
+the index each section had BEFORE pruning (recorded in its pass 1, precisely
+because reading it afterwards was a live bug), and `_unchain` is the prev/next
+detachment every removal in this engine owes. Copying either into this module
+would create a second copy free to drift from the first. Wiring them in the shim
+puts the dependency at the one place that already knows the order.
+
+🚫 THE REJECTED ALTERNATIVE was calling `shape()` from inside
+`visibility.prune_nav` as a fourth pass. It reads better and costs too much:
+that file is already 20,266 B against a 22KB hard read limit, and a file that
+cannot be read whole cannot be safely edited.
 
 =============================================================================
 KNOWN LIMIT, HANDLED: `navigation.prune` AND `expanded` CANNOT BOTH BE ON
@@ -109,7 +116,7 @@ DEFAULT = 'collapsed'
 
 
 # ===========================================================================
-# STAGE 00b (pass 4) -- shape the tree, resolve the cascade
+# STAGE 00bb -- shape the tree, resolve the cascade
 # ===========================================================================
 
 
@@ -229,7 +236,7 @@ def _walk(items, index_of, unchain, inherited: str) -> None:
 
 
 def shape(items, config, index_of, unchain) -> None:
-    '''Pass 4 of `visibility.prune_nav`. See this module's docstring for order.'''
+    '''Stage 00bb. See this module's docstring for why the number has two b's.'''
     _misplaced()
     _walk(items, index_of, unchain, DEFAULT)
 
