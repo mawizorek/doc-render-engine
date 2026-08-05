@@ -3,14 +3,12 @@
 Split out of `datatable.py` on 2026-08-04, when adding roles, labels and money carried
 that module to 21.2KB -- past the 18KB warn line and within 1.4KB of the hard one, which
 is the point where a file stops coming back whole from one read and therefore stops being
-safely editable. **The trim is the reflex and the split is the answer**, for the fourth
-time in two days: `seal.py` out of `router.py`, `sheet.py` out of `datatable.py`,
-`data.css` out of `base.css`, this.
+safely editable. **The trim is the reflex and the split is the answer.**
 
 **And the seam is one `datatable.py` already claimed in prose and had stopped honouring.**
-Its own docstring says it owns "the frontmatter contract, the `!!! data` block, and the
-HTML" -- three jobs listed as though they were one. They are not, and the third had grown
-larger than the first two together.
+Its docstring said it owned "the frontmatter contract, the `!!! data` block, and the
+HTML" -- three jobs listed as though they were one, and the third had grown larger than
+the other two together.
 
 FOUR MODULES, ONE FEATURE:
 
@@ -38,32 +36,51 @@ nobody touched).
 stops drawing a grid, the header row is gone** -- so the label has to travel with the
 value or a reader sees `4` with nothing to say what four means.
 
+🐛 **AN EMPTY DETAIL CELL IS NOT EMITTED AT ALL, AND THAT IS TWO FIXES IN ONE.** A commit
+with no pull request rendered a bare `PR` label with nothing beside it -- **a label with
+no value is worse than an absent row, because it reads as data that failed to load.** And
+it had disarmed a rule shipped hours earlier: `data-list.css` hides the chevron on
+`tr:not(:has(td.dr-detail))`, which could never match while every row carried a detail
+cell regardless of content. **A guard written against a condition the emitter never
+produced.** ⚠️ An empty KEY cell is still emitted: keys hold their position in the
+summary, and dropping one would slide the title up into the eyebrow slot.
 
-TWO THINGS THAT LOOK WRONG FROM OUTSIDE
-=======================================
 
-⚠️ **A MONEY CELL IS THE ONE PLACE THIS FEATURE EDITS A DISPLAYED VALUE.** It is padded to
-two decimals, because a money column with ragged decimals cannot be scanned and scanning
-is the entire reason the type exists. That is a real exception to the standing rule that
-the sheet is the source of truth and the renderer does not reinterpret it (J10), so it is
-held as narrow as it can be: only a cell that is NOTHING BUT a number is touched.
-`[1200]{.est}` and `TBD` pass through verbatim, because rebuilding markup around a
-reformatted number is how a renderer starts quietly rewriting a sheet.
+TWO PLACES THIS EDITS A DISPLAYED VALUE, AND BOTH ARE THE SAME BARGAIN
+======================================================================
 
-⭐ **THE CURRENCY SYMBOL IS NOT HERE AT ALL.** `data.css` draws it with `::before` from
-`--dr-money-symbol`. So the DATA stays a number -- still sortable, still summable, still
-honest in the downloaded TSV -- and each site picks its own currency without this module
-knowing any exist. A symbol written into the value would have been a second, worse copy of
-the same decision.
+The standing rule is that the sheet is the source of truth and the renderer does not
+reinterpret it (J10). These are the two stated exceptions, and each is held as narrow as
+it can be: **the DATA stays canonical in the cell, and only the PRESENTATION moves here.**
 
-⚠️ **`_BOOT` IS INLINE AND MUST STAY INLINE.** Detail cells are hidden only under
-`html.dr-data-js`, and that class is set by a script that runs during PARSE. Two reasons,
-both scars. A reader with no JavaScript gets the entire table rather than a list that
-cannot be opened -- **fail OPEN**, because a list nobody can expand looks like data loss
-and reports nothing. And setting the class from the deferred sheet instead would let the
-detail rows paint and then vanish on every page load, which is precisely the flash PR #49
-removed from the router the same day. A boot script is idempotent, so a page with three
-tables emitting it three times costs nothing.
+⚠️ **MONEY** is padded to two decimals, because a money column with ragged decimals cannot
+be scanned and scanning is the entire reason the type exists. Only a cell that is NOTHING
+BUT a number is touched -- `[1200]{.est}` and `TBD` pass through verbatim, because
+rebuilding markup around a reformatted number is how a renderer starts quietly rewriting a
+sheet. ⭐ The currency SYMBOL is not here at all: `data.css` draws it with `::before` from
+`--dr-money-symbol`, so the cell keeps a real number and each site picks its own currency.
+
+⚠️ **DATE** renders an ISO stamp as `Aug 4 · 7:58p`. The cell keeps the ISO, which sorts
+correctly as plain text and opens correctly in a spreadsheet; the reader gets something
+legible. **There is deliberately no format option.** The moment this takes a pattern
+argument, every sheet decides what a date looks like on this site and they stop agreeing
+-- which is the defect the whole `::type` grammar exists to prevent. Anything that is not
+an ISO stamp passes through untouched rather than being mangled.
+
+
+THE TWO STICKY TRAPS
+====================
+
+⚠️ THE TABLE CARRIES A CLASS AND THAT IS LOAD-BEARING (2026-08-03). Material styles
+`.md-typeset table:not([class])` with `display: block`, which destroys the internal table
+layout -- and a `position: sticky` cell inside a non-table has no row context to stick
+within, so the frozen header and first column silently did nothing. Do not remove it.
+
+🐛 A SECTION BAND'S LABEL LIVES IN AN INNER `<span>`. The band is a `<th colspan="N">`, so
+its width IS the scroll width and `sticky; left: 0` on it has no slack to move within --
+the heading scrolled away and read as `WARE [2000]` three columns in. The span can stick;
+the cell never could. **Same shape as the trap above: sticky failing silently because the
+box it sits in cannot honour it.**
 """
 
 from __future__ import annotations
@@ -74,6 +91,17 @@ import re
 from . import cells, sheet
 
 _PURE_NUMBER = re.compile(r"^[-+]?\d+(?:\.\d+)?$")
+
+#: `2026-08-04T19:58:50-04:00`, and the time part is optional. Anchored whole: a cell that
+#: merely CONTAINS a date is prose about a date, not a date.
+_ISO = re.compile(
+    r"^(?P<y>\d{4})-(?P<m>\d{2})-(?P<d>\d{2})"
+    r"(?:[T ](?P<hh>\d{2}):(?P<mm>\d{2})(?::\d{2})?"
+    r"(?:\.\d+)?(?:Z|[-+]\d{2}:?\d{2})?)?$"
+)
+
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 _BOOT = '<script>document.documentElement.classList.add("dr-data-js")</script>'
 
@@ -87,6 +115,39 @@ def _money(cell: str) -> str:
         return format(float(raw), ".2f")
     except ValueError:
         return cell
+
+
+def _date(cell: str) -> str:
+    """`2026-08-04T19:58:50-04:00` -> `Aug 4 · 7:58p`. Anything else, untouched.
+
+    ⚠️ NO TIMEZONE CONVERSION. The offset in the stamp is discarded and the wall-clock
+    time is printed as written, because the stamp was recorded in the timezone of whoever
+    made the change and re-projecting it into some other zone would make the log disagree
+    with the moment it describes. A date column is a record of when something happened,
+    not an instant to do arithmetic on.
+
+    ⚠️ The YEAR is dropped, and that is a real cost stated rather than hidden: this reads
+    well on a log of recent activity and badly on one spanning years. If a sheet ever
+    needs the year, that is the argument for a second type -- NOT for a format option,
+    which would let every sheet answer this question differently.
+    """
+    match = _ISO.match(str(cell).strip())
+    if not match:
+        return cell
+    try:
+        month = _MONTHS[int(match.group("m")) - 1]
+    except (ValueError, IndexError):
+        return cell
+    out = month + " " + str(int(match.group("d")))
+    if match.group("hh") is None:
+        return out
+    hour = int(match.group("hh"))
+    suffix = "a" if hour < 12 else "p"
+    return out + " · " + str(hour % 12 or 12) + ":" + match.group("mm") + suffix
+
+
+#: kind -> the function that turns a stored value into a displayed one.
+_DISPLAY = {"money": _money, "date": _date}
 
 
 def _attrs(index, pinned, kinds, keys, labels, listing) -> str:
@@ -125,11 +186,6 @@ def draw(rows, specs, href, filename, slot, caption, pinned, page) -> str:
     if caption:
         out.append('<p class="dr-data__caption">' + cells.render(caption, page) + "</p>")
 
-    # ⚠️ THE TABLE CARRIES A CLASS AND THAT IS LOAD-BEARING (2026-08-03). Material styles
-    # `.md-typeset table:not([class])` with `display: block`, which destroys the internal
-    # table layout -- and a `position: sticky` cell inside a non-table has no row context
-    # to stick within, so the frozen header and first column silently did nothing. The
-    # class makes `:not([class])` stop matching. Do not remove it.
     out.append('<table class="dr-data__table">')
     out.append("<thead><tr>")
     for i, cell in enumerate(header):
@@ -143,11 +199,6 @@ def draw(rows, specs, href, filename, slot, caption, pinned, page) -> str:
     records = 0
     for row in body:
         if sheet.is_section(row):
-            # 🐛 THE LABEL IS THE STICKY ELEMENT, NOT THE CELL. The band is a `<th
-            # colspan=N>`, so its width IS the scroll width and `sticky; left: 0` on it
-            # has no slack to move within -- the heading scrolled away with the row and
-            # read as `WARE [2000]` three columns in. The span can stick; the cell never
-            # could. Same shape as the `display: block` trap above.
             out.append(
                 '<tr class="dr-data__section"><th colspan="' + str(span) + '">'
                 + '<span class="dr-data__section-label">' + cells.render(row[0], page)
@@ -157,7 +208,13 @@ def draw(rows, specs, href, filename, slot, caption, pinned, page) -> str:
         records += 1
         out.append("<tr>")
         for i, cell in enumerate(row):
-            value = _money(cell) if i < len(kinds) and kinds[i] == "money" else cell
+            kind = kinds[i] if i < len(kinds) else ""
+            # An empty DETAIL is dropped entirely -- see the module docstring. An empty
+            # KEY is kept, because it holds its place in the summary.
+            if listing and not keys[i] and not str(cell).strip():
+                continue
+            display = _DISPLAY.get(kind)
+            value = display(cell) if display else cell
             out.append(
                 "<td" + _attrs(i, pinned, kinds, keys, labels, listing) + ">"
                 + cells.render(value, page) + "</td>"
