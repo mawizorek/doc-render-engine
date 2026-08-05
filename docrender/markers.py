@@ -88,10 +88,31 @@ Class colour is emitted as a REAL CSS RULE by `build_css()`. The inline custom
 property survives for a ROW override only: a rule per class is cheap, a rule per
 marker was not, which is what the inline property existed to avoid.
 
-⚠️ THE SHIPPED COLOUR IS NOT IN theme/colors.tsv YET, ON PURPOSE. `terminology`
-asks for `accent-soft` -- real in the canonical maw-themes palette, absent from
-the nine-token stand-in this engine still reads. Reports as unknown ONCE and
-falls back to the body colour until the palette refit lands (J11).
+
+🔴 THE TOKEN LIST IS DERIVED NOW, AND IT HID A REAL DEFECT FOR A DAY (2026-08-05)
+================================================================================
+
+`_known_tokens()` used to read theme/colors.tsv alone -- the NINE-TOKEN stand-in
+that is on death row. Canonical emits 22 tokens and that list recognised TWO of
+them, so every canonical name was refused hours after the canonical join went
+live. The data moved; the thing that VALIDATES the data did not.
+
+It is a UNION now: the local table plus the actual column names read off the
+vendored canonical file, so it cannot go stale again. Derived, not maintained --
+the same rule this repo has applied to three dead manifests.
+
+⚠️ AND THE REFUSAL WAS HIDING A WORSE BUG. `terminology` asked for `accent-soft`,
+which is a WASH -- a tinted background for a chip, never a letters colour. It
+measures 1.29 against the dark canvas where it needed 4.5. That cell was wrong
+the day it was typed, and the fallback to body colour is what made it look
+deliberate for a month: a bad value that never renders is a bad value nobody
+sees. It is `accent-2` now, measured at 6.63/5.86 dark and 5.81/6.52 light.
+
+⚠️ EVERY EMITTED COLOUR CARRIES A FALLBACK, and that is load-bearing rather than
+tidy. `var(--dr-x)` with nothing behind it resolves to NOTHING and paints an
+INVISIBLE marker. Three local themes still emit only nine tokens, so the moment
+a marker names a canonical one those sites need somewhere to land:
+`var(--dr-x, currentColor)` makes the worst case body-coloured instead of gone.
 
 Defined in theme/markers.tsv + theme/marker-classes.tsv. Adding one is a row.
 """
@@ -101,7 +122,7 @@ from __future__ import annotations
 import html
 import re
 
-from . import prefixes, state
+from . import prefixes, state, vectors
 from .util import load_tsv, relative_url, sub_outside_code
 
 # [text]{.marker} with optional whitespace, or bare {.marker}.
@@ -139,7 +160,27 @@ def _classes() -> dict[str, dict]:
 
 
 def _known_tokens() -> set[str]:
-    return {r["token"] for r in _rows("colors.tsv") if r.get("token")}
+    """Every colour name a marker may legally use.
+
+    A UNION of two sources, and it is derived from both rather than restated:
+
+      LOCAL     theme/colors.tsv, the nine-token stand-in. Still the only home
+                of `dead`, and the only palette three instances have.
+      CANONICAL the COLUMN NAMES of the vendored canonical table -- accent-2,
+                good, info, data-1 and the rest. Read off the file so a token
+                added upstream is usable here the moment it is vendored.
+
+    🔴 THIS USED TO BE THE LOCAL TABLE ONLY, which meant canonical shipped 22
+    tokens and a marker could name TWO of them. The palette moved and its
+    validator did not, so every canonical colour was refused with a message
+    saying it did not exist. Deriving the list is what stops that recurring.
+    """
+    local = {r["token"] for r in _rows("colors.tsv") if r.get("token")}
+    canonical: set[str] = set()
+    for row in vectors.rows("colors.tsv"):
+        canonical = {k for k in row if k not in vectors.META and k}
+        break
+    return local | canonical
 
 
 def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> str:
@@ -148,6 +189,13 @@ def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> st
     `report` exists because build_css() runs from assets._plan, which is called by
     BOTH on_config and on_files and would therefore complain twice about one bad
     cell. The single honest complaint comes from _build_table, which runs once.
+
+    ⚠️ THE FALLBACK IN THE EMITTED var() IS NOT DECORATION. A token this engine
+    KNOWS is not necessarily a token the ACTIVE THEME emits -- the three local
+    nine-token themes emit none of the canonical names. A bare `var(--dr-x)`
+    with nothing behind it resolves to nothing and paints an invisible marker,
+    which is a blank rather than an error and therefore the worst outcome
+    available. Body colour is a visible wrong answer, which is the better one.
     """
     value = (value or "").strip()
     if not value:
@@ -155,15 +203,13 @@ def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> st
     if not _TOKEN.match(value):
         return value
     if value in tokens:
-        return "var(--dr-" + value + ")"
+        return "var(--dr-" + value + ", currentColor)"
     if report:
-        # Falling back silently would render an INVISIBLE marker -- var() with no
-        # fallback resolves to nothing -- so it is reported and given a real colour.
         state.note(
             "notes",
-            where + " asks for colour token '" + value + "', which is not in "
-            + "theme/colors.tsv. Using the body colour. Known tokens: "
-            + ", ".join(sorted(tokens)),
+            where + " asks for colour token '" + value + "', which is in "
+            + "neither theme/colors.tsv nor the canonical palette. Using the "
+            + "body colour. Known tokens: " + ", ".join(sorted(tokens)),
         )
     return "currentColor"
 
@@ -281,9 +327,9 @@ def build_css() -> str:
     # no-op.
     #
     # Emitted HERE rather than in base.css for a boring reason worth stating:
-    # base.css is ~16.4KB, close enough to the read ceiling that a wholesale
-    # rewrite from one read is the clobber that ate util.py on 2026-08-03. This
-    # file already generates the colour half.
+    # base.css is past its warn line, close enough to the read ceiling that a
+    # wholesale rewrite from one read is the clobber that ate util.py on
+    # 2026-08-03. This file already generates the colour half.
     lines.append(
         ".md-typeset a." + _TERM_LINK_CLASS + " { color: var(--dr-mark-color);"
         + " text-decoration: underline; text-decoration-thickness: 1px;"

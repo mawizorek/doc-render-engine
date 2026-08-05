@@ -22,20 +22,34 @@
 #
 # class    the token a markers.tsv row names
 # shape    default shape for the family: box · plain · strike · soft
-# color    default colour: any token from colors.tsv, or a literal hex/oklch
+# color    default colour: any token from the canonical palette or from
+#          theme/colors.tsv, or a literal hex/oklch
 # label    what this family MEANS. For the reader of this file and the report.
 # ---------------------------------------------------------------------------
 #
-# ⚠️ `terminology` ASKS FOR A TOKEN THIS ENGINE CANNOT SEE YET, ON PURPOSE.
-# `accent-soft` is real -- it is in the canonical 33-token palette in
-# mawizorek/maw-themes -- but theme/colors.tsv here is the nine-token stand-in
-# that shares its filename and nothing else, and that file is on death row. So
-# this reports as an unknown token ONCE per build and falls back to the body
-# colour until the palette refit lands. Decided sequencing, not a defect
-# (maw-themes DL J11). ⭐ And the reason it is safe: the token is named in ONE
-# CELL, right here, so swapping it to accent-2 later is a data edit that touches
-# no code anywhere. Nothing else may hardcode it -- the moment a second surface
-# names it, that promise is dead.
+# 🔴 `terminology` ASKED FOR `accent-soft` FOR A MONTH AND IT WAS NEVER LEGIBLE.
+# Corrected 2026-08-05 to `accent-2`.
+#
+# `accent-soft` is a WASH -- the tinted BACKGROUND behind an accent chip. As
+# letters it measures 1.29 against the eos dark canvas and 1.12 against the
+# light one, where it needs 4.5. It was the wrong kind of token, not merely a
+# dim one.
+#
+# ⚠️ AND THE BUG SURVIVED BECAUSE IT NEVER RENDERED. The engine's token list did
+# not know any canonical name, so `accent-soft` was refused every build and the
+# markers quietly fell back to body colour -- which looked like a deliberate
+# design. A wrong value that cannot render is a wrong value nobody sees. The
+# list is derived now (see markers.py) so the next wrong token will actually
+# show up wrong.
+#
+# `accent-2` measures 6.63 canvas / 5.86 card in dark and 5.81 / 6.52 in light,
+# and on the eos palette it is the console's TRACKED violet -- a defined term is
+# a thing the house has already decided about, which is what that colour means
+# on the desk.
+#
+# ⚠️ STILL NAMED IN EXACTLY ONE CELL, and that is the property worth protecting.
+# Changing this family's colour must never require touching code or CSS. The
+# moment a second surface hardcodes it, that promise is dead.
 class	shape	color	label
 confidence	box	warn	how much to trust the value beside it
-terminology	plain	accent-soft	a defined term, with or without a page behind it
+terminology	plain	accent-2	a defined term, with or without a page behind it
