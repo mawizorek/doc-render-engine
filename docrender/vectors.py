@@ -1,83 +1,77 @@
 """The canonical design system: read it, resolve it, prove it.
 
-Split out of theme.py 2026-08-04 at the seam PR #68 named. READING AND
-RESOLVING the canonical data is a different job from turning it into CSS, and
-theme.py was 1.7KB from the hard read limit. This module answers "what is this
-site's look"; theme.py answers "what CSS does that produce".
+This module answers "what is this site's look"; theme.py answers "what CSS does
+that produce". Full contract, including the parts that are not this engine's to
+decide: maw-themes `docs/HOW-A-THEME-IS-CHOSEN.md`.
 
 =============================================================================
-A THEME IS A JOIN OF FOUR VECTORS, AND THIS ENGINE ONLY EVER READ ONE
+A THEME IS A JOIN. A COLOUR SLUG IS NOT A THEME.
 =============================================================================
 
-From the join table's own header: *"A THEME binds the 4 independent vectors:
-Color, Typography, Forms, and Spacing... theme = JOIN, a named combination of
-exactly one token from each."*
+A join in `canonical/themes.json` binds FIVE pointers: two colours, one
+typography, one forms, one spacing. It is the only entry point.
 
-Until now `theme:` in site.yml resolved against `colors.tsv` slugs, which are
-COLOUR ENTITIES, not themes. `eos` appeared to work by coincidence: there is a
-colour entity named `eos` AND a join named `eos`, and they point at each other.
-`mclaren` is not a theme at all -- the joins are `sharp-mclaren` and
-`mclaren-mobile`.
+RED `mclaren` IS A PALETTE, NOT A THEME -- the themes using it are
+`sharp-mclaren` and `mclaren-mobile`. Naming a bare colour entity still resolves,
+for compatibility, and gets colour ONLY: no canonical type, radii or density. It
+is reported when it happens, because this went unnoticed for a day.
 
-WARNING: THE THREE NEW VECTORS HAVE A DIFFERENT SHAPE FROM COLOUR, which is why
-the colour approach did not simply extend. A colour row belongs to one theme. A
-TYPOGRAPHY row does not: `sharp-racing` serves four joins, `tight` serves five.
-They are SHARED ENTITIES joined by pointer. A theme does not OWN its type, it
-POINTS at it -- so editing `tight` moves five themes at once, on purpose.
+WARNING: `eos`, `papyrus` and `database` exist as BOTH a join slug and an entity
+slug. JOIN WINS and the ambiguity is REPORTED -- silence there would mean a
+site's whole look depends on which table was searched first. `eos` appearing to
+work was exactly this coincidence: a join and a colour sharing a name and
+happening to point at each other.
 
 =============================================================================
-MODE: THE APP OWNS IT, AND THE JOIN HANDLES THE GRACEFUL CASE
+STAR THE PAIR IS DECLARED, NEVER DERIVED (2026-08-05)
 =============================================================================
 
-Michael, 2026-08-04: *"app keeps mode. hands down. BUT if an app only declares a
-single theme -- and the alternate toggle for that theme DOES exist it could be
-written into the theme join... so app still sets the actual pointer ultimately
-but the theme join gracefully handles alternative entry points."*
+    "color":     "mclaren",
+    "alt-color": "mclaren-light",
 
-    theme: eos                                    # toggles eos <-> eos-light
-    theme: {dark: sharp-mclaren, light: papyrus}   # two themes, app's choice
+Michael: *"there is no such thing as a 'theme family' or trying to guess the pair
+systemically from the colors tsv. just point direct to its unique slug row
+name."*
 
-STAR AND IT COST NO NEW COLUMN, which matters because maw-themes S1 explicitly
-refused one (*"No `toggle` in _themes.json"*). `identity` on the COLOUR row
-already carries the pairing: a join names a colour entity, that row carries an
-identity, and the sibling is the row with the same identity in the other mode.
-DERIVED, never declared. Cleo's W2 argument paying a second time -- a declared
-toggle is a pointer that can dangle; grouping cannot.
+This replaced an `identity` column that grouped rows into pairs. That column was
+symmetric, cost nothing and could not dangle -- and it was still wrong, because
+it made the COLOUR TABLE hold a fact about a RELATIONSHIP. A canonical object
+vector must not know what it is joined to. Cheap and structurally wrong is still
+wrong.
 
-RED WHAT "APP KEEPS MODE" MEANS IN CODE, AND I GOT IT WRONG ONCE ALREADY.
-It means the app decides WHICH THEME occupies each slot. It does NOT mean the
-app picks a hex. Choosing the mode-appropriate ROW inside the theme the app
-named is RESOLUTION, not substitution: when a site says `light: eos`, "the eos
-theme at light" IS eos-light, and handing it the dark row is a worse answer by
-every measure.
+What the reversal bought, immediately:
 
-So derivation is UNCONDITIONAL -- it fires on a scalar and on an explicit map
-alike. The first cut gated it on "the app did not state this scheme," which
-looked like respect for the ruling and would have painted a dark ramp into light
-mode the first time anybody wrote `light: eos`. Found by WRITING the config and
-tracing it, not by reading the code.
+  * A PAIR NEED NOT BE DARK+LIGHT. Two darks, two lights, normal-and-party.
+    Derivation could only ever find the opposite MODE.
+  * A join may point at any row at all. There are no families to belong to.
 
-WARNING: ONLY THE COLOUR SWAPS. Typography, forms and spacing are
-scheme-independent -- type by documented design (two type systems that drift is
-the failure it prevents), and a radius or a cell padding has no business
-changing when a reader hits a toggle.
+RED AND THE COST IS REAL: A POINTER CAN DANGLE. An `alt-color` naming a row that
+does not exist is REPORTED BY NAME here and never silently replaced with
+something plausible. That is the entire mitigation and it is deliberate -- a loud
+reader instead of a clever table.
+
+WARNING: `mode` RESOLVES NOTHING NOW. It is descriptive. It survives as the one
+thing that can still catch "you put a dark palette in the light slot," which is
+reported as a mismatch rather than corrected -- correcting it would be inference,
+and inference is what this change removes.
 
 =============================================================================
-NAME COLLISIONS ARE REAL AND THE ORDER IS A DECISION
+THE THREE OTHER VECTORS ARE SHARED ENTITIES
 =============================================================================
 
-`eos`, `papyrus` and `database` exist as BOTH a join slug and a colour or
-spacing slug. JOIN WINS; a bare colour entity is the fallback so the old
-one-vector behaviour still resolves. An ambiguous name is REPORTED, because
-silence would mean a site's entire look depends on which table happened to be
-searched first.
+A colour row belongs to one theme. A typography row does not: `sharp-racing`
+serves four joins, `tight` serves five. They are joined by POINTER, so editing
+`tight` moves five themes at once, on purpose.
+
+They also do NOT split by toggle state -- type is scheme-independent by design,
+and a radius or a cell padding has no business changing when a reader flips a
+switch. theme.py takes all three from the PRIMARY scheme and names what it
+dropped.
 
 PROVENANCE. Every vendored file's git blob SHA is recomputed on each build and
-checked against `canonical/source.tsv`. Reports rather than raises: a palette
-one edit off canonical still renders a readable site, and taking the build down
-over it is worse than a loud line in the report. WARNING: it proves the file is
-what we VENDORED, not that what we vendored is still CURRENT upstream. That
-needs a scheduled job with network and does not exist yet.
+checked against `canonical/source.tsv`. Reports rather than raises: a palette one
+edit off canonical still renders a readable site. WARNING it proves the file is
+what we VENDORED, not that what we vendored is still CURRENT upstream.
 """
 
 from __future__ import annotations
@@ -90,9 +84,9 @@ from . import state
 from .util import load_tsv
 
 #: Columns in a canonical colour row that are NOT tokens. A metadata column left
-#: out of this tuple is emitted as a custom property -- `--dr-identity: eos` --
+#: out of this tuple is emitted as a custom property -- `--dr-mode: dark` --
 #: which is junk, harmless, and invisible for a month.
-META = ("slug", "name", "identity", "mode")
+META = ("slug", "mode")
 
 #: The three scheme-independent vectors: (file, join key).
 SHARED = (
@@ -100,6 +94,10 @@ SHARED = (
     ("forms.tsv", "forms"),
     ("spacing.tsv", "spacing"),
 )
+
+#: The scheme an app treats as its default. The OTHER one is the alt slot, and
+#: that is the only place `alt-color` is used.
+PRIMARY = "dark"
 
 
 def theme_dir() -> Path:
@@ -148,31 +146,6 @@ def entity(file: str, slug: str) -> dict | None:
     return None
 
 
-def sibling(row: dict, scheme: str) -> str | None:
-    """The colour row sharing this row's identity in the requested scheme."""
-    ident = (row.get("identity") or "").strip()
-    if not ident:
-        return None
-    here = (row.get("slug") or "").strip()
-    for other in rows("colors.tsv"):
-        if (other.get("identity") or "").strip() != ident:
-            continue
-        if (other.get("slug") or "").strip() == here:
-            continue
-        if (other.get("mode") or "").strip() == scheme:
-            return (other.get("slug") or "").strip()
-    return None
-
-
-def is_complete(row: dict) -> bool:
-    """A row with no `alt-` values is asserting it is ONE complete palette."""
-    return not any(
-        (value or "").strip()
-        for token, value in row.items()
-        if token.startswith("alt-")
-    )
-
-
 def known() -> set[str]:
     """Every name an instance may legally ask for: joins, colour entities, and
     the engine's own local themes. One union rather than three lists to keep in
@@ -188,6 +161,8 @@ def verify() -> None:
 
     Git's blob hash is sha1 over a short header plus the content, which makes it
     directly comparable to a SHA read off the source repo without cloning.
+    Reports rather than raises -- taking a build down over a palette one edit off
+    canonical is worse than a loud line in the report.
     """
     for row in load_tsv(_canon("source.tsv")):
         rel = (row.get("file") or "").strip()
@@ -216,40 +191,49 @@ def verify() -> None:
             )
 
 
-def _declared(scheme: str) -> str:
-    """The theme name this scheme asked for.
+def _declared(scheme: str) -> tuple[str, bool]:
+    """(theme name, is this scheme the ALT slot of that theme).
 
-    A map missing a scheme borrows the other rather than dropping to `base`: a
-    half-declared toggle almost certainly means one line was forgotten, and
-    inheriting the sibling is far closer to the intent than the unskinned
-    default.
+    Three shapes, and the second one is the whole ruling:
+
+      theme: eos                  the primary scheme takes eos.color, the other
+                                  takes eos.alt-color
+      theme: {dark: A, light: B}  each named scheme takes THAT theme's `color`.
+                                  A second declared theme REPLACES the alt, and
+                                  contributes its PRIMARY -- naming it is a
+                                  deliberate act and nothing may substitute.
+      theme: {dark: A}            the unnamed scheme borrows A and falls back to
+                                  A.alt-color, because a half-declared toggle
+                                  almost certainly means one line was forgotten.
     """
     decl = state.INSTANCE.get("theme", "base")
+
     if not isinstance(decl, dict):
-        return str(decl)
+        return str(decl), scheme != PRIMARY
 
     pick = decl.get(scheme)
     if pick:
-        return str(pick)
+        return str(pick), False
 
     other = "light" if scheme == "dark" else "dark"
-    borrowed = decl.get(other) or "base"
+    borrowed = str(decl.get(other) or "base")
     state.note(
         "notes",
-        "theme: no '" + scheme + "' entry; borrowing '" + str(borrowed)
-        + "' from '" + other + "'. Name both schemes explicitly.",
+        "theme: no '" + scheme + "' entry, so it borrows '" + borrowed
+        + "' from '" + other + "' and uses that theme's alt-color. Name both "
+        "schemes explicitly if that is not what you meant.",
     )
-    return str(borrowed)
+    return borrowed, True
 
 
 def resolve(scheme: str) -> dict:
-    """Everything this scheme needs: the four vector slugs and their rows.
+    """Everything this scheme needs: the four vector slugs and the colour row.
 
-    Returns `{name, join, color, colorRow, typography, forms, spacing,
-    derived}`. `color` differs from the named theme's colour when the
-    opposite-mode sibling was derived; `derived` records that it happened.
+    Returns `{name, join, color, colorRow, typography, forms, spacing, alt}`.
+    `alt` records that this scheme took the join's `alt-color` rather than its
+    `color`.
     """
-    name = _declared(scheme)
+    name, use_alt = _declared(scheme)
 
     if name not in known():
         state.note(
@@ -263,40 +247,54 @@ def resolve(scheme: str) -> dict:
     if entry and color_row(name):
         state.note(
             "notes",
-            "theme '" + name + "' is BOTH a join and a colour entity. Reading "
-            "it as the JOIN. Rename one upstream -- a site's whole look should "
-            "not depend on which table is searched first.",
+            "'" + name + "' is BOTH a join and a colour entity. Reading it as "
+            "the JOIN. Rename one upstream -- a site's whole look should not "
+            "depend on which table is searched first.",
         )
 
     if entry:
-        color = str(entry.get("color", "")).strip()
+        color = str(entry.get("alt-color" if use_alt else "color", "")).strip()
+        if use_alt and not color:
+            color = str(entry.get("color", "")).strip()
+            state.note(
+                "notes",
+                "theme '" + name + "' declares no alt-color, so " + scheme
+                + " reuses its primary colour '" + color + "'. Both toggle "
+                "states will look the same.",
+            )
         picked = {key: str(entry.get(key, "")).strip() for _f, key in SHARED}
     else:
-        # A bare colour entity: the one-vector shape, still supported.
+        # A bare colour entity: colour only, no join, no other vectors.
         color = name
         picked = {key: "" for _f, key in SHARED}
+        state.note(
+            "notes",
+            "'" + name + "' (" + scheme + ") is a COLOUR ENTITY, not a theme, "
+            "so this site gets a palette and nothing else -- no canonical "
+            "typography, forms or spacing. Name a theme from themes.json.",
+        )
 
     row = color_row(color)
-    derived = None
 
-    # UNCONDITIONAL. See the docstring: picking the mode-appropriate row inside
-    # the theme the app named is resolution, not substitution.
-    if row:
+    if color and row is None:
+        # RED A DANGLING POINTER. Reported by name and never guessed at -- this
+        # is the cost of a declared pair and the whole reason it is loud.
+        state.note(
+            "notes",
+            "theme '" + name + "' points " + scheme + " at colour '" + color
+            + "', which is not a row in canonical/colors.tsv. Nothing is "
+            "substituted: this scheme has no palette. Fix the pointer.",
+        )
+    elif row is not None:
         native = (row.get("mode") or "").strip()
         if native in ("dark", "light") and native != scheme:
-            found = sibling(row, scheme)
-            if found:
-                derived = found
-                color = found
-                row = color_row(found)
-            elif is_complete(row):
-                state.note(
-                    "notes",
-                    "theme '" + color + "' is a COMPLETE " + native
-                    + " palette and no row shares its identity at " + scheme
-                    + ", so it is painting its " + native + " ramp there. "
-                    "Author the sibling, or name a " + scheme + " theme.",
-                )
+            state.note(
+                "notes",
+                "colour '" + color + "' declares mode '" + native + "' but is "
+                "painting the " + scheme + " scheme. That is legal -- mode is "
+                "descriptive, not a switch -- but it is usually a swapped "
+                "pointer in themes.json.",
+            )
 
     return {
         "name": name,
@@ -306,5 +304,5 @@ def resolve(scheme: str) -> dict:
         "typography": picked["typography"],
         "forms": picked["forms"],
         "spacing": picked["spacing"],
-        "derived": derived,
+        "alt": use_alt,
     }
