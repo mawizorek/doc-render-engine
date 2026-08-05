@@ -7,6 +7,12 @@
 #     ??? note "Long detail"           a collapsed box
 #     ???+ tip "Start open"            collapsible, open by default
 #
+# ⚠️ THE BODY MUST BE INDENTED FOUR SPACES. Python-Markdown's admonition
+# processor calls `detab()` on the block after the `!!!` line: anything not
+# indented becomes `theRest` and is re-inserted as a SEPARATE block. So an
+# unindented body renders as a title-only box followed by a loose paragraph --
+# which looks like a styling bug and is an authoring one.
+#
 # ⭐ THIS FILE ANSWERS Q14, WHICH WAS OPEN FROM 2026-08-04 TO 08-05. Before it,
 # DL J20 recorded the state plainly: the block vocabulary was "defined NOWHERE
 # -- two lines in mkdocs.yml turn the syntax on and that is all." So a reader
@@ -19,35 +25,56 @@
 # markers.py emits the marker class colours.
 #
 # ---------------------------------------------------------------------------
-# WHY THE ROWS ARE THE TWELVE MATERIAL NAMES
+# TWO KINDS OF ROW: INHERITED AND DECLARED
 #
-# These are not names we chose and they are not ours to rename: `note`,
-# `warning`, `danger` and the rest are what a reader TYPES, and Material ships
-# an icon keyed to each one. So the table is keyed on the block name.
+# The first twelve are MATERIAL'S names. They are not names we chose and they
+# are not ours to rename: `note`, `warning`, `danger` and the rest are what a
+# reader TYPES, and Material ships an icon and a flavour rule keyed to each one.
 #
-# ⚠️ THAT IS THE ONE PLACE THIS DIVERGES FROM markers.tsv, deliberately. Q14's
-# option A proposed sharing markers' `class` column so a block and a marker in
-# one family would paint from a single cell. Attractive, and wrong at this size:
-# markers have TWO families and blocks have TWELVE. Sharing the column would
-# have meant inventing ten marker classes nobody needs to serve a vocabulary we
-# do not control.
+# ⚠️ THAT IS NOT THE SAME AS THE LIST BEING CLOSED, and the original header
+# implied it was. Python-Markdown's admonition extension matches `!!! ([\w\-]+)`
+# and lowercases the word straight into a class, with NO validation -- verified
+# in its source, not assumed. So any word has always rendered. `good` is the
+# first family we DECLARE rather than inherit, and it sits below the twelve
+# under its own heading so the boundary is legible here rather than in a commit.
 #
-# ⚠️ AND THERE IS NO `collapse` COLUMN, also against Q14's option A. Open versus
-# collapsed is decided by whether the author types `!!!` or `???`, at the point
-# of use, and no hook in this engine rewrites that. A column that silently loses
-# to the markdown sitting beside it is worse than no column at all.
+# ⚠️ A DECLARED FAMILY NEEDS AN `icon`, AND THE FAILURE IS SUBTLE IF IT DOES
+# NOT GET ONE. Material's base rule is unconditional:
 #
-# 🚫 AND NO `icon` COLUMN. Material exposes the icon as a real variable
-# (`--md-admonition-icon--note`), so it is genuinely reachable -- but changing
-# one means authoring an SVG data URL, and image data does not belong in a
-# colour table. Recorded as available rather than done.
+#     .md-typeset .admonition-title::before {
+#       background-color: $clr-blue-a200;
+#       mask-image: var(--md-admonition-icon--note);      <- THE PENCIL
+#     }
+#
+# Per-family rules override it. A family Material has never heard of therefore
+# does not LOSE its icon -- it wears the note pencil, which reads as a styling
+# near-miss rather than as an unfinished family.
 #
 # ---------------------------------------------------------------------------
 # COLUMNS
 #
 # block   the word a reader types after `!!!` or `???`
 # color   the token that paints it: any token this engine emits, or a hex
+# icon    ONE OF MATERIAL'S TWELVE NAMES, borrowing that family's glyph.
+#         BLANK on every inherited row, because Material already keys their
+#         icons off the class name and a value there would be a second
+#         statement of a fact Material owns.
 # note    what the family MEANS, and why this token
+# ---------------------------------------------------------------------------
+#
+# ⭐ `icon` NAMES A VARIABLE AND NEVER HOLDS IMAGE DATA, which is the whole
+# reason this column is allowed to exist. An earlier version of this header
+# refused an icon column outright, on the grounds that "changing one means
+# authoring an SVG data URL, and image data does not belong in a colour table."
+# That refusal stands. `--md-admonition-icon--success` is already defined by
+# Material, so `icon: success` is a POINTER at something that exists.
+#
+# ⚠️ AND IT IS VALIDATED, because a wrong name is loud rather than quiet:
+# `mask-image: var(--md-admonition-icon--nonsense)` is an undefined var with no
+# fallback -> invalid at computed-value time -> `mask-image: none` -> no mask ->
+# the ::before paints its full background-color as a solid 20x20px SQUARE.
+# blocks.py refuses a name outside the twelve and reports it.
+#
 # ---------------------------------------------------------------------------
 #
 # 🔴 `data-1..4` WERE TRIED HERE FIRST AND THE MEASUREMENT REJECTED THEM. The
@@ -75,21 +102,38 @@
 # So they cannot be used as theme tokens by ANY consumer until real values exist,
 # and that is a bigger finding than the four rows it cost. Raised upstream.
 #
-# ⚠️ SEMANTIC TOKENS ARE DELIBERATELY REUSED ACROSS FAMILIES. `tip` and
-# `success` are both `good`; `failure`, `danger` and `bug` are all `bad`. They
-# mean the same thing to a reader, so giving them different colours would invent
-# a distinction the words do not carry. Material ships them as different hues; we
-# are choosing not to, and twelve families across eight tokens is the result.
-block	color	note
-note	accent	the house voice. A note from us, so it takes the site's own identity colour rather than a semantic one.
-abstract	accent-2	A summary or TL;DR, in the secondary identity voice. Was data-1; see the warning above.
-info	info	FINALLY A CONSUMER FOR `info`. The token has been emitted by every canonical theme and read by nothing since the join landed, because until now this engine had no surface that meant "informational".
-tip	good	Advice that helps. Same meaning as success to a reader, same token.
-success	good	Something worked or is confirmed. Shares `good` with tip on purpose.
-question	info	An open question or FAQ. Shares `info`: a question and an informational aside are the same register, and the icon already tells them apart. Was data-2.
-warning	warn	Proceed carefully. The same token that paints every confidence marker chip, which is correct: both mean "do not lean on this yet".
-failure	bad	Something did not work. Shares `bad` with danger and bug.
-danger	bad	A hazard. In a venue and production context this is the one that matters most, and it must read as the same alarm as failure.
-bug	bad	A known defect. I argued for a separate colour -- a bug is a RECORD of something broken rather than a warning about it -- and dropped it: that distinction is not worth a border nobody can see in light mode. Was data-3.
-example	text-faint	A worked example. Quiet, like quote, and the FIRST CONSUMER of text-faint anywhere in this engine. Was data-4.
-quote	text-soft	A quotation. Deliberately the muted text colour and not a hue: a quote is quieter than the page, not a category of alert.
+# ⚠️ SEMANTIC TOKENS ARE DELIBERATELY REUSED ACROSS FAMILIES. `failure`,
+# `danger` and `bug` are all `bad`; `tip`, `success` and `good` are all `good`.
+# Words that mean the same thing to a reader should not be different colours,
+# and the icon already tells them apart.
+#
+# ⚠️ THREE ON ONE TOKEN IS ONE MORE THAN THAT ARGUMENT COMFORTABLY CARRIES,
+# though. `tip` is advice, `success` is a thing that worked, and `good` is a
+# positive POINTER -- which is a real third register in a venue context ("look
+# here for first aid") and is also the point at which somebody should check the
+# distinction still holds. If it cannot be stated on sight, cull one rather than
+# letting three drift.
+#
+# 🚩 AND THE AUTHORING PAGE DISAGREES WITH THIS FILE. template-docs
+# `authoring/writing.md` has a section headed "Only three, and each means
+# something specific" -- note, warning, danger -- arguing a fourth type is
+# exactly what the limit exists to prevent. PR #88 shipped twelve governed
+# families and never touched it, so the document authors consult has been wrong
+# since 2026-08-05 18:15. How many families are SANCTIONED is a policy question
+# and belongs to Michael; this file only records what is PAINTED.
+block	color	icon	note
+note	accent		the house voice. A note from us, so it takes the site's own identity colour rather than a semantic one.
+abstract	accent-2		A summary or TL;DR, in the secondary identity voice. Was data-1; see the warning above.
+info	info		FINALLY A CONSUMER FOR `info`. The token has been emitted by every canonical theme and read by nothing since the join landed, because until now this engine had no surface that meant "informational".
+tip	good		Advice that helps. Same meaning as success to a reader, same token.
+success	good		Something worked or is confirmed. Shares `good` with tip on purpose.
+question	info		An open question or FAQ. Shares `info`: a question and an informational aside are the same register, and the icon already tells them apart. Was data-2.
+warning	warn		Proceed carefully. The same token that paints every confidence marker chip, which is correct: both mean "do not lean on this yet".
+failure	bad		Something did not work. Shares `bad` with danger and bug.
+danger	bad		A hazard. In a venue and production context this is the one that matters most, and it must read as the same alarm as failure.
+bug	bad		A known defect. I argued for a separate colour -- a bug is a RECORD of something broken rather than a warning about it -- and dropped it: that distinction is not worth a border nobody can see in light mode. Was data-3.
+example	text-faint		A worked example. Quiet, like quote, and the FIRST CONSUMER of text-faint anywhere in this engine. Was data-4.
+quote	text-soft		A quotation. Deliberately the muted text colour and not a hue: a quote is quieter than the page, not a category of alert.
+# --- DECLARED BY US. Material has never heard of these, so each one MUST name
+# --- an `icon` or it silently inherits the note pencil.
+good	good	success	A POSITIVE POINTER -- "look here for first aid", "this is the good entrance". Michael, 2026-08-05: "not a red box, but green positive render notes." Borrows the `success` check glyph, because Material defines that variable and this family has no glyph of its own. Measured on the callout ground: edge 5.00 dark / 4.45 light against a 3.0 floor, title-on-wash 8.41 / 10.55 against 4.5.
