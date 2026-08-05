@@ -1,0 +1,47 @@
+# THE BRIDGE. What this engine calls a colour token, and what it is called in
+# the canonical design system.
+#
+# ⭐ NINE OF TEN WERE ONLY EVER A RENAME, and until that was written down the
+# refit looked like a merge of two palettes. It is not. `surface` and `bg` are
+# the same idea with two names, and the same is true eight more times.
+#
+# HOW IT IS USED. docrender/theme.py emits the CANONICAL name as the real
+# declaration and this file as ALIASES after it:
+#
+#     --dr-text: #ecbd5b;
+#     --dr-ink: var(--dr-text);
+#
+# So every `var(--dr-ink)` already written in a stylesheet keeps working, and
+# nothing had to be found-and-replaced across the asset layer. New CSS should
+# prefer the canonical name; the alias is a bridge, not a second vocabulary.
+#
+# A row where consumer == canonical emits NOTHING. An alias pointing a name at
+# itself is a no-op in CSS and a trap in a table, because it reads as a mapping
+# somebody chose.
+#
+# ⚠️ ORDER IS LOAD-BEARING WHERE THIS IS EMITTED, not here. The aliases must be
+# written AFTER both the local base rows and the canonical block, or --dr-ink
+# keeps the stand-in's value and the entire join silently does nothing while
+# every file involved looks correct.
+#
+# Canonical record: mawizorek/maw-themes -> vocabulary/document-tokens.tsv,
+# which carries the full reasoning per row plus the canonical roles this engine
+# does not consume yet. This file is its projection, deliberately narrower: it
+# holds only what the CSS emitter needs.
+#
+# ---------------------------------------------------------------------------
+# consumer    the token name this engine's stylesheets already use
+# canonical   the role name in the canonical system
+# note        why, or what to watch
+# ---------------------------------------------------------------------------
+consumer	canonical	note
+surface	bg	the page canvas
+surface-raised	surface-2	cards, admonition bodies, table zebra. Canonical splits raised chrome into surface-1/2/3; this engine has no top bar of its own (Material draws it), so what it calls raised is a PANEL, not chrome -- which is why this maps to 2 and not 1.
+ink	text	primary body text
+ink-muted	text-soft	labels, captions, secondary text
+rule	border	dividers, table grid lines, field borders. ⚠️ Canonical `border` serves all three at once, which is why the canonical contrast gate REMOVED its 3:1 pairs rather than failing all 19 themes on a decorative divider. Do not add that threshold to contrast.tsv here.
+accent	accent	identity - no alias emitted
+warn	warn	identity - no alias emitted
+danger	bad	error / destructive
+ok	good	success / positive
+dead		🔴 NO CANONICAL EQUIVALENT. A reference to a page not written YET is not an error, and sharing `danger` made it read as one on a list where most items were simply unwritten. Raised as maw-themes D11 and awaiting 19 authored values. Until then it is served by the LOCAL theme/colors.tsv base rows, which is the only reason that file is still loaded.

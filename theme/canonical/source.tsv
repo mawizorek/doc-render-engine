@@ -1,0 +1,29 @@
+# PROVENANCE for everything in theme/canonical/. Data, not prose, because
+# docrender/theme.py READS this file on every build and compares blob_sha
+# against the bytes actually on disk.
+#
+# WHY THE VENDORED TABLE HAS NO HEADER COMMENT
+# --------------------------------------------
+# Every other TSV in this engine opens with a comment block. canonical/colors.tsv
+# does not, and that is deliberate: a comment would change its bytes and destroy
+# the one thing that proves it IS the canonical table. Its identity is its hash.
+# So the commentary lives here instead. Do not "tidy" a header into it.
+#
+# WHAT THE CHECK PROVES, AND WHAT IT DOES NOT
+# -------------------------------------------
+# PROVES: the file on disk is byte-for-byte what we vendored. Catches a hand
+# edit, a partial write, an editor that stripped a trailing newline or converted
+# tabs -- the failure modes that turn a design system into a lookalike.
+#
+# DOES NOT PROVE: that what we vendored is still current upstream. That needs a
+# scheduled job with network access, and it does not exist yet. ⚠️ Stated rather
+# than implied, because a green check that answers a narrower question than the
+# reader assumes is worse than no check.
+#
+# HOW TO REFRESH: replace the file wholesale from the source repo, put the new
+# blob SHA here, and re-run the build. Never edit a vendored file in place --
+# it is not ours, and an in-place edit is a fork nobody declared.
+#
+# ---------------------------------------------------------------------------
+file	repo	path	blob_sha	bytes	verified	note
+canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	4f391aa4590036890131ea3819f5c805d703db5c	5710	2026-08-04	19 themes x 36 columns. SHA computed locally with git's blob algorithm and matched against the source before the first commit.
