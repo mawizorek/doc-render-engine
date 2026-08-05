@@ -24,6 +24,14 @@
 # docrender/blocks.py emits the rules as generated CSS, exactly like
 # markers.py emits the marker class colours.
 #
+# ⚠️ AND A ROW HERE IS ONLY HALF OF IT: template-docs `authoring/writing.md` is
+# what authors actually read, and it does NOT derive from this file. Adding,
+# recolouring or retiring a family means editing both, in the same session,
+# because the two cannot be reconciled by anything automatic. That is not a
+# guess about what might go wrong -- it went wrong on 2026-08-05, when twelve
+# governed families shipped and the page went on telling authors there were
+# three for four hours. Fixed in template-docs #25.
+#
 # ---------------------------------------------------------------------------
 # TWO KINDS OF ROW: INHERITED AND DECLARED
 #
@@ -107,20 +115,20 @@
 # Words that mean the same thing to a reader should not be different colours,
 # and the icon already tells them apart.
 #
-# ⚠️ THREE ON ONE TOKEN IS ONE MORE THAN THAT ARGUMENT COMFORTABLY CARRIES,
-# though. `tip` is advice, `success` is a thing that worked, and `good` is a
-# positive POINTER -- which is a real third register in a venue context ("look
-# here for first aid") and is also the point at which somebody should check the
-# distinction still holds. If it cannot be stated on sight, cull one rather than
-# letting three drift.
+# ⚠️ THREE ON ONE TOKEN IS ONE MORE THAN THAT ARGUMENT COMFORTABLY CARRIES, and
+# the test this file set was whether the distinction can be stated on sight.
+# ✅ IT CAN, AND IT NOW IS -- in template-docs `authoring/writing.md`, one line
+# each: `tip` is advice, `success` is a thing that worked, `good` is a location
+# or a resource worth knowing about, and if you cannot tell which you want, you
+# want `tip`. Nothing is culled and no ruling was needed; what changed is that
+# the distinction is written where authors read it instead of being carried in
+# this header as a worry.
 #
-# 🚩 AND THE AUTHORING PAGE DISAGREES WITH THIS FILE. template-docs
-# `authoring/writing.md` has a section headed "Only three, and each means
-# something specific" -- note, warning, danger -- arguing a fourth type is
-# exactly what the limit exists to prevent. PR #88 shipped twelve governed
-# families and never touched it, so the document authors consult has been wrong
-# since 2026-08-05 18:15. How many families are SANCTIONED is a policy question
-# and belongs to Michael; this file only records what is PAINTED.
+# 🚩 THE BAR FOR A FOURTEENTH FAMILY, since the list is a convention and not a
+# constraint: you can say in ONE SENTENCE what it means that none of the
+# thirteen does. A vocabulary nobody can recite is decoration, which was the
+# true half of the argument the authoring page used to make for holding it to
+# three.
 block	color	icon	note
 note	accent		the house voice. A note from us, so it takes the site's own identity colour rather than a semantic one.
 abstract	accent-2		A summary or TL;DR, in the secondary identity voice. Was data-1; see the warning above.
