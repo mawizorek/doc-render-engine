@@ -16,14 +16,27 @@
 # tabs -- the failure modes that turn a design system into a lookalike.
 #
 # DOES NOT PROVE: that what we vendored is still current upstream. That needs a
-# scheduled job with network access, and it does not exist yet. ⚠️ Stated rather
-# than implied, because a green check that answers a narrower question than the
-# reader assumes is worse than no check.
+# scheduled job with network access, and it does not exist yet. WARNING: stated
+# rather than implied, because a green check that answers a narrower question
+# than the reader assumes is worse than no check.
 #
 # HOW TO REFRESH: replace the file wholesale from the source repo, put the new
 # blob SHA here, and re-run the build. Never edit a vendored file in place --
 # it is not ours, and an in-place edit is a fork nobody declared.
 #
 # ---------------------------------------------------------------------------
+# REFRESH LOG. Newest first. A stamp with no history cannot answer "when did
+# this last move, and why" -- which is the first question anybody asks when a
+# colour changes and nobody remembers approving it.
+#
+# 2026-08-05  4f391aa -> 27b5327  ONE CELL: eos alt-text #1c1a24 -> #39ff14.
+#             maw-themes commit 8db6302. A deliberate PROOF VALUE, not a design
+#             decision: Michael asked for a wild colour in the eos LIGHT ramp to
+#             confirm a published page really is painted from the canonical
+#             table. Revert = restore #1c1a24 upstream and re-stamp here.
+#             STILL 5,710 BYTES. A size check would have passed this unchanged,
+#             which is the whole argument for hashing rather than measuring.
+# 2026-08-04  --      -> 4f391aa  Initial vendor. 19 themes x 36 columns.
+# ---------------------------------------------------------------------------
 file	repo	path	blob_sha	bytes	verified	note
-canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	4f391aa4590036890131ea3819f5c805d703db5c	5710	2026-08-04	19 themes x 36 columns. SHA computed locally with git's blob algorithm and matched against the source before the first commit.
+canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	27b53279d7966d9b6921d4a389f130862b891a10	5710	2026-08-05	19 themes x 36 columns. SHA computed locally with git's blob algorithm and matched against the SHA GitHub returned for the upstream write, before this file was committed.
