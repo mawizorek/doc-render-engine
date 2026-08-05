@@ -11,7 +11,7 @@ stylesheet -- and this page exists precisely to be trusted about that.
 
 WHAT IT ANSWERS, in order:
 
-  1 VECTORS   which of the four canonical vectors this engine consumes
+  1 VECTORS   which of the four canonical vectors this site actually consumes
   2 TOKENS    every --dr-* that reaches the browser, both schemes, and where
               the value came from: canonical row, local table, or alias
   3 CONSUMERS for each token, every selector and property that reads it
@@ -26,6 +26,30 @@ reaches the browser, which is the only question worth asking here. If the pipe
 breaks, the swatch goes blank while the printed value beside it stays correct --
 and that disagreement is the finding.
 
+=============================================================================
+RED THIS PAGE MAY NEVER TAKE DOWN A BUILD, AND IT DID (2026-08-05)
+=============================================================================
+
+`build()` called `theme._canonical_row()` after that function MOVED to
+vectors.py in PR #71. AttributeError inside `on_page_markdown`, which mkdocs
+does not catch -- so every build of any site carrying a `!!! tokens` page died.
+
+The missed call is the shallow cause. The real one: `mkdocs.yml` sets
+`strict: false` and this engine's standing rule is WARN-NEVER-DIE, because v1
+built with `--strict` and one typo froze the live site twice in forty minutes.
+Every other hook here obeys that. A DIAGNOSTIC page was the single surface that
+could take down the site it diagnoses, which is exactly backwards.
+
+So `build()` is wrapped. Any exception is caught, reported into the build log by
+type and message, and rendered as a visible failure block where the audit would
+have been. ⚑ **A report must never be able to break its own subject** -- and the
+test of that is not care, it is a try block.
+
+WARNING: RESOLUTION IS NOT THIS FILE'S JOB. Ask `vectors.resolve(scheme)`. It
+knows about the join table, the map form of `theme:`, and identity-derived mode
+siblings; re-deriving any of that here is how the two disagree. The original bug
+was this file holding its own copy of a question vectors.py already answers.
+
 WARNING: THE CSS SCAN IS NAIVE ON PURPOSE AND ITS LIMITS ARE STATED HERE RATHER
 THAN DISCOVERED LATER. It strips comments and walks brace depth one at-rule deep.
 That reads our own hand-written sheets correctly and would misread minified or
@@ -33,6 +57,12 @@ heavily nested CSS. Every row it prints carries the FILE and the SELECTOR it cam
 from, so any claim on the page is checkable in ten seconds -- which matters more
 than parser completeness. It cannot see inline styles, and it cannot see what
 Material's own stylesheet does; section 5 exists because of that second limit.
+
+WARNING: `_SHEETS` MUST LIST EVERY STYLESHEET WE SHIP. It went stale within two
+hours when `nav.css` was split out of `base.css`, and a scanner that silently
+misses a file under-reports rather than failing -- which is the worst shape for a
+page whose entire job is to be trusted. Cross-check it against
+`docrender/assets.py` `_DATA_ASSETS` whenever either changes.
 
 WARNING: SECTION 5's LIST IS DECLARED, ITS ANSWERS ARE DERIVED. A human says
 which surfaces are worth watching (theme/ungoverned.tsv); the build says whether
@@ -49,21 +79,31 @@ from __future__ import annotations
 
 import html
 import re
+import traceback
 from pathlib import Path
 
-from . import markers, state, theme
+from . import markers, state, theme, vectors
 from .util import load_tsv
 
 _BLOCK = re.compile(r"(?m)^!!![ \t]+tokens[ \t]*(?:\"[^\"]*\")?[ \t]*$")
 
-#: The canonical design system (mawizorek/maw-themes) defines FOUR vectors.
-#: Where this engine would find each one if it had it. Vendored is derived from
-#: disk; consumed is derived from the generated sheet. Neither is asserted.
+#: The scheme the audit reports against. Colour differs per scheme; the other
+#: three vectors do not, so one scheme is the whole picture for them. Matches
+#: theme.py's `_PRIMARY`.
+_SCHEME = "dark"
+
+#: Every hand-written stylesheet this engine ships, in load order. Keep in step
+#: with assets.py `_DATA_ASSETS` -- see the docstring warning.
+_SHEETS = ("base.css", "nav.css", "data.css", "data-list.css", "router.css")
+
+#: (label, canonical file, local file, resolve key). The canonical design system
+#: defines FOUR vectors; `key` is how vectors.resolve() names each one, and None
+#: means colour, which is answered by the resolved row instead.
 _VECTORS = (
-    ("Colour", "canonical/colors.tsv", "colors.tsv"),
-    ("Typography", "canonical/typography.tsv", "typography.tsv"),
-    ("Forms", "canonical/forms.tsv", "forms.tsv"),
-    ("Spacing", "canonical/spacing.tsv", "spacing.tsv"),
+    ("Colour", "canonical/colors.tsv", "colors.tsv", None),
+    ("Typography", "canonical/typography.tsv", "typography.tsv", "typography"),
+    ("Forms", "canonical/forms.tsv", None, "forms"),
+    ("Spacing", "canonical/spacing.tsv", None, "spacing"),
 )
 
 #: Properties where a literal length is a DESIGN decision rather than plumbing.
@@ -128,14 +168,13 @@ def _rules(css: str) -> list[tuple[str, list[tuple[str, str]]]]:
 def _sheets() -> list[tuple[str, str, bool]]:
     """(label, css, generated) for every stylesheet this build ships.
 
-    Order mirrors assets.py's `_plan`. Generated sheets are scanned for
-    CONSUMERS but excluded from the literal scan -- their literals are the
-    canonical table, and reporting the design system as ungoverned would be
-    exactly backwards.
+    Generated sheets are scanned for CONSUMERS but excluded from the literal
+    scan -- their literals ARE the canonical table, and reporting the design
+    system as ungoverned would be exactly backwards.
     """
     root = Path(state.ENGINE_ROOT)
     out: list[tuple[str, str, bool]] = []
-    for name in ("base.css", "data.css", "data-list.css", "router.css"):
+    for name in _SHEETS:
         path = root / "assets" / name
         if path.is_file():
             out.append((name, path.read_text(encoding="utf-8"), False))
@@ -205,6 +244,8 @@ _STYLE = """<style>
 .dr-audit .no{color:var(--dr-danger);font-weight:600}
 .dr-audit .warnx{color:var(--dr-warn)}
 .dr-audit .n{color:var(--dr-ink-muted)}
+.dr-audit-fail{border:2px solid var(--dr-danger);padding:1rem;margin:1rem 0}
+.dr-audit-fail h3{color:var(--dr-danger);margin:0 0 .5rem}
 </style>"""
 
 
@@ -220,36 +261,51 @@ def _table(head: list[str], rows: list[list[str]]) -> str:
     return "".join(out)
 
 
-def _vector_section(declared: set[str], row: dict | None) -> str:
-    """Which canonical vectors this engine consumes. Derived, not asserted."""
+def _vector_section(got: dict) -> str:
+    """Which canonical vectors this site consumes. DERIVED from the resolved
+    theme, not inferred from a file being present on disk.
+
+    The distinction matters and it is the whole point of section 1: a vendored
+    file that nothing points at is not a consumed vector, and before the join
+    table was read this engine had three of those.
+    """
     theme_dir = Path(state.ENGINE_ROOT) / "theme"
     rows = []
-    for label, canon_rel, local_rel in _VECTORS:
+    for label, canon_rel, local_rel, key in _VECTORS:
         vendored = (theme_dir / canon_rel).is_file()
-        has_local = (theme_dir / local_rel).is_file()
-        if vendored and row:
+        entity = got["colorRow"] if key is None else (got.get(key) or "")
+
+        if vendored and entity:
             verdict = "<span class='yes'>CANONICAL</span>"
-            note = "vendored and consumed"
-        elif has_local:
+            source = "<code>" + E(canon_rel) + "</code>"
+            note = (
+                "vendored and consumed"
+                + ("" if key is None else " &middot; entity <code>"
+                   + E(str(entity)) + "</code>")
+            )
+        elif vendored:
+            verdict = "<span class='warnx'>NOT POINTED AT</span>"
+            source = "<code>" + E(canon_rel) + "</code>"
+            note = (
+                "the file is vendored but this site's theme names no entity "
+                "for it -- a bare colour entity has no join, so it supplies "
+                "colour only. Name a THEME rather than a palette."
+            )
+        elif local_rel and (theme_dir / local_rel).is_file():
             verdict = "<span class='warnx'>LOCAL ONLY</span>"
+            source = "<code>" + E(local_rel) + "</code>"
             note = (
                 "consumed from this engine's own table. The canonical vector "
-                "was never vendored, so editing it upstream changes nothing here."
+                "was never vendored, so editing it upstream changes nothing."
             )
         else:
             verdict = "<span class='no'>ABSENT</span>"
+            source = "<span class='n'>-</span>"
             note = (
                 "neither vendored nor consumed. The canonical vector exists "
                 "upstream; this engine has no equivalent and never reads one."
             )
-        rows.append([
-            "<strong>" + label + "</strong>",
-            verdict,
-            "<code>" + E(canon_rel) + "</code>" if vendored
-            else ("<code>" + E(local_rel) + "</code>" if has_local
-                  else "<span class='n'>-</span>"),
-            note,
-        ])
+        rows.append(["<strong>" + label + "</strong>", verdict, source, note])
     return _table(["Vector", "Status", "Read from", "What that means"], rows)
 
 
@@ -272,9 +328,7 @@ def _token_section(values, consumers, row, local) -> str:
             _origin(token, dark, row, local),
             str(len(consumers.get(token, []))),
         ])
-    return _table(
-        ["", "Token", "Dark", "Light", "Source", "Used"], rows
-    )
+    return _table(["", "Token", "Dark", "Light", "Source", "Used"], rows)
 
 
 def _consumer_section(consumers) -> str:
@@ -338,7 +392,10 @@ def _marker_section() -> str:
         (r.get("class") or ""): r
         for r in load_tsv(theme_dir / "marker-classes.tsv")
     }
-    out = ["<div class='dr-audit-marks' markdown=\"1\">", "", "| Type | Class | Colour cell | Live |", "|---|---|---|---|"]
+    out = [
+        "<div class='dr-audit-marks' markdown=\"1\">", "",
+        "| Type | Class | Colour cell | Live |", "|---|---|---|---|",
+    ]
     for row in load_tsv(theme_dir / "markers.tsv"):
         name = (row.get("marker") or "").strip()
         if not name:
@@ -361,13 +418,16 @@ def _marker_section() -> str:
 # ---------------------------------------------------------------------------
 
 
-def build() -> str:
+def _build() -> str:
     tokens_css = theme.build_css()
     values = _values(tokens_css)
-    declared = set(values)
 
-    wanted = str(state.INSTANCE.get("theme", "base"))
-    row = theme._canonical_row(wanted)
+    # RESOLUTION IS NOT THIS FILE'S JOB. vectors.resolve() knows about the join
+    # table, the map form of `theme:` and identity-derived siblings. Holding a
+    # second copy of that question here is what broke the build.
+    got = vectors.resolve(_SCHEME)
+    row = got["colorRow"]
+
     local = {
         (r.get("token") or "").strip()
         for r in load_tsv(Path(state.ENGINE_ROOT) / "theme" / "colors.tsv")
@@ -377,8 +437,10 @@ def build() -> str:
     literals: list[tuple[str, str, str, str, str]] = []
     selectors: list[str] = []
 
-    scanned = _sheets() + [("tokens.css", tokens_css, True),
-                           ("marks.css", markers.build_css(), True)]
+    scanned = _sheets() + [
+        ("tokens.css", tokens_css, True),
+        ("marks.css", markers.build_css(), True),
+    ]
 
     for sheet, css, generated in scanned:
         for selector, decls in _rules(css):
@@ -398,17 +460,20 @@ def build() -> str:
     ungoverned_colours = sum(1 for x in literals if x[4] == "colour")
     state.note(
         "notes",
-        "token audit: " + str(len(declared)) + " tokens declared, "
+        "token audit: " + str(len(values)) + " tokens declared, "
         + str(sum(len(v) for v in consumers.values())) + " consumers, "
         + str(len(literals)) + " hardcoded values in our own stylesheets ("
         + str(ungoverned_colours) + " of them colours).",
     )
 
-    parts = [
+    return "\n".join([
         _STYLE,
         "<div class='dr-audit'>",
         "<h3>1 &middot; The four canonical vectors</h3>",
-        _vector_section(declared, row),
+        "<p class='n'>Derived from the theme this site actually resolved, not "
+        "from which files exist. A vendored vector nothing points at is not a "
+        "consumed one.</p>",
+        _vector_section(got),
         "<h3>2 &middot; Every token that reaches the browser</h3>",
         "<p class='n'>Swatches are painted with <code>var(--dr-token)</code>, "
         "never with the printed hex. A blank swatch beside a correct value "
@@ -417,9 +482,9 @@ def build() -> str:
         "<h3>3 &middot; Which part of the site each token controls</h3>",
         _consumer_section(consumers),
         "<h3>4 &middot; Hardcoded in our own stylesheets</h3>",
-        "<p class='n'>Not governed by any vector. A metric here is a spacing "
-        "decision that no spacing token could make, because this engine "
-        "consumes no spacing vector.</p>",
+        "<p class='n'>Not governed by any vector. Everything left here is a "
+        "value no canonical primitive covers, or one deliberately kept local "
+        "-- see the notes in each stylesheet.</p>",
         _literal_section(literals),
         "<h3>5 &middot; Surfaces our CSS never mentions</h3>",
         "<p class='n'>The list is declared in <code>theme/ungoverned.tsv</code>; "
@@ -431,8 +496,40 @@ def build() -> str:
         "",
         "<div class='dr-audit'><h3>6 &middot; Markers, live</h3></div>",
         _marker_section(),
-    ]
-    return "\n".join(parts)
+    ])
+
+
+def build() -> str:
+    """The audit, or a visible account of why there isn't one.
+
+    RED THIS WRAPPER IS THE POINT. On 2026-08-05 a stale call into theme.py
+    raised inside `on_page_markdown` and killed every build of every site
+    carrying this block. mkdocs does not catch a hook exception, and this engine
+    runs `strict: false` precisely so that one bad page cannot freeze a live
+    site -- a rule every other hook here already obeys.
+
+    A diagnostic surface must never be the thing that breaks its subject. So the
+    audit is allowed to fail; the site is not.
+    """
+    try:
+        return _build()
+    except Exception as exc:  # noqa: BLE001 -- deliberate, see the docstring
+        detail = type(exc).__name__ + ": " + str(exc)
+        state.note(
+            "notes",
+            "token audit FAILED to build and was replaced with a failure block "
+            "on the page. The site is fine; the audit is not. " + detail,
+        )
+        return (
+            _STYLE
+            + "<div class='dr-audit dr-audit-fail'>"
+            + "<h3>The token audit could not be built</h3>"
+            + "<p>The rest of this site is unaffected: this page is a report, "
+            + "and a report is not allowed to break its own subject.</p>"
+            + "<p><code>" + E(detail) + "</code></p>"
+            + "<pre><code>" + E(traceback.format_exc()) + "</code></pre>"
+            + "</div>"
+        )
 
 
 def on_page_markdown(markdown, page=None, config=None, files=None):
