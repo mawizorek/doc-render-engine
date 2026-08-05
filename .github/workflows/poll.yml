@@ -1,0 +1,75 @@
+name: Publish automatically (the routine)
+
+# ⭐ THIS FILE IS A SWITCH, NOT A BUILD.
+#
+# It holds one cron and calls build.yml. That is everything it does, and the
+# emptiness is the feature: GitHub can disable a WORKFLOW from the Actions tab,
+# but not a single TRIGGER of a workflow that also handles pushes. So the
+# routine had to become its own file before it could have an off switch.
+#
+# HOW TO TURN THE ROUTINE OFF (works on a phone):
+#   Actions -> "Publish automatically (the routine)" -> ... -> Disable workflow
+# Back on: same menu, Enable workflow.
+#
+# ⭐ THE STATE IS LEGIBLE, WHICH IS THE WHOLE REASON THIS BEAT A VARIABLE. A
+# disabled workflow greys out in the sidebar and carries a banner saying it was
+# disabled manually -- on the same screen you re-enable it from. The
+# `AUTOPUBLISH` variable it replaced could only be read by opening Settings,
+# and Michael's objection was exactly that: a switch you cannot see is not a
+# switch, it is a thing you have to remember.
+#
+# ⭐ AND OFF MEANS OFF. The variable gated a schedule that still fired, so `off`
+# was really "a routine that declines" -- ~288 skipped rows a day burying the
+# real ones. A disabled workflow does not run, does not queue, and logs
+# nothing. "Either auto-publish on a routine, or don't publish at all"
+# (Michael, 2026-08-04).
+#
+# 🚫 WHAT DISABLING THIS DOES NOT TOUCH, deliberately:
+#   - `publish.yml`, the manual publish button. Off must never mean "I cannot
+#     publish."
+#   - a push to this repo, which still renders every site through build.yml as
+#     the engine's regression check and still deploys. Turning the ROUTINE off
+#     is not the same as freezing the sites, and if that is ever wanted it is a
+#     different switch with a different name.
+#   - `publish-default.yml`, which carries its own separate nightly cron for the
+#     template site. ⚠️ That is a SECOND routine this switch does not reach --
+#     flagged rather than folded in, because the template is the engine's own
+#     live gold standard and freezing it is a different decision.
+#
+# ⚠️ FIVE MINUTES IS THE PLATFORM FLOOR. GitHub rejects tighter. Read it as
+# "usually within a quarter hour": scheduled runs queue under load, drift 5-20
+# minutes, and are dropped outright during heavy periods. Never build anything
+# that needs this to be punctual.
+#
+# ⚠️ CRON IS UTC AND DOES NOT FOLLOW DST. Irrelevant at this interval, recorded
+# because the nightly value this replaced silently shifted an hour twice a year
+# and nothing said so.
+#
+# ⚠️ GitHub AUTO-DISABLES a scheduled workflow after 60 days with no repo
+# activity -- and it does so by putting this file in exactly the state the off
+# switch uses. Not a live risk at this repo's pace, but if the routine ever
+# stops for no reason you remember, look here first: the symptom is silence.
+#
+# 📏 CHANGING THE FREQUENCY is one line below. The interval deliberately does
+# NOT live in a variable: that would put the routine's shape in two places
+# again, which is the mistake this file exists to undo.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  # Kept so the routine can be fired by hand without waiting for the next tick,
+  # and so the workflow has a Run button while disabled-state is being tested.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    name: every 5 minutes
+    uses: ./.github/workflows/build.yml
+    # ⚠️ LOAD-BEARING. A called workflow receives NO secrets by default, and
+    # DOCRENDER_TOKEN is what both the private content checkout and the
+    # cross-repo deploy run on. Forgetting this does not error: the build goes
+    # green, every deploy is skipped, and the summary reports a setup gap.
+    secrets: inherit
