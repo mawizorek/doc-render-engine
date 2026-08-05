@@ -108,11 +108,28 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
-# ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and four chains depend on it:
-#   00 sorts the nav  ->  00b prunes it  ->  00bb applies `nav:` to what is
-#      left  ->  00c rewires prev/next from what survived all three. Put 00b or
-#      00bb after 00c and the footer Next button walks through pages that are
-#      not in the sidebar.
+# ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and four chains depend on it.
+#
+#   THE NAV CHAIN, five links, every one load-bearing. The consequence of each
+#   misordering is written down because a bare sequence tells nobody what breaks:
+#
+#     00    sort   instance.py orders the tree
+#     00b   prune  unlisted pages leave the sidebar
+#     00bb  shape  `nav: hidden` folders lose their children
+#     00bc  seal   routed folders seal whatever is LEFT
+#     00c   chain  prev/next rebuilt from what survived all four
+#
+#   00b or 00bb after 00c  -> the footer Next button walks through pages that
+#                             are not in the sidebar.
+#   00bc before 00bb       -> a `nav: hidden` folder inside a routed folder is
+#                             sealed with its children still in it, and a
+#                             correct router code puts them back in the sidebar.
+#                             Does not fail, does not warn, and looks correct to
+#                             everybody without the code. Live bug, 2026-08-05,
+#                             which is why `visibility.seal_nav` ALSO checks
+#                             `state.NAV_SHAPED` at runtime and reports if this
+#                             list drifts. See docrender/visibility.py.
+#
 #   01 reads frontmatter -> 02 prunes files -> 03 indexes what survived
 #   01d emits marker syntax -> 03b renders it. Move 01d after 03b and the token
 #      audit page ships its specimens as literal text.
@@ -140,6 +157,7 @@ hooks:
   - hooks/00_instance.py
   - hooks/00b_unlisted.py
   - hooks/00bb_navstate.py
+  - hooks/00bc_seal.py
   - hooks/00c_nav.py
   - hooks/01_objects.py
   - hooks/01b_data.py
