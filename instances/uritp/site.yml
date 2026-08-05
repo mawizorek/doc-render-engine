@@ -13,38 +13,34 @@ base_url: https://mawizorek.github.io/uritp-docs/
 content_repo: mawizorek/uritp-docs
 content_branch: main
 
-# THE TOGGLE CYCLES TWO THEMES, AND EACH IS ONE COMPLETE PALETTE (2026-08-04).
+# THE THEME IS A JOIN OF FOUR VECTORS (2026-08-04).
 #
-# `theme:` accepts either shape. A bare slug paints both colour schemes from one
-# theme, which is still the common case -- template, theatre and hml all use it:
+# A theme binds exactly one entity from each of Colour, Typography, Forms and
+# Spacing. `sharp-mclaren` is colour `mclaren` + typography `sharp-racing` +
+# forms `sharp` + spacing `tight`.
 #
-#     theme: eos
+# WARNING: NAME A THEME, NOT A PALETTE. Until tonight this key resolved against
+# colour slugs, so a site got a palette and nothing else -- no canonical type,
+# no radii, no density. `mclaren` is NOT a theme; the joins that use it are
+# `sharp-mclaren` and `mclaren-mobile`. A bare colour entity still resolves, for
+# compatibility, and the build says so when it happens.
 #
-# A MAP names a theme per scheme, so the light/dark toggle cycles two different
-# identities rather than two halves of one row:
+# ONE LINE IS USUALLY ENOUGH. `theme: eos` paints dark from the eos colour row
+# and light from `eos-light`, because the two share an `identity` and the
+# opposite mode is DERIVED. A map is for naming two DIFFERENT themes:
 #
-#     theme:
-#       dark: mclaren
-#       light: eos-light
+#     theme: eos                                  # one identity, both modes
+#     theme: {dark: sharp-mclaren, light: eos}     # two, deliberately
 #
-# WARNING: NAME THE ROW, NOT THE IDENTITY. `light: eos` looks right and is
-# WRONG -- `eos` is a complete DARK palette now, so it would paint its dark ramp
-# into the light scheme: dark-on-light, no error anywhere. The light row of that
-# identity is `eos-light`. theme.py reports this by name if it happens again, but
-# the reason it is worth reading here is that the mistake LOOKS like a working
-# line of config.
-#
-# Both are CANONICAL themes -- values live in mawizorek/maw-themes and are
-# vendored, byte-verified, into theme/canonical/. Every canonical slug is
-# selectable here alongside the local ones in theme/themes.tsv.
-#
-# WARNING: TYPOGRAPHY DOES NOT SPLIT. Type is scheme-independent by design, so
-# one theme supplies it and it is the DARK one. `mclaren` declares no typography
-# rows of its own, so eos's monospace data font is NOT applied on this site any
-# more. The build names what it dropped.
+# WARNING: TYPOGRAPHY, FORMS AND SPACING DO NOT SPLIT BY MODE. They are
+# scheme-independent -- type by documented design, and a radius or a cell
+# padding has no business changing when a reader hits the toggle. The DARK theme
+# supplies all three, so this site gets `sharp-racing` / `sharp` / `tight`. The
+# eos entities the light theme points at are NOT applied, and the build names
+# them rather than letting a font change arrive unexplained.
 theme:
-  dark: mclaren
-  light: eos-light
+  dark: sharp-mclaren
+  light: eos
 
 # THE LAST DOOR BACK TO THE SOURCE.
 #

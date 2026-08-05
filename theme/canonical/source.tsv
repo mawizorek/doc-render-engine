@@ -1,13 +1,13 @@
 # PROVENANCE for everything in theme/canonical/. Data, not prose, because
-# docrender/theme.py READS this file on every build and compares blob_sha
+# docrender/vectors.py READS this file on every build and compares blob_sha
 # against the bytes actually on disk.
 #
-# WHY THE VENDORED TABLE HAS NO HEADER COMMENT
-# --------------------------------------------
-# Every other TSV in this engine opens with a comment block. canonical/colors.tsv
-# does not, and that is deliberate: a comment would change its bytes and destroy
-# the one thing that proves it IS the canonical table. Its identity is its hash.
-# So the commentary lives here instead. Do not "tidy" a header into it.
+# WHY THE VENDORED FILES CARRY NO HEADER COMMENTS
+# -----------------------------------------------
+# Every other TSV in this engine opens with a comment block. These do not, and
+# that is deliberate: a comment would change their bytes and destroy the one
+# thing that proves they ARE the canonical tables. Their identity is their hash.
+# The commentary lives here instead. Do not "tidy" a header into them.
 #
 # WHAT THE CHECK PROVES, AND WHAT IT DOES NOT
 # -------------------------------------------
@@ -26,57 +26,51 @@
 #
 # ---------------------------------------------------------------------------
 # REFRESH LOG. Newest first. A stamp with no history cannot answer "when did
-# this last move, and why" -- which is the first question anybody asks when a
-# colour changes and nobody remembers approving it.
+# this last move, and why" -- the first question anybody asks when something
+# changes and nobody remembers approving it.
 #
+# 2026-08-05  THE OTHER THREE VECTORS ARRIVE, PLUS THE JOIN TABLE.
+#             Michael: "you have only been focused on the colors this entire
+#             time." Correct. typography.tsv, forms.tsv, spacing.tsv and
+#             themes.json vendored, all byte-verified.
+#             RED themes.json had been sitting in maw-themes since PR #1 and
+#             NOTHING HAD EVER READ IT -- this engine's `theme:` key was
+#             resolving against COLOUR ENTITIES and calling them themes. `eos`
+#             worked by coincidence (a join AND a colour share that name);
+#             `mclaren` was never a theme at all.
+#             WARNING: the three new vectors are SHARED ENTITIES joined by
+#             pointer, not per-theme rows. Editing `tight` moves five themes.
 # 2026-08-05  667e4a9 -> 75b3f6c  OUTLANDISH ACCENTS, 30 cells across the six
 #             split rows. maw-themes 1616949. DELIBERATE PROOF VALUES, not a
 #             design pass: Material's fallback blue survived on the live site
 #             for weeks because it read as "docs site" rather than as broken.
-#             A colour nobody can mistake for a framework default is the
-#             cheapest test that the theme layer reaches a surface.
-#             eos #00ffd0 | mclaren #ffea00 | default-dark #00e0ff |
-#             eos-light #c400a8 | mclaren-light #b8008f | default-light #7a00cc
-#             All measured against canvas AND card AND their own on-accent;
-#             two first-choice candidates rejected on measurement (4.44, 4.36).
-#             SAME 6,674 BYTES as the previous vendor -- the second
-#             identical-size content change tonight.
+#             All measured against canvas AND card AND their own on-accent; two
+#             first-choice candidates rejected on measurement (4.44, 4.36).
+#             SAME 6,674 BYTES as the previous vendor.
 # 2026-08-05  e14e3a6 -> 667e4a9  THE SPLIT. maw-themes c7c7e86. 37 -> 38 cols,
 #             19 -> 23 rows. J10/S1 implemented for THREE identities: eos,
-#             mclaren and default each now have a COMPLETE dark row and a
-#             COMPLETE light row, alt- band empty on all six. New `identity`
-#             column groups a pair (Cleo's answer from W2 -- grouping is
-#             symmetric, a pair pointer can dangle). 37 values authored, each
-#             measured against BOTH its canvas and its card.
-#             RED THIS BROKE `light: eos` IN site.yml AND THE BREAK WAS SILENT:
-#             a complete dark row asked for the light scheme paints its dark
-#             ramp there. Fixed to `light: eos-light`; theme.py now reports the
-#             mistake by name and points at the sibling.
-#             13 rows still carry the alt band. Both shapes resolve through the
-#             same function, so the rest migrate per-row with no flag day.
+#             mclaren and default each got a COMPLETE dark row and a COMPLETE
+#             light row, alt- band empty on all six. New `identity` column
+#             groups a pair (Cleo's answer from W2 -- grouping is symmetric, a
+#             pair pointer can dangle).
+#             RED THIS BROKE `light: eos` IN site.yml AND THE BREAK WAS SILENT.
 # 2026-08-05  eade05c -> e14e3a6  TWO CELLS, eos alt- band. maw-themes b59f82f.
-#             alt-text #39ff14 -> #241f2b (the placeholder green retired;
-#             1.23:1 -> 14.55:1) and alt-accent #e0459b -> #bd2a75 (still
-#             magenta, but the shared value measured 3.46:1 on the light ground
-#             and now measures 5.06:1). First use of the alt- band for a reason
-#             other than ground and text.
+#             alt-text #39ff14 -> #241f2b (the placeholder green retired) and
+#             alt-accent #e0459b -> #bd2a75 (still magenta; the shared value
+#             measured 3.46:1 on the light ground).
 # 2026-08-05  27b5327 -> eade05c  eos dark ramp RE-AUTHORED (7 cells) + ONE NEW
-#             COLUMN, alt-accent. 36 -> 37 columns. maw-themes commit 9efb6a2.
-#             text -> #ecedf2 near-white; the amber #ecbd5b moves to `accent`;
-#             on-accent -> #1a1508 (white on amber would be 1.75:1 -- this also
-#             clears eos from maw-themes D7, which measured 3.82:1); magenta
-#             demoted to accent-2; deep and soft stops follow the new hue.
-#             WHY THE COLUMN: `accent` is shared across modes, and amber on the
-#             light ground measures 1.58:1. alt-accent keeps LIGHT on magenta.
-#             NO CODE CHANGED -- _canonical_decls() looks for alt-<token> for
-#             every token, not from a hardcoded list.
-# 2026-08-05  4f391aa -> 27b5327  ONE CELL: eos alt-text #1c1a24 -> #39ff14.
-#             maw-themes commit 8db6302. A deliberate PROOF VALUE, not a design
-#             decision: Michael asked for a wild colour in the eos LIGHT ramp to
-#             confirm a published page really is painted from the canonical
-#             table. STILL 5,710 BYTES. A size check would have passed this
+#             COLUMN, alt-accent. maw-themes 9efb6a2. The amber moves to
+#             `accent`; on-accent inverts to near-black, which also clears eos
+#             from maw-themes D7. NO CODE CHANGED -- the resolver looks for
+#             alt-<token> for every token, not from a hardcoded list.
+# 2026-08-05  4f391aa -> 27b5327  ONE CELL: eos alt-text -> #39ff14, a proof
+#             value. STILL 5,710 BYTES -- a size check would have passed this
 #             unchanged, which is the whole argument for hashing over measuring.
 # 2026-08-04  --      -> 4f391aa  Initial vendor. 19 themes x 36 columns.
 # ---------------------------------------------------------------------------
 file	repo	path	blob_sha	bytes	verified	note
-canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	75b3f6c9a9d1062cf7b6d60ef2230106c3f84db7	6674	2026-08-05	23 rows x 38 columns. 6 rows are COMPLETE palettes (empty alt band, paired by identity) and currently carry deliberate PROOF-VALUE accents; 13 still carry the legacy alt band; default-theme is mid and has neither. SHA computed locally and matched against the SHA GitHub returned for the upstream write, before this file was committed.
+canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	75b3f6c9a9d1062cf7b6d60ef2230106c3f84db7	6674	2026-08-05	23 rows x 38 columns. 6 rows are COMPLETE palettes (empty alt band, paired by identity) and currently carry deliberate PROOF-VALUE accents; 13 still carry the legacy alt band; default-theme is mid and has neither.
+canonical/typography.tsv	mawizorek/maw-themes	vectors/typography.tsv	cbf0c9e1ef8e3ba7150a21ad2831a6fae12d9165	1148	2026-08-05	6 SHARED entities on their own slugs (sharp-racing, mobile-legible, grounded, eos, racing-archivo, papyrus). Joined by pointer -- editing one moves every theme pointing at it.
+canonical/forms.tsv	mawizorek/maw-themes	vectors/forms.tsv	9433b6aeb08da191c3a2567edf24970cf81d945f	1322	2026-08-05	5 SHARED entities (sharp, soft, grounded, eos, papyrus). Radii, border weight, gradient angle, shadows, a three-step elevation scale and the motion set.
+canonical/spacing.tsv	mawizorek/maw-themes	vectors/spacing.tsv	a355d55bd399a453e4d7f467fad003c9fc12bebf	256	2026-08-05	6 SHARED entities (tight, loose, standard, eos, flush, database). Touch target, cell and card padding, three gaps.
+canonical/themes.json	mawizorek/maw-themes	registry/_themes.json	09e429be6890c622cef285ad5d6d4c3e7524e64e	7002	2026-08-05	THE JOIN. 12 themes, schemaVersion 3, each binding exactly one entity from each of the four vectors. Predates the 2026-08-04 split so it carries no light/dark pairs -- the opposite mode is DERIVED from the colour row's identity instead, which is why it needed no new column.
