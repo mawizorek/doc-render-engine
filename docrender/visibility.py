@@ -52,9 +52,8 @@ changes nothing about what is BUILT. A page inside a routed folder is exactly
 as public as it was before. One is a lock, one is a curtain, and the paragraph
 above exists because somebody once believed the curtain was the lock.
 
-⚠️ THIS FILE READS ONE THING FROM navstate: `hides_children`, in `_collect`.
-The seal has to honour `nav: hidden` itself, because it reaches a subtree before
-navstate ever runs. See that call site for the live bug it fixes.
+⚠️ ONE THING IS READ FROM navstate: `hides_children`, in `_collect`. The seal
+reaches a subtree before navstate runs, so it honours `nav: hidden` itself.
 """
 
 from __future__ import annotations
@@ -285,54 +284,47 @@ def _collect(node, out: list, depth: int) -> None:
         entry["u"] = index.file.url
     out.append(entry)
 
-    if index is None:
-        for kid in getattr(node, "children", None) or []:
-            _collect(kid, out, depth + 1)
-        return
+    if index is not None:
+        if _routed(state.BY_SRC.get(index.file.src_uri, {})):
+            # ⭐ THE SECOND HALF OF MICHAEL'S ASK, and it needs no rule of its
+            # own: "if only a sub tree is routed (or routed separately than the
+            # route on the upper index) it should also remain hidden until
+            # ungated."
+            #
+            # This folder is its own curtain. The parent may reveal that it
+            # EXISTS and must never reveal what is inside it. Sealed separately
+            # under its own codes, exactly as router.py's `_inherited` stops at
+            # the nearest ancestor.
+            _seal(node, index)
+            return
 
-    own = state.BY_SRC.get(index.file.src_uri, {})
-
-    if _routed(own):
-        # ⭐ THE SECOND HALF OF MICHAEL'S ASK, and it needs no rule of its own:
-        # "if only a sub tree is routed (or routed separately than the route on
-        # the upper index) it should also remain hidden until ungated."
-        #
-        # This folder is its own curtain. The parent may reveal that it EXISTS
-        # and must never reveal what is inside it. Sealed separately under its
-        # own codes, exactly as router.py's `_inherited` stops at the nearest
-        # ancestor.
-        _seal(node, index)
-        return
-
-    if navstate.hides_children(index.file.src_uri):
-        # 🔴 `nav: hidden` HAS TO BE HONOURED HERE OR IT IS NOT HONOURED AT ALL
-        # INSIDE A ROUTED FOLDER. Live bug, found by Michael from a phone
-        # screenshot on 2026-08-05: `courses/` declares `router: pm` and
-        # `courses/course-info/` declares `nav: hidden`, and all 43 course pages
-        # were arriving in the sealed manifest anyway.
-        #
-        # This pass runs at stage 00b; navstate applies `nav:` at 00bb. So the
-        # subtree was harvested BEFORE anything read the key, and then `_seal`
-        # set `children = [index]` -- so by the time navstate walked the tree,
-        # the folder was no longer in it and `_hide` had nothing to act on. The
-        # sidebar was correct for every reader who could not type the code.
-        #
-        # ⚑ Sixth instance of the shape this file keeps finding: a rule correct
-        # in isolation and unreachable in place. See `_mark_indexes` -- same
-        # ordering rule, defended in one direction, hiding a switch in the other.
-        #
-        # ⚠️ THE FOLDER'S OWN ROW IS STILL EMITTED, above. `hidden` means it
-        # keeps its row and loses its children, and that has to read the same
-        # behind a code as in front of one -- otherwise a correct code silently
-        # changes what `nav:` means.
-        state.note(
-            "routers",
-            index.file.src_uri + " · nav hidden inside a sealed router · its "
-            + "children are withheld from the sealed menu too, so a correct "
-            + "code reveals this folder and not its contents. Still built, "
-            + "still reachable by URL and by @id.",
-        )
-        return
+        if navstate.hides_children(index.file.src_uri):
+            # 🔴 `nav: hidden` IS HONOURED HERE OR IT IS NOT HONOURED AT ALL
+            # INSIDE A ROUTED FOLDER. Live bug, found by Michael from a phone
+            # screenshot 2026-08-05: `courses/` declares `router: pm`,
+            # `courses/course-info/` declares `nav: hidden`, and all 43 course
+            # pages were arriving in the sealed manifest regardless.
+            #
+            # This pass runs at 00b and navstate applies `nav:` at 00bb, so the
+            # subtree was harvested before anything read the key -- and `_seal`
+            # then cut it out of the tree, so navstate found nothing to act on.
+            # The sidebar was correct for every reader who could not type a code.
+            #
+            # ⚑ Sixth instance of the shape this file keeps finding: a rule
+            # correct in isolation and unreachable in place. `_mark_indexes` is
+            # the same ordering rule hiding a switch in the other direction.
+            #
+            # ⚠️ THE FOLDER'S OWN ROW IS STILL EMITTED, above. `hidden` keeps
+            # the row and drops the children, and that has to read the same
+            # behind a code as in front of one.
+            state.note(
+                "routers",
+                index.file.src_uri + " · nav hidden inside a sealed router · "
+                + "its children are withheld from the sealed menu too, so a "
+                + "correct code reveals this folder and not its contents. "
+                + "Still built, still reachable by URL and by @id.",
+            )
+            return
 
     for kid in getattr(node, "children", None) or []:
         if kid is index:
@@ -455,10 +447,9 @@ def prune_nav(nav, config, files):
     page inside a routed folder must not be sealed and then INJECTED into a menu
     on unlock, because it was deliberately not in the sidebar to begin with.
 
-    ⚠️ AND PASS 3 NOW READS `nav: hidden` ITSELF, rather than leaving it to
-    stage 00bb. It has to: the seal reaches a subtree first, so a `hidden`
-    folder inside a routed one would otherwise ship its children inside the
-    ciphertext. See the call to `navstate.hides_children` in `_collect`.
+    ⚠️ PASS 3 READS `nav: hidden` ITSELF rather than leaving it to 00bb: the
+    seal reaches a subtree first, so a `hidden` folder inside a routed one would
+    otherwise ship its children in the ciphertext. See `_collect`.
 
     WHAT THIS DOES NOT DO: unbuild anything. Every pruned or sealed page still
     renders, still has a live URL, and is still linkable by `@id`. That is the
