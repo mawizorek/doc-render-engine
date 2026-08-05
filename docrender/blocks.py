@@ -42,23 +42,86 @@ WHAT MATERIAL DOES, READ OUT OF ITS SOURCE AND NOT REMEMBERED
 
     :root { --md-admonition-icon--#{$name}: svg-load(...) }
 
-    .md-typeset .admonition.#{$name}          { border-color: $tint }
+    .md-typeset .admonition {
+      box-shadow: var(--md-shadow-z1);
+      transition: box-shadow 125ms;                    <- A LITERAL
+      &:focus-within { box-shadow: 0 0 0 4px rgba($clr-blue-a200, .1) }
+    }
+    .md-typeset .admonition.#{$name} {
+      border-color: $tint;
+      &:focus-within { box-shadow: 0 0 0 4px rgba($tint, .1) }
+    }
     .md-typeset .#{$name} > .admonition-title {
       background-color: color.adjust($tint, $alpha: -0.9);
       &::before { background-color: $tint; mask-image: ...icon }
       &::after  { color: $tint }
     }
 
-FOUR SURFACES PER FAMILY, all painted from one hardcoded hex: the box border,
+FIVE SURFACES PER FAMILY, all painted from one hardcoded hex: the box border,
 the title bar wash at 10% alpha, the ICON (a mask whose colour comes from
-`background-color`), and the details marker on a collapsible. None of them is a
-variable, which is the whole reason no theme change has ever reached a callout.
+`background-color`), the details marker on a collapsible, and THE FOCUS RING.
+None of them is a variable, which is the whole reason no theme change has ever
+reached a callout.
 
 🔴 READING THE SOURCE IS WHY THE SELECTORS WORKED FIRST TIME. The previous
 attempt to beat a Material rule in this engine -- the dark-mode blue link --
 shipped against a selector quoted from memory, was wrong in both halves, and
 survived a full day because the fix looked structural. A selector stated from
 memory is a guess wearing a bracket.
+
+=============================================================================
+🔴 THE FOCUS RING: HARDCODED, AND NEVER A FOCUS INDICATOR AT ANY COLOUR
+=============================================================================
+
+Found 2026-08-05 while reading this file for an unrelated question. Material
+paints the ring TWICE -- base and per flavour -- so tabbing to a `success` box
+flashed Material's green rather than the theme's, and `good` (which has no
+flavour rule of Material's) flashed BLUE inside a green box.
+
+⭐ THAT HALF IS ORDINARY WIRING. Every family emits its own ring from the same
+token that paints its border: one cell, five surfaces. A base rule painted from
+`accent` catches any family not in the table, so an undeclared word flashes the
+site's own colour instead of Material's indigo.
+
+⚠️ SPECIFICITY, NAMED HONESTLY. Per-family focus is (0,4,0) and beats Material's
+(0,3,0) OUTRIGHT. The base rule is (0,3,0) -- a TIE, taken on source order,
+exactly like chrome.css's ARMOUR. Two different mechanisms in one sheet and they
+are labelled differently on purpose.
+
+🔴 AND THE SECOND HALF IS THE REAL FINDING: THE 10% ALPHA CANNOT WORK.
+
+A 10% mix composites to 90% of the ground it sits on, so it cannot separate from
+that ground. That is arithmetic, not a property of any palette. Measured on the
+real eos rows against `bg` -- the ring sits OUTSIDE the box, so the page ground is
+what it composites over, not the callout:
+
+    alpha   eos dark          eos light
+     10%    1.12  FAIL        1.13  FAIL      <- Material's value
+     40%    1.82  FAIL        1.69  FAIL
+     70%    3.09  pass        2.68  FAIL
+    100%    5.06  PASS        4.63  PASS
+
+WCAG 1.4.11 asks 3.0 of a non-text indicator. Nothing below full strength clears
+it on both schemes, because the worst case is `text-faint` -- a grey, close to the
+ground BY DESIGN, which no opacity can pull away from it.
+
+⚑ SO PORTING THE 10% FAITHFULLY WOULD HAVE WIRED UP A BROKEN VALUE. The ring
+takes the token at FULL STRENGTH, justified by the numbers this repo already holds
+the BORDER to: accent 7.05/5.84, good 7.27/5.42, bad 5.82/5.05, text-faint
+5.06/4.63. One bar, one set of numbers, no new column. ⭐ *An alpha is not a
+colour choice, it is a CEILING on how different two things can be* -- and "match
+the framework" does not get to be the tie-breaker on a floor this repo has already
+written down.
+
+🚫 THE 10% WASH STAYS ON THE TITLE BAR, which is the surface it is right for: a
+tint behind bold text, not an indicator that has to be seen from across a room.
+Same construction, different job. Do not "fix" that one to match this one.
+
+⚠️ THE RING WIDTH IS A LITERAL AND IS AN HONEST GAP. `_RING_W` is 0.2rem because
+no token in any vector expresses a ring width -- `border-w` is a hairline at
+1-1.5px and using it would make the ring vanish. Named rather than smuggled into
+a token that means something else, which is the bridge-row mistake PR #82 had to
+revert.
 
 =============================================================================
 THE ICONS ARE MATERIAL'S, AND A DECLARED FAMILY HAS TO BORROW ONE
@@ -77,6 +140,14 @@ THE PENCIL. That is the harder failure to see: a missing glyph is obvious, a
 wrong glyph on a correctly-coloured box reads as a near-miss in the stylesheet
 rather than as an unfinished row in a table. `_MATERIAL` below is what lets this
 module notice and say so.
+
+⚠️ THE GLYPHS ARE REAL SVG FILES, WHICH IS WHY THE TABLE HOLDS A NAME AND NOT
+AN IMAGE. Material's `$admonitions` map pairs each family with an icon NAME
+(`note`: pencil-circle, `success`: check), and `svg-load()` inlines that file's
+markup into a custom property at ITS build time. So by the time a page renders,
+`--md-admonition-icon--success` is already a complete data URL -- 129 bytes of
+`<svg>` for the check -- and borrowing it costs a pointer. Authoring a new glyph
+would mean putting image data in a colour table, which theme/blocks.tsv refuses.
 
 ⚠️ AND AN UNKNOWN ICON NAME IS REFUSED RATHER THAN PASSED THROUGH. Emitting
 `var(--md-admonition-icon--nonsense)` is worse than emitting nothing: no
@@ -181,6 +252,33 @@ _BOX = (
     ("font-size", "fs-sm", "0.64rem"),
 )
 
+#: 🔴 THE TRANSITION, WHICH THIS FILE PREVIOUSLY CLAIMED WAS ALREADY HANDLED.
+#:
+#: The comment above the box block used to read: "A shadow and a transition, both
+#: of which Material states as its own variables -- so those are mapped in
+#: chrome.css and NOT restated here." HALF RIGHT, which is worse than wrong:
+#: `box-shadow: var(--md-shadow-z1)` genuinely is a variable and genuinely is
+#: mapped, and `transition: box-shadow 125ms` is a bare literal that chrome.css
+#: never touched. ⚑ A sentence that is true about one of two things it names
+#: reads as verified, so nobody checks the other half.
+#:
+#: Fallbacks are Material's own literals. A bare `var()` inside `transition` is
+#: invalid at computed-value time, which drops the whole property on the three
+#: local-theme sites.
+_TRANSITION = (
+    "  transition: box-shadow var(--dr-motion-fast, 125ms)"
+    " var(--dr-ease, linear);"
+)
+
+#: The focus ring width.
+#:
+#: ⚠️ AN HONEST GAP, NOT AN OVERSIGHT. No token in any vector expresses a ring
+#: width. `border-w` is the obvious candidate and it is WRONG: it is a hairline
+#: at 1-1.5px, so using it would make the ring effectively disappear. Naming a
+#: token that means something else to avoid a literal is precisely the bridge-row
+#: mistake PR #82 had to revert. 0.2rem is Material's own 4px, kept.
+_RING_W = "0.2rem"
+
 #: What a family falls back to when its token is not emitted by the active
 #: theme. `currentColor` rather than `accent`: accent would paint all nine
 #: unemitted families identically and claim a family meaning that is not there,
@@ -254,6 +352,17 @@ def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> st
     return _FALLBACK
 
 
+def _wash(value: str) -> str:
+    """The title bar tint: Material's 10% alpha, computed one layer later.
+
+    🚫 DO NOT REUSE THIS FOR THE FOCUS RING. It was used there and it was
+    measured at 1.12:1 -- see the focus-ring section in the module docstring. A
+    10% mix is 90% its own ground by construction, which is correct for a tint
+    behind bold text and useless for an indicator.
+    """
+    return "color-mix(in oklch, " + value + " 10%, transparent)"
+
+
 def _icon(name: str, icon: str, report: bool = True) -> str:
     """The mask declarations for one family, or "" to leave Material's.
 
@@ -309,15 +418,35 @@ def _icon(name: str, icon: str, report: bool = True) -> str:
     )
 
 
-def _selectors(name: str) -> tuple[str, str, str, str]:
-    """(box, title, icon, marker) selector lists for one family.
+def _ring(value: str) -> str:
+    """The focus ring for one family, at FULL STRENGTH.
+
+    ⚠️ The strength is the decision and it is measured, not preferred. See the
+    focus-ring section in the module docstring: Material's 10% alpha measures
+    1.12 dark / 1.13 light against a 3.0 floor, and nothing below 100% clears
+    both schemes because `text-faint` is a grey sitting near its own ground by
+    design.
+    """
+    return "  box-shadow: 0 0 0 " + _RING_W + " " + value + ";"
+
+
+def _selectors(name: str) -> tuple[str, str, str, str, str]:
+    """(box, focus, title, icon, marker) selector lists for one family.
 
     Both spellings of every selector, always. See the docstring on why the
     `details` half could not be verified from the file that documents it.
+
+    ⭐ `focus` is (0,4,0) -- one class more than Material's flavour rule -- so it
+    wins OUTRIGHT rather than on source order. The base ring in build_css is the
+    one that ties.
     """
     box = (
         ".md-typeset .admonition." + name + ",\n"
         ".md-typeset details." + name
+    )
+    focus = (
+        ".md-typeset .admonition." + name + ":focus-within,\n"
+        ".md-typeset details." + name + ":focus-within"
     )
     title = (
         ".md-typeset ." + name + " > .admonition-title,\n"
@@ -331,7 +460,7 @@ def _selectors(name: str) -> tuple[str, str, str, str]:
         ".md-typeset ." + name + " > .admonition-title::after,\n"
         ".md-typeset ." + name + " > summary::after"
     )
-    return box, title, icon, marker
+    return box, focus, title, icon, marker
 
 
 def build_css(report: bool = False) -> str:
@@ -348,24 +477,41 @@ def build_css(report: bool = False) -> str:
         "/* GENERATED by docrender/blocks.py -- do not edit.",
         "   One rule set per family, from theme/blocks.tsv.",
         "   Beats Material's flavour rules on source order at equal",
-        "   specificity (0,3,0). See that module for the whole argument.",
+        "   specificity (0,3,0); the per-family FOCUS rules are (0,4,0) and",
+        "   win outright. See that module for the whole argument.",
         "   Every colour carries a currentColor fallback: the icon is a mask",
         "   painted by background-color, so an unresolved token would not be",
         "   a wrong colour, it would be no icon. */",
         "",
     ]
 
-    # THE BOX, every family at once. Material hardcodes all three of these.
+    # THE BOX, every family at once. Material hardcodes all of these.
     box_decls = [
         "  " + prop + ": var(--dr-" + token + ", " + fallback + ");"
         for prop, token, fallback in _BOX
     ]
-    # A shadow and a transition, both of which Material states as its own
-    # variables -- so those are mapped in chrome.css and NOT restated here. One
-    # surface, one address.
+    box_decls.append(_TRANSITION)
+    # `box-shadow` itself is NOT restated here: Material reads --md-shadow-z1,
+    # which chrome.css maps to elev-1. One surface, one address. The TRANSITION
+    # on that shadow is a literal and is handled above -- see `_TRANSITION`.
     out.append(
         ".md-typeset .admonition,\n.md-typeset details {\n"
         + "\n".join(box_decls)
+        + "\n}"
+    )
+    out.append("")
+
+    # ⭐ THE BASE RING, for a family that has no row in the table. Material's
+    # base rule is hardcoded blue, so without this an undeclared word gets a
+    # correctly-coloured nothing and an indigo flash. `accent` is the honest
+    # choice: it says "this site" rather than claiming a family meaning.
+    #
+    # ⚠️ (0,3,0) -- level with Material, taken on SOURCE ORDER. The per-family
+    # rules below are (0,4,0) and do not depend on load order at all.
+    out.append(
+        ".md-typeset .admonition:focus-within,\n"
+        ".md-typeset details:focus-within {\n"
+        + _ring(_colour("accent", "the base focus ring", tokens, report=False))
         + "\n}"
     )
     out.append("")
@@ -378,8 +524,7 @@ def build_css(report: bool = False) -> str:
             tokens,
             report=report,
         )
-        box, title, icon, marker = _selectors(name)
-        wash = "color-mix(in oklch, " + value + " 10%, transparent)"
+        box, focus, title, icon, marker = _selectors(name)
 
         # ⭐ A LIST OF COMPLETE LINES, NOT A CONCATENATED STRING. The icon rule
         # carries one declaration or three depending on the row, and building
@@ -394,7 +539,8 @@ def build_css(report: bool = False) -> str:
 
         out += [
             box + " {\n  border-color: " + value + ";\n}",
-            title + " {\n  background-color: " + wash + ";\n}",
+            focus + " {\n" + _ring(value) + "\n}",
+            title + " {\n  background-color: " + _wash(value) + ";\n}",
             icon + " {\n" + "\n".join(icon_decls) + "\n}",
             marker + " {\n  color: " + value + ";\n}",
             "",
