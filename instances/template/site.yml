@@ -8,6 +8,12 @@
 # It is also the reference every other instance is copied from. Keep it
 # ordinary: no clever exceptions, no special cases, nothing another site cannot
 # imitate.
+#
+# 🔴 AND ON 2026-08-05 IT DID NOT BREAK FIRST AND LOUDEST. It broke first and
+# SILENTLY: `theme: base` meant eleven of thirteen callout families rendered
+# with no colour for four hours, including `danger`, and the only reason it was
+# found is that somebody went looking for something else. Being the canary is
+# not the same as being watched. See the theme note below.
 
 name: Doc Family Template
 description: The executable gold standard for every doc site in this family.
@@ -44,12 +50,67 @@ base_url: https://mawizorek.github.io/doc-render-engine/
 content_repo: mawizorek/template-docs
 content_branch: main
 
-theme: base
+# ---------------------------------------------------------------------------
+# 🔴 THIS WAS `base` UNTIL 2026-08-05 AND THAT MADE THIS SITE UNABLE TO PROVE
+# THE THING IT EXISTS TO PROVE.
+#
+# `base` is the engine's LOCAL nine-token stand-in, whose own header says it is
+# on death row. It is not a row in canonical/colors.tsv, so vectors.resolve()
+# finds no colorRow and theme.py takes its else branch: local rows only, and no
+# aliases pass either. Ten tokens reach the page.
+#
+# theme/blocks.tsv names EIGHT tokens across its thirteen callout families. Two
+# of them existed here. Measured, both schemes:
+#
+#     note     -> accent      COLOUR
+#     warning  -> warn        COLOUR
+#     the other eleven        currentColor -- identical monochrome boxes
+#
+# ⚑ INCLUDING `danger`, because the family `danger` asks for the token `bad` and
+# the local table spells that token `danger`. The box this family reserves for
+# "someone gets hurt" had no red border on the gold standard from 18:15Z, when
+# PR #88 took the cascade off Material and handed it a token this site never
+# emitted. Winning an override is how it broke.
+#
+# WHY `eos` AND NOT `soft-utility`, WHICH IS THE OBVIOUS ANSWER.
+#
+# soft-utility is the declared "balanced everyday default for new apps copied
+# from template-app" -- the closest thing to a default this system has, and what
+# this file's own "keep it ordinary" rule points at. It was measured anyway.
+# Callout border against surface-3, against contrast.tsv's 3.0 UI floor:
+#
+#     soft-utility   worst 1.46   5 of 8 tokens FAIL in light
+#     sharp-carbon   worst 1.70   5 of 8 tokens FAIL in light
+#     eos            worst 3.48   ALL PASS, both schemes
+#
+# 🔴 The cause is upstream: `good`, `warn`, `bad` and `info` are BYTE-IDENTICAL
+# between the dark and light rows of 16 of the 19 canonical pairs -- authored
+# against a dark ground and carried into light unchanged. Only default, eos and
+# mclaren re-author them. Same shape as the `data-1..4` finding, and worse,
+# because these tokens have real consumers. Raised upstream.
+#
+# ⚠️ SO THIS IS A COMPROMISE AGAINST "KEEP IT ORDINARY" AND IT IS NAMED AS ONE.
+# eos is a themed identity, not a neutral default, and a gold standard wearing
+# one is a wrinkle. It wins on two grounds: it is what the real doc sites in this
+# family already render, so it is the most imitable value available -- and the
+# alternative is a site that fails its own accessibility floor in light mode.
+#
+# 🚩 THE MOMENT UPSTREAM RE-AUTHORS THE SEMANTIC LIGHT VALUES, `soft-utility` IS
+# THE RIGHT ANSWER AND THIS LINE SHOULD MOVE. Do not read the choice as a
+# preference for eos; read it as the only palette that currently passes.
+# ---------------------------------------------------------------------------
+theme: eos
 
 # Kept ON here even after the real sites turn it off. This site's readers are
 # people editing the family, so the door back to the source is the point.
 edit_links: true
 
+# 🚫 NOT TOUCHED by the theme change above, deliberately. These are Material's
+# own scheme names, and chrome.css overrides what they actually paint -- but
+# `primary` must keep existing, because THE ARMOUR in chrome.css wins its
+# specificity tie by matching the `data-md-color-primary` attribute Material
+# writes from this key. A shape change and a value change must not ride in one
+# commit, and this commit changes one value.
 palette:
   dark:
     primary: black
