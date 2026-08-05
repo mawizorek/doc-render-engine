@@ -42,7 +42,7 @@ content_branch: main
 # did that, and a fixture that has finished proving its point is just a broken
 # palette. Do not re-add loud values here to debug -- change ONE cell upstream in
 # maw-themes and publish, which is the whole reason the join exists.)
-theme: eos
+theme: database
 
 # THE LAST DOOR BACK TO THE SOURCE.
 #
