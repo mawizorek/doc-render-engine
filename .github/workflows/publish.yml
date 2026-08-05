@@ -7,27 +7,65 @@ name: Publish a site
 #
 #   build.yml    fires on every engine change and rebuilds EVERYTHING. It is
 #                the engine's own regression check: did my change break a site.
-#   publish.yml  is the editorial act. ONE site, on purpose, when its content
-#                is ready. It is the closest thing this family has to 'make
-#                this public', and it is a decision rather than a side effect.
+#   publish.yml  is ONE site, on purpose, when its content is ready -- the
+#                closest thing this family has to 'make THIS public, now'.
 #
-# WHY IT IS NOT AUTOMATIC ON CONTENT PUSH. Publishing is an editorial decision:
-# an unfinished page can sit in `main` for a week without a reader ever seeing
-# it, and going live is something somebody chooses.
+# =============================================================================
+# 🔴 STRUCK 2026-08-05. THE PARAGRAPH BELOW WAS THIS FILE'S CENTRAL CLAIM AND
+# IT IS FALSE AT HEAD. IT WAS QUOTED TO MICHAEL AS FACT THIS SESSION.
+# =============================================================================
+# STRUCK: "publish.yml is the editorial act ... it is a decision rather than a
+# side effect. WHY IT IS NOT AUTOMATIC ON CONTENT PUSH: publishing is an
+# editorial decision, an unfinished page can sit in `main` for a week without a
+# reader ever seeing it, and going live is something somebody chooses."
 #
-# ⚠️ THE OLD SECOND HALF OF THAT ARGUMENT IS NO LONGER TRUE (2026-08-04). It used
-# to read "a content repo holds no workflow -- that is the purity rule -- so it
-# CANNOT publish itself." `uritp-docs` now holds exactly one workflow, by
+# Read build.yml. It fires `on: push [main]` and its deploy step runs for every
+# row with `publisher: matrix`, which is uritp, theatre and hml. **Every engine
+# push republishes all three.** Publishing is therefore already a side effect of
+# an engine commit, and has been for as long as that trigger has existed.
+#
+# The ARGUMENT for a manual publish is still a good one. It is simply not a
+# description of this pipeline. Anybody who wants publishing to actually BE an
+# editorial act has to change build.yml's trigger -- not read this comment and
+# feel reassured. Struck rather than deleted because the reasoning is worth
+# keeping and because a silently-rewritten comment teaches nobody why it rotted.
+#
+# WHAT THIS WORKFLOW IS STILL FOR, unambiguously: publishing ONE site NOW,
+# without waiting for or making an engine commit, with a preview mode and a
+# stated reason. That justifies it on its own.
+#
+# ⚠️ AND THE OLD SECOND HALF OF THE STRUCK ARGUMENT WAS ALREADY DEAD (2026-08-04).
+# It used to read "a content repo holds no workflow -- that is the purity rule --
+# so it CANNOT publish itself." `uritp-docs` now holds exactly one workflow, by
 # Michael's explicit exception, which regenerates its revision-log TSV on every
-# doc commit. So auto-publish became POSSIBLE on the day this comment stopped
-# being a fact, and the reason it is still not done is the editorial one above,
-# which stands on its own. Recorded rather than quietly rewritten, because
-# "impossible" and "chosen against" are different arguments and only one of them
-# survives contact with a new workflow.
+# doc commit. So auto-publish became POSSIBLE on the day that stopped being a
+# fact. Recorded rather than quietly rewritten, because "impossible" and "chosen
+# against" are different arguments -- and as of today neither one is true.
 #
 # PREVIEW MODE renders the site, diffs it against what is actually being
 # served, prints new / disappearing / renamed pages to the run summary, and
 # deploys NOTHING. Run it before every publish.
+#
+# =============================================================================
+# ⭐ THE `note` INPUT -- A PUBLISH CAN CARRY A WHY (added 2026-08-05)
+# =============================================================================
+# Optional free text. Michael asked whether a publish could carry a comment and
+# whether that was even a field. It was not, and a bare input would have been a
+# thin answer: GitHub keeps dispatch inputs in the event payload and displays
+# them nowhere a person actually looks. So the note is surfaced in THREE places,
+# and the surfaces are the feature:
+#
+#   run-name        the note becomes the RUN TITLE in the Actions list. That is
+#                   the only surface anybody scans, and nine runs all called
+#                   "Publish a site" is not a log.
+#   commit_message  the note rides into the gh-pages deploy commit, so it
+#                   outlives Actions log retention in the CONTENT repo's own
+#                   history. This is the copy that lasts.
+#   step summary    stated on the run itself, beside the engine SHA.
+#
+# 🚫 IT MUST STAY OPTIONAL. `required: true` turns every publish into a form,
+# and the entire value of the terminal path is that a publish is one word. An
+# empty note reproduces the old behaviour byte for byte.
 #
 # =============================================================================
 # ⚠️ THE SITE LIST BELOW IS HAND-MAINTAINED, AND IT CANNOT BE OTHERWISE
@@ -50,6 +88,11 @@ name: Publish a site
 # The `Resolve the site` step below no longer duplicates the content repo --
 # that comes from site.yml -- so the slug is the only thing stated twice.
 #
+# ⚠️ A `choice` INPUT IS CASE-SENSITIVE AND THE SLUGS ARE LOWERCASE. `gh
+# workflow run ... -f site=URITP` is rejected before any job starts, with an
+# error about an invalid value rather than about case. Any wrapper script must
+# lower-case the argument; the terminal helper in uritp-docs/guides does.
+#
 # =============================================================================
 # ⚠️ RE-RUN IS NOT THE SAME AS RUN (fixed 2026-08-03)
 # =============================================================================
@@ -66,6 +109,14 @@ name: Publish a site
 # Two defences below. The engine checkout is pinned to `main` EXPLICITLY rather
 # than to the triggering SHA, and the run summary prints the engine commit it
 # actually used, so a stale build is visible instead of inferred.
+#
+# ⭐ AND AS OF 2026-08-05 A THIRD, WHICH IS THE REAL ONE: `run-name` puts the
+# site, the mode and the note in the run's TITLE. A re-run inherits the title of
+# the run it replays, so a stale rebuild now announces itself as a duplicate in
+# the list instead of looking like a fresh publish.
+
+run-name: >-
+  ${{ inputs.site }} · ${{ inputs.mode }}${{ inputs.note != '' && format(' · {0}', inputs.note) || '' }}
 
 on:
   workflow_dispatch:
@@ -87,6 +138,12 @@ on:
         options:
           - preview
           - publish
+      note:
+        # Optional on purpose -- see THE `note` INPUT at the top of this file.
+        description: "Why are you publishing? (shows in the run title and the deploy commit)"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -95,6 +152,13 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     name: ${{ inputs.site }} (${{ inputs.mode }})
+
+    # ⏱️ Matches build.yml deliberately. A hung render holds a runner for SIX
+    # HOURS on the default ceiling, and the `theatre` render is known to hang
+    # rather than fail (build.yml, 2026-08-05). Ten minutes is ~20x the observed
+    # worst case; if it ever fires, it is the messenger.
+    timeout-minutes: 10
+
     steps:
       - name: Check out the engine
         uses: actions/checkout@v4
@@ -129,6 +193,23 @@ jobs:
           repo=$(python3 -c "import yaml,sys; print(yaml.safe_load(open('instances/$slug/site.yml'))['content_repo'])")
           echo "repo=$repo" >> "$GITHUB_OUTPUT"
           echo "Publishing \`$slug\` from \`$repo\`." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: State the reason, if one was given
+        # Printed as its own step so it is visible in the step LIST, not only
+        # inside a log nobody expands. A publish with no stated reason says so
+        # rather than printing nothing -- silence would read as a missing step.
+        env:
+          NOTE: ${{ inputs.note }}
+        run: |
+          if [ -n "$NOTE" ]; then
+            echo "Reason given: $NOTE"
+            {
+              echo ""
+              echo "> **Why:** $NOTE"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No reason given. That is allowed; the field is optional."
+          fi
 
       - name: Check out the content
         uses: actions/checkout@v4
@@ -219,7 +300,10 @@ jobs:
           publish_branch: gh-pages
           publish_dir: ./site
           enable_jekyll: false
-          commit_message: "publish: ${{ inputs.site }} from engine ${{ steps.engine.outputs.sha }}"
+          # ⭐ THE NOTE'S DURABLE HOME. Actions logs age out of retention; a
+          # commit in the content repo does not. If the reason for a publish is
+          # ever going to be read six months from now, it is read here.
+          commit_message: "publish: ${{ inputs.site }} from engine ${{ steps.engine.outputs.sha }}${{ inputs.note != '' && format(' · {0}', inputs.note) || '' }}"
 
       - name: What happens next
         if: always()
