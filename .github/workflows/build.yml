@@ -26,6 +26,11 @@ name: Build and deploy doc sites
 # the field is a string rather than a boolean: `publishes_here: false` read
 # ambiguously enough that the condition testing it was inverted, and the
 # default instance was being published twice.
+#
+# ⭐ AND AS OF 2026-08-04 THAT SAME FIELD ALSO DECIDES THE CHECKOUT TOKEN. See
+# the long note on the content checkout below -- the short version is that
+# `publisher: matrix` is exactly the set of repos whose PAT access is PROVEN by
+# the deploy step, so it is the honest thing to key a read credential to.
 
 on:
   push:
@@ -102,6 +107,38 @@ jobs:
         with:
           repository: ${{ matrix.repo }}
           path: content
+          # ⚠️ AUTHENTICATED AS OF 2026-08-04, and the old comment is kept in
+          # full below because its own warning came true within the hour.
+          #
+          # SUPERSEDED: "Deliberately NOT authenticated. The content repos are
+          # public, and a token here buys nothing while adding a failure mode
+          # that is genuinely hard to read: a fine-grained PAT missing this one
+          # repo fails the CHECKOUT with `git ... exit code 128`, which looks
+          # like a broken build rather than a missing checkbox. That cost a
+          # debugging round on 2026-08-03, right after a repo transfer left it
+          # off the token's list. If a content repo ever goes private, add
+          # `token:` back HERE and expect that failure mode to return."
+          #
+          # `uritp-docs` went private on 2026-08-04, so that the repo page 404s
+          # to anyone who swaps `github.io` for `github.com` while Pages keeps
+          # serving `gh-pages` to the public. GITHUB_TOKEN is scoped to THIS
+          # repository and cannot read another private one, so the checkout
+          # died exactly as the paragraph above predicted it would.
+          #
+          # ⭐ WHY THIS IS KEYED TO `publisher` AND NOT TO A NEW `private` FLAG.
+          # The `publisher: matrix` rows are precisely the repos this job
+          # already WRITES to with DOCRENDER_TOKEN at the deploy step below --
+          # so the PAT's read access to them is proven by a deploy that works,
+          # not assumed from a checkbox nobody has looked at. `template` keeps
+          # GITHUB_TOKEN, which is enough for a public repo, because nothing
+          # here has ever demonstrated that the PAT can see `template-docs` and
+          # taking that on faith is how the 128 arrived the first time. No new
+          # field, no second list to forget, and the privacy of a content repo
+          # is never stated twice.
+          #
+          # If `template-docs` ever goes private, this line is where it lands,
+          # and the PAT must be given access BEFORE the visibility flips.
+          token: ${{ matrix.publisher == 'matrix' && secrets.DOCRENDER_TOKEN || github.token }}
           # ⚠️ NO LONGER LOAD-BEARING (2026-08-04), old reason kept on the record.
           #
           # SUPERSEDED: "docrender/revlog.py reads `git log` here to build the
@@ -119,14 +156,6 @@ jobs:
           # published and broken on the nightly. Now a preference, not a
           # requirement, and if it is ever removed it must be removed from BOTH.
           fetch-depth: 0
-          # Deliberately NOT authenticated. The content repos are public, and a
-          # token here buys nothing while adding a failure mode that is genuinely
-          # hard to read: a fine-grained PAT missing this one repo fails the
-          # CHECKOUT with `git ... exit code 128`, which looks like a broken
-          # build rather than a missing checkbox. That cost a debugging round on
-          # 2026-08-03, right after a repo transfer left it off the token's list.
-          # If a content repo ever goes private, add `token:` back HERE and
-          # expect that failure mode to return.
 
       - name: Confirm the matrix agrees with the instance config
         working-directory: engine
