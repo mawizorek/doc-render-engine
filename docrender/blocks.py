@@ -3,160 +3,50 @@
 Not a hook. `build_css()` is called by docrender/assets.py and published as
 `blocks.css`, exactly like markers.py's marker-class sheet.
 
-Defined in theme/blocks.tsv. Adding or recolouring a family is a row there.
+    theme/blocks.tsv     the thirteen families. ADDING OR RECOLOURING ONE IS A
+                         ROW THERE -- no code change, no CSS change.
+    docs/CALLOUTS.md     WHY any of this is the way it is: Material's five
+                         hardcoded surfaces, the focus-ring measurements, the
+                         specificity argument, and two post-mortems.
+
+⚠️ READ docs/CALLOUTS.md BEFORE CHANGING A SELECTOR OR A COLOUR CONSTRUCTION
+HERE. This file used to carry all of that inline and reached 27,655 B against a
+22,528 B hard read limit -- so the argument moved and only what an editor of the
+EMITTER needs stayed. The trade is that a decision you disagree with is one file
+away rather than in front of you, and it has almost certainly already been
+measured.
 
 =============================================================================
-🔴 THIS FILE KILLED EVERY BUILD ON 2026-08-05, AT IMPORT TIME
+THE FOUR THINGS THAT WILL BITE SOMEBODY EDITING THIS FILE
 =============================================================================
 
-It imported `_token_sets` from markers.py. That function existed only in MY
-version of markers.py, on a branch that was closed unmerged (PR #84) after a
-parallel session shipped the same features first (#83). Their markers exports
-`_known_tokens`. I kept the caller and lost the callee.
+1 · SPECIFICITY. Every rule below matches Material's own selectors at (0,3,0) and
+    wins on SOURCE ORDER, because our sheets load after `main.css`. ⚠️ That is a
+    TIE and it is the only honest name for it -- there is nothing to delete.
+    ⭐ THE PER-FAMILY FOCUS RULES ARE THE EXCEPTION: `.admonition.good:focus-
+    within` carries one more class, so (0,4,0) beats Material outright and does
+    not depend on load order. The BASE focus rule in build_css does tie.
 
-An ImportError here is not a render failure -- it is raised while mkdocs VALIDATES
-its config, before a single page is read, so `strict: false` and the token audit's
-own try/except cannot help. The chain is:
+2 · EVERY COLOUR CARRIES A FALLBACK INSIDE THE `var()`, and that is a mechanism
+    rather than caution. A property invalid at computed-value time is set to
+    `unset`, and earlier declarations in the same rule are DISCARDED rather than
+    used -- so writing a plain `border-color` above a `var()` one does nothing.
+    `var(--dr-x, currentColor)` is the only thing that works. On a nine-token
+    local theme nine families name a token that is never emitted, and the icon is
+    a MASK painted by `background-color`, so no colour means NO ICON.
 
-    hooks/01d_audit -> tokenaudit -> assets -> blocks -> markers
+3 · THE `details` SELECTORS ARE DEFENSIVE AND UNVERIFIED. Every rule is emitted
+    for both `.admonition.<name>` and `details.<name>`. A selector that matches
+    nothing costs a few bytes; a missing one costs a family that quietly stays
+    blue.
 
-⚑ SECOND OCCURRENCE OF ONE SHAPE IN ONE DAY. This morning tokenaudit called
-`theme._canonical_row()` after that function moved to vectors.py, with the same
-result. A cross-module call whose callee moved. The post-mortem for the first one
-was written eight hours before the second one shipped, which is the argument for
-a CHECK rather than a lesson.
+4 · ROWS ARE INHERITED OR DECLARED, and only a DECLARED one needs an `icon`.
+    Material's base rule sets the note pencil unconditionally, so a family it has
+    never heard of wears the WRONG glyph rather than none. `_icon` reports that.
 
-🔴 AND THE VERIFICATION THAT MISSED IT WAS THE REAL PROBLEM. The generator was
-run in a sandbox before shipping and its output checked -- rule count, brace
-balance, specificity against Material -- but the test script REIMPLEMENTED
-`_colour` rather than importing it. So the logic was proven and the import was
-never executed. A test that reimplements its subject tests the reimplementation.
-
-=============================================================================
-WHAT MATERIAL DOES, READ OUT OF ITS SOURCE AND NOT REMEMBERED
-=============================================================================
-
-`src/templates/assets/stylesheets/main/extensions/markdown/_admonition.scss`:
-
-    $admonitions: ("note": pencil-circle $clr-blue-a200, ...12 entries)
-
-    :root { --md-admonition-icon--#{$name}: svg-load(...) }
-
-    .md-typeset .admonition.#{$name}          { border-color: $tint }
-    .md-typeset .#{$name} > .admonition-title {
-      background-color: color.adjust($tint, $alpha: -0.9);
-      &::before { background-color: $tint; mask-image: ...icon }
-      &::after  { color: $tint }
-    }
-
-FOUR SURFACES PER FAMILY, all painted from one hardcoded hex: the box border,
-the title bar wash at 10% alpha, the ICON (a mask whose colour comes from
-`background-color`), and the details marker on a collapsible. None of them is a
-variable, which is the whole reason no theme change has ever reached a callout.
-
-🔴 READING THE SOURCE IS WHY THE SELECTORS WORKED FIRST TIME. The previous
-attempt to beat a Material rule in this engine -- the dark-mode blue link --
-shipped against a selector quoted from memory, was wrong in both halves, and
-survived a full day because the fix looked structural. A selector stated from
-memory is a guess wearing a bracket.
-
-=============================================================================
-THE ICONS ARE MATERIAL'S, AND A DECLARED FAMILY HAS TO BORROW ONE
-=============================================================================
-
-Material emits `--md-admonition-icon--<name>` for each of its twelve, and its
-BASE rule is unconditional:
-
-    .md-typeset .admonition-title::before {
-      background-color: $clr-blue-a200;
-      mask-image: var(--md-admonition-icon--note);      <- THE PENCIL
-    }
-
-⚠️ SO A FAMILY MATERIAL HAS NEVER HEARD OF DOES NOT LOSE ITS ICON -- IT WEARS
-THE PENCIL. That is the harder failure to see: a missing glyph is obvious, a
-wrong glyph on a correctly-coloured box reads as a near-miss in the stylesheet
-rather than as an unfinished row in a table. `_MATERIAL` below is what lets this
-module notice and say so.
-
-⚠️ AND AN UNKNOWN ICON NAME IS REFUSED RATHER THAN PASSED THROUGH. Emitting
-`var(--md-admonition-icon--nonsense)` is worse than emitting nothing: no
-fallback means invalid at computed-value time, which sets `mask-image: none`,
-which removes the mask entirely and leaves the ::before painting its full
-background-color as a solid 20x20px SQUARE.
-
-🔴 AND THE SAME SQUARE ARRIVES FROM AN OLD BROWSER, WHICH THE GUARD ABOVE CANNOT
-SEE (found 2026-08-05 by running the generator). Unprefixed `mask-image` needs
-Safari 16.4; below that the declaration is dropped as unknown, the mask is gone,
-and a CORRECT icon name paints the square. Material's own compiled stylesheet
-emits both spellings -- read off the published `main.ec1eaa64.min.css`, not
-recalled -- so `_icon` emits both too. ⚑ A guard against one CAUSE of a symptom
-is not a guard against the symptom.
-
-=============================================================================
-SPECIFICITY IS A TIE, WON ON SOURCE ORDER, AND THAT IS THE HONEST NAME
-=============================================================================
-
-Material's flavour rules compute to (0,3,0):
-
-    .md-typeset .admonition.note                (0,3,0)
-    .md-typeset .note > .admonition-title       (0,3,0)
-
-The generated rules use the same selectors, so they are also (0,3,0), and every
-stylesheet this engine ships is linked AFTER `main.css`. Equal specificity plus
-later in the cascade means we win.
-
-⚠️ THAT IS A TIE, NOT A STRUCTURAL FIX. There is nothing to delete here --
-Material's rule is in its own stylesheet and stays there. chrome.css's ARMOUR
-block carries the same warning for the same reason: the last time somebody in
-this repo called a cascade tie "structural", the mislabel is what let a wrong
-diagnosis ship for a day.
-
-⚠️ THE `details` SELECTORS ARE DEFENSIVE AND I COULD NOT VERIFY THEM.
-`_admonition.scss` says its styles "also apply to details tags, which are
-rendered as collapsible admonitions with summary elements as titles" -- but the
-rule that makes that true lives in a file this pass did not read. So every rule
-below is emitted for BOTH spellings: `.admonition.<name>` and `details.<name>`,
-`.admonition-title` and `summary`. A selector that matches nothing costs a few
-bytes; a missing one costs a family that quietly stays blue.
-
-=============================================================================
-⚠️ EVERY COLOUR CARRIES A FALLBACK, AND HERE THAT IS NOT DEFENSIVENESS
-=============================================================================
-
-markers.py deliberately emits `var(--dr-x)` with no fallback, and says so: a
-marker naming a token the active theme does not emit paints nothing, and an
-unstyled marker is still readable text.
-
-A CALLOUT IS NOT. On a nine-token local theme (`utility`, `database`, `base`)
-nine of the twelve families name a canonical token that is never emitted:
-
-    border-color: var(--dr-accent-2)     -> invalid at computed-value time
-                                         -> unset -> currentColor
-    background-color on the ICON         -> unset -> transparent
-                                         -> THE ICON DISAPPEARS ENTIRELY
-
-The icon is a MASK whose visible colour comes from `background-color`, so no
-colour means no icon at all. That is why this module resolves its own colour
-instead of reusing markers' resolver: the two files have the same QUESTION and
-different CONSEQUENCES, and a shared helper that encoded one policy was what
-broke the build.
-
-⚠️ AND THE FALLBACK HAS TO BE INSIDE THE `var()`. A second `border-color`
-declaration ahead of it does NOT help: a property that is invalid at
-computed-value time is set to unset, and earlier declarations in the same rule
-are discarded rather than used. `var(--dr-x, currentColor)` is the only mechanism.
-
-=============================================================================
-THE 10% WASH
-=============================================================================
-
-Material computes the title bar as the tint at 10% alpha, at BUILD time, from a
-Sass colour. We cannot do that to a custom property -- the value is not known
-until the browser resolves it -- so the wash is `color-mix(in oklch, TOKEN 10%,
-transparent)`. Same result, computed one layer later.
-
-`in oklch` matches what base.css already uses for marker chips, so the mixing
-space is consistent across the two places this engine tints a token.
+⚠️ AND A ROW HERE IS HALF THE JOB: template-docs `authoring/writing.md` is what
+authors read and it does NOT derive from this file. On 2026-08-05 twelve governed
+families shipped and that page told authors there were three, for four hours.
 """
 
 from __future__ import annotations
@@ -170,50 +60,70 @@ from .util import load_tsv
 #: table's job.
 #:
 #: ⚠️ `font-size` IS THE ONE VISIBLE CHANGE NOBODY ASKED FOR. Material sets
-#: 0.64rem, which on this site is far below body text; eos's `fs-sm` is 0.82rem
-#: against a 0.9rem body. Callouts get bigger and sit just under the prose
-#: instead of looking like a footnote. That is the correct relationship rather
-#: than the one that happened to exist, and it is stated here so it is not
-#: mistaken for a regression.
+#: 0.64rem, far below body text here; eos's `fs-sm` is 0.82rem against a 0.9rem
+#: body. Callouts get bigger and sit just under the prose instead of looking like
+#: a footnote. Stated so it is not mistaken for a regression.
 _BOX = (
     ("border-width", "border-w", "1.5px"),
     ("border-radius", "radius-lg", "4px"),
     ("font-size", "fs-sm", "0.64rem"),
 )
 
-#: What a family falls back to when its token is not emitted by the active
-#: theme. `currentColor` rather than `accent`: accent would paint all nine
-#: unemitted families identically and claim a family meaning that is not there,
-#: where currentColor says plainly "this family has no colour here" and still
-#: draws the icon.
+#: 🔴 THE TRANSITION, WHICH THIS FILE ONCE CLAIMED WAS ALREADY HANDLED.
+#:
+#: The old comment read: "a shadow and a transition, both of which Material states
+#: as its own variables -- so those are mapped in chrome.css and NOT restated
+#: here." HALF RIGHT, which is worse than wrong: `box-shadow: var(--md-shadow-z1)`
+#: genuinely is a variable and genuinely is mapped; `transition: box-shadow 125ms`
+#: is a bare literal chrome.css never touched. ⚑ A sentence true about one of two
+#: things it names reads as verified, so nobody checks the other half.
+#:
+#: Fallbacks are Material's own literals: a bare `var()` inside `transition` is
+#: invalid at computed-value time, which drops the property on local-theme sites.
+_TRANSITION = (
+    "  transition: box-shadow var(--dr-motion-fast, 125ms)"
+    " var(--dr-ease, linear);"
+)
+
+#: The focus ring width.
+#:
+#: ⚠️ AN HONEST GAP, NOT AN OVERSIGHT. No token in any vector expresses a ring
+#: width. `border-w` is the obvious candidate and is WRONG -- a hairline at
+#: 1-1.5px would make the ring vanish. Naming a token that means something else to
+#: avoid a literal is the bridge-row mistake PR #82 had to revert. 0.2rem is
+#: Material's own 4px, kept.
+_RING_W = "0.2rem"
+
+#: What a family falls back to when its token is not emitted by the active theme.
+#: `currentColor` rather than `accent`: accent would paint all nine unemitted
+#: families identically and claim a family meaning that is not there, where
+#: currentColor says plainly "no colour here" and still draws the icon.
 _FALLBACK = "currentColor"
 
 #: The twelve families Material ships, in its own order.
 #:
-#: ⭐ ONE CONSTANT, TWO QUESTIONS, and that is deliberate rather than thrifty.
-#: It is the set of legal `icon` values -- Material emits
-#: `--md-admonition-icon--<name>` for exactly these -- AND it is how this module
-#: tells an INHERITED row from a DECLARED one. A second list for the second
-#: question would be a second place stating one fact, which is the defect this
-#: repo has now killed in tokenaudit's sheet list, three JSON manifests and the
-#: marker validator.
+#: ⭐ ONE CONSTANT, TWO QUESTIONS, deliberately rather than thriftily. It is the
+#: set of legal `icon` values -- Material emits `--md-admonition-icon--<name>` for
+#: exactly these -- AND it is how this module tells an INHERITED row from a
+#: DECLARED one. A second list for the second question would be a second place
+#: stating one fact, the defect this repo has killed in tokenaudit's sheet list,
+#: three JSON manifests and the marker validator.
 _MATERIAL = (
     "note", "abstract", "info", "tip", "success", "question",
     "warning", "failure", "danger", "bug", "example", "quote",
 )
 
-#: `mask-image`, both spellings, prefix first.
+#: `mask-image`, both spellings, PREFIX FIRST.
 #:
-#: 🔴 THE PREFIX IS NOT COURTESY. Unprefixed `mask-image` needs Safari 16.4
-#: (March 2023); below that the declaration is dropped, the mask is gone, and the
-#: ::before paints its full background-color as a solid 20x20px square -- the
-#: exact failure `_icon` refuses a bad NAME to prevent, arriving from a correct
-#: name on an old browser. Material's compiled stylesheet emits both spellings
-#: for its own masked icons, which is where this was read from.
+#: 🔴 NOT COURTESY. Unprefixed `mask-image` needs Safari 16.4; below that the
+#: declaration is dropped, the mask is gone, and the ::before paints its full
+#: background-color as a solid 20x20px square -- the exact failure `_icon` refuses
+#: a bad NAME to prevent, arriving from a CORRECT name on an old browser.
+#: Material's compiled stylesheet emits both, which is where this was read from.
 #:
-#: Prefix FIRST: a browser that understands both takes the later unprefixed
-#: declaration, and one that understands only the prefix ignores the line it
-#: cannot parse. Reversed, the old browser would win.
+#: Prefix first: a browser understanding both takes the later unprefixed line; one
+#: understanding only the prefix ignores what it cannot parse. Reversed, the old
+#: browser would win.
 _MASK = ("-webkit-mask-image", "mask-image")
 
 
@@ -224,22 +134,22 @@ def _rows() -> list[dict]:
 def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> str:
     """Resolve a `color` cell to something CSS can use, WITH a fallback.
 
-    Deliberately not markers._colour, which is the same question with a
-    different answer -- see the fallback section in the module docstring. The
-    token LIST is still shared, because "which names exist" has exactly one
-    correct answer and a second copy of it is what went stale in tokenaudit,
-    contrast.tsv and the marker validator.
+    ⚠️ Deliberately NOT markers._colour, which is the same question with a
+    different answer -- theirs has no fallback by design, and routing callouts
+    through it would cost 10 of 12 families their icons on 3 of 4 sites. Importing
+    it is what broke the build on 2026-08-05; see docs/CALLOUTS.md. The token LIST
+    is still shared, because "which names exist" has exactly one correct answer.
 
-    `report` defaults False at the build_css call site because assets._plan runs
-    from BOTH on_config and on_files, so anything reported there is reported
-    twice. `report()` below is the single honest complaint.
+    `report` is False at the build_css call site because assets._plan runs from
+    BOTH on_config and on_files, so anything reported there is reported twice.
+    `report()` below is the single honest complaint.
     """
     value = (value or "").strip()
     if not value:
         return _FALLBACK
-    # Anything that is not a bare word -- #hex, oklch(...), rgb(...) -- is passed
-    # through as written. Same rule as markers.py, same regex, imported rather
-    # than retyped.
+    # Anything that is not a bare word -- #hex, oklch(...), rgb(...) -- passes
+    # through as written. Same rule as markers.py, same regex, imported not
+    # retyped.
     if not _TOKEN.match(value):
         return value
     if value in tokens:
@@ -254,26 +164,52 @@ def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> st
     return _FALLBACK
 
 
+def _wash(value: str) -> str:
+    """The title bar tint: Material's 10% alpha, computed one layer later.
+
+    Material does it at build time from a Sass colour; a custom property is not
+    known until the browser resolves it, so `color-mix` does the same job one
+    layer later. `in oklch` matches base.css's marker chips.
+
+    🚫 DO NOT REUSE THIS FOR THE FOCUS RING. It was used there and measured
+    1.12:1 against a 3.0 floor -- a 10% mix is 90% its own ground BY
+    CONSTRUCTION, which is right for a tint behind bold text and useless for an
+    indicator. Full table in docs/CALLOUTS.md.
+    """
+    return "color-mix(in oklch, " + value + " 10%, transparent)"
+
+
+def _ring(value: str) -> str:
+    """The focus ring for one family, at FULL STRENGTH.
+
+    ⚠️ The strength is the decision and it is measured, not preferred. Material's
+    10% alpha gives 1.12 dark / 1.13 light against WCAG 1.4.11's 3.0, and nothing
+    below 100% clears both schemes because `text-faint` is a grey sitting near its
+    own ground by design. The full-strength numbers are the ones this repo already
+    holds the BORDER to. See docs/CALLOUTS.md.
+    """
+    return "  box-shadow: 0 0 0 " + _RING_W + " " + value + ";"
+
+
 def _icon(name: str, icon: str, report: bool = True) -> str:
     """The mask declarations for one family, or "" to leave Material's.
 
-    Returns COMPLETE CSS lines -- both spellings of `mask-image`, newline
-    separated -- so the caller extends a declaration list rather than
-    concatenating a conditional into a string. See build_css.
+    Returns COMPLETE CSS lines -- both spellings, newline separated -- so the
+    caller extends a declaration list rather than concatenating a conditional into
+    a string. See build_css.
 
-    THREE CASES, and only one of them emits anything:
+    THREE CASES, and only one emits anything:
 
       inherited row, no icon    Material keys its own icon off the class name.
                                 Nothing to do, nothing to say.
       DECLARED row, no icon     ⚠️ REPORTED. Material's base rule sets the note
                                 pencil unconditionally, so this family wears the
-                                wrong glyph rather than none -- which is why it
-                                needs saying out loud.
+                                WRONG glyph rather than none.
       icon names a non-family   ⚠️ REFUSED and reported. An undefined var with no
-                                fallback is invalid at computed-value time, which
-                                removes the mask and leaves the ::before painting
-                                a solid 20x20px square. Keeping the pencil is
-                                wrong and legible; the square is wrong and loud.
+                                fallback removes the mask entirely and leaves the
+                                ::before painting a solid 20x20px square. Keeping
+                                the pencil is wrong and legible; the square is
+                                wrong and alarming.
     """
     icon = (icon or "").strip()
 
@@ -301,23 +237,25 @@ def _icon(name: str, icon: str, report: bool = True) -> str:
             )
         return ""
 
-    # Both spellings. See `_MASK` on why the prefix is load-bearing and why it
-    # comes first.
     return "\n".join(
         "  " + prop + ": var(--md-admonition-icon--" + icon + ");"
         for prop in _MASK
     )
 
 
-def _selectors(name: str) -> tuple[str, str, str, str]:
-    """(box, title, icon, marker) selector lists for one family.
+def _selectors(name: str) -> tuple[str, str, str, str, str]:
+    """(box, focus, title, icon, marker) selector lists for one family.
 
-    Both spellings of every selector, always. See the docstring on why the
-    `details` half could not be verified from the file that documents it.
+    Both spellings of every selector, always -- see point 3 in the module
+    docstring. `focus` is (0,4,0) and wins outright; the rest tie at (0,3,0).
     """
     box = (
         ".md-typeset .admonition." + name + ",\n"
         ".md-typeset details." + name
+    )
+    focus = (
+        ".md-typeset .admonition." + name + ":focus-within,\n"
+        ".md-typeset details." + name + ":focus-within"
     )
     title = (
         ".md-typeset ." + name + " > .admonition-title,\n"
@@ -331,7 +269,7 @@ def _selectors(name: str) -> tuple[str, str, str, str]:
         ".md-typeset ." + name + " > .admonition-title::after,\n"
         ".md-typeset ." + name + " > summary::after"
     )
-    return box, title, icon, marker
+    return box, focus, title, icon, marker
 
 
 def build_css(report: bool = False) -> str:
@@ -348,24 +286,40 @@ def build_css(report: bool = False) -> str:
         "/* GENERATED by docrender/blocks.py -- do not edit.",
         "   One rule set per family, from theme/blocks.tsv.",
         "   Beats Material's flavour rules on source order at equal",
-        "   specificity (0,3,0). See that module for the whole argument.",
+        "   specificity (0,3,0); the per-family FOCUS rules are (0,4,0) and",
+        "   win outright. Argument in docs/CALLOUTS.md.",
         "   Every colour carries a currentColor fallback: the icon is a mask",
         "   painted by background-color, so an unresolved token would not be",
         "   a wrong colour, it would be no icon. */",
         "",
     ]
 
-    # THE BOX, every family at once. Material hardcodes all three of these.
+    # THE BOX, every family at once. Material hardcodes all of these.
+    #
+    # `box-shadow` is NOT restated: Material reads --md-shadow-z1, which
+    # chrome.css maps to elev-1. One surface, one address. The TRANSITION on that
+    # shadow IS a literal and is handled here -- see `_TRANSITION`.
     box_decls = [
         "  " + prop + ": var(--dr-" + token + ", " + fallback + ");"
         for prop, token, fallback in _BOX
     ]
-    # A shadow and a transition, both of which Material states as its own
-    # variables -- so those are mapped in chrome.css and NOT restated here. One
-    # surface, one address.
+    box_decls.append(_TRANSITION)
     out.append(
         ".md-typeset .admonition,\n.md-typeset details {\n"
         + "\n".join(box_decls)
+        + "\n}"
+    )
+    out.append("")
+
+    # ⭐ THE BASE RING, for a family with no row in the table. Material's base
+    # rule is hardcoded blue, so without this an undeclared word gets an indigo
+    # flash. `accent` is the honest choice: it says "this site" rather than
+    # claiming a family meaning. ⚠️ (0,3,0) -- level with Material, taken on
+    # SOURCE ORDER. The per-family rules below do not depend on load order.
+    out.append(
+        ".md-typeset .admonition:focus-within,\n"
+        ".md-typeset details:focus-within {\n"
+        + _ring(_colour("accent", "the base focus ring", tokens, report=False))
         + "\n}"
     )
     out.append("")
@@ -378,15 +332,13 @@ def build_css(report: bool = False) -> str:
             tokens,
             report=report,
         )
-        box, title, icon, marker = _selectors(name)
-        wash = "color-mix(in oklch, " + value + " 10%, transparent)"
+        box, focus, title, icon, marker = _selectors(name)
 
         # ⭐ A LIST OF COMPLETE LINES, NOT A CONCATENATED STRING. The icon rule
-        # carries one declaration or three depending on the row, and building
-        # that by joining a conditional into a string is where a missing
-        # semicolon merges two properties into one invalid declaration. Whole
-        # lines joined by newline cannot do that -- which is why adding the
-        # `-webkit-` spelling later cost one line and no risk.
+        # carries one declaration or three depending on the row, and joining a
+        # conditional into a string is where a missing semicolon merges two
+        # properties into one invalid declaration. Whole lines cannot do that --
+        # which is why adding the `-webkit-` spelling later cost one line.
         icon_decls = ["  background-color: " + value + ";"]
         borrowed = _icon(name, row.get("icon", ""), report=report)
         if borrowed:
@@ -394,7 +346,8 @@ def build_css(report: bool = False) -> str:
 
         out += [
             box + " {\n  border-color: " + value + ";\n}",
-            title + " {\n  background-color: " + wash + ";\n}",
+            focus + " {\n" + _ring(value) + "\n}",
+            title + " {\n  background-color: " + _wash(value) + ";\n}",
             icon + " {\n" + "\n".join(icon_decls) + "\n}",
             marker + " {\n  color: " + value + ";\n}",
             "",
@@ -406,14 +359,13 @@ def build_css(report: bool = False) -> str:
 def report() -> None:
     """Say which families are governed, once, from a caller that runs once.
 
-    Separate from build_css for the double-call reason above. Called by
-    hooks/01d via the token audit, which is the one place that already runs
-    exactly once per build and already reports on the theme.
+    Separate from build_css for the double-call reason above. Called by hooks/01d
+    via the token audit, the one place that already runs exactly once per build.
 
-    ⭐ INHERITED AND DECLARED ARE COUNTED SEPARATELY, because they carry
-    different risk. An inherited family is Material's vocabulary and gets its
-    icon for free; a declared one is ours and is one blank cell away from
-    wearing the note pencil. A single total would hide the number that matters.
+    ⭐ INHERITED AND DECLARED ARE COUNTED SEPARATELY, because they carry different
+    risk. An inherited family is Material's vocabulary and gets its icon for free;
+    a declared one is ours and is one blank cell away from wearing the note
+    pencil. A single total would hide the number that matters.
     """
     tokens = _known_tokens()
     inherited = []
