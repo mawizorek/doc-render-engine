@@ -13,14 +13,37 @@ base_url: https://mawizorek.github.io/uritp-docs/
 content_repo: mawizorek/uritp-docs
 content_branch: main
 
-# ONE LINE. Changing a site's entire look is a single word here, which is the
-# test of whether the theme layer is real rather than decorative: if this cost
-# a code change, the engine/site separation would be a claim and not a fact.
+# THE TOGGLE CYCLES TWO THEMES (2026-08-04).
 #
-# `eos` is a CANONICAL theme -- its values live in mawizorek/maw-themes and are
-# vendored, byte-verified, into theme/canonical/. Nineteen canonical themes are
-# selectable by name here, alongside the local ones in theme/themes.tsv.
-theme: eos
+# `theme:` accepts either shape. A bare slug paints both colour schemes from one
+# theme -- dark from its own ramp, light from its alt- band -- and that is still
+# the common case; template, theatre and hml all use it.
+#
+#     theme: eos
+#
+# A MAP names a theme per scheme, and the light/dark toggle then cycles between
+# two different identities rather than between two halves of one:
+#
+#     theme:
+#       dark: mclaren
+#       light: eos
+#
+# Both are CANONICAL themes -- values live in mawizorek/maw-themes and are
+# vendored, byte-verified, into theme/canonical/. Nineteen canonical slugs are
+# selectable here alongside the local ones in theme/themes.tsv.
+#
+# WARNING: TYPOGRAPHY DOES NOT SPLIT. Type is scheme-independent by design, so
+# one theme has to supply it and it is the DARK one. `mclaren` declares no
+# typography rows of its own, so eos's monospace data font is NOT applied on
+# this site any more. The build names what it dropped.
+#
+# WARNING: `accent` IS SHARED ACROSS MODES unless a row carries an explicit
+# `alt-accent`. eos does; mclaren does not. So light links are eos magenta and
+# dark links are McLaren PAPAYA -- not magenta. Changing that is one cell
+# upstream, not a setting here.
+theme:
+  dark: mclaren
+  light: eos
 
 # THE LAST DOOR BACK TO THE SOURCE.
 #

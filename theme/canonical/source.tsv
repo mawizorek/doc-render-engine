@@ -29,6 +29,12 @@
 # this last move, and why" -- which is the first question anybody asks when a
 # colour changes and nobody remembers approving it.
 #
+# 2026-08-05  eade05c -> e14e3a6  TWO CELLS, eos alt- band. maw-themes b59f82f.
+#             alt-text #39ff14 -> #241f2b (the placeholder green retired;
+#             1.23:1 -> 14.55:1) and alt-accent #e0459b -> #bd2a75 (still
+#             magenta, but the shared value measured 3.46:1 on the light ground
+#             and now measures 5.06:1). First use of the alt- band for a reason
+#             other than ground and text.
 # 2026-08-05  27b5327 -> eade05c  eos dark ramp RE-AUTHORED (7 cells) + ONE NEW
 #             COLUMN, alt-accent. 36 -> 37 columns. maw-themes commit 9efb6a2.
 #             text -> #ecedf2 near-white; the amber #ecbd5b moves to `accent`;
@@ -52,4 +58,4 @@
 # 2026-08-04  --      -> 4f391aa  Initial vendor. 19 themes x 36 columns.
 # ---------------------------------------------------------------------------
 file	repo	path	blob_sha	bytes	verified	note
-canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	eade05cc45f6c7404f3e8c31a1e5e2ebc723507d	5747	2026-08-05	19 themes x 37 columns. SHA computed locally with git's blob algorithm and matched against the SHA GitHub returned for the upstream write, before this file was committed.
+canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	e14e3a6fd47f953e6b39b43f56047949aa39635d	5747	2026-08-05	19 themes x 37 columns. SHA computed locally with git's blob algorithm and matched against the SHA GitHub returned for the upstream write, before this file was committed.
