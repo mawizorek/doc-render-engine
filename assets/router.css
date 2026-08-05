@@ -10,6 +10,11 @@
  * red, no "restricted". It does not restrict anything -- it is a pause -- and
  * dressing it as security is how a reader comes to trust it as security. Full
  * reasoning in docrender/router.py.
+ *
+ * ⚠️ THE FIELD IS MASKED AS OF 2026-08-05 AND THAT DOES NOT CHANGE THE LINE
+ * ABOVE. `type="password"` is shoulder-surfing protection; the body is still in
+ * the DOM and the code still goes to sessionStorage. Dots are the most
+ * security-shaped thing on this page, so resist styling the rest to match them.
  */
 
 .dr-router {
@@ -35,6 +40,9 @@
   gap: 0.5rem;
 }
 
+/* The extra letter-spacing is for the MASKED state: browser dots set solid read
+ * as one grey smear, and a reader counting characters to find a typo is exactly
+ * the person this field now makes life harder for. */
 .dr-router__input {
   flex: 1 1 auto;
   min-width: 0;
@@ -45,11 +53,52 @@
   color: var(--dr-ink);
   font-family: var(--dr-font-mono);
   font-size: 0.9rem;
+  letter-spacing: 0.08em;
 }
 .dr-router__input:focus {
   outline: 2px solid var(--dr-accent);
   outline-offset: 1px;
   border-color: transparent;
+}
+
+/* ---------------------------------------------------------------------------
+ * ⭐ THE REVEAL -- the cost of the mask, not a garnish (2026-08-05)
+ *
+ * This form's error path is deliberately quiet AND IT WIPES THE INPUT, so a
+ * mistyped code returns a cleared box and one grey sentence. That is a fair
+ * trade when you can see what you typed and a bad one when you cannot -- and
+ * these codes get typed on phones, off a text message, by guest artists.
+ *
+ * ⚠️ IT SHIPS WITH THE `hidden` ATTRIBUTE AND router.js REMOVES IT. A reader
+ * with no JavaScript must never be handed a control that cannot work, and only
+ * the script can know the script is alive. Same fail-open rule as the
+ * <noscript> block. Do not add a rule here that shows it.
+ *
+ * Deliberately quieter than the Go button: outlined rather than filled, muted
+ * rather than accented, so the primary action stays obvious. It takes the
+ * accent only once it is doing something.
+ * ------------------------------------------------------------------------ */
+.dr-router__reveal {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.6rem;
+  border: var(--dr-border-w, 1px) solid var(--dr-rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--dr-ink-muted);
+  font-family: var(--dr-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.dr-router__reveal:hover,
+.dr-router__reveal[aria-pressed="true"] {
+  color: var(--dr-accent);
+  border-color: var(--dr-accent);
+}
+.dr-router__reveal:focus-visible {
+  outline: 2px solid var(--dr-accent);
+  outline-offset: 1px;
 }
 
 /* ⭐ THE ONLY CONSUMER OF `on-accent` ON THE WHOLE SITE (2026-08-05).
@@ -77,6 +126,13 @@
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
+}
+/* `accent-deep` is the canonical PRESSED/HOVER stop and had no consumer
+ * anywhere in this engine until now. It is not held to 4.5 -- it is a state, not
+ * body text -- and it exists precisely so a hover does not have to be invented
+ * per site out of a filter or an opacity. */
+.dr-router__btn:hover:not(:disabled) {
+  background: var(--dr-accent-deep, var(--dr-accent));
 }
 .dr-router__btn:disabled {
   opacity: 0.6;

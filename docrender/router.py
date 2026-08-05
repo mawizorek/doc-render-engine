@@ -143,6 +143,33 @@ mistakes are visible immediately; a redirect's destination is encrypted, so a
 wrong URL only surfaces when somebody types a correct code and lands on a 404.
 **A docstring describing a fix is not the fix.** Every url the seal touches,
 now including the nav manifest, goes through `relative_url`.
+
+=============================================================================
+THE FIELD IS MASKED, AND THAT CHANGES NOTHING ABOUT THE THREAT MODEL (08-05)
+=============================================================================
+Michael: *"add a privacy screen our router gate input field so that when i type
+a code it's not visible on my screen. the black dots should appear instead."*
+
+`type="password"`. The browser draws the dots before any stylesheet or script
+has loaded, and assistive technology already knows what the field is.
+(`-webkit-text-security` was the alternative: a WebKit-only property that leaves
+the value plainly readable anywhere it is not implemented, which is a privacy
+feature that fails silently OPEN.)
+
+⚠️ IT IS SHOULDER-SURFING PROTECTION AND NOTHING ELSE, and this is the one place
+in the whole feature that could genuinely mislead, so it is written down rather
+than left to be assumed. Dots on a field are the most security-shaped thing on
+the page. Behind them: the code still goes into sessionStorage on success, the
+verifier is still printed in this page, and the body is still sitting in the
+DOM. NOTHING above this section changed.
+
+⭐ THE REVEAL BUTTON IS THE COST OF THE MASK, NOT A GARNISH. This form's error
+path is quiet AND IT WIPES THE INPUT -- so a mistyped code returns a cleared box
+and one grey sentence. That is a fair trade when you can see what you typed and
+a bad one when you cannot, and these codes get typed on phones, by guest
+artists, off a text message. It ships with the `hidden` attribute and router.js
+unhides it, because a reader with no JavaScript must never be handed a control
+that cannot work -- the same fail-open rule as the <noscript> block below.
 """
 
 from __future__ import annotations
@@ -299,8 +326,18 @@ def _field(mode: str, payload: list, prompt: str, subtree: str, anchor: str) -> 
         + '<label class="dr-router__label" for="dr-router-key">'
         + prompt + "</label>"
         + '<div class="dr-router__row">'
-        + '<input class="dr-router__input" id="dr-router-key" type="text"'
-        + ' autocomplete="off" autocapitalize="off" spellcheck="false">'
+        # MASKED. `type="password"` and not a CSS trick: the browser draws the
+        # dots before a stylesheet exists and assistive technology already knows
+        # what this field is. `autocorrect` is for Safari, which will otherwise
+        # rewrite a short string in a field where you cannot see it happen.
+        + '<input class="dr-router__input" id="dr-router-key" type="password"'
+        + ' autocomplete="off" autocapitalize="off" autocorrect="off"'
+        + ' spellcheck="false">'
+        # Ships HIDDEN. router.js unhides it, so a reader with no JavaScript is
+        # never handed a control that cannot work. See the docstring.
+        + '<button class="dr-router__reveal" type="button" hidden'
+        + ' aria-pressed="false" aria-controls="dr-router-key"'
+        + ' aria-label="Show code">Show</button>'
         + '<button class="dr-router__btn" type="submit">Go</button>'
         + "</div>"
         + '<p class="dr-router__error" role="alert" hidden>'
