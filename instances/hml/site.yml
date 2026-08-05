@@ -16,6 +16,24 @@ base_url: https://mawizorek.github.io/hml-docs/
 content_repo: mawizorek/hml-docs
 content_branch: main
 
+# ⭐ OTHER NAMES THIS SITE ANSWERS TO ON THE COMMAND LINE (added 2026-08-05).
+# Contract + the reasoning for why these live in the repo: instances/uritp/site.yml.
+#
+# ⚠️ READ THIS ONE TOGETHER WITH WHAT HAPPENED TODAY. The words "HML LLC" sit
+# here as an alias, and the same words in theme/canonical/themes.json FAILED
+# this site's build on 2026-08-05. That is not a contradiction and it is not a
+# rule being bent -- it is the portability rule working exactly as designed:
+#
+#   ENGINE code (docrender/, objects/, theme/, assets/, hooks/)
+#     may never name a site. A name there is a dependency. Hard failure.
+#   INSTANCE data (this file)
+#     exists precisely to name this site. That is its entire job.
+#
+# sizecheck's own error message points here -- "Move it to
+# instances/<slug>/site.yml" -- so this file is the destination the check names
+# when it rejects a name somewhere else.
+aliases: [hml-docs, "HML LLC", HML_LLC, "standard operating procedures", sop]
+
 # ⭐ ONE LINE, same as every other site. `utility` is dense and low-chrome,
 # built for pages that are WORKED FROM rather than read, which is what a
 # procedure is. It is also the one named theme no site had claimed yet, so this
@@ -50,3 +68,11 @@ peers:
 # objects, theme or assets, so the check is meaningful here for the same reason
 # it is meaningful on `uritp` -- and was not, under the old design, on the two
 # sites whose slugs are ordinary English words.
+#
+# ⚠️ IT FIRED FOR REAL ON 2026-08-05, and it was a FALSE POSITIVE with a
+# structural cause worth knowing before the next one: theme/canonical/themes.json
+# described a theme's intended use by naming this company. The scan strips
+# comments from .py/.css/.yml so prose is not mistaken for a dependency -- but
+# JSON HAS NO COMMENT SYNTAX, so every word in a .json file reads as a string
+# literal and the distinction the whole check rests on does not exist there.
+# Fixed by removing the name (PR #93), not by opting this instance out.
