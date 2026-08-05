@@ -32,8 +32,9 @@ docrender/              THE APP. Knows nothing about any particular site.
   state.py              one shared namespace per build.
   util.py               frontmatter + table parsing. No mkdocs import.
   instance.py           stage 00: become this site. Nav ordering.
+  visibility.py         stage 00b/02: the publication gate. Router nav-seal.
+  navstate.py           stage 00bb/06b: what a FOLDER does in the sidebar.
   objects.py            stage 01: validate frontmatter, draw the type.
-  visibility.py         stage 02: the publication gate.
   links.py              stage 03: @id and @peer:id resolution.
   theme.py              stage 04: tokens from TSV to CSS properties.
   assets.py             stage 05: publish files from OUTSIDE the doc tree.
@@ -86,6 +87,33 @@ revised: 2026-08
 `id`, `title` and `status` are required on every page. **A page with no status
 does not build**, which is how nothing reaches the public web because someone
 forgot a line.
+
+### `nav:` — what a FOLDER does in the sidebar *(2026-08-05)*
+
+Declared on a folder's `index.md` and **nowhere else**. A `nav:` on a leaf page
+is ignored and reported.
+
+| value | the sidebar |
+| --- | --- |
+| `collapsed` | **the default.** A closed row you click to open. |
+| `expanded` | opens by itself, and so does everything under it. |
+| `hidden` | the folder keeps its own row and loses its children. |
+
+**`expanded` cascades; a descendant index overrides it.** Parent `expanded` and
+a subfolder `collapsed` means the tree opens down to that subfolder and stops —
+which is the whole reason the key has three values rather than being a boolean.
+
+**The branch you are IN is always open, whatever it says.** That is not a rule
+the engine implements; it is Material's own behaviour, and `navstate.py` is
+built to never remove it. Consequence worth knowing: `collapsed` on a folder you
+are standing inside does nothing, and `hidden` is the value that empties a
+sidebar you are looking at.
+
+🚫 **`hidden` is a curtain, not a lock.** The pages are still built, still have
+live URLs, still resolve by `@id`, and are still in search. `status:` is the
+feature that controls what reaches the site; this one controls what a reader is
+OFFERED. `courses/course-info/` on `uritp` is the reference case: 43 course
+pages that belong in a table on the index, not in a drawer.
 
 ---
 
@@ -205,6 +233,14 @@ live in a variable; that would put the routine's shape in two places again.
   `unlisted` with a loud warning. Shipping a gate that looks like access
   control but is not is worse than shipping none, because people put things
   behind it. See `docrender/visibility.py`.
+- **One `nav: expanded` anywhere turns `navigation.prune` off for the whole
+  site.** Not a bug and not negotiable: a pruned nav renders no children for
+  any section the reader is not already inside, so expanding one would open an
+  empty box. `navstate.py` drops the feature at build time rather than ship a
+  control that silently does nothing, and the build report says so. The price
+  is every page carrying the full nav tree — Material's own figure is ~33% of
+  page weight. `nav: hidden` is the discount. A site that never writes
+  `expanded` never pays either.
 - **Cross-site links resolve at BUILD time.** If a peer renames a page, links
   to it are wrong until the next build. ~~The nightly cron closes that to a
   day~~ — the 5-minute poll closes it to minutes, *while the routine is
