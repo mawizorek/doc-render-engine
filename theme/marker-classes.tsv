@@ -22,34 +22,28 @@
 #
 # class    the token a markers.tsv row names
 # shape    default shape for the family: box · plain · strike · soft
-# color    default colour: any token from EITHER colour table, or a literal
-#          hex/oklch
+# color    default colour: any token the engine emits, or a literal hex/oklch
 # label    what this family MEANS. For the reader of this file and the report.
 # ---------------------------------------------------------------------------
 #
-# 🔴 `terminology` ASKED FOR `accent-soft` FOR TWO DAYS AND NEVER GOT IT, AND THE
-# COMMENT THAT USED TO SIT HERE EXPLAINED IT AS A PLAN. Two things were wrong.
+# ⭐ THE CANONICAL PALETTE IS REACHABLE FROM HERE AS OF 2026-08-05, and until
+# that day it was not. markers.py validated every colour against the nine-token
+# stand-in in theme/colors.tsv, so a cell naming a real design-system token was
+# refused and quietly rendered as body text.
 #
-# 1. THE VALIDATOR COULD NOT SEE IT. `_known_tokens()` read only the nine-token
-#    stand-in, so every canonical token except `accent` and `warn` was refused --
-#    reported unknown once per build and silently painted in the body colour.
-#    Fixed 2026-08-05: the two tables are unioned.
+# 🔴 WHICH MEANS `terminology` WAS WRONG FROM THE DAY IT WAS WRITTEN, and the
+# refusal was accidentally protecting the site from it. It asked for
+# `accent-soft`, which measures 1.29 on the dark canvas and 1.12 on the light
+# one against a floor of 4.5 -- because accent-soft is a WASH, the tinted
+# background BEHIND a chip, and never a letters colour. Wiring the token list
+# without measuring would have turned every glossary term on the site from
+# legible-but-wrong into invisible.
 #
-# 2. RED AND `accent-soft` WAS THE WRONG TOKEN ANYWAY, which the fallback hid.
-#    It is a tinted GROUND, not a text colour: on eos dark it is #1a2b42, a
-#    near-black navy measuring 1.4:1 on the canvas. Had the validator accepted
-#    it on the day it was written, the terminology marker would have rendered
-#    invisible. The fallback to body colour is the only reason nobody noticed.
-#
-# ⚑ Worth keeping: A BROKEN REFERENCE THAT DEGRADES GRACEFULLY CAN HIDE A SECOND,
-# WORSE MISTAKE UNDERNEATH IT. The report said "unknown token" and everyone read
-# that as "not vendored yet" rather than "and also wrong."
-#
-# `accent-2` is the Eos TRACKED violet -- 6.63 dark / 5.81 light against the
-# canvas -- and it is semantically right as well as legible: on the console it
-# is the colour of a named, tracked value, which is exactly what a defined term
-# is. ⭐ Still ONE CELL: the token is named here and nowhere else, so changing it
-# again is a data edit. The moment a second surface hardcodes it, that is dead.
+# It now names `accent-2` -- the Eos TRACKED violet -- which measures 6.63 dark
+# and 5.81 light on canvas. ⭐ And the note this replaces PREDICTED THIS EXACT
+# SWAP: "swapping it to accent-2 later is a data edit that touches no code
+# anywhere." True, and worth keeping as the reason to name a token in ONE CELL.
+# The moment a second surface hardcodes it, that promise is dead.
 class	shape	color	label
 confidence	box	warn	how much to trust the value beside it
 terminology	plain	accent-2	a defined term, with or without a page behind it

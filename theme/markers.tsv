@@ -49,18 +49,16 @@
 # it and will be wrong on the scheme you were not looking at. Hex is supported
 # because it is genuinely useful for a one-off, not because it is the good path.
 #
-# ⚠️ THE BOX SHAPE MEANS A COLOUR HAS TO SURVIVE ITS OWN BACKGROUND. `box` tints
-# the chip with 10% of the marker's own colour, so the text is not sitting on the
-# page ground -- it is sitting on a wash of itself. A value measured only against
-# the page can still fail inside the chip, and three amber candidates did exactly
-# that on 2026-08-05. Measure the chip, not the page.
+# ⭐ `conf` AND `gap` MOVED ONTO CANONICAL TOKENS ON 2026-08-05 -- `ok` -> `good`
+# and `danger` -> `bad`. Those two names only ever existed in the nine-token
+# stand-in this engine is retiring; the design system calls them good and bad,
+# and until this week markers.py could not see either. Same colours to the eye,
+# now sourced from the palette every other MAW build reads.
 #
-# 🔴 `conf` AND `gap` MOVED TO CANONICAL TOKEN NAMES ON 2026-08-05, and it is not
-# a rename. `ok` and `danger` exist ONLY in the nine-token stand-in, so a
-# confirmed value and a known gap were being painted by a table nobody maintains
-# while every other colour on the page followed the design system. `good` and
-# `bad` are the canonical names for the same two meanings, and they were
-# unreachable until the validator learned to read both tables.
+# ⚠️ A CANONICAL TOKEN FALLS BACK TO BODY TEXT ON A LOCAL THEME. `utility`,
+# `database` and `base` emit no canonical tokens, and markers.py writes
+# var(--dr-good, currentColor) precisely so an absent token degrades to legible
+# rather than to INVISIBLE. See the fallback note in markers.py.
 # ---------------------------------------------------------------------------
 marker	class	label	shape	color	tooltip
 tbc	confidence	To be confirmed			Not yet verified against a source. Do not rely on this without checking.
