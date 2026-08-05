@@ -54,7 +54,14 @@ instances/<slug>/
   theme.css             that site's own look. Loaded last, has the final word.
   xref-cache.json       last known good peer indexes. COMMITTED on purpose.
 
-.github/workflows/build.yml   the app matrix.
+.github/workflows/
+  build.yml             THE APP MATRIX. Every site, rendered and deployed.
+                        Runs on push, on dispatch, and when poll.yml calls it.
+  poll.yml              THE ROUTINE. One cron, calls build.yml, nothing else.
+                        Disabling this workflow IS the off switch — see §6c.
+  publish.yml           THE PUBLISH BUTTON. One site, on purpose, with a
+                        preview mode. Never gated by anything.
+  publish-default.yml   the template site, onto THIS repo's own Pages.
 ```
 
 ---
@@ -94,8 +101,10 @@ forgot a line.
    earlier and much less legibly** — `exit code 128` on the checkout, which
    reads as a broken build rather than a missing checkbox. See §6c.
 5. Enable Pages on the content repo: **deploy from branch → `gh-pages`**.
+6. Add it to the dropdown in `publish.yml`, or it builds and cannot be
+   published by hand. (`hml` shipped that way on 2026-08-03.)
 
-That this is five steps rather than a fork is the point.
+That this is six steps rather than a fork is the point.
 
 **Pin by tag, never by branch, once other sites are consuming this repo.** The
 reason these are separate repos is that they fail separately; a floating
@@ -151,32 +160,42 @@ Order matters: the first successful build CREATES that branch, so the setting
 cannot be flipped until after the first run. Run the workflow, set Pages, run
 it once more.
 
-### c. The `AUTOPUBLISH` variable, on THIS repo *(2026-08-04)*
+### c. Turning the routine on and off *(2026-08-04)*
 
-**Settings → Secrets and variables → Actions → Variables → `AUTOPUBLISH`.**
+**`poll.yml` is the routine: one cron, calls `build.yml`, nothing else.**
+It is its own file for exactly one reason — GitHub can disable a **workflow**,
+but not a single **trigger** of a workflow that also handles pushes.
 
-| value | what happens |
+**Actions → "Publish automatically (the routine)" → ⋯ → Disable workflow.**
+Back on from the same menu. Works on a phone.
+
+| state | what happens |
 | --- | --- |
-| `on` *(or unset)* | Auto. The 5-minute poll in `build.yml` renders and deploys every site. |
-| `off` | Sandbox. The poll does not start; a push to this repo still renders every site as a regression check but **deploys nothing**. |
+| enabled | every 5 minutes, every site renders and deploys |
+| disabled | no routine at all — publish by hand with **Publish a site** |
 
-**Unset means ON, deliberately.** A variable nobody has created yet must never
-be the reason a live site quietly stopped updating. The failure of an absent
-toggle should be "it kept doing what it did yesterday."
+**The state is legible, and that is why this beat a variable.** A disabled
+workflow greys out in the sidebar and carries a banner saying it was disabled
+manually, on the same screen you re-enable it from.
 
-⚠️ **`off` gates the DEPLOY STEP, not just the schedule.** A toggle that only
-silenced the cron would still publish in-progress content the moment an
-unrelated engine PR merged — the exact surprise somebody flips this to avoid.
-The condition is therefore written twice in `build.yml`, on the job and on the
-deploy, and the two are not redundant: the job gate skips pointless work, the
-deploy gate is the promise.
+🪦 **It replaced an `AUTOPUBLISH` repository variable that lived for one
+commit.** That variable gated a schedule which still fired, so `off` meant *a
+routine that declines* — ~288 skipped rows a day burying the real ones — and
+the live state could only be read by opening Settings. Michael: *"either
+auto-publish on a routine, or don't publish at all… I don't think we should
+have an 'on routine' and an 'off routine'."* ⚑ **When a toggle and the platform
+disagree about where state lives, the platform wins.**
 
-🚫 **The manual Publish button is deliberately NOT gated.** `publish.yml` is an
-explicit human act with a preview mode. `off` means *nothing goes public unless
-I say so*, never *I cannot publish*.
+🚫 **Disabling the routine does NOT touch:** `publish.yml` (off must never mean
+*I cannot publish*), a push to this repo (still renders every site as the
+regression check, still deploys), or `publish-default.yml` — which carries its
+own separate nightly cron for the template site. ⚠️ **That is a second routine
+this switch does not reach**, flagged rather than folded in, because the
+template is the engine's own live gold standard and freezing it is a different
+decision.
 
-**A variable, not a secret** — `vars` can be read inside an `if:` and `secrets`
-cannot, which is why `HAS_DEPLOY_TOKEN` has to be resolved into `env` first.
+**Changing the interval** is one line in `poll.yml`. It deliberately does not
+live in a variable; that would put the routine's shape in two places again.
 
 ---
 
@@ -188,9 +207,9 @@ cannot, which is why `HAS_DEPLOY_TOKEN` has to be resolved into `env` first.
   behind it. See `docrender/visibility.py`.
 - **Cross-site links resolve at BUILD time.** If a peer renames a page, links
   to it are wrong until the next build. ~~The nightly cron closes that to a
-  day~~ — the 5-minute poll now closes it to minutes (§6c), *when `AUTOPUBLISH`
-  is on. With it off, the staleness window is however long you sandbox for,
-  which is a fair trade you are making on purpose.*
+  day~~ — the 5-minute poll closes it to minutes, *while the routine is
+  enabled. With it disabled the window is however long you sandbox for, which
+  is a trade you are making on purpose.*
 - **A Pages site is public even from a private repo.** Privately published
   Pages requires GitHub Enterprise Cloud. ⭐ **As of 2026-08-04 that is the
   architecture rather than a caveat:** `uritp-docs` is PRIVATE and its site is
@@ -209,8 +228,9 @@ cannot, which is why `HAS_DEPLOY_TOKEN` has to be resolved into `env` first.
   and only one of them survives a new workflow.
 - **A scheduled run is a hint, not a clock.** GitHub queues them under load,
   drifts 5–20 minutes, and drops them outright during heavy periods. It also
-  **auto-disables a schedule after 60 days of repo inactivity**, and the
-  symptom of that is silence rather than an error.
+  **auto-disables a schedule after 60 days of repo inactivity** — by putting
+  the workflow into the same state the off switch uses, so a routine that
+  stopped for no reason you remember is the first thing to check.
 
 ---
 
