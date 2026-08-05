@@ -33,7 +33,8 @@ drops the whole column to text and the figures stop aligning -- the documented r
 working exactly as designed, producing the wrong answer. `thtr` is all digits, so it
 right-aligns course numbers as though they were quantities. **Derivation reads SHAPE and
 cannot read MEANING.** Currency is the same gap and worse: `1200` is a number either way
-and nothing in the values says dollars.
+and nothing in the values says dollars. So is a date: `2026-08-04T19:58:50-04:00` is a
+string to any heuristic and a moment in time to a reader.
 
 ⚠️ **SPECS ARE CARRIED BY NAME, NEVER BY INDEX.** `apply_options` drops columns for
 `hide:`, so an index taken against the original header points at the wrong column
@@ -135,6 +136,7 @@ TYPES = {
     "id": "id",
     "num": NUM,
     "money": "money",
+    "date": "date",
     "text": TOKEN,
     "prose": PROSE,
 }
@@ -232,6 +234,10 @@ def classify_columns(rows) -> list[str]:
       `num`    every filled value parses as a number (`cells.number`).
       `prose`  the longest value is over ~24 characters AND at least 3 words. Wraps.
       `tok`    everything else -- ids, codes, short labels, dimensions.
+
+    ⚠️ `date` and `money` are NOT derivable and are absent here on purpose -- an ISO
+    stamp is a string to any heuristic and `1200` is a number whether or not it is money.
+    Both must be declared; see TYPES.
 
     ⚠️ MEASURED ON `cells.plain()`, NEVER THE RAW CELL, for the same reason `sort:` is:
     markup must not be able to change the shape of a sheet.
@@ -331,6 +337,9 @@ def sort_within_sections(body, index: int):
     reports because it reads as an ordering choice rather than an error. One non-numeric
     value drops the whole column back to text, on purpose: a half-numeric sort is less
     predictable than either.
+
+    ⭐ An ISO date sorts correctly as TEXT, which is the whole reason a `date` column
+    stores one. Nothing special is needed here and nothing should be added.
     """
     records = [r for r in body if not is_section(r)]
     values = [cells.plain(r[index]) for r in records if index < len(r)]
