@@ -59,6 +59,18 @@ theme:
     - content.code.copy
     - toc.follow
   palette:
+    # ⚠️ COLOUR IS NOT SET HERE ANY MORE (2026-08-04). These two entries carry
+    # the light/dark TOGGLE and nothing else. `primary` and `accent` used to be
+    # copied in per-instance by hooks/00_instance.py from site.yml; that loop is
+    # gone, and the header, drawer and accent now resolve from the theme's
+    # canonical tokens in assets/base.css.
+    #
+    # It was not only a tidy-up. Setting `palette.primary` is what makes
+    # Material emit `data-md-color-primary` on the body, and its own
+    # [data-md-color-scheme="slate"][data-md-color-primary="black"] rule -- two
+    # attribute selectors against our one -- then outranked our link colour and
+    # painted every dark-mode link blue. Do not reintroduce a primary here.
+    #
     # Dark first: it is the default, and the toggle offers the other one.
     - scheme: slate
       toggle:
@@ -90,6 +102,8 @@ markdown_extensions:
 #      left. Put 00b after 00c and the footer Next button walks through pages
 #      that are not in the sidebar.
 #   01 reads frontmatter -> 02 prunes files -> 03 indexes what survived
+#   01d emits marker syntax -> 03b renders it. Move 01d after 03b and the token
+#      audit page ships its specimens as literal text.
 #   09 runs last, because it describes the finished site
 # Renumbering without reading hooks/README.md will break something silently.
 #
@@ -112,6 +126,7 @@ hooks:
   - hooks/00c_nav.py
   - hooks/01_objects.py
   - hooks/01b_data.py
+  - hooks/01d_audit.py
   - hooks/02_visibility.py
   - hooks/03_links.py
   - hooks/03b_markers.py
