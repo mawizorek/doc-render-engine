@@ -29,6 +29,19 @@
 # this last move, and why" -- which is the first question anybody asks when a
 # colour changes and nobody remembers approving it.
 #
+# 2026-08-05  27b5327 -> eade05c  eos dark ramp RE-AUTHORED (7 cells) + ONE NEW
+#             COLUMN, alt-accent. 36 -> 37 columns. maw-themes commit 9efb6a2.
+#             text -> #ecedf2 near-white; the amber #ecbd5b moves to `accent`;
+#             on-accent -> #1a1508 (white on amber would be 1.75:1 -- this also
+#             clears eos from maw-themes D7, which measured 3.82:1); magenta
+#             demoted to accent-2; deep and soft stops follow the new hue.
+#             WHY THE COLUMN: `accent` is shared across modes, and amber on the
+#             light ground measures 1.58:1. alt-accent keeps LIGHT on magenta,
+#             which is what "leave the light theme alone" requires. It is D5
+#             (brand colours authored per mode) implemented for the first row
+#             that needs it. NO CODE CHANGED -- _canonical_decls() looks for
+#             alt-<token> for every token, not from a hardcoded list.
+#             Blank on the other 18 rows; a blank alt cell falls back to base.
 # 2026-08-05  4f391aa -> 27b5327  ONE CELL: eos alt-text #1c1a24 -> #39ff14.
 #             maw-themes commit 8db6302. A deliberate PROOF VALUE, not a design
 #             decision: Michael asked for a wild colour in the eos LIGHT ramp to
@@ -39,4 +52,4 @@
 # 2026-08-04  --      -> 4f391aa  Initial vendor. 19 themes x 36 columns.
 # ---------------------------------------------------------------------------
 file	repo	path	blob_sha	bytes	verified	note
-canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	27b53279d7966d9b6921d4a389f130862b891a10	5710	2026-08-05	19 themes x 36 columns. SHA computed locally with git's blob algorithm and matched against the SHA GitHub returned for the upstream write, before this file was committed.
+canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	eade05cc45f6c7404f3e8c31a1e5e2ebc723507d	5747	2026-08-05	19 themes x 37 columns. SHA computed locally with git's blob algorithm and matched against the SHA GitHub returned for the upstream write, before this file was committed.
