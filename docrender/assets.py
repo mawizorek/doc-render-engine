@@ -91,14 +91,17 @@ _ROUTER_KEYS = ("router:", "router_code:")
 #: Load order is deliberate and is NOT alphabetical. Every entry has a reason:
 #:
 #:   base.css       the Material mapping everything else builds on
+#:   chrome.css     🔴 THE ARMOUR lives here and is a specificity TIE with
+#:                  Material's compound primary rule, won purely on SOURCE
+#:                  ORDER. Move this before base.css and every dark-mode link
+#:                  reverts to Material's indigo -- a live bug, not a wobble.
 #:   nav.css        split out of base.css 2026-08-04 at the 22KB hard line. It
 #:                  OVERRIDES Material's drawer borders, so it must land AFTER
 #:                  the base mapping -- move it earlier and the phones-only
 #:                  double rule comes back, a defect that is invisible at desktop
 #:                  width and was found from a screenshot.
-#:   type.css       split out 2026-08-05, same reason and same shape. It
-#:                  OVERRIDES Material's heading rules, so it also lands after
-#:                  the base mapping.
+#:   type.css       overrides Material's heading rules, so also after the base
+#:                  mapping.
 #:   data.css       the table layer, itself split out of base.css
 #:   data-list.css  overrides table rules inside a container query, so it loads
 #:                  after the rules it overrides
@@ -107,6 +110,7 @@ _ROUTER_KEYS = ("router:", "router_code:")
 #: Reorder these and list mode loses to the table it is meant to replace.
 _DATA_ASSETS = (
     "base.css",
+    "chrome.css",
     "nav.css",
     "type.css",
     "data.css",
@@ -187,8 +191,8 @@ def _plan(config) -> list[tuple[str, bytes]]:
     """Every asset this build publishes, in load order, with its bytes.
 
     Built by both events -- `on_config` needs the URLs, `on_files` needs the
-    content -- and they must never disagree. Order: base, the nav and type
-    layers, the data-table layers (see `_DATA_ASSETS`), then the generated
+    content -- and they must never disagree. Order: base, the chrome, nav and
+    type layers, the data-table layers (see `_DATA_ASSETS`), then the generated
     sheets, then any feature sheet, then the instance sheet LAST so a site
     always has the final word on its own look.
 
