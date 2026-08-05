@@ -29,6 +29,19 @@
 # this last move, and why" -- which is the first question anybody asks when a
 # colour changes and nobody remembers approving it.
 #
+# 2026-08-05  e14e3a6 -> 667e4a9  THE SPLIT. maw-themes c7c7e86. 37 -> 38 cols,
+#             19 -> 23 rows. J10/S1 implemented for THREE identities: eos,
+#             mclaren and default each now have a COMPLETE dark row and a
+#             COMPLETE light row, alt- band empty on all six. New `identity`
+#             column groups a pair (Cleo's answer from W2 -- grouping is
+#             symmetric, a pair pointer can dangle). 37 values authored, each
+#             measured against BOTH its canvas and its card.
+#             RED THIS BROKE `light: eos` IN site.yml AND THE BREAK WAS SILENT:
+#             a complete dark row asked for the light scheme paints its dark
+#             ramp there. Fixed to `light: eos-light`; theme.py now reports the
+#             mistake by name and points at the sibling.
+#             13 rows still carry the alt band. Both shapes resolve through the
+#             same function, so the rest migrate per-row with no flag day.
 # 2026-08-05  eade05c -> e14e3a6  TWO CELLS, eos alt- band. maw-themes b59f82f.
 #             alt-text #39ff14 -> #241f2b (the placeholder green retired;
 #             1.23:1 -> 14.55:1) and alt-accent #e0459b -> #bd2a75 (still
@@ -47,15 +60,13 @@
 #             (brand colours authored per mode) implemented for the first row
 #             that needs it. NO CODE CHANGED -- _canonical_decls() looks for
 #             alt-<token> for every token, not from a hardcoded list.
-#             Blank on the other 18 rows; a blank alt cell falls back to base.
 # 2026-08-05  4f391aa -> 27b5327  ONE CELL: eos alt-text #1c1a24 -> #39ff14.
 #             maw-themes commit 8db6302. A deliberate PROOF VALUE, not a design
 #             decision: Michael asked for a wild colour in the eos LIGHT ramp to
 #             confirm a published page really is painted from the canonical
-#             table. Revert = restore #1c1a24 upstream and re-stamp here.
-#             STILL 5,710 BYTES. A size check would have passed this unchanged,
-#             which is the whole argument for hashing rather than measuring.
+#             table. STILL 5,710 BYTES. A size check would have passed this
+#             unchanged, which is the whole argument for hashing over measuring.
 # 2026-08-04  --      -> 4f391aa  Initial vendor. 19 themes x 36 columns.
 # ---------------------------------------------------------------------------
 file	repo	path	blob_sha	bytes	verified	note
-canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	e14e3a6fd47f953e6b39b43f56047949aa39635d	5747	2026-08-05	19 themes x 37 columns. SHA computed locally with git's blob algorithm and matched against the SHA GitHub returned for the upstream write, before this file was committed.
+canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	667e4a960b8638f5a50f4b57ad041a39d0b61a12	6674	2026-08-05	23 rows x 38 columns. 6 rows are COMPLETE palettes (empty alt band, paired by identity); 13 still carry the legacy alt band; default-theme is mid and has neither. SHA computed locally and matched against the SHA GitHub returned for the upstream write, before this file was committed.

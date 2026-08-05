@@ -13,37 +13,38 @@ base_url: https://mawizorek.github.io/uritp-docs/
 content_repo: mawizorek/uritp-docs
 content_branch: main
 
-# THE TOGGLE CYCLES TWO THEMES (2026-08-04).
+# THE TOGGLE CYCLES TWO THEMES, AND EACH IS ONE COMPLETE PALETTE (2026-08-04).
 #
 # `theme:` accepts either shape. A bare slug paints both colour schemes from one
-# theme -- dark from its own ramp, light from its alt- band -- and that is still
-# the common case; template, theatre and hml all use it.
+# theme, which is still the common case -- template, theatre and hml all use it:
 #
 #     theme: eos
 #
-# A MAP names a theme per scheme, and the light/dark toggle then cycles between
-# two different identities rather than between two halves of one:
+# A MAP names a theme per scheme, so the light/dark toggle cycles two different
+# identities rather than two halves of one row:
 #
 #     theme:
 #       dark: mclaren
-#       light: eos
+#       light: eos-light
+#
+# WARNING: NAME THE ROW, NOT THE IDENTITY. `light: eos` looks right and is
+# WRONG -- `eos` is a complete DARK palette now, so it would paint its dark ramp
+# into the light scheme: dark-on-light, no error anywhere. The light row of that
+# identity is `eos-light`. theme.py reports this by name if it happens again, but
+# the reason it is worth reading here is that the mistake LOOKS like a working
+# line of config.
 #
 # Both are CANONICAL themes -- values live in mawizorek/maw-themes and are
-# vendored, byte-verified, into theme/canonical/. Nineteen canonical slugs are
+# vendored, byte-verified, into theme/canonical/. Every canonical slug is
 # selectable here alongside the local ones in theme/themes.tsv.
 #
 # WARNING: TYPOGRAPHY DOES NOT SPLIT. Type is scheme-independent by design, so
-# one theme has to supply it and it is the DARK one. `mclaren` declares no
-# typography rows of its own, so eos's monospace data font is NOT applied on
-# this site any more. The build names what it dropped.
-#
-# WARNING: `accent` IS SHARED ACROSS MODES unless a row carries an explicit
-# `alt-accent`. eos does; mclaren does not. So light links are eos magenta and
-# dark links are McLaren PAPAYA -- not magenta. Changing that is one cell
-# upstream, not a setting here.
+# one theme supplies it and it is the DARK one. `mclaren` declares no typography
+# rows of its own, so eos's monospace data font is NOT applied on this site any
+# more. The build names what it dropped.
 theme:
   dark: mclaren
-  light: eos
+  light: eos-light
 
 # THE LAST DOOR BACK TO THE SOURCE.
 #

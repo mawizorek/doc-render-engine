@@ -8,11 +8,11 @@ required touching code, the separation between engine and site would be
 decorative.
 
 THE PALETTE IS CANONICAL (2026-08-04). There were two files called `colors.tsv`.
-One is the real design system in `mawizorek/maw-themes` -- 19 themes, 33 tokens,
-also consumed by the ClickUp HTML apps and mapped onto FileMaker layout roles.
-The other is `theme/colors.tsv` here: three themes and nine tokens, written in an
-afternoon to unblock a demo. They shared a FILENAME and nothing else, and that
-collision is why an edit to the real `eos` theme never showed up on the live site.
+One is the real design system in `mawizorek/maw-themes` -- also consumed by the
+ClickUp HTML apps and mapped onto FileMaker layout roles. The other is
+`theme/colors.tsv` here: three themes and nine tokens, written in an afternoon to
+unblock a demo. They shared a FILENAME and nothing else, and that collision is
+why an edit to the real `eos` theme never showed up on the live site.
 
 `theme/canonical/colors.tsv` is a vendored, byte-verified copy of the real one. A
 theme WITH a canonical row is painted from it; a theme WITHOUT one keeps the
@@ -41,44 +41,63 @@ still emitted UNDERNEATH the canonical block purely to keep it alive. That is th
 only reason the old table is still loaded at all.
 
 =============================================================================
-STAR 2026-08-04 -- THE TOGGLE CAN NOW CYCLE TWO DIFFERENT THEMES
+STAR THE TOGGLE CYCLES TWO THEMES, AND A ROW IS ONE COMPLETE PALETTE
 =============================================================================
 
-    theme: eos                          # one theme, both schemes
-    theme: {dark: mclaren, light: eos}   # the toggle cycles two themes
+    theme: eos                               # one theme, both schemes
+    theme: {dark: mclaren, light: eos-light}  # the toggle cycles two identities
 
 The scalar form is unchanged and is still the common case.
 
-WHY THIS COST ALMOST NOTHING, which is worth recording because it looks like it
-should have cost a lot. `_canonical_decls(row, scheme)` already resolves
-base-versus-alt from the ROW'S OWN `mode` against the requested scheme. So asking
-a DIFFERENT row per scheme needs no new colour logic -- only a different answer to
-"which slug". The colour path below is untouched by this feature.
+WHY THIS COST ALMOST NOTHING. `_canonical_decls(row, scheme)` resolves
+base-versus-alt from the ROW'S OWN `mode` against the requested scheme, so asking
+a DIFFERENT row per scheme needed no new colour logic -- only a different answer
+to "which slug". The resolution path below is untouched by the feature.
 
-AND THE ARCHITECTURE WAS ALREADY RULED, upstream, before anyone asked for it here.
+AND THE ARCHITECTURE WAS RULED UPSTREAM BEFORE ANYONE ASKED FOR IT HERE.
 maw-themes S1: "mode is not a property of the data at all. It is a CHOICE the app
 makes... the APP owns the toggle" -- the list of themes a toggle cycles belongs in
-the app's own config, never in the table. This is that ruling implemented.
+the app's own config, never in the table.
 
-MODE, AND THE PART THAT LOOKS LIKE A BUG. A canonical row is ONE theme in TWO
-modes: base columns are its native ramp, the `alt-` band is the opposite one. So
-`dark: mclaren` takes McLaren's BASE columns (it is a dark-native row) while
-`light: eos` takes eos's ALT band. WARNING: the alt band covers GROUND AND TEXT
-ONLY -- `accent`, `accent-deep`, `accent-2` and the four semantics are SHARED
-across modes unless a row carries an explicit `alt-` cell for them. That is a
-deliberate 2026-07-17 design already ruled for re-authoring per mode (maw-themes
-D5) and only partly done. `mode: mid` (default-theme) has no opposite and an empty
-alt band; both schemes get the native ramp, which is the documented graceful case
-rather than a hole.
+TWO ROW SHAPES ARE LIVE AT ONCE, ON PURPOSE (2026-08-04):
 
-WARNING: TYPOGRAPHY DOES NOT SPLIT, and that is deliberate rather than an
-oversight. `typography.tsv` is scheme-independent by design -- its own header says
-type must not change between light and dark, because that is how a site ends up
-with two type systems that drift apart. So under a two-theme toggle ONE of them
-has to supply the type, and it is the DARK one, because dark is the default scheme
-in mkdocs.yml. If the other theme carries typography rows they are DROPPED, and
-the build names them -- a font quietly changing because a colour was swapped is
-exactly the class of surprise this engine keeps writing down.
+  COMPLETE   one row = one palette in one mode. The `alt-` band is EMPTY, and
+             emptiness is the assertion. Its opposite is a SEPARATE ROW sharing
+             its `identity`. This is the end state (maw-themes J10 + S1).
+
+  LEGACY     one row = two modes. Base columns are its native ramp, the `alt-`
+             band is the opposite one. WARNING: that band covers GROUND AND TEXT
+             ONLY, so accent and the semantics are SHARED across modes -- the
+             defect D5 exists to fix.
+
+`identity` groups a pair: same identity, different mode. That is Cleo's answer
+from maw-themes W2, which beat a `pair` pointer because a foreign key in a TSV can
+dangle and a pair can be asymmetric, where grouping is symmetric by construction.
+Unmigrated rows carry their own slug as identity, so the column is never
+half-filled. Nothing in this engine READS it yet -- it is for the popup case
+upstream ("give me Mercedes at the current mode"), and it is here so the shape is
+complete before a consumer needs it.
+
+Both shapes resolve through the same function, so the remaining rows migrate ONE
+AT A TIME with no flag day. When the last one is split, the `opposite` branch in
+`_canonical_decls` is four lines to delete.
+
+RED THE TRAP THIS CREATES, AND IT IS GUARDED. Under the legacy shape
+`light: eos` worked, because eos carried an alt- band. Once eos became a complete
+DARK palette, that same line resolves the DARK ramp into the LIGHT scheme --
+dark-on-light, no error, nothing to grep for. `_canonical_decls` now reports it,
+names the sibling to use, and says why. A row with no alt cells is ASSERTING it is
+one palette, so asking it for the opposite mode is a declaration error and not a
+graceful fallback. `mode: mid` is exempt: it has no opposite by design (J12).
+
+WARNING: TYPOGRAPHY DOES NOT SPLIT, deliberately. `typography.tsv` is
+scheme-independent -- its own header says type must not change between light and
+dark, because that is how a site ends up with two type systems that drift apart.
+So under a two-theme toggle ONE of them supplies the type, and it is the DARK one,
+because dark is the default scheme in mkdocs.yml. If the other theme carries
+typography rows they are DROPPED and the build names them -- a font quietly
+changing because a COLOUR was swapped is exactly the class of surprise this engine
+keeps writing down.
 
 What is deliberately NOT shared between sites: the look. TOKEN NAMES are shared
 and VALUES are per theme, so the day somebody edits a colour to fix one site is
@@ -113,8 +132,10 @@ _SCHEMES = (
 #: The scheme that supplies typography, and the site default. See the docstring.
 _PRIMARY = "dark"
 
-# Columns in a canonical row that are not tokens.
-_META = ("slug", "name", "mode")
+#: Columns in a canonical row that are NOT tokens. `identity` is here because a
+#: metadata column left out of this tuple is emitted as a custom property --
+#: `--dr-identity: eos` -- which is junk, harmless, and invisible for a month.
+_META = ("slug", "name", "identity", "mode")
 
 
 def _theme_dir() -> Path:
@@ -141,11 +162,32 @@ def _canonical_row(slug: str) -> dict | None:
     return None
 
 
+def _sibling(row: dict, scheme: str) -> str | None:
+    """The row sharing this row's identity in the requested scheme.
+
+    Only used to make an error message actionable. Resolution never depends on
+    it, which is deliberate: a lookup that a build RELIES on becomes a thing
+    that can dangle, and grouping was chosen over a pointer precisely to avoid
+    that.
+    """
+    ident = (row.get("identity") or "").strip()
+    if not ident:
+        return None
+    for other in _canonical_rows():
+        if (other.get("identity") or "").strip() != ident:
+            continue
+        if (other.get("slug") or "").strip() == (row.get("slug") or "").strip():
+            continue
+        if (other.get("mode") or "").strip() == scheme:
+            return (other.get("slug") or "").strip()
+    return None
+
+
 def _known() -> set[str]:
     """Every theme name an instance may legally ask for.
 
-    The union is the point: reading the canonical slugs here is what makes all 19
-    canonical themes selectable without anybody re-typing them into themes.tsv,
+    The union is the point: reading the canonical slugs here is what makes every
+    canonical theme selectable without anybody re-typing them into themes.tsv,
     which would be a second list to keep in step.
     """
     named = {(r.get("theme") or "").strip() for r in _rows("themes.tsv")}
@@ -252,18 +294,41 @@ def _verify_source() -> None:
 def _canonical_decls(row: dict, scheme: str) -> list[tuple[str, str]]:
     """Token declarations for one canonical row in one colour scheme.
 
-    The row's `mode` names its NATIVE ramp. When the requested scheme is the
-    other one, an `alt-<token>` column wins if the row carries a value there.
-    Falling back to the base column is not a defect: the alt band deliberately
-    covers ground and text only, so accent and the semantics stay SHARED across
-    modes until maw-themes D5 is authored.
+    Handles both row shapes. The row's `mode` names its NATIVE ramp; when the
+    requested scheme is the other one, an `alt-<token>` column wins if the row
+    carries a value there.
 
-    STAR: this is also what makes a two-theme toggle free. It answers "which
-    half of THIS row" from the row itself, so swapping the row per scheme needs
-    nothing added here.
+    STAR This is what makes a two-theme toggle free: it answers "which half of
+    THIS row" from the row itself, so swapping the row per scheme needs nothing
+    added here.
+
+    RED AND IT IS WHERE THE SPLIT'S ONE TRAP LIVES. A COMPLETE row has an empty
+    alt band, so every token silently falls back to its native value and the
+    palette renders in the wrong mode -- dark-on-light, no error, nothing to
+    grep. Emptiness IS the row's assertion that it is one palette, so asking it
+    for the opposite mode is a declaration error rather than a graceful
+    fallback, and it is reported as one. `mid` is exempt: it has no opposite by
+    design (maw-themes J12).
     """
     native = (row.get("mode") or "dark").strip()
     opposite = native in ("dark", "light") and scheme != native
+
+    if opposite and not any(
+        (value or "").strip()
+        for token, value in row.items()
+        if token.startswith("alt-")
+    ):
+        slug = (row.get("slug") or "?").strip()
+        sibling = _sibling(row, scheme)
+        state.note(
+            "notes",
+            "theme '" + slug + "' is a COMPLETE " + native + " palette (no "
+            "alt- values) but was asked for the " + scheme + " scheme, so it "
+            "is painting its " + native + " ramp there. "
+            + ("Use '" + sibling + "' for " + scheme + " instead."
+               if sibling else
+               "No row shares its identity at " + scheme + " -- author one."),
+        )
 
     decls = []
     for token in row:
@@ -384,13 +449,18 @@ def build_css() -> str:
     for scheme, wanted in picked.items():
         row = _canonical_row(wanted)
         if row:
+            complete = not any(
+                (value or "").strip()
+                for token, value in row.items()
+                if token.startswith("alt-")
+            )
             state.note(
                 "notes",
                 scheme + " scheme: theme '" + wanted + "' painted from the "
                 "CANONICAL vector (mode '" + str(row.get("mode", "?")) + "', "
-                + ("its own ramp" if (row.get("mode") or "").strip() == scheme
-                   else "its alt- band") + "). `dead` still comes from the "
-                "local base rows -- no canonical equivalent (maw-themes D11).",
+                + ("COMPLETE row" if complete else "legacy row with an alt- "
+                   "band") + "). `dead` still comes from the local base rows "
+                "-- no canonical equivalent (maw-themes D11).",
             )
 
     for row in _rows("contrast.tsv"):
