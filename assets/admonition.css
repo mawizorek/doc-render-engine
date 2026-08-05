@@ -1,0 +1,196 @@
+/* ADMONITIONS -- the `!!!` and `???` boxes, governed by the theme.
+ *
+ * ⭐ THIS WAS THE LARGEST UNGOVERNED SURFACE ON THE SITE and it stayed that way
+ * for two days behind a framing error worth recording, because the same error is
+ * available for every other Material surface in theme/ungoverned.tsv.
+ *
+ * DL J20 found that the block VOCABULARY is defined nowhere -- there is no table
+ * of `!!!` types, so there is nothing to add a colour to. True, and it was read
+ * as blocking. It is not, because governing these is TWO separate jobs:
+ *
+ *   1. PAINT the families Material already ships. No vocabulary required: the
+ *      vocabulary is the word you type after the bangs, and Material writes it
+ *      onto the element as a class. That is this file.
+ *   2. INVENT our own families (`!!! tbc` beside `{.tbc}`). THAT needs a blocks
+ *      table, and it is still the open Q14.
+ *
+ * ⚑ The generalisable part: "we do not own the vocabulary" is a reason we cannot
+ * ADD a family. It was never a reason we cannot PAINT the ones that exist. When a
+ * surface is listed as ungoverned, check which of the two is actually missing.
+ *
+ * ---------------------------------------------------------------------------
+ * SHAPE AND COLOUR ARE SEPARATE AXES
+ *
+ * Every structural rule below reads `--dr-adm`. Twelve one-line rules set it per
+ * family. So the box, the title bar, the icon tint and the left edge are declared
+ * ONCE, and a new family is one declaration with no structure to duplicate.
+ *
+ * That is deliberately the same split theme/markers.tsv uses, for the same
+ * reason: a reader distinguishes four SHAPES at a glance and cannot distinguish
+ * twelve, so colour is the axis that carries the difference and shape stays
+ * constant.
+ *
+ * ---------------------------------------------------------------------------
+ * ⚠️ THE SELECTORS ARE DEFENSIVE AND THE CLASS NAMES ARE VERIFIED. Those are two
+ * different claims and only one of them is checked.
+ *
+ * VERIFIED: the markup. Pulled from the published index.html --
+ * `<div class="admonition note"><p class="admonition-title">Revision Log</p>`.
+ * pymdownx.details emits `<details class="note"><summary>` for the `???` form.
+ *
+ * NOT VERIFIED: the specificity of Material's own admonition rules. Their
+ * stylesheet is ~100KB minified and reading it whole is not affordable here. The
+ * blue-link defect this morning was the cost of INFERRING a selector and calling
+ * the fix structural, so this file does not repeat the claim -- it just brings
+ * more specificity than Material's documented two-class pattern needs, and this
+ * sheet loads after theirs.
+ *
+ * AND THE FAILURE MODE IS SAFE. If a rule here still loses, Material's own colour
+ * survives and the callout renders visibly unthemed -- immediately obvious on the
+ * page, not a silent wrong value. That is the opposite of the blue link, which
+ * looked plausible for weeks.
+ * ------------------------------------------------------------------------ */
+
+/* ---------------------------------------------------------------------------
+ * THE BOX
+ *
+ * `radius-lg` and not `radius`, on purpose: a callout is a large surface and
+ * that is the distinction the two tokens exist to draw. `radius` is for chips
+ * and inputs, which is where base.css already reads it.
+ *
+ * ⚠️ EVERY CANONICAL TOKEN CARRIES A FALLBACK TO ITS OLD LITERAL. A site on a
+ * local nine-token theme emits no radius-lg, no shadow-out and no pad-card, and
+ * a bare var() resolves to NOTHING -- which for `border-radius` is square
+ * corners and for `box-shadow` is silence, but for PADDING is a callout with
+ * text jammed against its own border. Same rule as base.css: the fallback is the
+ * value this surface had before the theme reached it.
+ * ------------------------------------------------------------------------ */
+.md-typeset .admonition,
+.md-typeset details {
+  --dr-adm: var(--dr-accent);
+
+  border: var(--dr-border-w, 1px) solid
+    color-mix(in oklch, var(--dr-adm) 32%, transparent);
+  border-left: 0.2rem solid var(--dr-adm);
+  border-radius: var(--dr-radius-lg, 4px);
+  background: var(--dr-surface-raised);
+  box-shadow: var(--dr-shadow-out, none);
+  padding: 0 var(--dr-pad-card, 0.7rem) var(--dr-pad-card, 0.7rem);
+  margin: var(--dr-gap-md, 1rem) 0;
+  font-size: inherit;
+}
+
+/* THE TITLE BAR. A wash of the family colour rather than a fill, so the strip
+ * reads as part of the box instead of as a separate coloured band -- and so the
+ * title text can stay `ink` and legible at any family colour, which a fill
+ * cannot promise.
+ *
+ * The negative margin pulls the bar out to the box edges while the box keeps its
+ * horizontal padding for the body. */
+.md-typeset .admonition > .admonition-title,
+.md-typeset details > summary {
+  margin: 0 calc(var(--dr-pad-card, 0.7rem) * -1) var(--dr-pad-card, 0.7rem);
+  padding: var(--dr-pad-cell, 0.5rem) var(--dr-pad-card, 0.7rem);
+  background: color-mix(in oklch, var(--dr-adm) 12%, transparent);
+  border-bottom: var(--dr-border-w, 1px) solid
+    color-mix(in oklch, var(--dr-adm) 24%, transparent);
+  color: var(--dr-ink);
+  font-weight: 600;
+  font-size: var(--dr-fs-sm, 0.82rem);
+  letter-spacing: var(--dr-track-btn, 0.02em);
+}
+
+/* THE ICON. Material ships each family's glyph as a mask-image on ::before, so
+ * the icon takes its colour from `background-color` -- which means one
+ * declaration tints every glyph and we never name a single icon. */
+.md-typeset .admonition > .admonition-title::before,
+.md-typeset details > summary::before {
+  background-color: var(--dr-adm);
+}
+
+/* The `???` form's disclosure arrow, same treatment. */
+.md-typeset details > summary::after {
+  background-color: var(--dr-adm);
+}
+
+/* ---------------------------------------------------------------------------
+ * THE FAMILIES -- one line each, and this is the whole vocabulary map
+ *
+ * ⭐ `info` GETS ITS FIRST CONSUMER ANYWHERE. Every canonical row emits it and
+ * nothing read it, because no surface in a documentation site meant
+ * "informational" until this one. A `note` callout is the definition of the word.
+ *
+ * ⚠️ danger, failure and bug SHARE `bad` DELIBERATELY. The palette has one
+ * negative, and Material already distinguishes these three by ICON -- so colour
+ * carries severity and the glyph carries the kind. Splitting them needs three
+ * negatives in the design system, which is a palette decision, not a CSS one.
+ *
+ * Every value falls back to `accent`, so a nine-token local theme gets a
+ * consistently themed callout rather than an unpainted one.
+ * ------------------------------------------------------------------------ */
+.md-typeset .admonition.note,      .md-typeset details.note,
+.md-typeset .admonition.info,      .md-typeset details.info,
+.md-typeset .admonition.todo,      .md-typeset details.todo {
+  --dr-adm: var(--dr-info, var(--dr-accent));
+}
+
+.md-typeset .admonition.abstract,  .md-typeset details.abstract,
+.md-typeset .admonition.summary,   .md-typeset details.summary,
+.md-typeset .admonition.tldr,      .md-typeset details.tldr,
+.md-typeset .admonition.question,  .md-typeset details.question,
+.md-typeset .admonition.help,      .md-typeset details.help,
+.md-typeset .admonition.faq,       .md-typeset details.faq {
+  --dr-adm: var(--dr-accent-2, var(--dr-accent));
+}
+
+.md-typeset .admonition.tip,       .md-typeset details.tip,
+.md-typeset .admonition.hint,      .md-typeset details.hint,
+.md-typeset .admonition.important, .md-typeset details.important,
+.md-typeset .admonition.success,   .md-typeset details.success,
+.md-typeset .admonition.check,     .md-typeset details.check,
+.md-typeset .admonition.done,      .md-typeset details.done {
+  --dr-adm: var(--dr-good, var(--dr-accent));
+}
+
+.md-typeset .admonition.warning,   .md-typeset details.warning,
+.md-typeset .admonition.caution,   .md-typeset details.caution,
+.md-typeset .admonition.attention, .md-typeset details.attention {
+  --dr-adm: var(--dr-warn, var(--dr-accent));
+}
+
+.md-typeset .admonition.failure,   .md-typeset details.failure,
+.md-typeset .admonition.fail,      .md-typeset details.fail,
+.md-typeset .admonition.missing,   .md-typeset details.missing,
+.md-typeset .admonition.danger,    .md-typeset details.danger,
+.md-typeset .admonition.error,     .md-typeset details.error,
+.md-typeset .admonition.bug,       .md-typeset details.bug {
+  --dr-adm: var(--dr-bad, var(--dr-accent));
+}
+
+.md-typeset .admonition.example,   .md-typeset details.example {
+  --dr-adm: var(--dr-accent);
+}
+
+/* A quote is not a claim about confidence, so it takes the quiet ink rather than
+ * a semantic colour -- the one family whose colour is deliberately not loud. */
+.md-typeset .admonition.quote,     .md-typeset details.quote,
+.md-typeset .admonition.cite,      .md-typeset details.cite {
+  --dr-adm: var(--dr-ink-muted);
+}
+
+/* The open/close transition on the `???` form, from the theme's motion vector.
+ * ⚠️ `summary` itself is what a reader clicks, so this is a hover affordance and
+ * not decoration -- see the motion note in router.css on why these tokens stopped
+ * being a design question. */
+.md-typeset details > summary {
+  cursor: pointer;
+  transition: background var(--dr-motion-fast, 120ms)
+    var(--dr-ease, cubic-bezier(0.2, 0.7, 0.2, 1));
+}
+.md-typeset details > summary:hover {
+  background: color-mix(in oklch, var(--dr-adm) 20%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-typeset details > summary { transition: none; }
+}

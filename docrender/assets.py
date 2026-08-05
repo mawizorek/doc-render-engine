@@ -50,6 +50,13 @@ choice is between a whole-body scan of every page and ~24KB that matches nothing
 and binds no listener when no table exists. A check that can answer wrong is more
 expensive than the bytes -- the whole lesson of the section above.
 
+WARNING: admonition.css IS UNCONDITIONAL FOR THE SAME REASON AS THE TABLE LAYER,
+and it is the clearest case of the three. A `!!!` block is body markdown, so
+detecting it needs a full-body scan; and unlike a table, an admonition can also
+arrive from a HOOK -- objects.py emits `!!! note "Not documented yet"` as a
+hardcoded string. So a content scan could answer "no admonitions" on a page that
+is about to grow one three stages later. Not gateable, and cheap to always ship.
+
 =============================================================================
 WARNING: EVERY ASSET URL CARRIES A CONTENT FINGERPRINT
 =============================================================================
@@ -76,21 +83,26 @@ _ROUTER_KEYS = ("router:", "router_code:")
 
 #: Load order is deliberate and is NOT alphabetical. Every entry has a reason:
 #:
-#:   base.css       the Material mapping everything else builds on
-#:   nav.css        split out of base.css 2026-08-04 at the 22KB hard line. It
-#:                  OVERRIDES Material's drawer borders, so it must land AFTER
-#:                  the base mapping -- move it earlier and the phones-only
-#:                  double rule comes back, a defect that is invisible at desktop
-#:                  width and was found from a screenshot.
-#:   data.css       the table layer, itself split out of base.css
-#:   data-list.css  overrides table rules inside a container query, so it loads
-#:                  after the rules it overrides
-#:   data.js        drives both table layers
+#:   base.css        the Material mapping everything else builds on
+#:   nav.css         split out of base.css 2026-08-04 at the 22KB hard line. It
+#:                   OVERRIDES Material's drawer borders, so it must land AFTER
+#:                   the base mapping -- move it earlier and the phones-only
+#:                   double rule comes back, a defect that is invisible at desktop
+#:                   width and was found from a screenshot.
+#:   admonition.css  OVERRIDES Material's own callout colours, so it must land
+#:                   after the base mapping too. Its rules bring more specificity
+#:                   than Material's documented pattern needs, but load order is
+#:                   the second half of that argument and this is where it lives.
+#:   data.css        the table layer, itself split out of base.css
+#:   data-list.css   overrides table rules inside a container query, so it loads
+#:                   after the rules it overrides
+#:   data.js         drives both table layers
 #:
 #: Reorder these and list mode loses to the table it is meant to replace.
 _DATA_ASSETS = (
     "base.css",
     "nav.css",
+    "admonition.css",
     "data.css",
     "data-list.css",
     "data.js",
@@ -149,10 +161,10 @@ def _plan(config) -> list[tuple[str, bytes]]:
     """Every asset this build publishes, in load order, with its bytes.
 
     Built by both events -- `on_config` needs the URLs, `on_files` needs the
-    content -- and they must never disagree. Order: base, the nav layer and the
-    data-table layers (see `_DATA_ASSETS`), then the generated token sheet, then
-    the generated marker-class sheet, then any feature sheet, then the instance
-    sheet LAST so a site always has the final word on its own look.
+    content -- and they must never disagree. Order: base, the nav and callout
+    layers, the data-table layers (see `_DATA_ASSETS`), then the generated token
+    sheet, then the generated marker-class sheet, then any feature sheet, then the
+    instance sheet LAST so a site always has the final word on its own look.
 
     `marks.css` sits after `tokens.css` because it CONSUMES those tokens, and it
     is separate from them because they answer different questions: tokens.css
