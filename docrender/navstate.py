@@ -64,10 +64,6 @@ next to each other.
 is the point rather than a shortcut: both belong to visibility, and a copy here
 would be free to drift from it. Full argument: hooks/00bb_navstate.py.
 
-⚠️ ONE QUESTION IS ANSWERED THE OTHER WAY. `hides_children` below is read BY
-visibility, at stage 00b, before this module runs -- see its docstring for the
-single property that makes that legal.
-
 ⚠️ `navigation.prune` AND `expanded` CANNOT BOTH BE ON. A pruned nav renders no
 children for any section the reader is not inside, so checking that toggle opens
 an empty box. `shape()` drops the feature -- but only when something actually
@@ -75,10 +71,8 @@ resolved to `expanded`, so a site that never uses it never pays. NOT available
 per-subtree: prune is one boolean for the whole theme. Cost and consequences in
 README section 7.
 
-⚠️ THE TIMING IS THE ONLY REASON THAT DROP IS LEGAL. Every `on_nav` runs before
-any page renders, and the template reads `features` at render time. `on_config`
-would NOT work -- `state.BY_SRC` is empty then, the trap `assets.py` already
-fell into and documented.
+⚠️ THAT DROP MUST HAPPEN IN `on_nav`, NOT `on_config`: `state.BY_SRC` is empty
+then, which is the trap `assets.py` already fell into and documented.
 
 WHAT THIS DOES NOT DO: unbuild anything, touch search, or have any opinion about
 `status:`. A `hidden` folder is exactly as public as it was before. 🚫 And it is
@@ -150,15 +144,14 @@ def _value(src_uri: str):
 def hides_children(src_uri: str) -> bool:
     '''Does this folder index declare `nav: hidden` ITSELF?
 
-    ⭐ READ AT STAGE 00b BY `visibility._collect`, BEFORE THIS MODULE RUNS, AND
-    THAT IS ONLY LEGAL BECAUSE `hidden` DOES NOT CASCADE. An own declaration is
-    the entire answer, so there is no resolved cascade to wait for -- which is
-    why this one question can be asked early and `expanded` cannot. Make
-    `hidden` inherit and this quietly becomes a lie.
+    ⭐ READ BY `visibility._collect` AT STAGE 00b, BEFORE THIS MODULE RUNS, AND
+    ONLY LEGAL BECAUSE `hidden` DOES NOT CASCADE: an own declaration is the whole
+    answer, so there is no resolved cascade to wait for. That is why this one
+    question can be asked early and `expanded` cannot. Make `hidden` inherit and
+    this quietly becomes a lie.
 
-    ⚠️ Reads `_canon`, NOT `_value`: `_value` reports an unknown value and
-    `_walk` reports the same page moments later. One key named twice in one
-    report reads as two problems.
+    ⚠️ Reads `_canon`, NOT `_value`, which reports an unknown value -- `_walk`
+    reports the same page moments later and one key named twice reads as two.
     '''
     raw = state.BY_SRC.get(src_uri, {}).get('nav')
     return raw is not None and _canon(raw) == 'hidden'
