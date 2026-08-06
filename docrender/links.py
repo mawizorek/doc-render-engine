@@ -43,6 +43,24 @@ to sneak into a feature branch. Same class as every other bug in this file's his
 -- resolution that succeeds while quietly discarding half the request.
 
 
+EVERY RESOLUTION IS RECORDED (added 2026-08-06)
+===============================================
+
+Each branch of `replace()` calls `state.ref(...)` before it returns. docindex.py
+inverts the result and publishes /doc-refs.json.
+
+⭐ NOTHING NEW IS COMPUTED. This file already had to resolve every reference to
+rewrite it, and it discarded the answer the instant the string was built -- the
+reference graph existed once per link, for the length of one function call, and was
+never written down. The recording sits INSIDE the branch that produces the href,
+which is the only placement where the report cannot drift from the page: there is no
+second pass to disagree with the first.
+
+⚠️ A DEAD REFERENCE IS RECORDED TOO, with `ok: false`. A report of only the working
+links would describe a site that does not exist, and the broken ones are the reason
+anybody opens the file.
+
+
 CROSS-SITE, with the honest limit up front. Every site in the family publishes
 /doc-index.json at its root on every build. `@peer:id` resolves against the peer's
 index, fetched at BUILD time and cached to disk in the instance folder. If a sibling
@@ -162,6 +180,12 @@ def _load_peers() -> None:
 def on_page_markdown(markdown, page, config, files):
     src = page.file.src_uri
 
+    # The source of every edge recorded below. A page with no `id` cannot be linked
+    # TO, but it still links OUT, so its edges are kept under its path rather than
+    # dropped -- the missing id is already reported by objects.py, and losing its
+    # outbound references here would hide the second problem behind the first.
+    src_id = state.BY_SRC.get(src, {}).get("id") or ("path:" + src)
+
     def replace(match):
         label = match.group("label")
         token = match.group("token")
@@ -175,6 +199,7 @@ def on_page_markdown(markdown, page, config, files):
                 + "file safe. For a table use @data:<slot> and declare the filename "
                 + "once in `data:` frontmatter.",
             )
+            state.ref(src_id, token, "filename", token, False)
             return _dead(label, "references point at ids, not filenames: " + token)
 
         if ":" in token:
@@ -202,7 +227,9 @@ def on_page_markdown(markdown, page, config, files):
                         + prefixes.owner(prefix) + " owns the @" + prefix
                         + ": namespace and does not know '" + rest + "'.",
                     )
+                    state.ref(src_id, token, prefix, rest, False)
                     return _dead(label, "unknown " + prefix + ": " + rest)
+                state.ref(src_id, token, prefix, rest, True)
                 return resolved
 
             peer = state.PEERS.get(prefix)
@@ -213,6 +240,7 @@ def on_page_markdown(markdown, page, config, files):
                     + "this build: "
                     + (", ".join(sorted(prefixes.reserved())) or "none") + ".",
                 )
+                state.ref(src_id, token, "peer", rest, False)
                 return _dead(label, "unknown peer site: " + prefix)
             hit = next(
                 (c for c in peer.get("pages", []) if c.get("id") == rest), None
@@ -222,7 +250,9 @@ def on_page_markdown(markdown, page, config, files):
                     "dead_links",
                     src + ": '" + rest + "' not found in peer '" + prefix + "'",
                 )
+                state.ref(src_id, token, "peer", rest, False)
                 return _dead(label, "not found in " + prefix + ": " + rest)
+            state.ref(src_id, token, "peer", rest, True)
             base = str(peer.get("base_url", "")).rstrip("/")
             return (
                 "[" + label + "](" + base + "/" + str(hit.get("url", "")) + anchor
@@ -232,8 +262,10 @@ def on_page_markdown(markdown, page, config, files):
         hit = state.PAGES.get(token)
         if not hit:
             state.note("dead_links", src + ": no page with id '" + token + "'")
+            state.ref(src_id, token, "page", token, False)
             return _dead(label, "no page yet with id: " + token)
 
+        state.ref(src_id, token, "page", token, True)
         # Resolved against THIS page, never from a separator count. The root index
         # page reports its url as `./` and broke that arithmetic.
         target = relative_url(str(hit.get("url", "")), page.file.url)

@@ -40,10 +40,38 @@ BY_SRC: dict = {}
 #: The published page map, keyed by page id. Built AFTER visibility prunes, so
 #: a link can never resolve to a page that was not built. That single sentence
 #: is the entire reason the hook order is what it is.
+#:
+#: ⚠️ PLAIN ASSIGNMENT, SO A DUPLICATE ID IS LAST-WRITER-WINS. objects.py
+#: REPORTS `duplicate_id` and the build still succeeds; this dict silently keeps
+#: whichever page was walked second, and every inbound @-ref to that id lands
+#: there. The loser still publishes -- it is a real file with a real URL -- it
+#: simply becomes unreachable by id, which is the one failure the id mechanism
+#: exists to prevent. /doc-refs.json makes it visible after the fact; nothing
+#: prevents it yet.
 PAGES: dict = {}
 
 #: Foreign page maps from peer sites, keyed by peer slug.
 PEERS: dict = {}
+
+#: Every reference this build resolved, keyed by the SOURCE page id, each value
+#: a dict of token -> {kind, target, ok, count}. Written by links.py (hook 03)
+#: as each token is replaced, read by docindex.py (hook 09), which inverts it
+#: into the inbound half and writes /doc-refs.json.
+#:
+#: ⭐ IT PAYS THE ADMISSION PRICE ABOVE, and how it pays it is the point: this
+#: is not a cache of something computable later. links.py ALREADY resolves every
+#: reference on every page -- it has to, that is how the token becomes an href --
+#: and until 2026-08-06 it threw each answer away the instant it finished with
+#: it. The graph existed for one function call per link and was never written
+#: down. Recording it costs nothing because nothing new is computed, and the
+#: report cannot disagree with the rendered page because the entry is written in
+#: the same branch that produced the href.
+#:
+#: ⚠️ HIDDEN PAGES ARE ABSENT BY CONSTRUCTION, not by filtering. on_page_markdown
+#: only runs for pages that survived visibility, so an unpublished page can
+#: neither appear as a source nor resolve as a target. Do not add a filter
+#: downstream -- there is nothing to filter, and a filter would imply otherwise.
+REFS: dict = {}
 
 #: The nav entries a ROUTED folder index took out of the sidebar, keyed by the
 #: src_uri of that index page. Written by visibility.seal_nav (stage 00bc),
@@ -144,13 +172,14 @@ REPORT: dict = {}
 
 
 def reset() -> None:
-    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, NAV_SEALED, NAV_OPEN
+    global INSTANCE, TYPES, BY_SRC, PAGES, PEERS, REFS, NAV_SEALED, NAV_OPEN
     global NAV_SHAPED, ROUTER_SALT, REPORT
     INSTANCE = {}
     TYPES = {}
     BY_SRC = {}
     PAGES = {}
     PEERS = {}
+    REFS = {}
     NAV_SEALED = {}
     NAV_OPEN = {}
     NAV_SHAPED = False
@@ -214,3 +243,21 @@ def reset() -> None:
 
 def note(bucket: str, message: str) -> None:
     REPORT.setdefault(bucket, []).append(message)
+
+
+def ref(source: str, token: str, kind: str, target: str, ok: bool) -> None:
+    """Record one resolved reference. Called from links.py, once per token.
+
+    Deduplicated per source page and COUNTED rather than listed twice: a page
+    that links the same target three times has one edge with `count: 3`, which
+    is the shape a reader wants and keeps the file small on an index page that
+    links forty siblings.
+    """
+    if not source:
+        return
+    edges = REFS.setdefault(source, {})
+    existing = edges.get(token)
+    if existing:
+        existing["count"] += 1
+        return
+    edges[token] = {"kind": kind, "target": target, "ok": ok, "count": 1}
