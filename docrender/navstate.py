@@ -55,11 +55,11 @@ looking for a row to hang a list on and builds one.
 
 🔴 THE REMOVAL HAPPENS AT 00bc, NOT HERE, AND THAT IS THE WHOLE ORDERING RULE.
 This stage runs BEFORE the seal. Cutting the section here would hand the seal an
-empty subtree and the manifest would contain nothing -- which is precisely the
-bug that split 00b and 00bc yesterday, arriving from the other direction. So
-`routed` does NOTHING in this file except two refusals: it declines to be
-treated as an unknown value, and it declines to cascade. visibility.seal_nav
-owns the cut, after it has taken what it needs.
+empty subtree and the manifest -- the only thing that can bring the folder back
+-- would contain nothing. That is precisely the bug that split 00b and 00bc
+yesterday, arriving from the other direction. So `routed` does NOTHING in this
+file except two refusals: it declines to be treated as an unknown value, and it
+declines to cascade. visibility.seal_nav owns the cut, after the harvest.
 
 ⚠️ IT DOES NOT CASCADE, same reason `hidden` does not: the whole subtree leaves
 the sidebar in one go, so there is nothing underneath for an inherited value to
@@ -211,7 +211,8 @@ def declared(src_uri: str):
     value would be printed twice and the second copy would look like a second
     problem.
     '''
-    return _canon(_raw(src_uri)) if _raw(src_uri) else None
+    raw = _raw(src_uri)
+    return _canon(raw) if raw else None
 
 
 def _value(src_uri: str):
@@ -449,7 +450,7 @@ def shape(items, config, index_of, unchain) -> None:
     state.NAV_SHAPED = True
 
     _misplaced()
-    _walk(items, config and index_of or index_of, unchain, _site_default())
+    _walk(items, index_of, unchain, _site_default())
 
     if not state.NAV_OPEN:
         return

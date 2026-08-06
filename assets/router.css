@@ -383,8 +383,54 @@ span.dr-nav-revealed__link {
   animation: none;
 }
 
+/* ---------------------------------------------------------------------------
+ * THE INJECTED FOLDER (`nav: routed`, 2026-08-06)
+ *
+ * A routed folder is absent from the sidebar entirely -- not just its children,
+ * the folder itself. Its own row travels as entry ZERO of the sealed manifest
+ * and router.js builds it on a correct code, then appends it to the top-level
+ * list.
+ *
+ * ⭐ THIS BLOCK IS DELIBERATELY TINY, WHICH IS THE POINT. The injected row is a
+ * real `li.md-nav__item` holding a real `a.md-nav__link`, so it inherits every
+ * bit of Material's own top-level type, spacing and hover for free. The list
+ * INSIDE it is the `.dr-nav-revealed` above, which owns its own type for the
+ * reasons in that block's red note. Two different markup strategies in one
+ * injected element, and each is right for its own job: the row has to read as
+ * one of the sections it just joined, the children must not borrow a nested nav
+ * they have no toggle for.
+ *
+ * The border matches what Material puts on its drawer items. `md-nav__item`
+ * alone does not always get one, because that rule keys off position in the
+ * list, and this row arrives after the stylesheet has stopped caring.
+ * ------------------------------------------------------------------------ */
+.dr-nav-injected {
+  /* ⭐ THE ARRIVAL IS THE FEATURE, NOT DECORATION. Michael, asking for this:
+   * "i want the sidebar to feel almost dynamic if something unlocks." A folder
+   * that simply exists on the next paint reads as a rendering glitch; one that
+   * slides in reads as something that just happened. Same theme tokens as the
+   * list it contains, so it moves at the theme's speed rather than a literal. */
+  animation: dr-nav-folder-in var(--dr-motion-med, 0.32s)
+    var(--dr-ease, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+@keyframes dr-nav-folder-in {
+  from { opacity: 0; transform: translateY(-0.3rem); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ⚠️ AND IT DOES NOT REPLAY ON THE WARM PATH. Every page under the folder
+ * re-injects this row from its own sealed manifest, so without this a reader
+ * who already holds the code would watch the sidebar re-animate on every single
+ * navigation -- which is the twitch the pre-paint boot script exists to
+ * prevent, arriving from a different direction. */
+.dr-open .dr-nav-injected {
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .dr-nav-revealed__item {
+  .dr-nav-revealed__item,
+  .dr-nav-injected {
     animation: none;
   }
 }
