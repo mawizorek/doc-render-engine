@@ -1,6 +1,66 @@
-# PROVENANCE for everything in theme/canonical/. Data, not prose, because
-# docrender/vectors.py READS this file on every build and compares blob_sha
-# against the bytes actually on disk.
+# PROVENANCE AND FETCH MAP for the canonical vectors. Data, not prose:
+# docrender/vectors.py READS this file on every build, twice -- once to find
+# each vector UPSTREAM, and once to compare hashes.
+#
+# =============================================================================
+# WHAT CHANGED ON 2026-08-06, AND WHY THIS HEADER IS A RETRACTION
+# =============================================================================
+# This file used to open with a warning that it could not answer the question
+# anybody actually had:
+#
+#   STRUCK: "DOES NOT PROVE: that what we vendored is still current upstream.
+#   That needs a scheduled job with network access, and it does not exist yet."
+#
+# Michael: "the renderer should pull from canonical; there should be no
+# in-between. why is this happening?" The honest answer was that nobody ever
+# decided it -- the first extraction copied the files in to get moving, and
+# three separate commits then improved the PROSE about the gap instead of
+# closing it. It ate his own typography and spacing edits on 08-05: fifty
+# minutes live upstream and absent from every site, found only because somebody
+# read this log for an unrelated reason.
+#
+# THE ENGINE NOW READS THESE VECTORS LIVE, per file, per build:
+#
+#   the design system was checked out and the file is there  ->  LIVE
+#   anything else                                            ->  the copy in
+#                                                                this folder,
+#                                                                reported LOUDLY
+#
+# =============================================================================
+# THE `path` COLUMN IS EXECUTABLE NOW. IT USED TO BE A NOTE.
+# =============================================================================
+# It recorded where each file came from, for a human reading the table. It is
+# now what vectors.py joins on to find the file upstream -- so a wrong value no
+# longer merely misleads a reader, it silently falls THAT FILE back to the
+# vendored copy while its neighbours stay live.
+#
+# The column did not change shape. Its cost of being wrong did. That mixed state
+# is reported by name, because live colours joined to a vendored join table can
+# point at a row that no longer exists -- and the symptom otherwise arrives as a
+# dangling pointer with no stated cause.
+#
+# A FILE ABSENT FROM THIS TABLE IS NEVER FETCHED. `aliases.tsv` and `bridge.tsv`
+# live in this folder and are OURS -- they join this engine's vocabulary to the
+# design system's and have no upstream. They are not listed here, so the
+# resolver never looks for them. Nothing in the code knows their names.
+#
+# =============================================================================
+# WHAT THE HASH PROVES NOW
+# =============================================================================
+# LIVE PATH: that the file fetched IS the one recorded here. A mismatch is NOT a
+# defect -- it means upstream has moved since the last re-vendor, which is the
+# normal state of a live read. What it costs is the FALLBACK: if the design
+# system were unreachable right now, this site would paint the older bytes. So
+# it prints a note asking for a re-vendor, and the build carries on.
+#
+# FALLBACK PATH: the old meaning, unchanged. The file on disk is not what was
+# recorded, so somebody edited it in place or the copy is damaged. That one is
+# reported as a real defect, because it is the file actually being rendered.
+#
+# THE RECORDED HASHES ARE THEREFORE THE FALLBACK'S PROVENANCE, not the site's.
+# A smaller job than they used to have, and still worth doing: a stale fallback
+# is harmless until the day the fetch fails, which is the worst possible day to
+# find out.
 #
 # WHY THE VENDORED FILES CARRY NO HEADER COMMENTS
 # -----------------------------------------------
@@ -8,30 +68,18 @@
 # that is deliberate: a comment would change their bytes and destroy the one
 # thing that proves they ARE the canonical tables. Their identity is their hash.
 #
-# WHAT THE CHECK PROVES, AND WHAT IT DOES NOT
-# -------------------------------------------
-# PROVES: the file on disk is byte-for-byte what we vendored. Catches a hand
-# edit, a partial write, an editor that stripped a trailing newline or converted
-# tabs -- the failure modes that turn a design system into a lookalike.
-#
-# DOES NOT PROVE: that what we vendored is still current upstream. That needs a
-# scheduled job with network access, and it does not exist yet. WARNING: stated
-# rather than implied, because a green check that answers a narrower question
-# than the reader assumes is worse than no check.
-#
-# RED AND THAT GAP FIRED ON MICHAEL'S OWN WORK ON 2026-08-05. He hand-committed
-# typography.tsv and spacing.tsv upstream at 16:38 and 16:36Z; both sat
-# unvendored for roughly fifty minutes, so a display face and a whole spacing
-# entity were live in the design system and absent from every site. Nothing here
-# could have caught it -- this file only compares against what we last copied --
-# and it was found by reading the refresh log for an unrelated reason. The remedy
-# named above is still the remedy.
-#
 # HOW TO REFRESH: replace the file wholesale from the source repo, put the new
 # blob SHA here, and re-run the build. Never edit a vendored file in place.
 #
 # ---------------------------------------------------------------------------
 # REFRESH LOG. Newest first.
+#
+# KEPT IN FULL, deliberately, now that it no longer describes the only way
+# values reach a site. Every entry records what changed upstream and why, and
+# several carry measurements that exist nowhere else -- the amber decided by the
+# marker chip rather than the page, the four occurrences of identical byte counts
+# with different content, the transposition that made the colour table clueless.
+# That is the only history of this design system's decisions the engine holds.
 #
 # 2026-08-05  A LINK IS ITS OWN ROLE. colors 579bb57 -> 003fb9c, 24 -> 25
 #             columns: NEW `link`, authored on eos (#c495b5) and eos-light
@@ -47,17 +95,19 @@
 #             one unoccupied region. WARNING a blank cell is not emitted, so
 #             `var(--dr-link, var(--dr-accent))` keeps all 37 other themes
 #             rendering byte-identically.
-# 2026-08-05  MICHAEL'S OWN EDITS, VENDORED ~50 MIN LATE (see the RED note
-#             above). typography cbf0c9e -> 5f6ec2d: eos display 'Chakra Petch'
-#             -> 'Archivo', mono 'JetBrains Mono' -> 'IBM Plex Mono'. spacing
+# 2026-08-05  MICHAEL'S OWN EDITS, VENDORED ~50 MIN LATE. THE INCIDENT THAT
+#             EVENTUALLY KILLED VENDORING ALTOGETHER (see the header).
+#             typography cbf0c9e -> 5f6ec2d: eos display 'Chakra Petch' ->
+#             'Archivo', mono 'JetBrains Mono' -> 'IBM Plex Mono'. spacing
 #             a355d55 -> a4996d0: eos pad-cell 6->3px, pad-card 12->8px, gap-md
 #             10->6px, gap-lg 20->12px, roughly halving all four.
-#             RED THE SPACING EDIT IS VISIBLE AND THE TYPOGRAPHY ONE IS NOT.
+#             THE SPACING EDIT IS VISIBLE AND THE TYPOGRAPHY ONE IS NOT.
 #             Nothing in this engine fetches a webfont -- `theme.font` is never
 #             set in mkdocs.yml -- so a font NAME changes and no file is
 #             requested, and 'Archivo' falls through to system-ui. The type
 #             vector's three font columns have never rendered on any site. Full
-#             write-up in assets/type.css.
+#             write-up in assets/type.css. STILL OPEN: reading the vectors live
+#             fixes the DELAY, not the missing webfont loader.
 # 2026-08-05  EOS-LIGHT JOINS THE CONSOLE. colors 4691aee -> 579bb57. Michael:
 #             "fix the eos light theme to now fit the same muted blue
 #             aesthetics? could do for more notable amber pops in both of them."
@@ -66,10 +116,10 @@
 #             blue accent-2 -- so the pair had a violet half and a blue half.
 #             Chrome now 215.0-216.9, a 1.9 degree spread against the dark row's
 #             2.8 at 216; accent matched in HUE (212.0 vs 212.7) and separated
-#             in weight. RED the amber was decided by the marker CHIP, not by
+#             in weight. THE AMBER WAS DECIDED BY THE MARKER CHIP, not by
 #             the page: `warn` paints the confidence box, whose text sits on a
 #             10% wash of ITSELF, and three more saturated candidates cleared
-#             the page while failing that. WARNING 7,719 B before and after --
+#             the page while failing that. 7,719 B before and after --
 #             FOURTH occurrence on this file.
 # 2026-08-05  THE EOS HARNESS RETIRES. colors c576bcf -> 4691aee, themes.json
 #             e6b7c7e -> 7711cab. Michael: "i think i've proved my point with
@@ -80,7 +130,7 @@
 #             within THREE degrees of hue 217 where the harness spanned 224.
 #             themes.json carries prose only -- the eos join's harness warning
 #             was now false and the semantic grammar is stated instead.
-#             WARNING colors.tsv is 7,719 B BEFORE AND AFTER. Third occurrence
+#             colors.tsv is 7,719 B BEFORE AND AFTER. Third occurrence
 #             in this file of identical size with different content.
 # 2026-08-05  THE COLOUR TABLE BECOMES CLUELESS. colors 75b3f6c -> c576bcf
 #             (38 cols -> 24, 23 rows -> 39), themes.json 09e429b -> e6b7c7e
@@ -91,9 +141,9 @@
 #             every alt band TRANSPOSED into its own complete row (williams-dark,
 #             ferrari-light, papyrus-dark...) losslessly, since the 7 tokens the
 #             band never carried were SHARED and already painted into both
-#             schemes. RED the engine cannot read this table without the matching
+#             schemes. The engine cannot read this table without the matching
 #             vectors.py commit -- derivation reads a column that no longer
-#             exists. RED and the first write was REFUSED on a stale SHA:
+#             exists. And the first write was REFUSED on a stale SHA:
 #             Michael had hand-committed an eos identification harness minutes
 #             earlier (9374be2) and the generated table would have wiped it.
 # 2026-08-05  667e4a9 -> 75b3f6c  OUTLANDISH ACCENTS, 30 cells across the six
@@ -103,7 +153,7 @@
 #             on-accent; two candidates rejected on measurement (4.44, 4.36).
 #             SAME 6,674 BYTES as the previous vendor.
 # 2026-08-05  e14e3a6 -> 667e4a9  THE SPLIT. J10/S1 implemented for three
-#             identities. RED this broke `light: eos` in site.yml SILENTLY.
+#             identities. This broke `light: eos` in site.yml SILENTLY.
 # 2026-08-05  eade05c -> e14e3a6  eos light: placeholder green retired, magenta
 #             deepened for the light ground (3.46:1 -> 5.06:1).
 # 2026-08-05  27b5327 -> eade05c  eos dark RE-AUTHORED; amber moves to `accent`,
