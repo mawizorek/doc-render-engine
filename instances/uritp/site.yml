@@ -67,7 +67,8 @@ aliases: [uritp-docs, "URITP PRP", "URITP Production Resources", prp]
 # maw-themes and publish, which is the whole reason the join exists.)
 
 # theme: sharp-utility
-theme: eos
+# theme: eos
+theme: mclaren
 
 # THE LAST DOOR BACK TO THE SOURCE.
 #
