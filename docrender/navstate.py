@@ -5,7 +5,7 @@ Stage ordering (why 00bb, why 06b): hooks/README.md. Reader-facing contract and
 the cost of `expanded`: README section 3 and section 7. This docstring holds
 what someone EDITING this file has to know, and points at the rest.
 
-Declared on a folder's `index.md`, and NOWHERE ELSE. Three values, each with a
+Declared on a folder's `index.md`, and NOWHERE ELSE. Four values, each with a
 bare-verb alias, because Michael asked for one and a vocabulary where only one
 value has a short form is a vocabulary you have to remember:
 
@@ -16,6 +16,8 @@ value has a short form is a vocabulary you have to remember:
     collapsed | collapse  a closed row you click to open.
     expanded | expand     opens by itself, and so does everything under it,
                           until a descendant index says otherwise.
+    routed | route        NOT IN THE SIDEBAR AT ALL until a router code is
+                          typed, and then the whole folder appears. See below.
 
 THE SITE ROOT DECLARES THE DEFAULT; THIS FILE ONLY HOLDS THE FALLBACK.
 Michael, 2026-08-05: *SITE md index file gets nav: collapsed to dictate that.
@@ -33,13 +35,44 @@ promised to take the key seriously there.
 🚫 ROOT `nav: hidden` IS REFUSED, OUT LOUD. Inherited by every top-level folder
 it leaves a sidebar of bare labels. `_walk`'s non-cascade rule would already
 degrade it, but silently, as a side effect of a rule written for something else.
-A refusal nobody can see is not a refusal.
+A refusal nobody can see is not a refusal. 🚫 Root `nav: routed` is refused for
+the same reason and a worse one: the site root has no enclosing section, so
+there is nothing to withhold that is not the entire sidebar.
 
-⚠️ A ROOT WITH NO `nav:` IS REPORTED AND COLLAPSES. Michael floated a build
-failure and ruled against his own suggestion, correctly: this engine warns and
-never dies, with exactly one hard failure in the pipeline (the leak scan). It
-reports into its own SECTION rather than `notes`, because notes print last and a
-fact governing every folder cannot be the line under forty size warnings.
+=============================================================================
+⭐ `routed` -- AND THE REASON IT IS NOT A CUT MADE HERE
+=============================================================================
+
+Michael, 2026-08-06: *"i do intentionally mean that i want the parent folder to
+also hide from the sidebar nav... i want the sidebar to feel almost dynamic if
+something unlocks."*
+
+`router:` on a folder index already seals the CHILDREN and leaves the folder's
+own row in place, because router.js finds that row and appends the revealed list
+under it. `routed` takes the row away too -- and it works because THE ROW ITSELF
+TRAVELS INSIDE THE SEALED MANIFEST, as entry zero at depth 0. The client stops
+looking for a row to hang a list on and builds one.
+
+🔴 THE REMOVAL HAPPENS AT 00bc, NOT HERE, AND THAT IS THE WHOLE ORDERING RULE.
+This stage runs BEFORE the seal. Cutting the section here would hand the seal an
+empty subtree and the manifest would contain nothing -- which is precisely the
+bug that split 00b and 00bc yesterday, arriving from the other direction. So
+`routed` does NOTHING in this file except two refusals: it declines to be
+treated as an unknown value, and it declines to cascade. visibility.seal_nav
+owns the cut, after it has taken what it needs.
+
+⚠️ IT DOES NOT CASCADE, same reason `hidden` does not: the whole subtree leaves
+the sidebar in one go, so there is nothing underneath for an inherited value to
+reach. Children are walked with the site default so a `nav: hidden` folder
+inside a routed one is still cut before the seal sees it.
+
+⚠️ `nav: routed expand` IS ACCEPTED AND HALF OF IT IS NOISE, WHICH IS SAID
+RATHER THAN SWALLOWED. That is the spelling Michael wrote, so the canonicaliser
+collapses internal whitespace and takes it. But there is no collapsed state to
+expand FROM: the revealed list is flat and always rendered in full, because
+Material's nested-nav markup needs a toggle per level and a folder that was
+never in the tree has none. Accepting a spelling and quietly ignoring half of it
+is worse than refusing it.
 
 WHY THIS IS ADD-ONLY, AND WHY THAT IS THE WHOLE DESIGN. Michael: *active stays
 open.* Material writes `checked` onto a toggle only when the section is an
@@ -60,6 +93,8 @@ next to each other.
                      resolves the cascade, fills NAV_OPEN. Raises NAV_SHAPED,
                      which visibility.seal_nav (00bc) checks to prove this ran
                      before it -- see shape() for why that is not paranoia.
+    declared()       PUBLIC, and silent. visibility asks this whether a folder
+                     said `routed`. One reader of the key, not two.
     on_post_page()   stage 06b. Reads NAV_OPEN, checks the toggles.
 
 ⚠️ THE SHIM PASSES IN `_index_of` AND `_unchain` FROM visibility.py, AND THAT IS
@@ -67,7 +102,8 @@ THE POINT RATHER THAN A SHORTCUT. Both belong to visibility -- `_index_of`
 returns the index a section had BEFORE pruning, recorded in its pass 1 precisely
 because reading it afterwards was a live bug, and `_unchain` is the prev/next
 detachment every removal in this engine owes. Copying either here would create a
-second copy free to drift.
+second copy free to drift. The dependency runs one way only, which is why
+visibility may import THIS module and this module may never import that one.
 
 ⚠️ `navigation.prune` AND `expanded` CANNOT BOTH BE ON. A pruned nav renders no
 children for any section the reader is not inside, so checking that toggle opens
@@ -82,10 +118,12 @@ would NOT work -- `state.BY_SRC` is empty then, the trap `assets.py` already
 fell into and documented.
 
 WHAT THIS DOES NOT DO: unbuild anything, touch search, or have any opinion about
-`status:`. A `hidden` folder is exactly as public as it was before. 🚫 And it is
-NOT a status cascade -- `nav:` on a non-index page does nothing at all, and is
-REPORTED rather than ignored, because a key that silently does nothing is the
-failure this whole file was written to avoid.
+`status:`. A `hidden` folder is exactly as public as it was before, and so is a
+`routed` one -- every page under it still builds, still has a live URL, and is
+still reachable by `@id` and by search. 🚫 And it is NOT a status cascade --
+`nav:` on a non-index page does nothing at all, and is REPORTED rather than
+ignored, because a key that silently does nothing is the failure this whole file
+was written to avoid.
 '''
 
 from __future__ import annotations
@@ -99,14 +137,20 @@ from . import state
 SITE_ROOT = 'index.md'
 
 #: The vocabulary, in the spelling everything else in this engine uses.
-VALUES = ('hidden', 'collapsed', 'expanded')
+VALUES = ('hidden', 'collapsed', 'expanded', 'routed')
 
 #: Michael, 2026-08-05: *I'd like to be able to say "expanded" or "expand".*
 #:
-#: ⭐ ALL THREE GOT A SHORT FORM, not just the one asked for. A vocabulary where
+#: ⭐ ALL FOUR GOT A SHORT FORM, not just the one asked for. A vocabulary where
 #: `expand` works and `collapse` does not is one you have to remember rather
 #: than guess, and the failure is silent: an unknown value falls back to the
 #: default, which on a `collapse` typo is indistinguishable from success.
+#:
+#: ⚠️ THE TWO-WORD ROUTED SPELLINGS ARE HERE BECAUSE MICHAEL WROTE ONE. He asked
+#: for `nav: routed expand`. The `expand` half is noise -- see the routed
+#: section in the module docstring -- but a value somebody types and the engine
+#: silently discards is worse than one it accepts and explains, so it resolves
+#: and `_walk` says what happened to the second word.
 ALIASES = {
     'hide': 'hidden',
     'hidden': 'hidden',
@@ -114,7 +158,16 @@ ALIASES = {
     'collapsed': 'collapsed',
     'expand': 'expanded',
     'expanded': 'expanded',
+    'route': 'routed',
+    'routed': 'routed',
+    'route expand': 'routed',
+    'routed expand': 'routed',
+    'routed expanded': 'routed',
 }
+
+#: The spellings that carry a redundant second word, so `_walk` can say so once
+#: rather than leaving somebody to wonder whether `expand` did anything.
+_NOISY = ('route expand', 'routed expand', 'routed expanded')
 
 #: What a site that has NOT declared a default gets. No longer the site's answer
 #: -- the root index is -- just the answer for a site that never gave one.
@@ -126,9 +179,39 @@ DEFAULT = 'collapsed'
 # ===========================================================================
 
 
+def _raw(src_uri: str) -> str:
+    '''The `nav:` cell exactly as written, whitespace-collapsed and lowered.
+
+    Collapsing INTERNAL whitespace is what makes `routed  expand` and
+    `routed expand` the same value. A reader typing two spaces has not made a
+    different declaration.
+    '''
+    raw = state.BY_SRC.get(src_uri, {}).get('nav')
+    if raw is None:
+        return ''
+    return ' '.join(str(raw).strip().lower().split())
+
+
 def _canon(raw):
     '''Normalise a declared value, or None if it is not one of ours.'''
-    return ALIASES.get(str(raw).strip().lower())
+    return ALIASES.get(' '.join(str(raw).strip().lower().split()))
+
+
+def declared(src_uri: str):
+    '''This index page's own `nav:`, canonical, WITHOUT reporting anything.
+
+    ⭐ PUBLIC, AND THE ONLY WAY ANOTHER MODULE MAY READ THIS KEY.
+    visibility.seal_nav needs to know whether a folder said `routed`, and the
+    alternative -- reading `nav:` out of frontmatter over there -- is a second
+    interpreter of one key, free to drift the moment an alias is added here.
+    This repo has killed that shape five times.
+
+    ⚠️ SILENT ON PURPOSE. `_value` below is the reporting version and it runs
+    once per section during `shape`. If this one reported too, every unknown
+    value would be printed twice and the second copy would look like a second
+    problem.
+    '''
+    return _canon(_raw(src_uri)) if _raw(src_uri) else None
 
 
 def _value(src_uri: str):
@@ -142,8 +225,8 @@ def _value(src_uri: str):
     state.note(
         'notes',
         src_uri + ': `nav: ' + str(raw) + '` is not a value this engine knows. '
-        + 'Valid: ' + ' | '.join(VALUES) + ' (or hide | collapse | expand). '
-        + 'Falling back to the site default.',
+        + 'Valid: ' + ' | '.join(VALUES) + ' (or hide | collapse | expand | '
+        + 'route). Falling back to the site default.',
     )
     return None
 
@@ -177,7 +260,7 @@ def _site_default() -> str:
             'nav_default',
             SITE_ROOT + ': `nav: ' + str(raw) + '` is not a value this engine '
             + "knows, so the site default is '" + DEFAULT + "'. Valid: "
-            + ' | '.join(VALUES) + ' (or hide | collapse | expand).',
+            + ' | '.join(VALUES) + ' (or hide | collapse | expand | route).',
         )
         return DEFAULT
 
@@ -193,6 +276,20 @@ def _site_default() -> str:
             + 'by every top-level folder it empties the whole sidebar and leaves '
             + "a row of labels. Using '" + DEFAULT + "'. Put `nav: hidden` on the "
             + 'individual folders you meant.',
+        )
+        return DEFAULT
+
+    if value == 'routed':
+        # 🚫 Worse than hidden at the root, and for an extra reason: the site
+        # index has no enclosing section, so there is no subtree to withhold
+        # that is not the entire sidebar. router.py already reports the same
+        # thing about a router declared here.
+        state.note(
+            'nav_default',
+            SITE_ROOT + ': `nav: routed` cannot be the SITE default -- the root '
+            + 'has no enclosing section, so there is nothing to withhold that is '
+            + "not the whole sidebar. Using '" + DEFAULT + "'. Put `nav: routed` "
+            + 'on the folder index you meant, beside its `router:`.',
         )
         return DEFAULT
 
@@ -272,15 +369,44 @@ def _walk(items, index_of, unchain, inherited: str) -> None:
         # whole subtree leaves the sidebar in one cut, so there is nothing left
         # underneath for an inherited value to reach. Letting it flow onward
         # would only hand a state nobody declared to a folder further down.
-        carried = inherited if inherited != 'hidden' else DEFAULT
+        # `routed` is the same argument and cannot arrive here inherited, since
+        # its branch below never passes it on -- named in the tuple anyway,
+        # because a guard that depends on a distant branch staying correct is
+        # not a guard.
+        carried = inherited if inherited not in ('hidden', 'routed') else DEFAULT
         resolved = own or carried
+
+        children = getattr(item, 'children', None) or []
+
+        if resolved == 'routed':
+            # ⭐ NOTHING IS CUT HERE, AND THAT IS THE WHOLE ORDERING RULE. This
+            # stage runs BEFORE the seal at 00bc; removing the section now would
+            # hand the seal an empty subtree and the sealed manifest -- the only
+            # thing that can ever bring this folder back -- would be empty. That
+            # is the bug that split 00b and 00bc yesterday, from the other side.
+            #
+            # visibility.seal_nav does the removal, reading this same key
+            # through `declared()`. All this branch does is decline to treat
+            # `routed` as unknown, and decline to cascade it.
+            if index is not None and _raw(index.file.src_uri) in _NOISY:
+                state.note(
+                    'routers',
+                    index.file.src_uri + ': `nav: ' + _raw(index.file.src_uri)
+                    + '` is read as `routed`. There is no collapsed state to '
+                    + 'expand FROM -- a routed folder is absent from the sidebar '
+                    + 'entirely and the list a correct code injects is flat and '
+                    + 'always shown in full. The second word is accepted and '
+                    + 'does nothing.',
+                )
+            _walk(children, index_of, unchain, DEFAULT)
+            continue
 
         if resolved == 'hidden':
             if index is None:
                 # Unreachable from a declaration -- `own` is read off the index
                 # -- so this is defensive only.
                 continue
-            if index not in (getattr(item, 'children', None) or []):
+            if index not in children:
                 # 🔴 SAME CONTRADICTION SHAPE AS A SEALED ROUTER ON AN UNLISTED
                 # INDEX, and resolved the same way: reported, never guessed.
                 #   unlisted    says: this page is not in the sidebar.
@@ -296,8 +422,7 @@ def _walk(items, index_of, unchain, inherited: str) -> None:
                     + ' The folder is listed in full instead. Set `status:'
                     + ' public` on this index, or drop `nav: hidden`.',
                 )
-                _walk(getattr(item, 'children', None) or [], index_of,
-                      unchain, DEFAULT)
+                _walk(children, index_of, unchain, DEFAULT)
                 continue
             _hide(item, index, unchain)
             continue
@@ -305,7 +430,7 @@ def _walk(items, index_of, unchain, inherited: str) -> None:
         if resolved == 'expanded' and index is not None:
             state.NAV_OPEN[_norm(index.file.url)] = True
 
-        _walk(getattr(item, 'children', None) or [], index_of, unchain, resolved)
+        _walk(children, index_of, unchain, resolved)
 
 
 def shape(items, config, index_of, unchain) -> None:
@@ -324,7 +449,7 @@ def shape(items, config, index_of, unchain) -> None:
     state.NAV_SHAPED = True
 
     _misplaced()
-    _walk(items, index_of, unchain, _site_default())
+    _walk(items, config and index_of or index_of, unchain, _site_default())
 
     if not state.NAV_OPEN:
         return
