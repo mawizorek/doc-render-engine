@@ -1,6 +1,6 @@
-"""Hook 09 -- publish the cross-site contract, and report what changed.
+"""Hook 09 -- publish the cross-site contract, the reference graph, and a diff.
 
-TWO JOBS.
+THREE JOBS.
 
 1. `/doc-index.json` at the site root. One small file that makes `@peer:id`
    links possible in every OTHER site in the family, which makes it the only
@@ -9,7 +9,28 @@ TWO JOBS.
    sibling, and they will not notice until their next build turns a working
    link into a broken marker.
 
-2. THE PUBLISH PREVIEW. Fetches the index the LIVE site is currently serving
+2. `/doc-refs.json` at the site root. The whole reference graph: for every
+   page, what it references and what references it.
+
+   ⭐ IT COSTS NOTHING TO BUILD, and that is the argument for it existing.
+   links.py already resolves every reference on every page -- it must, that is
+   how a token becomes an href -- and until 2026-08-06 it discarded each answer
+   immediately. The graph was computed on every single build and never written
+   down. This inverts what was recorded; the inbound half is free.
+
+   🔴 A SEPARATE FILE, NOT MORE KEYS ON THE INDEX ABOVE. The index is an
+   interface every peer fetches on every build. Hanging a full graph off it
+   would make six sibling sites download the reference map of a site they read
+   five keys from, forever. Two files with two jobs; only one of them is a
+   contract.
+
+   ⚠️ `inbound: 0` IS REPORTED AS A COUNT AND IS DELIBERATELY NOT CALLED
+   "ORPHAN". A page reached through the sidebar has zero inbound REFERENCES and
+   is perfectly reachable. Nav membership is not in this graph and this file
+   does not pretend otherwise -- a metric that quietly redefines its own word is
+   worse than no metric.
+
+3. THE PUBLISH PREVIEW. Fetches the index the LIVE site is currently serving
    and diffs it against the one just built, then writes the result to the
    Actions run summary.
 
@@ -30,7 +51,9 @@ Hidden pages are absent by construction, not by filtering: visibility.py
 removed them from the file set long before this ran, so there is no code path
 here that could leak an unpublished page's existence -- including into this
 report, which is worth stating because a diff is exactly the sort of thing that
-accidentally lists what it was meant to exclude.
+accidentally lists what it was meant to exclude. The same guarantee covers the
+reference graph for the same reason: on_page_markdown never ran for a hidden
+page, so it is neither a source nor a resolvable target.
 """
 
 from __future__ import annotations
@@ -60,6 +83,125 @@ def _live_index(base_url: str) -> dict | None:
         # first publish, and the report says so rather than showing a diff
         # against nothing and calling every page "new" without explanation.
         return None
+
+
+def _refs_payload(index: dict) -> dict:
+    """Invert state.REFS into the two-directional graph.
+
+    Outbound was recorded by links.py as it resolved. Inbound is this loop and
+    nothing else -- an edge already known, read from the other end.
+    """
+    known = {p["id"]: p for p in index["pages"]}
+
+    pages: dict = {}
+    for page_id, meta in known.items():
+        pages[page_id] = {
+            "title": meta.get("title"),
+            "url": meta.get("url"),
+            "type": meta.get("type"),
+            "references": [],
+            "referenced_by": [],
+        }
+
+    # Sources with no `id:` of their own. They still link OUT, so their edges
+    # count toward every target's inbound list, but they can never be a target
+    # themselves. Kept apart rather than mixed in, because a bare path sitting
+    # among page ids reads like an id and is not one.
+    unidentified: dict = {}
+    broken: list = []
+
+    for source, edges in state.REFS.items():
+        bucket = pages.get(source)
+        if bucket is None:
+            bucket = unidentified.setdefault(source, {"references": []})
+
+        for token, edge in sorted(edges.items()):
+            bucket["references"].append({
+                "token": token,
+                "kind": edge["kind"],
+                "target": edge["target"],
+                "resolved": edge["ok"],
+                "count": edge["count"],
+            })
+            if not edge["ok"]:
+                broken.append({"from": source, "token": token, "kind": edge["kind"]})
+            elif edge["kind"] == "page" and edge["target"] in pages:
+                back = pages[edge["target"]]["referenced_by"]
+                if source not in back:
+                    back.append(source)
+
+    for page_id, bucket in pages.items():
+        bucket["referenced_by"].sort()
+        bucket["inbound"] = len(bucket["referenced_by"])
+        bucket["outbound"] = len(bucket["references"])
+
+    no_inbound = sorted(i for i, b in pages.items() if b["inbound"] == 0)
+
+    return {
+        "site": index["site"],
+        "base_url": index["base_url"],
+        "built": index["built"],
+        "engine": index["engine"],
+        "totals": {
+            "pages": len(pages),
+            "edges": sum(b["outbound"] for b in pages.values())
+            + sum(len(b["references"]) for b in unidentified.values()),
+            "broken": len(broken),
+            "no_inbound": len(no_inbound),
+        },
+        # ⚠️ NOT "orphans". Zero inbound REFERENCES; the sidebar is not in this
+        # graph. See the module docstring.
+        "no_inbound": no_inbound,
+        "broken": sorted(broken, key=lambda b: (b["from"], b["token"])),
+        "pages": pages,
+        "unidentified_sources": unidentified,
+    }
+
+
+def _refs_summary(refs: dict) -> str:
+    t = refs["totals"]
+    lines = [
+        "",
+        "### 🔗 Reference graph",
+        "",
+        "`" + str(t["edges"]) + "` references across `" + str(t["pages"])
+        + "` pages · [`/doc-refs.json`]("
+        + str(refs.get("base_url", "")) + "doc-refs.json)",
+        "",
+    ]
+
+    if t["broken"]:
+        lines += [
+            "🔴 **" + str(t["broken"]) + " broken reference(s).** Each renders as a "
+            "struck-through span with no href, so a reader sees it too.",
+            "",
+        ]
+        for b in refs["broken"][:20]:
+            lines.append("- `" + b["from"] + "` → `@" + b["token"] + "`")
+        if t["broken"] > 20:
+            lines.append("- _…and " + str(t["broken"] - 20) + " more in the JSON._")
+        lines.append("")
+    else:
+        lines += ["✅ No broken references.", ""]
+
+    if refs["unidentified_sources"]:
+        lines += [
+            "⚠️ **" + str(len(refs["unidentified_sources"]))
+            + " page(s) link out but declare no `id:`**, so nothing can link back "
+            "to them. Listed by path in the JSON.",
+            "",
+        ]
+
+    if t["no_inbound"]:
+        lines += [
+            "ℹ️ **" + str(t["no_inbound"]) + " page(s) have no inbound references.** "
+            "That is not the same as unreachable — the sidebar is navigation, not "
+            "references, and is not counted here. It means nothing in the PROSE "
+            "points at them.",
+            "",
+        ]
+
+    return "\n".join(lines) + "\n"
 
 
 def _summary(payload: dict) -> str:
@@ -166,6 +308,11 @@ def on_post_build(config):
     out = Path(config.site_dir) / "doc-index.json"
     out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
+    refs = _refs_payload(payload)
+    (Path(config.site_dir) / "doc-refs.json").write_text(
+        json.dumps(refs, indent=2) + "\n", encoding="utf-8"
+    )
+
     # Pages must serve our files verbatim. Jekyll treats {{ }} and {% %} as
     # template tags, fails SILENTLY, and a failed build makes Pages keep
     # serving the last successful one for the whole site. Written here rather
@@ -178,5 +325,6 @@ def on_post_build(config):
         try:
             with open(summary, "a", encoding="utf-8") as fh:
                 fh.write(_summary(payload))
+                fh.write(_refs_summary(refs))
         except OSError:
             pass
