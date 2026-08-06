@@ -46,7 +46,7 @@ LOCAL -- `router_code:` in the page. Throwaway, no engine deploy.
 REMOTE -- a table in `instances/<slug>/routes.yml`. Durable, one place to edit,
 and the only form that can send somebody to a DIFFERENT page.
 
-⚠️ A LOCAL CODE IS IN A PUBLIC REPO. Fine for a pause, wrong for anything you
+⚠️ A LOCAL CODE IS IN THE CONTENT REPO. Fine for a pause, wrong for anything you
 would mind a stranger typing. Local is for trash; remote is for real.
 
 =============================================================================
@@ -99,6 +99,21 @@ under EVERY code that opens the curtain and no others, and ships it as
 has no business revealing this page's children -- which is why curtain codes
 are collected separately below rather than read back off the verifiers.
 
+⭐ AND SINCE 2026-08-06 THE FOLDER'S OWN ROW CAN BE IN THAT MANIFEST TOO.
+`nav: routed` takes the whole folder out of the sidebar, not just its children,
+so there is no row for the client to hang a list under -- the row is entry ZERO
+instead. This file carries the difference as `place`, alongside `anchor`:
+
+    in    the folder still has a row. Find it, append. Every router before
+          2026-08-06 does this, and it is what an unset value means.
+    end   there is no row. The client builds one and appends it to the top
+          level.
+
+⚠️ AND `place` IS A SEPARATE ATTRIBUTE RATHER THAN AN INFERENCE FROM AN EMPTY
+`anchor`, which is one line shorter and wrong for a reason this repo keeps
+relearning: an empty anchor would then mean BOTH "put it at the end" and "the
+seal produced no anchor", which is one flag answering two questions.
+
 =============================================================================
 A HELD CODE OPENS THE PAGE BEFORE FIRST PAINT (DL J17, 2026-08-04)
 =============================================================================
@@ -125,11 +140,11 @@ and seal.py on why verifiers and ciphertext do not share salts.
 A CURTAIN IS A PAUSE. THE PAGE SOURCE PROVES IT.
 =============================================================================
 The body is hidden in the DOM. It is NOT encrypted. View source, open devtools,
-or read the markdown in the public repo and it is all there. That is the design:
-*"just a screen before landing on content, a brief pause. not real
+or read the markdown in the content repo and it is all there. That is the
+design: *"just a screen before landing on content, a brief pause. not real
 encryption."* v1 encrypted page bodies and paid for it with a cipher shared
 across two files, a keyring and its own authoring document -- to protect content
-that was public in the repo the whole time.
+that was readable in the repo the whole time.
 
 What IS withheld is the CODE (only a verifier ships) and, since J14, the NAV
 MANIFEST. Not a contradiction: a manifest in the clear would defeat the only
@@ -147,8 +162,7 @@ own design note -- *no padlock, no red, no "restricted"* -- so the distinction
 has to be written down or somebody will correctly delete it later.
 
 A PADLOCK CLAIMS THE CONTENT IS PROTECTED. That claim is false here and the
-section above says so at length: the body is in the DOM and the markdown is in
-a public repo.
+section above says so at length: the body is in the DOM.
 
 THE MASK CLAIMS THE CODE IS WORTH NOT SHOWING THE ROOM. That claim is TRUE, and
 it is the only true one available: the code is the single thing this feature
@@ -277,11 +291,11 @@ def _inherited(src_uri: str) -> tuple[dict, str] | tuple[None, None]:
     return None, None
 
 
-def _seal_nav(owner_src: str, codes: list[str], page) -> tuple[str, str]:
+def _seal_nav(owner_src: str, codes: list[str], page) -> tuple[str, str, str]:
     """Seal the nav entries visibility.py withheld, once per curtain code.
 
-    Returns (base64 payload, anchor url), both empty when there is nothing to
-    reveal -- the normal case for a page whose folder had no children.
+    Returns (base64 payload, anchor url, place), all empty when there is nothing
+    to reveal -- the normal case for a page whose folder had no children.
 
     ⚠️ EVERY url is resolved against the page ASKING, not against the page that
     owns the manifest. An inherited router puts this form on a child three
@@ -290,7 +304,7 @@ def _seal_nav(owner_src: str, codes: list[str], page) -> tuple[str, str]:
     """
     sealed = state.NAV_SEALED.get(owner_src)
     if not sealed or not codes:
-        return "", ""
+        return "", "", ""
 
     items = []
     for entry in sealed["items"]:
@@ -311,23 +325,45 @@ def _seal_nav(owner_src: str, codes: list[str], page) -> tuple[str, str]:
             + "sealed, so no code will reveal it. The section is unopenable "
             + "until `cryptography` is installed.",
         )
-        return "", ""
+        return "", "", ""
 
     # Which code opens which is itself information, and with one manifest per
     # code the wraps are otherwise in frontmatter order.
     secrets.SystemRandom().shuffle(wraps)
+
+    # ⚠️ AN EMPTY ANCHOR STAYS EMPTY. `relative_url("", ...)` returns a path
+    # back up the tree, not "" -- a perfectly valid-looking href for a place
+    # that does not exist. router.js guards with `if (!href)`, so passing the
+    # transformed value would sail straight past the one check written for this.
+    # A falsy value has to survive a transformation as falsy or the guard
+    # downstream is decoration.
+    raw_anchor = sealed.get("anchor") or ""
+    anchor = relative_url(raw_anchor, page.file.url) if raw_anchor else ""
+
     return (
         seal.b64(json.dumps(wraps, separators=(",", ":")).encode("utf-8")),
-        relative_url(sealed["anchor"], page.file.url),
+        anchor,
+        str(sealed.get("place") or "in"),
     )
 
 
-def _field(mode: str, payload: list, prompt: str, subtree: str, anchor: str) -> str:
+def _field(
+    mode: str,
+    payload: list,
+    prompt: str,
+    subtree: str,
+    anchor: str,
+    place: str,
+) -> str:
     extra = ""
     if subtree:
+        # `place` rides with the payload rather than being inferred from an
+        # empty anchor -- see the module docstring on why that shortcut is the
+        # one-flag-two-questions defect.
         extra = (
             ' data-subtree="' + subtree + '"'
             + ' data-subtree-anchor="' + anchor + '"'
+            + ' data-subtree-place="' + (place or "in") + '"'
         )
     return (
         '<form class="dr-router" data-mode="' + mode + '"'
@@ -465,7 +501,7 @@ def on_page_content(html, page, config, files):
 
     # The manifest belongs to the page that DECLARED the router, which on an
     # inherited form is an ancestor rather than this page.
-    subtree, anchor = _seal_nav(inherited_from or src, curtain_codes, page)
+    subtree, anchor, place = _seal_nav(inherited_from or src, curtain_codes, page)
 
     if local and table_names:
         origin = "local+remote(" + ", ".join(table_names) + ")"
@@ -479,7 +515,8 @@ def on_page_content(html, page, config, files):
         "routers",
         src + " · " + mode + " · " + origin + " · "
         + str(len(curtain) + len(redirects)) + " keys"
-        + (" · nav reveal armed" if subtree else ""),
+        + (" · nav reveal armed" if subtree else "")
+        + (" (whole folder)" if place == "end" else ""),
     )
 
     rng = secrets.SystemRandom()
@@ -489,7 +526,7 @@ def on_page_content(html, page, config, files):
     if not curtain:
         # No boot script on a redirect: there is nothing on this page to reveal
         # early, and a held code must never navigate somebody who just arrived.
-        return html + _field("redirect", redirects, prompt, "", "")
+        return html + _field("redirect", redirects, prompt, "", "", "")
 
     # CURTAIN. The body ships behind the `hidden` ATTRIBUTE rather than a CSS
     # class, so it is withheld before any stylesheet loads -- no flash of
@@ -511,7 +548,7 @@ def on_page_content(html, page, config, files):
     # decryption and there is no non-JS way to do one. Stated rather than
     # papered over: the content is reachable, the menu is not.
     return (
-        _field("curtain", curtain + redirects, prompt, subtree, anchor)
+        _field("curtain", curtain + redirects, prompt, subtree, anchor, place)
         + _BOOT
         + "<noscript><style>"
         + ".dr-curtain{display:block !important}.dr-router{display:none}"
