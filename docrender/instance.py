@@ -7,6 +7,11 @@ This file is what makes "one app, many sites" literally true rather than
 aspirational. There is exactly one place a site's identity enters a build, and
 it is a data file the engine READS, not code the engine CONTAINS.
 
+⭐ AND AS OF 2026-08-06 IT ALSO ASKS WHERE THE DESIGN SYSTEM CAME FROM. See the
+end of `on_config`. That question belongs to the BUILD -- like the name and the
+address above it -- rather than to the stylesheet generated from the answer, and
+this is the only hook that runs exactly once.
+
 CHROME COLOUR IS NO LONGER SET HERE (2026-08-04), and the reversal is worth
 keeping because the reasoning it replaces was half right.
 
@@ -73,7 +78,7 @@ from __future__ import annotations
 import os
 import sys
 
-from . import state
+from . import state, vectors
 from .util import load_yaml, slug_title
 
 
@@ -245,6 +250,22 @@ def on_config(config):
     # as the block above. Runs AFTER state.INSTANCE is set so the normalised
     # list is what anything downstream would see.
     _register_aliases(inst, slug)
+
+    # ⭐ WHERE THE DESIGN SYSTEM CAME FROM, SAID ONCE (2026-08-06).
+    #
+    # This used to be the first line of theme.build_css(), which `assets._plan`
+    # calls from BOTH on_config and on_files -- and tokenaudit calls a third
+    # time on any page carrying `!!! tokens`. Harmless while the check only
+    # spoke about a damaged file; the live read made it speak on every build,
+    # so "FELL BACK TO THE VENDORED COPY" printed three times and read as three
+    # separate problems.
+    #
+    # Hook 00 runs exactly once, after state.reset() above and before any other
+    # hook reads a vector. ⚠️ verify() reads only the environment and two
+    # directories -- no instance state -- so it is safe anywhere in this
+    # function; it sits last because a provenance line reads better once the
+    # site has a name.
+    vectors.verify()
 
     return config
 

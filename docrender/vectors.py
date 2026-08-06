@@ -5,25 +5,66 @@ that produce". Full contract, including the parts that are not this engine's to
 decide: maw-themes `docs/HOW-A-THEME-IS-CHOSEN.md`.
 
 =============================================================================
+⭐ WHERE THE VECTORS COME FROM (2026-08-06): LIVE, WITH A FALLBACK
+=============================================================================
+
+Michael: *"the renderer should pull from canonical; there should be no
+in-between"* -- and on the failure mode, *"only fallback to local if the
+canonical in themes repo cannot be reached during build."*
+
+So each file resolves per build:
+
+    DOCRENDER_CANONICAL set, and the file is there  ->  LIVE, read from upstream
+    anything else                                   ->  theme/canonical/, LOUDLY
+
+The workflows check the design system out beside the engine and the content, and
+that checkout is `continue-on-error` -- an unreachable design system degrades to
+the last vendored copy instead of failing a publish.
+
+🔴 IT DID NOT WORK THIS WAY UNTIL 2026-08-06, AND NOBODY EVER DECIDED THAT. The
+initial extraction copied the files in to get moving, and every commit after it
+improved the PROSE about the gap: source.tsv has carried "that needs a scheduled
+job with network access, and it does not exist yet" from the day it was written.
+The gap then fired on Michael's own hand-committed typography and spacing edits
+-- fifty minutes live upstream and absent from every site, found only because
+somebody read the refresh log for an unrelated reason. ⚑ A warning where a check
+belongs, in the repo that spends its docstrings finding exactly that.
+
+⭐ THE UPSTREAM PATHS ARE NOT RESTATED ANYWHERE. `canonical/source.tsv` has
+recorded each file's repo and path since the first vendor, as provenance. That
+table is now the lookup, so there is no second list of what lives where -- which
+matters, because a second list is how the two would drift.
+
+⭐ AND A FILE ABSENT FROM source.tsv STAYS LOCAL FOR FREE. `aliases.tsv` and
+`bridge.tsv` sit in the same folder and are OURS: they join this engine's
+vocabulary to the design system's and have no upstream. Nothing in the resolver
+knows their names -- they are simply not in the provenance table.
+
+⚠️ FALLBACK IS PER FILE AND IS REPORTED BY NAME. A renamed upstream file gives a
+MIXED state -- live colours against a vendored join -- which is legal and worth
+shouting about, because the symptom otherwise arrives as a dangling pointer with
+no stated cause.
+
+=============================================================================
 A THEME IS A JOIN. A COLOUR SLUG IS NOT A THEME.
 =============================================================================
 
-A join in `canonical/themes.json` binds FIVE pointers: two colours, one
-typography, one forms, one spacing. It is the only entry point.
+A join in `themes.json` binds FIVE pointers: two colours, one typography, one
+forms, one spacing. It is the only entry point.
 
-RED `mclaren` IS A PALETTE, NOT A THEME -- the themes using it are
-`sharp-mclaren` and `mclaren-mobile`. Naming a bare colour entity still resolves,
-for compatibility, and gets colour ONLY: no canonical type, radii or density. It
-is reported when it happens, because this went unnoticed for a day.
+🔴 `mclaren` IS A PALETTE, NOT A THEME -- the themes using it are `sharp-mclaren`
+and `mclaren-mobile`. Naming a bare colour entity still resolves, for
+compatibility, and gets colour ONLY: no canonical type, radii or density. It is
+reported when it happens, because this went unnoticed for a day.
 
-WARNING: `eos`, `papyrus` and `database` exist as BOTH a join slug and an entity
-slug. JOIN WINS and the ambiguity is REPORTED -- silence there would mean a
-site's whole look depends on which table was searched first. `eos` appearing to
-work was exactly this coincidence: a join and a colour sharing a name and
-happening to point at each other.
+⚠️ `eos`, `papyrus` and `database` exist as BOTH a join slug and an entity slug.
+JOIN WINS and the ambiguity is REPORTED -- silence there would mean a site's
+whole look depends on which table was searched first. `eos` appearing to work was
+exactly this coincidence: a join and a colour sharing a name and happening to
+point at each other.
 
 =============================================================================
-STAR THE PAIR IS DECLARED, NEVER DERIVED (2026-08-05)
+⭐ THE PAIR IS DECLARED, NEVER DERIVED (2026-08-05)
 =============================================================================
 
     "color":     "mclaren",
@@ -45,13 +86,13 @@ What the reversal bought, immediately:
     Derivation could only ever find the opposite MODE.
   * A join may point at any row at all. There are no families to belong to.
 
-RED AND THE COST IS REAL: A POINTER CAN DANGLE. An `alt-color` naming a row that
+🔴 AND THE COST IS REAL: A POINTER CAN DANGLE. An `alt-color` naming a row that
 does not exist is REPORTED BY NAME here and never silently replaced with
 something plausible. That is the entire mitigation and it is deliberate -- a loud
 reader instead of a clever table.
 
-WARNING: `mode` RESOLVES NOTHING NOW. It is descriptive. It survives as the one
-thing that can still catch "you put a dark palette in the light slot," which is
+⚠️ `mode` RESOLVES NOTHING NOW. It is descriptive. It survives as the one thing
+that can still catch "you put a dark palette in the light slot," which is
 reported as a mismatch rather than corrected -- correcting it would be inference,
 and inference is what this change removes.
 
@@ -68,16 +109,23 @@ and a radius or a cell padding has no business changing when a reader flips a
 switch. theme.py takes all three from the PRIMARY scheme and names what it
 dropped.
 
-PROVENANCE. Every vendored file's git blob SHA is recomputed on each build and
-checked against `canonical/source.tsv`. Reports rather than raises: a palette one
-edit off canonical still renders a readable site. WARNING it proves the file is
-what we VENDORED, not that what we vendored is still CURRENT upstream.
+PROVENANCE. Every file's git blob SHA is recomputed on each build and checked
+against `canonical/source.tsv`. Reports rather than raises: a palette one edit
+off canonical still renders a readable site.
+
+🔴 AND THAT CHECK ANSWERS A DIFFERENT QUESTION SINCE 2026-08-06. It used to prove
+only "this file is what we VENDORED" -- narrower than any reader assumed, which
+source.tsv had to say out loud. Reading live, the same comparison proves the file
+IS the current upstream one. A mismatch now means the vendored FALLBACK has gone
+stale, which asks for a re-vendor rather than reporting a defect: the site is
+already painting the right bytes.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 from . import state
@@ -104,8 +152,57 @@ def theme_dir() -> Path:
     return Path(state.ENGINE_ROOT) / "theme"
 
 
-def _canon(name: str) -> Path:
+def _vendored(name: str) -> Path:
     return theme_dir() / "canonical" / name
+
+
+def _provenance() -> list[dict]:
+    """source.tsv, which is both the hash record AND the upstream path map.
+
+    ⭐ ONE TABLE, TWO JOBS, and unlike most such things that is correct here:
+    "where did this file come from" and "where do we fetch it from" are the same
+    fact. A second table would be a copy of it, free to drift.
+    """
+    return load_tsv(_vendored("source.tsv"))
+
+
+def _upstream_root() -> Path | None:
+    """The checked-out design system, if the workflow fetched one."""
+    raw = os.environ.get("DOCRENDER_CANONICAL", "").strip()
+    if not raw:
+        return None
+    root = Path(raw)
+    return root if root.is_dir() else None
+
+
+def _upstream_path(name: str) -> Path | None:
+    """Where `name` lives in the fetched design system, if it is there.
+
+    ⚠️ RETURNS None FOR ANY FILE source.tsv DOES NOT LIST, which is how
+    `aliases.tsv` and `bridge.tsv` stay local without being named in code.
+    """
+    root = _upstream_root()
+    if root is None:
+        return None
+    for row in _provenance():
+        if (row.get("file") or "").strip() != "canonical/" + name:
+            continue
+        rel = (row.get("path") or "").strip()
+        if not rel:
+            return None
+        candidate = root / rel
+        return candidate if candidate.is_file() else None
+    return None
+
+
+def _canon(name: str) -> Path:
+    """The file to actually READ: upstream when reachable, vendored otherwise.
+
+    ⚠️ NOT CACHED, on purpose. This is two `is_file()` calls, `load_tsv` re-reads
+    from disk on every call anyway, and a module-level cache would outlive a
+    build under `mkdocs serve` -- which rebuilds in-process.
+    """
+    return _upstream_path(name) or _vendored(name)
 
 
 def rows(name: str) -> list[dict]:
@@ -156,39 +253,133 @@ def known() -> set[str]:
     return {n for n in out if n}
 
 
-def verify() -> None:
-    """Recompute each vendored file's git blob SHA and report a mismatch.
+def _blob_sha(path: Path) -> str:
+    """Git's own blob hash: sha1 over a short header plus the content.
 
-    Git's blob hash is sha1 over a short header plus the content, which makes it
-    directly comparable to a SHA read off the source repo without cloning.
-    Reports rather than raises -- taking a build down over a palette one edit off
-    canonical is worse than a loud line in the report.
+    Directly comparable to a SHA read off the source repo without cloning it,
+    which is the only reason this is git's algorithm rather than a plain digest.
     """
-    for row in load_tsv(_canon("source.tsv")):
+    raw = path.read_bytes()
+    header = ("blob " + str(len(raw))).encode() + bytes(1)
+    return hashlib.sha1(header + raw).hexdigest()
+
+
+def verify() -> None:
+    """Say where every vector came from, and prove it is what it claims to be.
+
+    Reports, never raises. Taking a build down over a palette one edit off
+    canonical is worse than a loud line in the report -- and the fallback exists
+    precisely so an unreachable design system cannot stop a publish.
+
+    THREE THINGS GET SAID, and they are three different questions:
+
+      LIVE          read from the fetched design system. The healthy path.
+      STALE COPY    live and correct, but the vendored fallback no longer
+                    matches upstream. Not a defect -- the site is painting the
+                    right bytes. It asks for a re-vendor so the fallback stays
+                    worth having.
+      FELL BACK     ⚠️ upstream unreachable. The site renders the last vendored
+                    copy, which may be days old, and that is the one a human has
+                    to see.
+    """
+    root = _upstream_root()
+    live: list[str] = []
+    fell_back: list[str] = []
+    stale: list[str] = []
+    damaged: list[str] = []
+
+    for row in _provenance():
         rel = (row.get("file") or "").strip()
         want = (row.get("blob_sha") or "").strip()
         if not rel or not want:
             continue
-        path = theme_dir() / rel
+        name = rel.split("/")[-1]
+
+        upstream = _upstream_path(name)
+        path = upstream or _vendored(name)
+
         if not path.is_file():
             state.note(
-                "notes",
-                "canonical: " + rel + " is recorded in source.tsv but is not "
-                "on disk. The theme join cannot verify what it is painting.",
+                "missing_required",
+                "canonical: " + rel + " is recorded in source.tsv and is on "
+                + "disk NOWHERE -- not upstream, not vendored. This site has no "
+                + "value for that vector at all.",
             )
             continue
-        raw = path.read_bytes()
-        header = ("blob " + str(len(raw))).encode() + bytes(1)
-        got = hashlib.sha1(header + raw).hexdigest()
+
+        got = _blob_sha(path)
+
+        if upstream is not None:
+            live.append(name)
+            if got != want:
+                # ⭐ NOT A DEFECT. Upstream has simply moved since the last
+                # vendor, which is the NORMAL state of a live read. What it
+                # costs is the fallback: if the design system were unreachable
+                # right now, this site would paint the older bytes instead.
+                stale.append(
+                    name + " (recorded " + want[:7] + ", upstream " + got[:7] + ")"
+                )
+            continue
+
+        fell_back.append(name)
         if got != want:
-            state.note(
-                "notes",
-                "canonical: " + rel + " does NOT match the vendored source. "
-                "Recorded " + want[:7] + ", on disk " + got[:7] + ". Either it "
-                "was edited in place (never do this -- refresh it wholesale "
-                "from " + str(row.get("repo", "?")) + " and update source.tsv) "
-                "or the copy is damaged.",
+            # The old check, and it still means what it always meant: the
+            # vendored file is not the one we recorded. Somebody edited it in
+            # place, or the copy is damaged.
+            damaged.append(
+                name + " (recorded " + want[:7] + ", on disk " + got[:7] + ")"
             )
+
+    if live and not fell_back:
+        state.note(
+            "notes",
+            "canonical: LIVE -- all " + str(len(live)) + " vectors read from the "
+            + "design system checked out at " + str(root) + ". This build paints "
+            + "what is in maw-themes right now.",
+        )
+    elif fell_back and not live:
+        state.note(
+            "missing_required",
+            "canonical: FELL BACK TO THE VENDORED COPY for all "
+            + str(len(fell_back)) + " vectors"
+            + ("" if root else " -- DOCRENDER_CANONICAL is not set, so the "
+               + "workflow did not check the design system out at all")
+            + ". The site renders theme/canonical/, which is a snapshot and may "
+            + "be days behind. Any upstream edit since the last re-vendor is NOT "
+            + "on this build.",
+        )
+    elif fell_back:
+        # ⚠️ THE MIXED STATE, and it is the one worth shouting about. Live
+        # colours against a vendored join can produce a pointer at a row that no
+        # longer exists -- which is otherwise reported only as a dangling
+        # pointer, with no stated cause.
+        state.note(
+            "missing_required",
+            "canonical: MIXED SOURCES. Live: " + ", ".join(sorted(live))
+            + ". Fell back to the vendored copy: " + ", ".join(sorted(fell_back))
+            + ". A file listed in source.tsv was not found at its recorded path "
+            + "upstream -- it has probably been renamed or moved there. Fix the "
+            + "`path` column, because a live vector joined to a stale one can "
+            + "point at a row that no longer exists.",
+        )
+
+    if stale:
+        state.note(
+            "notes",
+            "canonical: the VENDORED FALLBACK is behind upstream for "
+            + ", ".join(sorted(stale)) + ". Nothing is wrong with this build -- "
+            + "it read the live files. Re-vendor and update source.tsv so the "
+            + "fallback is still worth having on the day the fetch fails.",
+        )
+
+    if damaged:
+        state.note(
+            "missing_required",
+            "canonical: the vendored copy does NOT match what was recorded for "
+            + ", ".join(sorted(damaged)) + ", and this build is reading it "
+            + "because upstream could not be reached. Either it was edited in "
+            + "place (never do this) or the copy is damaged.",
+        )
 
 
 def _declared(scheme: str) -> tuple[str, bool]:
@@ -277,12 +468,12 @@ def resolve(scheme: str) -> dict:
     row = color_row(color)
 
     if color and row is None:
-        # RED A DANGLING POINTER. Reported by name and never guessed at -- this
+        # 🔴 A DANGLING POINTER. Reported by name and never guessed at -- this
         # is the cost of a declared pair and the whole reason it is loud.
         state.note(
             "notes",
             "theme '" + name + "' points " + scheme + " at colour '" + color
-            + "', which is not a row in canonical/colors.tsv. Nothing is "
+            + "', which is not a row in the canonical colour table. Nothing is "
             "substituted: this scheme has no palette. Fix the pointer.",
         )
     elif row is not None:

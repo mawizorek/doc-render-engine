@@ -2,8 +2,9 @@ name: Build and deploy doc sites
 
 # THE APP MATRIX.
 #
-# One job per site. Each checks out the engine and one content repo, renders,
-# and pushes the result to THAT content repo's gh-pages branch.
+# One job per site. Each checks out the engine, one content repo and the
+# canonical design system, renders, and pushes the result to THAT content
+# repo's gh-pages branch.
 #
 # The detail that makes the whole design work: the green Download ZIP button
 # zips the DEFAULT branch only. Built output on gh-pages therefore never
@@ -14,7 +15,7 @@ name: Build and deploy doc sites
 # fail-fast is off on purpose. These sites have separate audiences and must
 # fail separately; one broken build must never take the others down with it.
 #
-# ⭐ EVERY ROW DECLARES ITS PUBLISHER, and that field is the whole reason this
+# EVERY ROW DECLARES ITS PUBLISHER, and that field is the whole reason this
 # file and publish-default.yml can coexist without fighting:
 #
 #   publisher: matrix         this workflow pushes the built site into the
@@ -27,13 +28,13 @@ name: Build and deploy doc sites
 # ambiguously enough that the condition testing it was inverted, and the
 # default instance was being published twice.
 #
-# ⭐ AND AS OF 2026-08-04 THAT SAME FIELD ALSO DECIDES THE CHECKOUT TOKEN. See
+# AND AS OF 2026-08-04 THAT SAME FIELD ALSO DECIDES THE CHECKOUT TOKEN. See
 # the long note on the content checkout below -- the short version is that
 # `publisher: matrix` is exactly the set of repos whose PAT access is PROVEN by
 # the deploy step, so it is the honest thing to key a read credential to.
 #
 # =============================================================================
-# ⭐ THIS FILE NO LONGER HOLDS A SCHEDULE (2026-08-04, same night it gained one)
+# THIS FILE NO LONGER HOLDS A SCHEDULE (2026-08-04, same night it gained one)
 # =============================================================================
 # The routine lives in `poll.yml`, which does nothing but hold the cron and
 # call this workflow. THE REASON IS THE OFF SWITCH: GitHub can disable a
@@ -42,7 +43,7 @@ name: Build and deploy doc sites
 # handles pushes. Splitting the trigger into its own file is what makes
 # "Disable workflow" mean exactly "stop the routine" and nothing else.
 #
-# 🪦 `AUTOPUBLISH` IS GONE, one commit after it shipped, and the reason it was
+# `AUTOPUBLISH` IS GONE, one commit after it shipped, and the reason it was
 # wrong is worth more than the variable was. It gated a schedule that still
 # existed, so `off` did not mean "no routine" -- it meant "a routine that
 # declines," which still burned a row in the Actions tab every five minutes and
@@ -53,11 +54,11 @@ name: Build and deploy doc sites
 # cannot drift out of step with itself the way a variable a workflow must
 # remember to read can.
 #
-# ⚑ GENERALISABLE: when a toggle and the platform disagree about where state
+# GENERALISABLE: when a toggle and the platform disagree about where state
 # lives, the platform wins. A variable is a second copy of a fact GitHub is
 # already tracking.
 #
-# 🚫 STILL NOT GATED, and still deliberately: `publish.yml` is an explicit human
+# STILL NOT GATED, and still deliberately: `publish.yml` is an explicit human
 # act with a preview mode. Turning the routine off must never mean "I cannot
 # publish."
 
@@ -86,7 +87,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # ⏱️ A HUNG JOB IS NOT A SLOW JOB, AND WITHOUT THIS LINE GITHUB CANNOT TELL
+    # A HUNG JOB IS NOT A SLOW JOB, AND WITHOUT THIS LINE GITHUB CANNOT TELL
     # THE DIFFERENCE. The default ceiling is SIX HOURS, which is not a guardrail,
     # it is the absence of one.
     #
@@ -101,13 +102,13 @@ jobs:
     #      finished as its slowest job -- so the Actions tab read as "the cron
     #      is stuck" when the cron was the one part that was fine.
     #
-    # ⚑ GENERALISABLE, and the real lesson: fail-fast: false isolates FAILURE
+    # GENERALISABLE, and the real lesson: fail-fast: false isolates FAILURE
     # between matrix rows. It does not isolate TIME. One row that never returns
     # still holds the run open, still holds a runner, and still paints the whole
     # matrix with its own status. A per-job timeout is what actually buys the
     # independence the matrix was built for.
     #
-    # 📏 TEN MINUTES IS 20x THE OBSERVED CEILING, deliberately loose. Real
+    # TEN MINUTES IS 20x THE OBSERVED CEILING, deliberately loose. Real
     # numbers on 2026-08-05: whole job ~30s, install ~12s, the slowest healthy
     # render (uritp) ~7s. This cannot fire on a working build; if it ever does,
     # something is wrong and the timeout is the messenger, not the cause.
@@ -147,7 +148,7 @@ jobs:
         with:
           repository: ${{ matrix.repo }}
           path: content
-          # ⚠️ AUTHENTICATED AS OF 2026-08-04, and the old comment is kept in
+          # AUTHENTICATED AS OF 2026-08-04, and the old comment is kept in
           # full below because its own warning came true within the hour.
           #
           # SUPERSEDED: "Deliberately NOT authenticated. The content repos are
@@ -165,7 +166,7 @@ jobs:
           # repository and cannot read another private one, so the checkout
           # died exactly as the paragraph above predicted it would.
           #
-          # ⭐ WHY THIS IS KEYED TO `publisher` AND NOT TO A NEW `private` FLAG.
+          # WHY THIS IS KEYED TO `publisher` AND NOT TO A NEW `private` FLAG.
           # The `publisher: matrix` rows are precisely the repos this job
           # already WRITES to with DOCRENDER_TOKEN at the deploy step below --
           # so the PAT's read access to them is proven by a deploy that works,
@@ -179,7 +180,7 @@ jobs:
           # If `template-docs` ever goes private, this line is where it lands,
           # and the PAT must be given access BEFORE the visibility flips.
           token: ${{ matrix.publisher == 'matrix' && secrets.DOCRENDER_TOKEN || github.token }}
-          # ⚠️ NO LONGER LOAD-BEARING (2026-08-04), old reason kept on the record.
+          # NO LONGER LOAD-BEARING (2026-08-04), old reason kept on the record.
           #
           # SUPERSEDED: "docrender/revlog.py reads `git log` here to build the
           # automatic revision log, and a shallow clone answers that query
@@ -196,6 +197,41 @@ jobs:
           # published and broken on the nightly. Now a preference, not a
           # requirement, and if it is ever removed it must be removed from BOTH.
           fetch-depth: 0
+
+      # =====================================================================
+      # THE DESIGN SYSTEM, READ LIVE (2026-08-06)
+      # =====================================================================
+      # Michael: "the renderer should pull from canonical; there should be no
+      # in-between." Until today the engine carried a VENDORED copy of the four
+      # vectors and somebody had to re-copy it by hand -- so an edit upstream
+      # painted nothing until a human noticed. It bit his own typography and
+      # spacing edits on 08-05: fifty minutes live in the design system and
+      # absent from every site.
+      #
+      # `continue-on-error` IS THE WHOLE FALLBACK MECHANISM, and it is the
+      # second half of his ruling: "only fallback to local if the canonical in
+      # themes repo cannot be reached during build." A failed fetch leaves no
+      # directory, DOCRENDER_CANONICAL points at nothing, and vectors.py
+      # renders the vendored snapshot with a loud line in the build report. The
+      # step shows a red X while the job stays green -- visible, not fatal.
+      #
+      # IF maw-themes IS EVER PRIVATE, THE PAT NEEDS IT ADDED EXPLICITLY. A
+      # fine-grained PAT is scoped to a list of repositories and a repo is never
+      # added automatically -- the same trap that produced the `exit code 128`
+      # documented in the content checkout above. The symptom here is softer and
+      # therefore worse: no red build, just every site quietly painting the last
+      # vendored copy. That is why the summary below names the source.
+      #
+      # NO fetch-depth PINNED. Nothing reads this repo's history -- only the
+      # files at HEAD -- so the default shallow clone is correct and cheaper.
+      - name: Check out the canonical design system
+        id: canonical
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          repository: mawizorek/maw-themes
+          path: canonical
+          token: ${{ secrets.DOCRENDER_TOKEN || github.token }}
 
       - name: Confirm the matrix agrees with the instance config
         working-directory: engine
@@ -227,8 +263,12 @@ jobs:
           DOCRENDER_CONTENT: ${{ github.workspace }}/content
           DOCRENDER_OUTPUT: ${{ github.workspace }}/site
           DOCRENDER_ENGINE_REF: ${{ github.sha }}
+          # Points at the checkout above. If that step failed there is no
+          # directory here, and vectors.py falls back to theme/canonical/ and
+          # says so. The variable is always set; its TARGET is what varies.
+          DOCRENDER_CANONICAL: ${{ github.workspace }}/canonical
         run: |
-          # ⚠️ EXPORTED INLINE, NOT VIA $GITHUB_ENV. Writing to $GITHUB_ENV only
+          # EXPORTED INLINE, NOT VIA $GITHUB_ENV. Writing to $GITHUB_ENV only
           # affects LATER steps, never the step doing the writing -- so the
           # original version set these and then ran mkdocs in the same step
           # without them. Every page shipped stamped `local`, which is exactly
@@ -246,7 +286,7 @@ jobs:
         #  - this row is published somewhere else (see the header)
         #  - a PR must never publish
         #
-        # ⚠️ THERE IS NO LONGER A FOURTH. The AUTOPUBLISH condition that stood
+        # THERE IS NO LONGER A FOURTH. The AUTOPUBLISH condition that stood
         # here for one commit is gone with the variable; the routine is turned
         # off by disabling poll.yml. See the header.
         if: >-
@@ -273,9 +313,30 @@ jobs:
         # exactly like a green build that published everything, and the whole
         # point of the build stamp is that we refuse to guess about that.
         if: always()
+        env:
+          # Read into the shell rather than interpolated into it. A `${{ }}`
+          # inside a quoted test is fine here, but the whole file already keeps
+          # workflow values out of shell conditionals where it can.
+          CANONICAL: ${{ steps.canonical.outcome }}
         run: |
           {
             echo "### ${{ matrix.instance }}"
+            echo
+            # THE DESIGN SYSTEM'S SOURCE, STATED ON EVERY RUN. A build that
+            # fell back renders perfectly and looks identical to one that did
+            # not -- it is simply painting an older palette. That is exactly
+            # the silent failure this change removes, so it does not get to be
+            # silent here either.
+            if [ "$CANONICAL" = "success" ]; then
+              echo "Theme: **live** from \`mawizorek/maw-themes\`."
+            else
+              echo "⚠️ **Theme: fell back to the vendored copy.** The design"
+              echo "system could not be checked out, so this build painted"
+              echo "\`theme/canonical/\` -- a snapshot that may be days old. Any"
+              echo "upstream colour edit since the last re-vendor is NOT on this"
+              echo "build. If \`maw-themes\` is private, add it to"
+              echo "\`DOCRENDER_TOKEN\`."
+            fi
             echo
             if [ "${{ matrix.publisher }}" = "engine-pages" ]; then
               echo "Rendered as a build check. This site is published by"

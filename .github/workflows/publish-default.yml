@@ -17,7 +17,7 @@ name: Publish the default site
 # under their own name. The template does not need a pretty address; it needs
 # to be undeniable.
 #
-# ⚠️ CONSEQUENCE, fixed 2026-08-03: this path publishes the template at a
+# CONSEQUENCE, fixed 2026-08-03: this path publishes the template at a
 # DIFFERENT address from the one build.yml would use, so the instance has two
 # possible base URLs and site.yml can only state one. An address is therefore a
 # property of the PUBLISHING PATH, not of the site, and it is passed in below.
@@ -61,7 +61,7 @@ jobs:
       - name: Check out the content
         uses: actions/checkout@v4
         with:
-          # ⚠️ Was `maw-agents/template-docs` until 2026-08-03. Both repos were
+          # Was `maw-agents/template-docs` until 2026-08-03. Both repos were
           # transferred to this account and this line was missed. GitHub does
           # redirect a transferred path, so it would have kept working and kept
           # being wrong -- exactly the sort of quietly-stale pointer the
@@ -71,8 +71,31 @@ jobs:
           # Two commits so the build stamp can name the change it rendered.
           fetch-depth: 2
 
+      # THE DESIGN SYSTEM, READ LIVE (2026-08-06). Same shape as build.yml and
+      # publish.yml. Omitting it here would leave the one site whose premise is
+      # "the spec is true by demonstration" demonstrating a snapshot.
+      #
+      # THE TOKEN FALLBACK IS LOAD-BEARING ON THIS PATH SPECIFICALLY. The whole
+      # reason this workflow is separate is that the gold standard must be live
+      # with NO secret -- see the header. Requiring DOCRENDER_TOKEN to fetch the
+      # design system would quietly undo that, so this takes the built-in token
+      # when there is no PAT.
+      #
+      # AND IF maw-themes EVER GOES PRIVATE, THIS IS THE PATH THAT FALLS BACK
+      # FIRST AND QUIETEST -- the built-in token cannot read another private
+      # repo, and nobody watches the template's build. The engine's report still
+      # says so on the page's own build log.
+      - name: Check out the canonical design system
+        id: canonical
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          repository: mawizorek/maw-themes
+          path: canonical
+          token: ${{ secrets.DOCRENDER_TOKEN || github.token }}
+
       - name: Configure Pages
-        # ⚠️ `enablement: true` WAS SET HERE AND CANNOT WORK. Removed 2026-08-03
+        # `enablement: true` WAS SET HERE AND CANNOT WORK. Removed 2026-08-03
         # after it failed with:
         #
         #     Create Pages site failed. Error: Resource not accessible by
@@ -115,8 +138,11 @@ jobs:
           # configure-pages rather than assumed. Overrides site.yml's base_url
           # for this build only -- see the CONSEQUENCE note at the top.
           DOCRENDER_BASE_URL: ${{ steps.pages.outputs.base_url }}
+          # Points at the checkout above. No directory means the engine falls
+          # back to the vendored copy and says so in the build report.
+          DOCRENDER_CANONICAL: ${{ github.workspace }}/canonical
         run: |
-          # ⚠️ EXPORTED INLINE, NOT VIA $GITHUB_ENV. Writing to $GITHUB_ENV only
+          # EXPORTED INLINE, NOT VIA $GITHUB_ENV. Writing to $GITHUB_ENV only
           # affects LATER steps, never the step doing the writing -- so the
           # original version set these and then ran mkdocs in the same step
           # without them, and every page shipped stamped `local`.
