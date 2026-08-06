@@ -162,11 +162,6 @@ def _prune(items: list) -> list:
 # The manifest is SEALED rather than shipped as text because the titles have to
 # come back on unlock, and a plaintext payload would put every withheld title in
 # the source of the page withholding it. router.py does the sealing.
-#
-# ⚠️ KNOWN LIMIT: the payload rides on the router's FORM, which renders only
-# where the router is declared or inherited. An unlocked reader keeps the
-# revealed subtree inside the folder and loses it outside. Shipping ciphertext
-# into every page is more machinery for a cosmetic consistency.
 
 
 def _routed(meta: dict) -> bool:
@@ -229,6 +224,38 @@ def _title(item) -> str:
     return str(getattr(item, "title", "") or "")
 
 
+def _node_url(item) -> str:
+    """The url a sidebar row for this node would point at, or "".
+
+    A section speaks through its index page; a section without one is a label
+    with nowhere to go and cannot be used as an anchor.
+    """
+    if getattr(item, "is_page", False):
+        return str(item.file.url)
+    index = _index_of(item)
+    return str(index.file.url) if index is not None else ""
+
+
+def _next_visible_url(items: list, pos: int) -> str:
+    """The url of the next sibling after `pos` that will still be in the sidebar.
+
+    ⭐ A SCAN RATHER THAN `items[pos + 1]`, and the difference is a real case.
+    Two `nav: routed` folders side by side: the naive version anchors the first
+    against the second, which is not in the sidebar either -- so the lookup fails
+    at runtime and both fall back to the end, which is the behaviour this whole
+    change exists to replace. Rare today, free to get right now.
+    """
+    for later in items[pos + 1:]:
+        if getattr(later, "is_section", False):
+            index = _index_of(later)
+            if index is not None and _nav_routed(index.file.src_uri):
+                continue
+        url = _node_url(later)
+        if url:
+            return url
+    return ""
+
+
 def _unchain(node) -> None:
     """Take a sealed branch out of the reading order.
 
@@ -289,6 +316,10 @@ def _collect(node, out: list, depth: int) -> None:
         # and must never reveal what is inside it. Sealed separately under its
         # own codes, exactly as router.py's `_inherited` stops at the nearest
         # ancestor.
+        #
+        # ⚠️ NO SIBLINGS PASSED, so a nested routed folder appends rather than
+        # placing itself. Correct rather than lazy: its position is meaningful
+        # inside its parent, and its parent is not in the sidebar either.
         _seal(node, index)
         return
 
@@ -298,12 +329,16 @@ def _collect(node, out: list, depth: int) -> None:
         _collect(kid, out, depth + 1)
 
 
-def _seal(section, index) -> bool:
+def _seal(section, index, siblings: list | None = None, pos: int = -1) -> bool:
     """Strip a routed section back to its index page and stash what was there.
 
     Returns True if the section should stay in the sidebar. False means it has
     nothing left to show -- either the contradiction below, or `nav: routed`,
     where leaving is the whole point.
+
+    `siblings`/`pos` are the list this section sits in and its place in it, and
+    are used ONLY to work out where an invisible folder should be put back. They
+    are absent for a nested routed folder; see `_collect`.
     """
     src = index.file.src_uri
     invisible = _nav_routed(src)
@@ -346,21 +381,35 @@ def _seal(section, index) -> bool:
         )
         return True
 
-    state.NAV_SEALED[src] = {
+    record = {
         "anchor": "" if invisible else index.file.url,
         # 'in' is what every router has always done: find this folder's own row
-        # and append underneath it. 'end' means there is no row to find.
-        #
-        # 🚫 AND 'end' IS LITERALLY THE END OF THE TOP-LEVEL LIST, not the
-        # folder's sort position. Placing it correctly would mean sealing a
-        # SIBLING's url to anchor against and hoping that sibling is still in the
-        # sidebar when the code is typed -- a second thing that can be wrong
-        # invisibly, on a feature whose mistakes already only surface after
-        # somebody types a correct code. Michael was asked and said the middle
-        # does not matter; for `order: 99` the end IS the sort position.
-        "place": "end" if invisible else "in",
+        # and append underneath it. 'at' means there is no row, so the client
+        # builds one and places it.
+        "place": "at" if invisible else "in",
         "items": items,
     }
+
+    if invisible:
+        # ⭐ WHERE IT GOES BACK. Michael, 2026-08-06: "it needs to appear in its
+        # real sort order." Two hints rather than one, because the good one can
+        # go stale:
+        #
+        #   before  the next top-level sibling that will still be rendered. The
+        #           client inserts ahead of that row, which puts this folder
+        #           exactly where `order:` would have.
+        #   idx     its own index in the top-level list, used only if that row
+        #           cannot be found.
+        #
+        # ⚠️ AND IF BOTH MISS IT APPENDS, which is what shipped yesterday. That
+        # graceful floor is the reason the stale-anchor objection does not block
+        # this: the worst case is the previous behaviour, not a broken sidebar.
+        record["before"] = (
+            _next_visible_url(siblings, pos) if siblings is not None else ""
+        )
+        record["idx"] = pos
+
+    state.NAV_SEALED[src] = record
 
     pages = sum(1 for i in items if i.get("u"))
 
@@ -369,10 +418,10 @@ def _seal(section, index) -> bool:
         # children, because unlike every other path here the index is going too
         # and would otherwise keep a prev/next into a chain it has left.
         _unchain(index)
+        survived = index in (getattr(section, "children", None) or [])
         section.children = []
 
-        if index not in (getattr(section, "children", None) or []) and \
-                state.BY_SRC.get(src, {}).get("status") == "unlisted":
+        if not survived and state.BY_SRC.get(src, {}).get("status") == "unlisted":
             # ⭐ NOT THE CONTRADICTION BELOW, AND THE DIFFERENCE IS REAL.
             # `unlisted` + a sealing router is unsatisfiable: one says this page
             # is not in the sidebar, the other says only this page is. `routed`
@@ -389,12 +438,17 @@ def _seal(section, index) -> bool:
                 + "one you meant. `status: public` is the usual pairing.",
             )
 
+        where = (
+            "ahead of /" + record["before"] if record["before"]
+            else "at the end of the top level (no anchor available)"
+        )
         state.note(
             "routers",
             src + " · nav ROUTED · the folder itself and " + str(pages - 1)
-            + " page(s) under it are absent from the sidebar entirely, and "
-            + "appear at the END of the top level when a correct code is typed. "
-            + "All still built and reachable by URL, @id and search.",
+            + " page(s) under it are absent from the sidebar entirely. A correct "
+            + "code puts the folder back " + where + " and keeps it there for the "
+            + "rest of the session, on every page. All still built and reachable "
+            + "by URL, @id and search.",
         )
         return False
 
@@ -402,13 +456,12 @@ def _seal(section, index) -> bool:
     # unlisted says this page is not in the sidebar, nav-seal says ONLY this page
     # is. Nothing satisfies both. Resolved the PROTECTIVE way on the principle
     # used everywhere here: when two declarations disagree, the one that shows
-    # LESS wins, and the report says so loudly enough to fix. The cost is named
-    # in that report rather than discovered.
+    # LESS wins, and the report says so loudly enough to fix.
     #
     # ⚠️ AND `nav: routed` IS THE ANSWER TO IT, as of 2026-08-06. Somebody
     # reaching for unlisted here almost always wanted the folder gone from the
-    # sidebar until a code arrives, which is now a thing the engine can actually
-    # do -- so the report names it.
+    # sidebar until a code arrives, which is now a thing the engine can do -- so
+    # the report names it.
     survives = index in (getattr(section, "children", None) or [])
     section.children = [index] if survives else []
 
@@ -436,10 +489,15 @@ def _seal(section, index) -> bool:
     return survives
 
 
-def _seal_routers(items: list) -> list:
-    """Seal every routed section, dropping any left with nothing to show."""
+def _seal_routers(items: list, top: bool = False) -> list:
+    """Seal every routed section, dropping any left with nothing to show.
+
+    `top` marks the outermost call, where a section's position among its
+    siblings is the position it should be RESTORED to. Deeper calls do not pass
+    it: a nested folder's parent is not in the sidebar either.
+    """
     kept = []
-    for item in items:
+    for pos, item in enumerate(items):
         if not getattr(item, "is_section", False):
             kept.append(item)
             continue
@@ -448,7 +506,7 @@ def _seal_routers(items: list) -> list:
             src = index.file.src_uri
             has_router = _routed(state.BY_SRC.get(src, {}))
             if has_router:
-                if _seal(item, index):
+                if _seal(item, index, items if top else None, pos):
                     kept.append(item)
                 continue
             if _nav_routed(src):
@@ -552,7 +610,7 @@ def seal_nav(nav, config, files):
             + "the `hooks:` list in mkdocs.yml: 00b, 00bb, 00bc, 00c.",
         )
 
-    nav.items = _seal_routers(nav.items)
+    nav.items = _seal_routers(nav.items, top=True)
 
     # A router on the SITE ROOT index has no enclosing section, so there is no
     # subtree to take that is not the whole sidebar. Reported rather than

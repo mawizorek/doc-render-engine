@@ -184,11 +184,6 @@
  * The reveal fades rather than snapping, which is the one place a little polish
  * is worth it: the whole point of this feature is that arriving at the content
  * should feel like a door opening rather than a page reloading.
- *
- * ⭐ THE DURATION AND CURVE ARE THE THEME'S NOW. Was `0.28s ease-out`. This
- * animation is the reason base.css's claim that the engine "declares no
- * transitions at all" was false for a week -- it has been running since the
- * curtain shipped.
  * ------------------------------------------------------------------------ */
 .dr-curtain:not([hidden]) {
   animation: dr-curtain-up var(--dr-motion-med, 0.28s) var(--dr-ease, ease-out);
@@ -214,11 +209,11 @@
 /* ---------------------------------------------------------------------------
  * PRE-PAINT STATES (DL J17)
  *
- * Set on <html> by the inline `_BOOT` script docrender/router.py emits right
- * after the form -- during PARSE, before the first paint. That timing is the
- * entire point: router.js is loaded at the end of the body, so by the time it
- * could hide anything the form has already been painted, which is the flash
- * Michael reported.
+ * Set on <html> by the inline boot script docrender/router.py emits right after
+ * the form -- during PARSE, before the first paint. That timing is the entire
+ * point: router.js is loaded at the end of the body, so by the time it could
+ * hide anything the form has already been painted, which is the flash Michael
+ * reported.
  *
  *   .dr-open      a cached verifier already matched an entry on this page, so
  *                 the reader has proven the code earlier in this session. Body
@@ -233,6 +228,12 @@
  * ⚠️ NEITHER CLASS EVER HIDES THE BODY, and no rule here may be written that
  * does. `hidden` on the curtain stays the ONE thing withholding content, so a
  * reader whose JS fails mid-flight cannot end up on a blank page.
+ *
+ * ⚠️ AND NEITHER CLASS HAS ANY OPINION ABOUT THE SIDEBAR ANY MORE (2026-08-06).
+ * They are set by the FORM's boot script, and the sealed nav now ships on every
+ * page of the site -- including the ones with no form at all. Anything keyed off
+ * these classes is answering "was the BODY already open", which is a different
+ * question from "has this reader already seen the menu".
  * ------------------------------------------------------------------------ */
 .dr-open .dr-router {
   display: none;
@@ -285,8 +286,7 @@
  *
  * ⚠️ NOTHING HERE HIDES ANYTHING. If these rules fail to load, the list is
  * still only in the DOM once a code has been typed. The withholding is done by
- * the build, not by this stylesheet -- the opposite arrangement from the
- * curtain above, and the reason a no-JS reader gets the body but not the menu.
+ * the build, not by this stylesheet.
  * ------------------------------------------------------------------------ */
 .dr-nav-revealed {
   margin: 0.1rem 0 0.5rem;
@@ -307,24 +307,38 @@
    * top-level sections, and ruling them would claim a weight they do not have.
    */
   border: 0;
-  /* Staggered so the menu arrives as a sequence rather than a jolt. Capped by
-   * arithmetic rather than by hope: a folder with forty pages must not animate
-   * for two seconds, so the delay stops climbing after the eighth row.
-   *
-   * ⭐ Duration and curve are the theme's. Was 0.32s cubic-bezier(.16,1,.3,1),
-   * and `soft` still sets exactly that -- so a site on soft forms renders this
-   * identically and eos gets its own quicker 160ms. */
+}
+
+/* ⭐ THE STAGGER IS OPT-IN, AND THAT CHANGED ON 2026-08-06 FOR A REAL REASON.
+ *
+ * It used to run on every `.dr-nav-revealed__item` and be suppressed by
+ * `.dr-open`. That worked only while the menu could appear on pages carrying a
+ * form. The sealed nav now ships site-wide, so a reader navigating with a held
+ * code lands on pages with NO form and therefore no `.dr-open` -- and the
+ * sidebar would have re-animated on every single navigation, which is precisely
+ * the twitch the pre-paint boot script exists to prevent.
+ *
+ * router.js adds `--in` only when a code was just typed. MOTION NOW MEANS
+ * SOMETHING HAPPENED; stillness means it was already true.
+ *
+ * Capped by arithmetic rather than by hope: a folder with forty pages must not
+ * animate for two seconds, so the delay stops climbing after the eighth row.
+ *
+ * ⭐ Duration and curve are the theme's. Was 0.32s cubic-bezier(.16,1,.3,1),
+ * and `soft` still sets exactly that -- so a site on soft forms renders this
+ * identically and eos gets its own quicker 160ms. */
+.dr-nav-revealed--in .dr-nav-revealed__item {
   animation: dr-nav-in var(--dr-motion-med, 0.32s)
     var(--dr-ease, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
-.dr-nav-revealed__item:nth-child(1) { animation-delay: 0ms; }
-.dr-nav-revealed__item:nth-child(2) { animation-delay: 40ms; }
-.dr-nav-revealed__item:nth-child(3) { animation-delay: 80ms; }
-.dr-nav-revealed__item:nth-child(4) { animation-delay: 120ms; }
-.dr-nav-revealed__item:nth-child(5) { animation-delay: 160ms; }
-.dr-nav-revealed__item:nth-child(6) { animation-delay: 200ms; }
-.dr-nav-revealed__item:nth-child(7) { animation-delay: 240ms; }
-.dr-nav-revealed__item:nth-child(n + 8) { animation-delay: 280ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(1) { animation-delay: 0ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(2) { animation-delay: 40ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(3) { animation-delay: 80ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(4) { animation-delay: 120ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(5) { animation-delay: 160ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(6) { animation-delay: 200ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(7) { animation-delay: 240ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(n + 8) { animation-delay: 280ms; }
 
 @keyframes dr-nav-in {
   from { opacity: 0; transform: translateX(-0.35rem); }
@@ -361,6 +375,20 @@ span.dr-nav-revealed__link {
   letter-spacing: 0.02em;
 }
 
+/* ⭐ THE PAGE THE READER IS ON. Michael, 2026-08-06: "notated which page i then
+ * nav to."
+ *
+ * ⚠️ MATERIAL'S OWN `md-nav__link--active` IS NOT ENOUGH HERE, AND THE REASON IS
+ * the red note at the top of this block: these links DECLARE their colour and
+ * weight rather than inheriting, so a single-class rule from Material loses to
+ * the two-class selector above. The active state has to be re-stated at this
+ * specificity or the highlight silently does nothing -- a dead control, on the
+ * one row a reader is looking for. */
+a.dr-nav-revealed__link.md-nav__link--active {
+  color: var(--md-accent-fg-color);
+  font-weight: 700;
+}
+
 /* Depth rides on an attribute rather than on nesting, because the manifest is a
  * flat list -- see docrender/state.py on why it is flat. Two levels indent and
  * anything deeper stops, rather than marching off the sidebar, which is the
@@ -375,41 +403,33 @@ span.dr-nav-revealed__link {
 .dr-nav-revealed__item[data-d="3"] .dr-nav-revealed__link,
 .dr-nav-revealed__item[data-d="4"] .dr-nav-revealed__link { padding-left: 2.2rem; }
 
-/* ⚠️ The WARM path gets no stagger either, for the same reason the curtain gets
- * no fade: a reader who already holds the code is navigating inside a folder
- * they have opened, and re-animating the menu on every page would turn a fixed
- * sidebar into something that twitches. */
-.dr-open .dr-nav-revealed__item {
-  animation: none;
-}
-
 /* ---------------------------------------------------------------------------
  * THE INJECTED FOLDER (`nav: routed`, 2026-08-06)
  *
  * A routed folder is absent from the sidebar entirely -- not just its children,
  * the folder itself. Its own row travels as entry ZERO of the sealed manifest
- * and router.js builds it on a correct code, then appends it to the top-level
- * list.
+ * and router.js builds it on a correct code, then places it where its `order:`
+ * would have put it.
  *
  * ⭐ THIS BLOCK IS DELIBERATELY TINY, WHICH IS THE POINT. The injected row is a
  * real `li.md-nav__item` holding a real `a.md-nav__link`, so it inherits every
- * bit of Material's own top-level type, spacing and hover for free. The list
- * INSIDE it is the `.dr-nav-revealed` above, which owns its own type for the
- * reasons in that block's red note. Two different markup strategies in one
- * injected element, and each is right for its own job: the row has to read as
- * one of the sections it just joined, the children must not borrow a nested nav
- * they have no toggle for.
- *
- * The border matches what Material puts on its drawer items. `md-nav__item`
- * alone does not always get one, because that rule keys off position in the
- * list, and this row arrives after the stylesheet has stopped caring.
+ * bit of Material's own top-level type, spacing, hover and active styling for
+ * free. The list INSIDE it is `.dr-nav-revealed` above, which owns its own type
+ * for the reasons in that block's red note. Two different markup strategies in
+ * one injected element, and each is right for its own job: the row has to read
+ * as one of the sections it just joined, the children must not borrow a nested
+ * nav they have no toggle for.
  * ------------------------------------------------------------------------ */
-.dr-nav-injected {
-  /* ⭐ THE ARRIVAL IS THE FEATURE, NOT DECORATION. Michael, asking for this:
-   * "i want the sidebar to feel almost dynamic if something unlocks." A folder
-   * that simply exists on the next paint reads as a rendering glitch; one that
-   * slides in reads as something that just happened. Same theme tokens as the
-   * list it contains, so it moves at the theme's speed rather than a literal. */
+
+/* ⭐ THE ARRIVAL IS THE FEATURE, NOT DECORATION. Michael, asking for this: "i
+ * want the sidebar to feel almost dynamic if something unlocks." A folder that
+ * simply exists on the next paint reads as a rendering glitch; one that slides
+ * in reads as something that just happened.
+ *
+ * ⚠️ AND IT IS OPT-IN FOR THE SAME REASON THE STAGGER IS -- see that block. The
+ * client adds `--in` only on a fresh unlock, never on the cached redraw that
+ * runs on every subsequent page. */
+.dr-nav-injected--in {
   animation: dr-nav-folder-in var(--dr-motion-med, 0.32s)
     var(--dr-ease, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
@@ -419,18 +439,24 @@ span.dr-nav-revealed__link {
   to   { opacity: 1; transform: none; }
 }
 
-/* ⚠️ AND IT DOES NOT REPLAY ON THE WARM PATH. Every page under the folder
- * re-injects this row from its own sealed manifest, so without this a reader
- * who already holds the code would watch the sidebar re-animate on every single
- * navigation -- which is the twitch the pre-paint boot script exists to
- * prevent, arriving from a different direction. */
-.dr-open .dr-nav-injected {
-  animation: none;
+/* ⭐ THE FOLDER IS MARKED WHEN A CHILD IS ACTIVE, not only when the folder page
+ * itself is -- that case is Material's own active class and needs nothing here.
+ *
+ * Without this, clicking from the folder index into one of its pages takes the
+ * highlight off the only row that is always on screen, and the reader is inside
+ * an injected section with nothing saying so.
+ *
+ * A left rule rather than a colour, deliberately: it is Material's own "you are
+ * in this section" idiom, and colouring the folder as well would put two
+ * competing highlights in one small column. */
+.dr-nav-injected--here > .dr-nav-injected__link {
+  box-shadow: inset 2px 0 0 var(--md-accent-fg-color);
+  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dr-nav-revealed__item,
-  .dr-nav-injected {
+  .dr-nav-revealed--in .dr-nav-revealed__item,
+  .dr-nav-injected--in {
     animation: none;
   }
 }

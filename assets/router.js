@@ -1,14 +1,24 @@
 /* Client half of the router. Server half is docrender/router.py, and the
  * crypto it pairs with is docrender/seal.py.
  *
- * ⚠️ THIS FILE AND docrender/seal.py SHARE THE KDF AND THE ITERATION COUNT.
- * Change one without the other and every router silently stops working, with no
- * error a reader could act on. They move in the same PR, always. The count is
- * read off `data-iter` rather than hardcoded here, so there is one source for
- * it -- but the pairing still has to be verified, because a mismatch is
- * invisible.
+ * WARNING: THIS FILE AND docrender/seal.py SHARE THE KDF AND THE ITERATION
+ * COUNT. Change one without the other and every router silently stops working,
+ * with no error a reader could act on. They move in the same PR, always. The
+ * count is read off a data attribute so there is one source for it -- but the
+ * pairing still has to be verified, because a mismatch is invisible.
  *
- * TWO MODES, read off `data-mode`:
+ * TWO THINGS ON A PAGE, AND SINCE 2026-08-06 THEY ARE INDEPENDENT:
+ *
+ *   .dr-router     the FORM. Only where a router is declared or inherited.
+ *   .dr-nav-boot   the SEALED SIDEBAR. On every page of the site.
+ *
+ * THAT SPLIT IS THE FIX FOR "IT DISAPPEARS AFTER I ENTER THE CODE". The nav
+ * payload used to be an attribute of the form, so a reader who unlocked a
+ * folder and clicked into it landed on a page with no ciphertext and watched
+ * the folder vanish from the sidebar. Every guard in this file assumed the form
+ * existed.
+ *
+ * TWO FORM MODES, read off `data-mode`:
  *
  *   curtain   the page's own body is sitting hidden in the DOM. Verify the
  *             code against a PBKDF2 verifier and reveal it in place.
@@ -16,61 +26,55 @@
  *             each until one decrypts, then navigate there.
  *
  * Why curtain verifies instead of decrypting: there is nothing to decrypt. The
- * body is hidden, not encrypted -- deliberately, because the markdown is public
- * in the content repo and encrypting it would be theatre. What the verifier
- * buys is that the page does not hand out the CODE.
+ * body is hidden, not encrypted -- deliberately, because the markdown is in the
+ * content repo and encrypting it would be theatre. What the verifier buys is
+ * that the page does not hand out the CODE.
  *
  * AND TWO THINGS THAT ARE GENUINELY SEALED: redirect destinations, and THE NAV
- * MANIFEST (DL J14). A routed folder's children are removed from the sidebar at
- * build time and the list of them ships as ciphertext in `data-subtree`. The
- * code that opens the curtain decrypts it and the entries are injected under
- * the section's own sidebar link.
- *
- * ⭐ OR, SINCE 2026-08-06, THERE IS NO SUCH LINK. `nav: routed` takes the
- * folder's own row out of the sidebar too, and the row travels as entry ZERO of
- * the manifest so this file can build it. `data-subtree-place` says which case
- * we are in. See `drawNav`.
+ * MANIFEST (DL J14).
  *
  * =========================================================================
- * THE WARM PATH: A HELD CODE COSTS NO CRYPTO AT ALL (DL J17)
+ * NOTHING WARM COSTS CRYPTO. THAT IS THE WHOLE PERFORMANCE DESIGN (DL J17)
  * =========================================================================
  * Michael, on the version before this one: "it's still like loading the menu
  * each time and passing it immediately which seems like bad architecture."
  *
- * It was. Every page used to mint its own salt, so a code already typed had to
- * be re-derived at 120,000 iterations on arrival, per key, in sequence, while
- * the reader watched. Now the salt is stable per build, so the DERIVED VERIFIER
- * is cached beside the code and a later page is a string comparison.
- * router.py's inline `_BOOT` script does that comparison BEFORE FIRST PAINT and
- * leaves us one of two classes on <html>:
+ * It was. Every page minted its own salt, so a code already typed had to be
+ * re-derived at 120,000 iterations on arrival, per key, in sequence, while the
+ * reader watched. The salt is stable per build now, so:
  *
- *   dr-open      already proven. Reveal, inject nav, remove the form. No
- *                derivation runs on this path at all.
- *   dr-checking  keys held, none cached (first unlock of the session, or the
- *                first page after a deploy moved the salt). Form held back
- *                while we derive; we put it back if every key fails.
+ *   THE BODY   router.py's inline boot script compares a cached verifier before
+ *              first paint and sets `dr-open`. No derivation on that path.
+ *   THE NAV    the DECRYPTED manifest is cached in sessionStorage under the
+ *              build id, so page two draws the sidebar with no crypto at all.
  *
- * ⚠️ WHAT IS CACHED IS NOT A SECRET. The verifier is printed in the page it
- * unlocks -- caching it stores something already public. The CODE is in
- * sessionStorage either way, and has been since this file was written.
- *
- * sessionStorage, not localStorage: closing the tab re-locks, because a shared
- * machine in a shop or a booth is the normal case here.
+ * WARNING: WHAT IS CACHED IS NOT A SECRET. The verifier is printed in the page
+ * it unlocks, and the manifest is content this reader has already been shown.
+ * The CODE itself is in sessionStorage either way and has been since this file
+ * was written. All of it dies with the tab, which is the point on a shared
+ * machine in a shop or a booth.
  */
 
 (function () {
   var STORE = 'docrender.keys';
   var LIMIT = 8;                 // keeps the worst-case derivation count sane
 
+  var boot = document.querySelector('.dr-nav-boot');
   var form = document.querySelector('.dr-router');
-  if (!form || !window.crypto || !crypto.subtle) return;
+  if (!boot && !form) return;
+  if (!window.crypto || !crypto.subtle) return;
 
-  var input = form.querySelector('.dr-router__input');
-  var button = form.querySelector('.dr-router__btn');
-  var error = form.querySelector('.dr-router__error');
-  var curtain = document.querySelector('.dr-curtain');
-  var iterations = parseInt(form.dataset.iter, 10);
+  /* WARNING: READ FROM WHICHEVER ELEMENT EXISTS. A page outside a routed folder
+   * has no form, and this used to be `form.dataset.iter` unconditionally. */
+  var iterations = parseInt(
+    (form && form.dataset.iter) || (boot && boot.dataset.iter), 10
+  );
   var root = document.documentElement;
+
+  var input = form && form.querySelector('.dr-router__input');
+  var button = form && form.querySelector('.dr-router__btn');
+  var error = form && form.querySelector('.dr-router__error');
+  var curtain = document.querySelector('.dr-curtain');
 
   function bytes(s) {
     return Uint8Array.from(atob(s), function (c) { return c.charCodeAt(0); });
@@ -92,17 +96,17 @@
   }
 
   function routes() {
-    return decode(form.dataset.routes);
+    return form ? decode(form.dataset.routes) : [];
   }
 
   /* Held keys, normalised. An entry is {k: code, s: salt, h: verifier}, where
    * s and h are absent until a code has been proven once.
    *
-   * ⚠️ TOLERATES THE OLD FORMAT ON PURPOSE. This store used to be a list of
-   * bare code strings, and a reader can be mid-session when a deploy lands. A
-   * string becomes {k: string} with no cached verifier, which is the slow path
-   * -- correct, just not warm. Dropping them instead would log somebody out
-   * mid-visit for a reason they could never work out. */
+   * WARNING: TOLERATES THE OLD FORMAT ON PURPOSE. This store used to be a list
+   * of bare code strings, and a reader can be mid-session when a deploy lands.
+   * A string becomes {k: string} with no cached verifier, which is the slow
+   * path -- correct, just not warm. Dropping them instead would log somebody
+   * out mid-visit for a reason they could never work out. */
   function held() {
     var raw;
     try {
@@ -150,16 +154,19 @@
 
   function derive(code, salt, usage) {
     return crypto.subtle.importKey(
-      'raw', new TextEncoder().encode(code), 'PBKDF2', false, ['deriveKey', 'deriveBits']
+      'raw', new TextEncoder().encode(code), 'PBKDF2', false,
+      ['deriveKey', 'deriveBits']
     ).then(function (material) {
       if (usage === 'bits') {
         return crypto.subtle.deriveBits(
-          { name: 'PBKDF2', salt: bytes(salt), iterations: iterations, hash: 'SHA-256' },
+          { name: 'PBKDF2', salt: bytes(salt), iterations: iterations,
+            hash: 'SHA-256' },
           material, 256
         );
       }
       return crypto.subtle.deriveKey(
-        { name: 'PBKDF2', salt: bytes(salt), iterations: iterations, hash: 'SHA-256' },
+        { name: 'PBKDF2', salt: bytes(salt), iterations: iterations,
+          hash: 'SHA-256' },
         material, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
       );
     });
@@ -175,10 +182,10 @@
     });
   }
 
-  /* One code against every entry, sequentially. A curtain entry has a verifier
-   * to match; a redirect entry has a sealed destination to decrypt. Sequential
-   * on purpose: the common case is a handful of keys, and firing every PBKDF2
-   * at once would burn a phone's battery to save nothing measurable. */
+  /* One code against every entry on the FORM, sequentially. A curtain entry has
+   * a verifier to match; a redirect entry has a sealed destination to decrypt.
+   * Sequential on purpose: the common case is a handful of keys, and firing
+   * every PBKDF2 at once would burn a phone's battery to save nothing. */
   function resolve(code) {
     var all = routes();
 
@@ -193,7 +200,9 @@
            * code because the nav manifest is sealed under it and a verifier
            * cannot be reversed, the entry because its salt and verifier are
            * what get cached for the warm path. */
-          if (b64(raw) === entry.h) return { reveal: true, code: code, entry: entry };
+          if (b64(raw) === entry.h) {
+            return { reveal: true, code: code, entry: entry };
+          }
           return next();
         }).catch(next);
       }
@@ -206,52 +215,72 @@
     return attempt(0);
   }
 
-  /* ------------------------------------------------------------------------
+  /* ======================================================================
    * THE SIDEBAR
    *
-   * The entries were removed from the nav at build time, so there is nothing
-   * to un-hide -- they have to be built. Rendered with our own classes rather
-   * than Material's nested-nav markup, which needs a <nav>, a <label> and a
-   * hidden checkbox per level to work its expand/collapse machinery. We are
-   * inserting a flat list into an already-rendered tree; borrowing half of
-   * that structure would inherit its behaviour and none of its state.
+   * Entries were removed from the nav at build time, so there is nothing to
+   * un-hide -- they have to be built. Rendered with our own classes rather than
+   * Material's nested-nav markup, which needs a <nav>, a <label> and a hidden
+   * checkbox per level to work its expand/collapse machinery.
    *
-   * ⚠️ AND ON MOBILE THAT IS NOT MERELY A PREFERENCE. Material's drawer is a
-   * stack of sliding panels: a nested `<nav class="md-nav">` is positioned
+   * WARNING: AND ON MOBILE THAT IS NOT MERELY A PREFERENCE. Material's drawer
+   * is a stack of sliding panels: a nested `<nav class="md-nav">` is positioned
    * OFF-CANVAS until its toggle is checked. Injecting one into a section whose
    * children were sealed -- so it is no longer marked `--nested` and has no
    * toggle -- would put the menu somewhere no reader can reach, on phones only.
    *
-   * ⭐ TWO PLACEMENTS, read off `data-subtree-place`:
+   * TWO PLACEMENTS, read off each entry's `p`:
    *
-   *   in    the folder still has its own row. Find it, hoist to its <li>,
-   *         append the list. Every router before 2026-08-06 does this.
-   *   end   `nav: routed` -- the folder is not in the sidebar at all, so entry
-   *         ZERO of the manifest is the folder itself and we build its row
-   *         before hanging the rest underneath.
-   * --------------------------------------------------------------------- */
+   *   in   the folder still has its own row. Find it, hoist to its <li>,
+   *        append the list underneath.
+   *   at   `nav: routed` -- the folder is not in the sidebar at all, so entry
+   *        ZERO of the manifest is the folder itself and we build its row.
+   * =================================================================== */
 
-  function navAnchor() {
-    var href = form.dataset.subtreeAnchor;
-    if (!href) return null;
+  var NAV_STORE = boot ? 'docrender.nav.' + (boot.dataset.build || '') : '';
 
-    /* Scoped to the PRIMARY nav on purpose. The secondary nav is the
-     * table of contents, whose links are #fragments on the current page --
-     * so on the routed index page itself their pathname matches the anchor
-     * exactly, and an unscoped search would inject the menu into the TOC. */
-    var want = new URL(href, window.location.href).pathname;
-    var links = document.querySelectorAll('.md-nav--primary a.md-nav__link');
-    for (var i = 0; i < links.length; i++) {
-      if (new URL(links[i].href).pathname === want) return links[i];
-    }
-    return null;
+  function navEntries() {
+    return boot ? decode(boot.dataset.nav) : [];
   }
 
-  /* The flat revealed list. Factored out because both placements need it and a
-   * second copy of the depth/label/link rules would drift. */
-  function buildList(items) {
+  /* A build url resolved against the site root. The seal ships root-relative
+   * urls so ONE payload can serve every page; `data-root` is the only
+   * page-specific part, and it rides outside the ciphertext. */
+  function siteUrl(u) {
+    var prefix = (boot && boot.dataset.root) || '.';
+    return new URL(prefix + '/' + u, window.location.href).href;
+  }
+
+  function pathOf(href) {
+    try {
+      return new URL(href, window.location.href).pathname;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function drawn() {
+    if (!NAV_STORE) return [];
+    try {
+      var raw = JSON.parse(sessionStorage.getItem(NAV_STORE));
+      return Array.isArray(raw) ? raw : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function keepDrawn(list) {
+    if (!NAV_STORE) return;
+    try {
+      sessionStorage.setItem(NAV_STORE, JSON.stringify(list));
+    } catch (e) { /* private mode: the sidebar still works, per page */ }
+  }
+
+  /* The flat revealed list. Shared by both placements, because a second copy of
+   * the depth/label/link rules would drift. */
+  function buildList(items, animate) {
     var list = document.createElement('ul');
-    list.className = 'dr-nav-revealed';
+    list.className = 'dr-nav-revealed' + (animate ? ' dr-nav-revealed--in' : '');
 
     items.forEach(function (item) {
       var row = document.createElement('li');
@@ -262,7 +291,7 @@
       var cell = document.createElement(item.u ? 'a' : 'span');
       cell.className = 'dr-nav-revealed__link';
       cell.textContent = item.t;
-      if (item.u) cell.href = item.u;
+      if (item.u) cell.href = siteUrl(item.u);
 
       row.appendChild(cell);
       list.appendChild(row);
@@ -271,97 +300,207 @@
     return list;
   }
 
+  function topList() {
+    return document.querySelector('.md-nav--primary > .md-nav__list');
+  }
+
+  /* WHERE THE FOLDER GOES BACK. Michael, 2026-08-06: "it needs to appear in its
+   * real sort order."
+   *
+   * Three levels, deliberately, because the good one can go stale: the row
+   * named by `b` may itself have left the sidebar since the build. Falling all
+   * the way through lands on the END, which is what shipped yesterday -- so the
+   * floor is the previous behaviour rather than a broken sidebar. */
+  function place(li, entry) {
+    var list = topList();
+    if (!list) return false;
+    var kids = list.children;
+
+    if (entry.b) {
+      var want = pathOf(siteUrl(entry.b));
+      for (var i = 0; i < kids.length; i++) {
+        var link = kids[i].querySelector('a.md-nav__link');
+        if (link && pathOf(link.href) === want) {
+          list.insertBefore(li, kids[i]);
+          return true;
+        }
+      }
+    }
+
+    if (typeof entry.i === 'number' && entry.i >= 0 && entry.i < kids.length) {
+      list.insertBefore(li, kids[entry.i]);
+      return true;
+    }
+
+    list.appendChild(li);
+    return true;
+  }
+
   /* `nav: routed`. The folder was never rendered, so there is nothing to find
    * and everything to build.
    *
-   * ⭐ THE ROW BORROWS MATERIAL'S OWN CLASSES AND THE CHILDREN DO NOT, which
-   * looks inconsistent and is deliberate. This row is joining a list of
-   * top-level sections and has to read as one of them, so it takes their
-   * markup. The children are a flat list with no toggle -- see the warning
-   * above about what borrowing the nested structure costs on a phone. */
-  function drawSection(items) {
-    var root = document.querySelector('.md-nav--primary > .md-nav__list');
-    if (!root) {
-      console.warn('docrender: primary nav list not found, folder not restored');
-      return;
-    }
-    /* The warm path runs this on every page under the folder. Without the
-     * guard a reader collects another copy on every navigation. */
-    if (root.querySelector('.dr-nav-injected')) return;
+   * THE ROW BORROWS MATERIAL'S OWN CLASSES AND THE CHILDREN DO NOT, which looks
+   * inconsistent and is the point. This row is joining a list of top-level
+   * sections and has to read as one of them, so it takes their markup. The
+   * children are a flat list with no toggle -- see the warning above about what
+   * borrowing the nested structure costs on a phone. */
+  function drawSection(entry, animate) {
+    var list = topList();
+    if (!list || !entry.items.length) return;
+    /* Every page under the folder redraws this from its own payload. Without
+     * the guard a reader collects another copy on every navigation. */
+    if (list.querySelector('.dr-nav-injected')) return;
 
-    var head = items[0];
+    var head = entry.items[0];
     var li = document.createElement('li');
-    li.className = 'md-nav__item dr-nav-injected';
+    li.className = 'md-nav__item dr-nav-injected'
+      + (animate ? ' dr-nav-injected--in' : '');
 
     var link = document.createElement(head.u ? 'a' : 'span');
     link.className = 'md-nav__link dr-nav-injected__link';
     link.textContent = head.t;
-    if (head.u) link.href = head.u;
+    if (head.u) link.href = siteUrl(head.u);
     li.appendChild(link);
 
-    var rest = items.slice(1);
-    if (rest.length) li.appendChild(buildList(rest));
+    var rest = entry.items.slice(1);
+    if (rest.length) li.appendChild(buildList(rest, animate));
 
-    root.appendChild(li);
+    place(li, entry);
   }
 
-  function drawNav(items) {
-    if (!items.length) return;
+  function drawUnder(entry, animate) {
+    if (!entry.a || !entry.items.length) return;
 
-    if ((form.dataset.subtreePlace || 'in') === 'end') {
-      drawSection(items);
-      return;
+    /* Scoped to the PRIMARY nav on purpose. The secondary nav is the table of
+     * contents, whose links are #fragments on the current page -- so on the
+     * routed index page itself their pathname matches the anchor exactly, and
+     * an unscoped search would inject the menu into the TOC. */
+    var want = pathOf(siteUrl(entry.a));
+    var links = document.querySelectorAll('.md-nav--primary a.md-nav__link');
+    var link = null;
+    for (var i = 0; i < links.length; i++) {
+      if (pathOf(links[i].href) === want) { link = links[i]; break; }
     }
-
-    var link = navAnchor();
     if (!link) {
-      /* Said out loud rather than returning quietly. A correct code that
-       * reveals the body and silently leaves the menu empty is exactly the
-       * kind of half-working feature this engine keeps digging out. */
       console.warn('docrender: nav anchor not found, menu not restored');
       return;
     }
 
-    /* 🔴 THE LIST HANGS OFF THE <li>, NOT OFF THE LINK'S PARENT. Getting this
+    /* THE LIST HANGS OFF THE <li>, NOT OFF THE LINK'S PARENT. Getting this
      * wrong is what shipped in #48 and it looked spectacular on a phone.
      *
      * With `navigation.indexes` enabled, Material wraps a section's index link
      * in `<div class="md-nav__link md-nav__container">`, and that container is
-     * `display: flex`. `link.parentNode` IS that container, so appending here
+     * `display: flex`. `link.parentNode` IS that container, so appending there
      * made the revealed menu a third FLEX ITEM beside the title and the
-     * chevron: the section name squeezed into a two-line column, the chevron
-     * pushed out of the row, and every entry marching further right as its
-     * depth padding compounded inside a column a few characters wide.
+     * chevron.
      *
-     * ⚠️ IT ALSO INHERITED THE WRONG TYPE, FOR FREE, WHICH IS THE PART WORTH
-     * REMEMBERING. `text-transform`, `letter-spacing` and `font-weight` are
-     * INHERITED properties, and that container matches base.css's top-level
-     * caps rule. So the child pages rendered in bold 700 uppercase -- shouting
-     * louder than the section heading above them. Nothing chose that and no
-     * rule in router.css said it; it fell through the DOM. Hoisting one level
-     * fixes the layout and the typography in the same move, because the <li>
-     * carries neither property. */
+     * WARNING: IT ALSO INHERITED THE WRONG TYPE, FOR FREE, WHICH IS THE PART
+     * WORTH REMEMBERING. `text-transform`, `letter-spacing` and `font-weight`
+     * are INHERITED, and that container matches base.css's top-level caps rule.
+     * So the child pages rendered in bold 700 uppercase, shouting louder than
+     * the section above them, with nothing in any stylesheet saying so.
+     * Hoisting one level fixes the layout and the typography in one move. */
     var host = link.closest('.md-nav__item') || link.parentNode;
     if (host.querySelector('.dr-nav-revealed')) return;
-
-    host.appendChild(buildList(items));
+    host.appendChild(buildList(entry.items, animate));
   }
 
-  function revealNav(code) {
-    var wraps = form.dataset.subtree ? decode(form.dataset.subtree) : [];
-    if (!wraps.length || !code) return;
+  /* WHERE THE READER IS. Michael: "notated which page i then nav to."
+   *
+   * Material's own active class, so an injected row is highlighted exactly like
+   * a built one. The SECOND half matters as much as the first: a folder whose
+   * CHILD is active is marked too, because clicking into the folder would
+   * otherwise take the highlight off the only row that is always on screen. */
+  function markActive() {
+    var here = window.location.pathname;
+    var injected = document.querySelector('.dr-nav-injected');
+    var childActive = false;
 
-    (function attempt(i) {
-      if (i >= wraps.length) return;
-      open(code, wraps[i]).then(function (plain) {
-        try {
-          drawNav(JSON.parse(plain));
-        } catch (e) { /* a manifest we cannot parse reveals nothing */ }
-      }).catch(function () {
-        attempt(i + 1);
-      });
-    })(0);
+    var links = document.querySelectorAll(
+      '.dr-nav-revealed__link, .dr-nav-injected__link'
+    );
+    for (var i = 0; i < links.length; i++) {
+      var link = links[i];
+      if (link.tagName !== 'A' || pathOf(link.href) !== here) continue;
+      link.classList.add('md-nav__link--active');
+      link.setAttribute('aria-current', 'page');
+      if (link.classList.contains('dr-nav-revealed__link')) childActive = true;
+    }
+
+    if (childActive && injected) injected.classList.add('dr-nav-injected--here');
   }
+
+  function paint(list, animate) {
+    list.forEach(function (entry) {
+      if (entry.p === 'at') drawSection(entry, animate);
+      else drawUnder(entry, animate);
+    });
+    markActive();
+  }
+
+  /* A code has just been proven. Decrypt whatever it opens, remember it, and
+   * draw it MOVING -- because something did just happen. */
+  function unlockNav(code) {
+    var entries = navEntries();
+    if (!entries.length || !code) return;
+
+    var already = drawn();
+    var opened = [];
+
+    function nextEntry(i) {
+      if (i >= entries.length) {
+        if (!opened.length) return;
+        keepDrawn(already.concat(opened));
+        paint(opened, true);
+        return;
+      }
+      var entry = entries[i];
+      var wraps = entry.w || [];
+
+      function nextWrap(j) {
+        if (j >= wraps.length) return nextEntry(i + 1);
+        return open(code, wraps[j]).then(function (plain) {
+          try {
+            opened.push({
+              p: entry.p, a: entry.a, b: entry.b, i: entry.i,
+              items: JSON.parse(plain)
+            });
+          } catch (e) { /* a manifest we cannot parse reveals nothing */ }
+          nextEntry(i + 1);
+        }).catch(function () { nextWrap(j + 1); });
+      }
+
+      nextWrap(0);
+    }
+
+    nextEntry(0);
+  }
+
+  /* ARRIVAL, for the sidebar. Runs on every page of the site.
+   *
+   * THE CACHED PATH DOES NOT ANIMATE, and that is a real distinction rather
+   * than a detail: a reader navigating inside a folder they already opened
+   * should find it simply THERE. Re-animating on every page is the twitch the
+   * pre-paint boot script exists to prevent. The old code could not tell these
+   * apart -- it keyed the suppression off `.dr-open`, which is set by the FORM,
+   * and pages outside the folder have no form. */
+  if (boot) {
+    var cached = drawn();
+    if (cached.length) {
+      paint(cached, false);
+    } else {
+      /* COLD. Nothing cached for this build, so held codes have to be tried
+       * once. Happens on the first page after an unlock elsewhere, or the first
+       * page after a deploy moved the build id -- never on a steady session. */
+      held().forEach(function (entry) { unlockNav(entry.k); });
+    }
+  }
+
+  /* ======================================================================
+   * THE FORM
+   * =================================================================== */
+  if (!form) return;
 
   function apply(result) {
     if (result.go) {
@@ -370,7 +509,7 @@
     }
     if (curtain) {
       curtain.hidden = false;
-      revealNav(result.code);
+      unlockNav(result.code);
       form.remove();
     }
   }
@@ -396,37 +535,24 @@
     });
   });
 
-  /* ------------------------------------------------------------------------
-   * ARRIVAL
-   *
-   * Only curtains open by themselves. Silently redirecting somebody who just
-   * arrived would be hostile -- they did not ask to go anywhere.
-   *
-   * This is also what carries the revealed MENU across a folder: every page
-   * under a routed index inherits the router, so each ships its own sealed
-   * manifest, and a held code re-injects the sidebar on arrival. A page OUTSIDE
-   * the routed folder has no form and therefore no manifest, so the section
-   * collapses again out there -- the known limit, written up in
-   * docrender/visibility.py.
-   * --------------------------------------------------------------------- */
+  /* Only curtains open by themselves. Silently redirecting somebody who just
+   * arrived would be hostile -- they did not ask to go anywhere. */
   if (!curtain) return;
 
   /* WARM. The boot script already proved a cached verifier matches, so the body
    * is showing and the form is hidden -- both from CSS, before paint. Nothing
    * here re-derives anything; it finishes the job by dropping the `hidden`
    * attribute (CSS was only overriding its DISPLAY, and assistive technology
-   * reads the attribute), decrypting the nav, and taking the dead form out.
+   * reads the attribute) and taking the dead form out.
    *
-   * ⚠️ `dr-open` IS DELIBERATELY LEFT ON <html>. Removing it looks like tidying
-   * up and would reintroduce the exact flash this whole change removes: the
-   * curtain's fade-in keys off `.dr-curtain:not([hidden])`, which starts
+   * WARNING: `dr-open` IS DELIBERATELY LEFT ON <html>. Removing it looks like
+   * tidying up and would reintroduce the exact flash this whole change removes:
+   * the curtain's fade-in keys off `.dr-curtain:not([hidden])`, which starts
    * matching the moment the line below runs, so a body that was already on
-   * screen would animate in a second time. router.css suppresses that with a
-   * `.dr-open` rule, and a class removed in the same tick cannot be relied on
-   * to still be there when style is recalculated. */
+   * screen would animate in a second time. */
   if (root.classList.contains('dr-open')) {
     curtain.hidden = false;
-    revealNav(warmCode());
+    if (!drawn().length) unlockNav(warmCode());
     form.remove();
     return;
   }
