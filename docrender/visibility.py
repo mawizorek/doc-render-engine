@@ -48,11 +48,18 @@ folder index, believe the pages under it were covered, and publish all of them.
 change what a reader is OFFERED, never what is BUILT. One is a lock, one is a
 curtain, and the paragraph above exists because somebody once believed the
 curtain was the lock.
+
+⚠️ THIS MODULE MAY IMPORT `navstate`, AND `navstate` MAY NEVER IMPORT THIS ONE.
+The dependency runs one way on purpose. `seal_nav` has to know whether a folder
+declared `nav: routed`, and reading that key here would make a second
+interpreter of it -- so it asks `navstate.declared()`. The reverse direction is
+what the 00bb shim exists to avoid: navstate needs `_index_of` and `_unchain`
+from here, and gets them passed in rather than imported.
 """
 
 from __future__ import annotations
 
-from . import state
+from . import navstate, state
 
 
 def on_files(files, config):
@@ -141,6 +148,11 @@ def _prune(items: list) -> list:
 # and had no opinion about the sidebar -- the section NAME was withheld and its
 # table of contents was not.
 #
+# ⭐ AND SINCE 2026-08-06 THE SECTION NAME CAN GO TOO. `nav: routed` on the same
+# index takes the folder's own row out as well, and the row travels INSIDE the
+# sealed manifest so a correct code can build it. Michael: "i want the sidebar to
+# feel almost dynamic if something unlocks." See `_seal`.
+#
 # ⚠️ SEALING IS PRESENTATION, NOT PROTECTION, and the word "hidden" does not go
 # into the authoring docs for it without "casual" beside it. Every sealed page
 # still renders, still has a live URL, is still linkable by `@id`, and its body
@@ -160,6 +172,16 @@ def _prune(items: list) -> list:
 def _routed(meta: dict) -> bool:
     """Does this page's own frontmatter declare a router? (Never inherited.)"""
     return bool(meta.get("router") or meta.get("router_code"))
+
+
+def _nav_routed(src_uri: str) -> bool:
+    """Did this folder index declare `nav: routed`?
+
+    ⚠️ ASKED, NEVER PARSED. navstate owns the `nav:` vocabulary including its
+    aliases, and a second reader here would drift the first time one is added.
+    `declared()` is the silent form -- the reporting one runs once, at 00bb.
+    """
+    return navstate.declared(src_uri) == "routed"
 
 
 def _find_index(section):
@@ -280,13 +302,33 @@ def _seal(section, index) -> bool:
     """Strip a routed section back to its index page and stash what was there.
 
     Returns True if the section should stay in the sidebar. False means it has
-    nothing left to show -- see the contradiction below.
+    nothing left to show -- either the contradiction below, or `nav: routed`,
+    where leaving is the whole point.
     """
+    src = index.file.src_uri
+    invisible = _nav_routed(src)
+
     items: list = []
     for kid in getattr(section, "children", None) or []:
         if kid is index:
             continue
         _collect(kid, items, 1)
+
+    if invisible:
+        # ⭐ THE FOLDER'S OWN ROW, AT DEPTH 0, AND IT IS THE WHOLE FEATURE.
+        # Every other consumer of this manifest hangs a list under a sidebar row
+        # that already exists; a routed folder HAS no row, so the client builds
+        # one from this entry. That is why `nav: routed` needed no new payload,
+        # no second cipher and no change to seal.py.
+        #
+        # The section's title rather than the index page's: instance.py has
+        # already copied one onto the other, and the section is what the sidebar
+        # would have shown.
+        items.insert(0, {
+            "t": _title(section) or _title(index),
+            "u": index.file.url,
+            "d": 0,
+        })
 
     if not items:
         # ⭐ Since 2026-08-05 the usual cause is `nav: hidden` on this same index
@@ -296,7 +338,7 @@ def _seal(section, index) -> bool:
         # silent surprise to whoever wrote the router.
         state.note(
             "routers",
-            index.file.src_uri + " · router declared, nav manifest EMPTY · "
+            src + " · router declared, nav manifest EMPTY · "
             + "nothing under this folder to withhold. If it also declares "
             + "`nav: hidden`, that is why: hidden takes the children out of the "
             + "sidebar for everybody, which is stronger than sealing them "
@@ -304,10 +346,57 @@ def _seal(section, index) -> bool:
         )
         return True
 
-    state.NAV_SEALED[index.file.src_uri] = {
-        "anchor": index.file.url,
+    state.NAV_SEALED[src] = {
+        "anchor": "" if invisible else index.file.url,
+        # 'in' is what every router has always done: find this folder's own row
+        # and append underneath it. 'end' means there is no row to find.
+        #
+        # 🚫 AND 'end' IS LITERALLY THE END OF THE TOP-LEVEL LIST, not the
+        # folder's sort position. Placing it correctly would mean sealing a
+        # SIBLING's url to anchor against and hoping that sibling is still in the
+        # sidebar when the code is typed -- a second thing that can be wrong
+        # invisibly, on a feature whose mistakes already only surface after
+        # somebody types a correct code. Michael was asked and said the middle
+        # does not matter; for `order: 99` the end IS the sort position.
+        "place": "end" if invisible else "in",
         "items": items,
     }
+
+    pages = sum(1 for i in items if i.get("u"))
+
+    if invisible:
+        # The whole section leaves. `_unchain` on the index as well as on the
+        # children, because unlike every other path here the index is going too
+        # and would otherwise keep a prev/next into a chain it has left.
+        _unchain(index)
+        section.children = []
+
+        if index not in (getattr(section, "children", None) or []) and \
+                state.BY_SRC.get(src, {}).get("status") == "unlisted":
+            # ⭐ NOT THE CONTRADICTION BELOW, AND THE DIFFERENCE IS REAL.
+            # `unlisted` + a sealing router is unsatisfiable: one says this page
+            # is not in the sidebar, the other says only this page is. `routed`
+            # says it is not in the sidebar EITHER, until a code -- which AGREES
+            # with unlisted instead of fighting it. So this is redundancy, not a
+            # conflict, and it is worth saying because unlisted costs something
+            # extra that routed does not: it drops the page from SEARCH.
+            state.note(
+                "routers",
+                src + ": `status: unlisted` adds nothing to `nav: routed` -- "
+                + "routed already keeps this folder out of the sidebar until a "
+                + "code is typed. It DOES additionally remove the page from "
+                + "search, which is a separate decision and probably not the "
+                + "one you meant. `status: public` is the usual pairing.",
+            )
+
+        state.note(
+            "routers",
+            src + " · nav ROUTED · the folder itself and " + str(pages - 1)
+            + " page(s) under it are absent from the sidebar entirely, and "
+            + "appear at the END of the top level when a correct code is typed. "
+            + "All still built and reachable by URL, @id and search.",
+        )
+        return False
 
     # 🔴 `status: unlisted` ON A ROUTED FOLDER INDEX IS A DIRECT CONTRADICTION --
     # unlisted says this page is not in the sidebar, nav-seal says ONLY this page
@@ -315,28 +404,34 @@ def _seal(section, index) -> bool:
     # used everywhere here: when two declarations disagree, the one that shows
     # LESS wins, and the report says so loudly enough to fix. The cost is named
     # in that report rather than discovered.
+    #
+    # ⚠️ AND `nav: routed` IS THE ANSWER TO IT, as of 2026-08-06. Somebody
+    # reaching for unlisted here almost always wanted the folder gone from the
+    # sidebar until a code arrives, which is now a thing the engine can actually
+    # do -- so the report names it.
     survives = index in (getattr(section, "children", None) or [])
     section.children = [index] if survives else []
 
-    pages = sum(1 for i in items if i.get("u"))
     if survives:
         state.note(
             "routers",
-            index.file.src_uri + " · nav sealed · " + str(pages) + " of "
+            src + " · nav sealed · " + str(pages) + " of "
             + str(len(items)) + " entries are pages, withheld from the sidebar "
             + "until a code is typed. Still built, still reachable by URL.",
         )
     else:
         state.note(
             "missing_required",
-            index.file.src_uri + ": `status: unlisted` and a nav-sealing "
+            src + ": `status: unlisted` and a nav-sealing "
             + "`router:` contradict each other -- unlisted keeps this page OUT "
             + "of the sidebar, sealing leaves it as the ONLY thing in it. The "
             + str(len(items)) + " entries under it are sealed (the protective "
             + "reading) and the whole section is gone from the nav, so no code "
             + "can reveal the menu: there is no row to reveal it under. Set "
             + "`status: public` on this index for the collapsed-section "
-            + "behaviour, or drop `router:` to list the folder normally.",
+            + "behaviour, or add `nav: routed` beside it if what you wanted was "
+            + "the whole folder absent until a code -- which is a real value "
+            + "now, and does reveal the menu.",
         )
     return survives
 
@@ -349,10 +444,28 @@ def _seal_routers(items: list) -> list:
             kept.append(item)
             continue
         index = _index_of(item)
-        if index is not None and _routed(state.BY_SRC.get(index.file.src_uri, {})):
-            if _seal(item, index):
-                kept.append(item)
-            continue
+        if index is not None:
+            src = index.file.src_uri
+            has_router = _routed(state.BY_SRC.get(src, {}))
+            if has_router:
+                if _seal(item, index):
+                    kept.append(item)
+                continue
+            if _nav_routed(src):
+                # ⚠️ A FOLDER ASKED TO DISAPPEAR UNTIL A CODE, ON A PAGE WITH NO
+                # CODE. Nothing reaches the seal without a router, so the folder
+                # simply lists as normal -- correct, and silent, which is the
+                # problem. Two very different outcomes (never hides / never
+                # comes back) look identical from the author's chair, so the
+                # build says which one happened.
+                state.note(
+                    "missing_required",
+                    src + ": `nav: routed` needs a router on the same page and "
+                    + "there is none. The folder is listed in the sidebar as "
+                    + "normal. Add `router:` or `router_code:` here, or use "
+                    + "`nav: hidden` if you meant to hide the children from "
+                    + "everybody.",
+                )
         item.children = _seal_routers(getattr(item, "children", None) or [])
         if item.children:
             kept.append(item)
@@ -403,6 +516,12 @@ def seal_nav(nav, config, files):
 
     ⭐ THE FIX IS THE ORDER, NOT A SECOND CHECK. See `_collect`.
 
+    ⭐ AND `nav: routed` DEPENDS ON THE SAME ORDER FROM THE OTHER DIRECTION.
+    navstate deliberately does NOT cut a routed folder at 00bb: cutting there
+    would hand this stage an empty subtree and the manifest -- the only thing
+    that can bring the folder back -- would contain nothing. The cut happens
+    here, in `_seal`, after the harvest. Same law, opposite failure.
+
     THE on_nav CHAIN, EVERY LINK LOAD-BEARING:
 
       00    sort     instance.py orders the tree
@@ -414,7 +533,9 @@ def seal_nav(nav, config, files):
     ⚠️ PRUNE AND SHAPE BOTH PRECEDE THE SEAL FOR ONE REASON: a page the sidebar
     deliberately does not show must never be sealed and then INJECTED into a
     menu on unlock. `unlisted` always had that guarantee. `nav: hidden` has it
-    now.
+    now. `nav: routed` is the one deliberate exception, and it is not a leak:
+    the folder is absent because it is WAITING to be injected, which is the
+    opposite of a page somebody took out of the sidebar on purpose.
     """
     if not state.NAV_SHAPED:
         # 🔴 A REGRESSION DETECTOR, AND THE HALF OF THIS FIX THAT OUTLIVES ME.

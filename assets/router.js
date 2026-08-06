@@ -26,6 +26,11 @@
  * code that opens the curtain decrypts it and the entries are injected under
  * the section's own sidebar link.
  *
+ * ⭐ OR, SINCE 2026-08-06, THERE IS NO SUCH LINK. `nav: routed` takes the
+ * folder's own row out of the sidebar too, and the row travels as entry ZERO of
+ * the manifest so this file can build it. `data-subtree-place` says which case
+ * we are in. See `drawNav`.
+ *
  * =========================================================================
  * THE WARM PATH: A HELD CODE COSTS NO CRYPTO AT ALL (DL J17)
  * =========================================================================
@@ -216,6 +221,14 @@
    * OFF-CANVAS until its toggle is checked. Injecting one into a section whose
    * children were sealed -- so it is no longer marked `--nested` and has no
    * toggle -- would put the menu somewhere no reader can reach, on phones only.
+   *
+   * ⭐ TWO PLACEMENTS, read off `data-subtree-place`:
+   *
+   *   in    the folder still has its own row. Find it, hoist to its <li>,
+   *         append the list. Every router before 2026-08-06 does this.
+   *   end   `nav: routed` -- the folder is not in the sidebar at all, so entry
+   *         ZERO of the manifest is the folder itself and we build its row
+   *         before hanging the rest underneath.
    * --------------------------------------------------------------------- */
 
   function navAnchor() {
@@ -234,13 +247,78 @@
     return null;
   }
 
+  /* The flat revealed list. Factored out because both placements need it and a
+   * second copy of the depth/label/link rules would drift. */
+  function buildList(items) {
+    var list = document.createElement('ul');
+    list.className = 'dr-nav-revealed';
+
+    items.forEach(function (item) {
+      var row = document.createElement('li');
+      row.className = 'dr-nav-revealed__item';
+      row.setAttribute('data-d', String(item.d || 1));
+
+      /* An entry with no url is a folder heading, not a destination. */
+      var cell = document.createElement(item.u ? 'a' : 'span');
+      cell.className = 'dr-nav-revealed__link';
+      cell.textContent = item.t;
+      if (item.u) cell.href = item.u;
+
+      row.appendChild(cell);
+      list.appendChild(row);
+    });
+
+    return list;
+  }
+
+  /* `nav: routed`. The folder was never rendered, so there is nothing to find
+   * and everything to build.
+   *
+   * ⭐ THE ROW BORROWS MATERIAL'S OWN CLASSES AND THE CHILDREN DO NOT, which
+   * looks inconsistent and is deliberate. This row is joining a list of
+   * top-level sections and has to read as one of them, so it takes their
+   * markup. The children are a flat list with no toggle -- see the warning
+   * above about what borrowing the nested structure costs on a phone. */
+  function drawSection(items) {
+    var root = document.querySelector('.md-nav--primary > .md-nav__list');
+    if (!root) {
+      console.warn('docrender: primary nav list not found, folder not restored');
+      return;
+    }
+    /* The warm path runs this on every page under the folder. Without the
+     * guard a reader collects another copy on every navigation. */
+    if (root.querySelector('.dr-nav-injected')) return;
+
+    var head = items[0];
+    var li = document.createElement('li');
+    li.className = 'md-nav__item dr-nav-injected';
+
+    var link = document.createElement(head.u ? 'a' : 'span');
+    link.className = 'md-nav__link dr-nav-injected__link';
+    link.textContent = head.t;
+    if (head.u) link.href = head.u;
+    li.appendChild(link);
+
+    var rest = items.slice(1);
+    if (rest.length) li.appendChild(buildList(rest));
+
+    root.appendChild(li);
+  }
+
   function drawNav(items) {
+    if (!items.length) return;
+
+    if ((form.dataset.subtreePlace || 'in') === 'end') {
+      drawSection(items);
+      return;
+    }
+
     var link = navAnchor();
-    if (!link || !items.length) {
+    if (!link) {
       /* Said out loud rather than returning quietly. A correct code that
        * reveals the body and silently leaves the menu empty is exactly the
        * kind of half-working feature this engine keeps digging out. */
-      if (!link) console.warn('docrender: nav anchor not found, menu not restored');
+      console.warn('docrender: nav anchor not found, menu not restored');
       return;
     }
 
@@ -266,25 +344,7 @@
     var host = link.closest('.md-nav__item') || link.parentNode;
     if (host.querySelector('.dr-nav-revealed')) return;
 
-    var list = document.createElement('ul');
-    list.className = 'dr-nav-revealed';
-
-    items.forEach(function (item) {
-      var row = document.createElement('li');
-      row.className = 'dr-nav-revealed__item';
-      row.setAttribute('data-d', String(item.d || 1));
-
-      /* An entry with no url is a folder heading, not a destination. */
-      var cell = document.createElement(item.u ? 'a' : 'span');
-      cell.className = 'dr-nav-revealed__link';
-      cell.textContent = item.t;
-      if (item.u) cell.href = item.u;
-
-      row.appendChild(cell);
-      list.appendChild(row);
-    });
-
-    host.appendChild(list);
+    host.appendChild(buildList(items));
   }
 
   function revealNav(code) {
