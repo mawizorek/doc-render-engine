@@ -50,6 +50,11 @@ choice is between a whole-body scan of every page and ~24KB that matches nothing
 and binds no listener when no table exists. A check that can answer wrong is more
 expensive than the bytes -- the whole lesson of the section above.
 
+⚠️ AND `print.css` IS UNCONDITIONAL FOR THE SIMPLEST REASON OF THE THREE
+(2026-08-06): there is no question to ask. Every page can be printed, so a
+usage check would have no input and no answer. It is ~9KB of rules behind an
+`@media print` gate that costs a screen reader nothing.
+
 =============================================================================
 ⚠️ EVERY ASSET URL CARRIES A CONTENT FINGERPRINT
 =============================================================================
@@ -74,6 +79,11 @@ whenever either changed: a manifest with a reminder attached.
 This repo has killed three manifests for that defect and then kept a fourth
 inside a function. One list now, derived, in the file that has to be right or
 nothing ships at all.
+
+⚠️ THAT IS WHY `_PRINT_ASSETS` IS A CONSTANT AND NOT A LITERAL IN `_plan()`.
+It is a third group only because of WHERE it loads (see below), not because it
+is a different kind of thing -- and `hand_written_css()` derives from all three
+groups so the audit cannot go stale the way it did in 2026-08-04.
 """
 
 from __future__ import annotations
@@ -121,6 +131,21 @@ _DATA_ASSETS = (
 #: Published ONLY to a site that uses the feature. See `_uses_router`.
 _FEATURE_ASSETS = ("router.css", "router.js")
 
+#: 🔴 LOADS AFTER THE GENERATED SHEETS, AND THAT IS THE ONLY REASON IT IS A
+#: SEPARATE GROUP RATHER THAN THE EIGHTH ENTRY IN `_DATA_ASSETS`.
+#:
+#: print.css re-points custom properties on `[data-md-color-scheme="slate"]`
+#: so that a reader in dark mode gets black ink on white paper. That is the
+#: SAME selector `tokens.css` writes, at the SAME specificity -- so the winner
+#: is decided purely by source order. Put this in `_DATA_ASSETS` and the
+#: generated sheet lands later and wins, the overrides die, and a dark-mode
+#: print comes out as pale grey ink on a background the browser drops. No
+#: error, no report, just a near-blank sheet.
+#:
+#: It still loads BEFORE the instance's `site.css`, because a site keeps the
+#: final word on its own look and paper is no exception.
+_PRINT_ASSETS = ("print.css",)
+
 
 def hand_written_css() -> tuple[str, ...]:
     """Every HAND-WRITTEN stylesheet this engine ships, in load order.
@@ -133,9 +158,15 @@ def hand_written_css() -> tuple[str, ...]:
 
     Generated sheets are NOT here -- they have no file on disk, and the audit
     builds them itself.
+
+    ⚠️ ALL THREE GROUPS ARE WALKED. Adding a fourth group and forgetting it
+    here is precisely how the old hardcoded tuple in tokenaudit.py went stale
+    within two hours.
     """
     return tuple(
-        name for name in _DATA_ASSETS + _FEATURE_ASSETS if name.endswith(".css")
+        name
+        for name in _DATA_ASSETS + _FEATURE_ASSETS + _PRINT_ASSETS
+        if name.endswith(".css")
     )
 
 
@@ -193,8 +224,8 @@ def _plan(config) -> list[tuple[str, bytes]]:
     Built by both events -- `on_config` needs the URLs, `on_files` needs the
     content -- and they must never disagree. Order: base, the chrome, nav and
     type layers, the data-table layers (see `_DATA_ASSETS`), then the generated
-    sheets, then any feature sheet, then the instance sheet LAST so a site
-    always has the final word on its own look.
+    sheets, THEN the print layer, then any feature sheet, then the instance
+    sheet LAST so a site always has the final word on its own look.
 
     THE THREE GENERATED SHEETS ARE ORDERED BY WHAT THEY CONSUME:
 
@@ -206,6 +237,11 @@ def _plan(config) -> list[tuple[str, bytes]]:
     they answer separate questions. blocks.css additionally has to beat
     Material's own admonition flavour rules, which it does on source order at
     equal specificity -- see docrender/blocks.py for that whole argument.
+
+    ⚠️ AND THE PRINT LAYER COMES AFTER ALL THREE FOR THE SAME CLASS OF REASON.
+    It overrides scheme-scoped custom properties that tokens.css also writes,
+    at equal specificity, so it wins on source order or it does not win at all.
+    See `_PRINT_ASSETS`.
     """
     plan: list[tuple[str, bytes]] = []
 
@@ -217,6 +253,11 @@ def _plan(config) -> list[tuple[str, bytes]]:
     plan.append(("tokens.css", theme.build_css().encode("utf-8")))
     plan.append(("marks.css", markers.build_css().encode("utf-8")))
     plan.append(("blocks.css", blocks.build_css().encode("utf-8")))
+
+    for name in _PRINT_ASSETS:
+        raw = _read(state.ENGINE_ROOT / "assets" / name)
+        if raw is not None:
+            plan.append((name, raw))
 
     if _uses_router(config):
         for name in _FEATURE_ASSETS:
