@@ -12,6 +12,14 @@ end of `on_config`. That question belongs to the BUILD -- like the name and the
 address above it -- rather than to the stylesheet generated from the answer, and
 this is the only hook that runs exactly once.
 
+⭐ AND AS OF 2026-08-07 A PUBLISH MAY OVERRIDE THE THEME. `DOCRENDER_THEME`
+joins `DOCRENDER_BASE_URL` below as a fact site.yml owns that the PUBLISHING
+PATH may override for the length of one build. `_theme_override` says why it
+has to happen in this file specifically and nowhere else -- the short version
+is that hook 00 is the only place in the pipeline that runs exactly once, and a
+value that is allowed to be RANDOM must be decided somewhere that cannot be
+asked twice.
+
 CHROME COLOUR IS NO LONGER SET HERE (2026-08-04), and the reversal is worth
 keeping because the reasoning it replaces was half right.
 
@@ -76,6 +84,7 @@ more, which is the entire point of the change.
 from __future__ import annotations
 
 import os
+import random
 import sys
 
 from . import state, vectors
@@ -85,6 +94,122 @@ from .util import load_yaml, slug_title
 def _fail(message: str) -> None:
     print(f"::error::docrender: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def _theme_override(inst: dict, slug: str) -> None:
+    """`DOCRENDER_THEME` -- let ONE publish choose the theme, editing nothing.
+
+    Michael, 2026-08-07: *"what would it take for our publish command to accept
+    an additional variable that lets me set the theme at the last minute... I'd
+    like to avoid switching between the renderer to define the theme, and I want
+    to be able to push publishes with random themes just to debug better."*
+
+    Same shape as `DOCRENDER_BASE_URL` in `on_config` and `DOCRENDER_EDITLINK`
+    in pagefoot.py: a fact site.yml owns, overridden by the publishing PATH for
+    the length of one build. **Nothing is written to disk**, so the override
+    cannot outlive the run that asked for it, and the next ordinary publish
+    renders the declared theme with no cleanup step to forget.
+
+    An UNSET or EMPTY variable returns immediately and this build is byte for
+    byte the build it would have been. That is not politeness, it is the whole
+    safety property: an input nobody filled in must never be why a site
+    suddenly looks different.
+
+    =========================================================================
+    🔴 IT HAS TO HAPPEN IN THIS FILE, AND THE REASON IS THE FINGERPRINT
+    =========================================================================
+    The obvious home is `vectors._declared()`, which is the ONE place the theme
+    is read. That is exactly where this would have broken.
+
+    `_declared()` is called once PER SCHEME, and `theme.build_css()` runs TWO OR
+    THREE TIMES PER BUILD -- `assets._plan()` calls it from BOTH `on_config` and
+    `on_files`, and tokenaudit calls it again on any page carrying a
+    `!!! tokens` block. Reading a fixed env var there would be harmless.
+    ROLLING A RANDOM ONE there is not: every call answers differently, so the
+    dark scheme and the light scheme would come from different themes.
+
+    ⚠️ AND THE REAL DAMAGE IS NOT THE MISMATCHED TOGGLE. `assets._plan()` names
+    every generated sheet by a CONTENT FINGERPRINT: `on_config` hashes the CSS
+    to build the URL it links, and `on_files` hashes it again to publish the
+    file. Two different rolls give two different hashes, so every page would
+    link `tokens.<a>.css` while the site contained `tokens.<b>.css`. **Every
+    custom property on every page gone, behind a 404 nobody opens, with no
+    error and no report line** -- and it would look like a theme bug rather
+    than a caching one.
+
+    Hook 00 runs exactly ONCE per build, before any other hook reads a vector.
+    Deciding here means the answer exists before anything can ask, and every
+    later reader -- both schemes, all three `build_css()` calls -- sees the one
+    value. ⚠️ `mkdocs serve` re-runs `on_config` per rebuild, so a served
+    session re-rolls; each rebuild is internally consistent, which is the
+    property that matters.
+
+    =========================================================================
+    A BAD NAME IS DISCARDED, NOT SUBSTITUTED
+    =========================================================================
+    `vectors.resolve()` already falls an unknown theme back to `base` and says
+    so, and that is RIGHT for a value somebody committed to site.yml -- a typo
+    in a tracked file should still render a readable site.
+
+    An override is a different kind of value: it was typed into a box thirty
+    seconds ago by somebody standing there watching the run. Falling back to
+    `base` would answer a typo with a THIRD theme -- neither what was typed nor
+    what the site declares -- and send the reader hunting a palette bug. So a
+    name outside `vectors.known()` is REFUSED, the declared theme renders
+    untouched, and the report prints the legal set. Nothing substituted,
+    nothing lost, one line to read.
+
+    ⚠️ `random` ROLLS FROM `known()`, THE SAME SET AN EXPLICIT NAME IS CHECKED
+    AGAINST -- deliberately one set rather than two. That includes bare colour
+    entities, which resolve to a palette with no join; vectors.py already
+    reports that by name when it happens, so the roulette inherits an
+    explanation instead of needing its own. A second, narrower "only REAL
+    themes" list would be another place stating what a theme is, which is the
+    defect this repo has retired three manifests over.
+    """
+    raw = os.environ.get("DOCRENDER_THEME", "").strip()
+    if not raw:
+        return
+
+    declared = inst.get("theme", "base")
+    legal = vectors.known()
+
+    if raw.lower() == "random":
+        pool = sorted(legal)
+        if not pool:
+            state.note(
+                "missing_required",
+                "DOCRENDER_THEME=random, but NO theme names could be read at "
+                "all -- not a canonical join, not a colour entity, not a local "
+                "skin. The design system is unreachable AND theme/themes.tsv "
+                "could not be read. Keeping the declared theme "
+                + str(declared) + ".",
+            )
+            return
+        pick = random.choice(pool)
+        why = "rolled at random from " + str(len(pool)) + " legal names"
+    else:
+        pick = raw
+        if pick not in legal:
+            state.note(
+                "missing_required",
+                "DOCRENDER_THEME is '" + raw + "', which is not a join, a "
+                "colour entity or a local theme. THE OVERRIDE IS DISCARDED and "
+                "nothing is substituted -- this build renders the theme "
+                "instances/" + slug + "/site.yml declares (" + str(declared)
+                + "). Legal names: " + ", ".join(sorted(legal)) + ".",
+            )
+            return
+        why = "named on the publish"
+
+    inst["theme"] = pick
+    state.note(
+        "notes",
+        "THEME OVERRIDDEN FOR THIS BUILD ONLY: '" + pick + "', " + why
+        + ". instances/" + slug + "/site.yml still declares " + str(declared)
+        + " and was NOT edited -- the next publish with an empty `theme` input "
+        "renders it again.",
+    )
 
 
 def _register_aliases(inst: dict, slug: str) -> None:
@@ -217,6 +342,14 @@ def on_config(config):
         inst["base_url"] = override
 
     state.INSTANCE = inst
+
+    # LOOK IS ALSO A PROPERTY OF THE PUBLISHING PATH, FOR ONE BUILD (2026-08-07).
+    #
+    # Placed here, after state.INSTANCE is bound, for two reasons that are not
+    # interchangeable: `state.note` needs the report to exist, and every later
+    # reader of the theme must see the SAME answer -- which is only guaranteed
+    # in the one hook that runs exactly once. See `_theme_override`.
+    _theme_override(inst, slug)
 
     # Object declarations are shared across every site by design: a `space`
     # means the same thing everywhere, or the family has no shared vocabulary.
