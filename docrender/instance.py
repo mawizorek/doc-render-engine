@@ -77,7 +77,7 @@ itself from `content_repo`, so the one quiet line at the foot survives while
 the header stays clean. The two used to be the same switch; they are not any
 more, which is the entire point of the change.
 
-⚠️ THIS FILE IS NEAR ITS OWN WARN LINE. The next feature added here should be
+⚠️ THIS FILE IS PAST ITS OWN WARN LINE. The next feature added here should be
 its own module rather than a fourth job in this one.
 """
 
@@ -133,6 +133,16 @@ def _theme_override(inst: dict, slug: str) -> None:
     colour entity; vectors.py already reports that by name, so the roulette
     inherits an explanation instead of needing a second, narrower list of what
     counts as a theme.
+
+    ⭐ AND IT ANNOUNCES ITSELF AS A RUN ANNOTATION, WHICH IS THE ONLY REASON
+    `random` IS USABLE. `run-name` is evaluated by GitHub before the job starts,
+    so a random publish is titled `theme: random` and cannot name the roll --
+    fire five and you get five identical rows. A `::notice::` renders at the TOP
+    of the run page, so the answer is one glance away instead of buried in the
+    build report, which by this repo's own 2026-08-06 finding nobody reads. Two
+    lines, only ever ONE of them per build, and never on a build with no
+    override -- so it cannot become the annotation noise that trains people to
+    ignore annotations.
     """
     raw = os.environ.get("DOCRENDER_THEME", "").strip()
     if not raw:
@@ -150,6 +160,10 @@ def _theme_override(inst: dict, slug: str) -> None:
                 "all -- not a canonical join, not a colour entity, not a local "
                 "skin. Keeping the declared theme " + str(declared) + ".",
             )
+            print(
+                "::warning title=docrender theme::random was asked for and NO "
+                "legal theme names could be read. Keeping " + str(declared) + "."
+            )
             return
         pick = random.choice(pool)
         why = "rolled at random from " + str(len(pool)) + " legal names"
@@ -164,6 +178,12 @@ def _theme_override(inst: dict, slug: str) -> None:
                 "instances/" + slug + "/site.yml declares (" + str(declared)
                 + "). Legal names: " + ", ".join(sorted(legal)) + ".",
             )
+            print(
+                "::warning title=docrender theme::'" + raw + "' is not a known "
+                "theme. THE OVERRIDE WAS DISCARDED -- this build rendered "
+                + str(declared) + ", the theme site.yml declares. Legal names "
+                "are listed in the build report."
+            )
             return
         why = "named on the publish"
 
@@ -174,6 +194,10 @@ def _theme_override(inst: dict, slug: str) -> None:
         + ". instances/" + slug + "/site.yml still declares " + str(declared)
         + " and was NOT edited -- the next publish with an empty `theme` input "
         "renders it again.",
+    )
+    print(
+        "::notice title=docrender theme::This build rendered '" + pick + "' ("
+        + why + "). site.yml declares " + str(declared) + " and was not edited."
     )
 
 
