@@ -45,10 +45,18 @@ THE CONTRACT
 body is byte-identical between Audio, LX and Video -- the whole reason this exists.
 
 ⚠️ Slot names belong to the TYPE (`objects/<type>.yml` → `data_slots`); an undeclared key
-is reported. ⚠️ ONE FRONTMATTER FORM: a slot is always a map with `file:`. The old list
-form is reported by name, because an ignored key looks exactly like the feature never
-having worked. ⚠️ The embed carries NO label; the mention carries one because a sentence
-needs words. `data` is a reserved admonition type.
+is reported -- BUT ONLY IF THAT TYPE DECLARES ANY. An empty `data_slots` list means
+UNRESTRICTED, ruled by Michael 2026-08-06 ("empty means anything goes"), so a page on
+`page`, `procedure`, `standard`, `venue` or `space` may use any slot name it likes and
+nothing is reported. Live example: `01-utility/automatic-revision-log.md` in uritp-docs
+is `type: page` and runs slot `revlog`, which no type declares. The argument, the
+consequence, and the warning about adding a FIRST slot to a type are all in
+`objects/_base.yml`; the guard that implements it is in `_declared()` below.
+
+⚠️ ONE FRONTMATTER FORM: a slot is always a map with `file:`. The old list form is
+reported by name, because an ignored key looks exactly like the feature never having
+worked. ⚠️ The embed carries NO label; the mention carries one because a sentence needs
+words. `data` is a reserved admonition type.
 
 
 WHAT THE SHEET ITSELF CAN SAY
@@ -135,6 +143,10 @@ def _slots_for_type(type_name: str) -> list[str]:
     right end state and is a named follow-up; until then this is the one place the chain is
     walked twice, and it is called out here so it does not become the quiet second copy
     this feature spends its docstrings arguing against.
+
+    ⚠️ AN EMPTY RETURN IS MEANINGFUL AND IS NOT AN ERROR. It means the type declared no
+    vocabulary, which the caller reads as UNRESTRICTED rather than as "no tables allowed".
+    See `_declared` below and `objects/_base.yml`.
     """
     slots: list[str] = []
     decl = state.TYPES.get(type_name)
@@ -172,6 +184,19 @@ def _declared(meta: dict, src: str, note) -> dict[str, dict]:
 
     for slot, value in raw.items():
         slot = str(slot)
+        # 🔴 `legal and` IS LOAD-BEARING. DO NOT TIDY IT AWAY.
+        #
+        # An empty list is falsy, so a type declaring no `data_slots` skips this check
+        # entirely and accepts ANY slot name. That is the ruling, not an oversight:
+        # Michael, 2026-08-06 -- "empty means anything goes." A type opts IN to a closed
+        # vocabulary by naming one; it does not start behind a wall.
+        #
+        # Deleting two words here is a one-character-looking cleanup that would put every
+        # page on `page`, `procedure`, `standard`, `venue` and `space` into the build
+        # report in a single commit -- including uritp-docs' automatic-revision-log,
+        # which has run slot `revlog` since it shipped. The full argument, and the
+        # warning about what adding a FIRST slot to a type costs, is in
+        # `objects/_base.yml` under DATA SLOTS.
         if legal and slot not in legal:
             note(
                 "missing_required",
