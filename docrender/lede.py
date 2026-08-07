@@ -1,4 +1,5 @@
-"""The lede, and the keywords line. What a page says before it starts arguing.
+"""The lede, the keywords line, and the revision line. What a page says around
+the edges of what it argues.
 
 WHY THE LEDE IS A FIELD AND NOT A POSITION (decided 2026-08-03, Michael).
 
@@ -48,6 +49,51 @@ rename. Moving it means editing a stylesheet measured near the read-clip line,
 and a file that cannot be read whole cannot be safely rewritten -- which is a
 worse trade than one internal name that disagrees with its field. Named here so
 the next reader does not mistake it for an oversight.
+
+🔴 THE REVISION LINE, AND THE FIELD THAT HAD NO READER (2026-08-07, Michael).
+
+`revised:` has been declared optional on `_base` since the type system shipped.
+It is documented in the engine README and offered in `_template.md`. AND
+NOTHING IN THIS ENGINE EVER READ IT. The date that actually reached a reader
+was a line authors typed by hand at the bottom of the page -- so the header key
+was decoration and the body line was the only real one, which is precisely the
+inverse of what every document describing the field says.
+
+Michael: "whatever string I put in the revised metadata should be automatically
+italicized and placed as the very last thing on any page during build time.
+That way, it isn't being replicated in two places."
+
+⭐ THE INTERESTING PART IS WHAT THE TWO COPIES DID TO THE VALUE. A field has one
+spelling; a typed line has as many as there are authors. Live at the time of
+writing, on nine pages: `Aug 2026`, `Aug 2026.`, `Aug 26`, `August 2026.`,
+`Jun 2026.`, `May 2026.`, a bare `Revised` carrying no date whatsoever, and one
+page shipped public still holding the template's literal `Revised Month Year.`
+placeholder. Nothing was broken and nothing reported -- every one of those
+rendered perfectly. THE DUPLICATION DID NOT CAUSE A CONTRADICTION, IT CAUSED A
+DRIFT, and a drift has no failing build to announce it.
+
+⚠️ THE VALUE RENDERS VERBATIM AND IS DELIBERATELY NOT NORMALISED. `Revised` is
+the LABEL this engine supplies, exactly as `Keywords:` is; everything after it
+is whatever the field holds. So `revised: 2026-08` renders "Revised 2026-08"
+and `revised: Aug 2026` renders "Revised Aug 2026" -- and the two content repos
+currently disagree about which of those they write. Parsing a date out of the
+string was available and was NOT taken: this is provenance typed by a human,
+and an engine that reformats it starts owning a calendar it cannot verify. If
+one house spelling is wanted, that is a content decision, and the field being
+singular is what finally makes the disagreement countable.
+
+⚠️ THE ITALIC IS AN `<em>` IN THE MARKUP RATHER THAN `font-style` IN THE
+STYLESHEET. Italic was the REQUEST rather than a styling choice, so it should
+survive print.css, a stylesheet that failed to load, and anything that reads
+this HTML without our CSS. base.css owns the size, colour and spacing of the
+line and nothing else. Do not tidy the `<em>` away into a rule.
+
+⚠️ THIS MODULE IS NAMED FOR THE LEDE AND NOW HOLDS THREE FOOT-OF-PAGE FIELDS.
+That mismatch is known and is not worth a rename today: what these functions
+share is that they are drawn from frontmatter on EVERY page regardless of type,
+which is a real thing to have in common and is the reason objects.py calls all
+of them from the same three lines. Named so the next reader does not file it as
+an accident.
 """
 
 from __future__ import annotations
@@ -62,6 +108,17 @@ _LIST_ITEM = re.compile(r"^ {0,3}(?:[-*+][ \t]|\d+[.)][ \t])")
 
 #: A Material callout or collapsible: `!!! danger`, `??? note`.
 _CALLOUT = re.compile(r"^ {0,3}(?:!!!|\?\?\?)")
+
+#: A hand-typed revision line at the foot of a page: `*Revised Aug 2026.*`,
+#: `_Revised May 2026_`, or the bare word.
+#:
+#: ⚠️ ANCHORED AT THE START OF THE LINE, WITH ONLY EMPHASIS ALLOWED IN FRONT,
+#: and that is the whole of its precision. A sentence that MENTIONS a revision
+#: -- "source: PPE Program.docx, last revised 13 August 2025" -- is prose about
+#: a different document and is none of this field's business. Matching the word
+#: anywhere on a line would have swept that up and told its author to delete a
+#: sentence carrying provenance the frontmatter cannot hold.
+_REVISED_LINE = re.compile(r"^\s*[*_]{0,2}\s*Revised\b", re.IGNORECASE)
 
 
 def _find_h1(lines: list[str]) -> int | None:
@@ -164,6 +221,49 @@ def check(src: str, meta: dict, body: str, note) -> None:
         )
 
 
+def check_revised(src: str, meta: dict, body: str, note) -> None:
+    """Report a page still typing its revision date into the body.
+
+    ONLY THE LAST THREE NON-BLANK LINES ARE EXAMINED. The thing being hunted is
+    a FOOTER, and the cost of widening the search is not a false positive in
+    the abstract -- it is telling somebody to delete a real sentence. See
+    _REVISED_LINE.
+
+    The two cases are reported separately because they are different jobs. A
+    page carrying BOTH now prints its date twice and the fix is a deletion; a
+    page carrying only the body line has nothing in the field yet and the fix
+    is a move. One message for both would have sent half the tree looking for
+    a duplicate that is not there.
+
+    Same posture as `check` above: runs on hidden pages too, nothing fails,
+    nothing stops publishing, and a page that has already moved says nothing.
+    """
+    lines = [ln.strip() for ln in body.splitlines() if ln.strip()]
+    found = next(
+        (ln for ln in reversed(lines[-3:]) if _REVISED_LINE.match(ln)), ""
+    )
+    if not found:
+        return
+
+    field = str(meta.get("revised") or "").strip()
+    if field:
+        note(
+            "body_revised",
+            src + ": has BOTH `revised: " + field + "` and a hand-typed "
+            + '"' + _clip(found) + '" at the foot. The field is drawn at the '
+            + "bottom of the page now, so this one prints the revision date "
+            + "twice. Delete the body line.",
+        )
+        return
+
+    note(
+        "body_revised",
+        src + ": revision date is still in the BODY -- "
+        + '"' + _clip(found) + '". Move it into `revised:` and delete the '
+        + "line. The engine draws it at the foot, in italic, from the field.",
+    )
+
+
 def render(markdown: str, summary) -> str:
     """Put the summary in the slot immediately after the H1.
 
@@ -208,6 +308,26 @@ def keywords(value) -> str:
     if not names:
         return ""
     return '<p class="dr-aka">Keywords: ' + ", ".join(names) + "</p>"
+
+
+def revised(value) -> str:
+    """The revision line. The last thing the DOCUMENT says, and italic.
+
+    Same bargain as `keywords` above: the field is the only copy, the engine
+    draws it, and an author never types it. The module docstring carries why
+    the value is passed through verbatim and why the italic is markup rather
+    than a stylesheet rule.
+
+    ⚠️ `str(value)` RATHER THAN AN ISINSTANCE LADDER, and it is load-bearing.
+    YAML resolves `revised: 2026-08` to a string and `revised: 2026-08-07` to a
+    `datetime.date`, silently, on a difference of three characters. Both have
+    to render, so both get stringified -- a type check here would have made a
+    fully-specified date the one value that vanished.
+    """
+    text = " ".join(str(value or "").split())
+    if not text:
+        return ""
+    return '<p class="dr-revised"><em>Revised ' + text + "</em></p>"
 
 
 def insert_after(markdown: str, block: str) -> str:

@@ -146,6 +146,12 @@ _LABELS = {
     "missing_required": "Missing required fields",
     "body_lede": "Lede in the wrong place -- `summary:` is the lede now, and "
                  "these pages have it somewhere else (or nowhere)",
+    # Beside body_lede because it is the same migration one field over. NOT
+    # inventory: every entry is a page printing its revision date twice, or a
+    # date the engine cannot see.
+    "body_revised": "Revision date in the wrong place -- `revised:` is drawn "
+                    "at the foot now, and these pages still type it into the "
+                    "body",
     "unknown_type": "Undeclared types (fell back to 'page')",
     "duplicate_id": "Duplicate ids",
     "dead_links": "Broken references (rendered as visible markers)",
