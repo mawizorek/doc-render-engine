@@ -95,6 +95,13 @@ theme:
 plugins:
   - search
 
+# ⚠️ `attr_list` AND `md_in_html` ARE BOTH LOAD-BEARING AS OF 2026-08-06, and
+# neither is here for authoring convenience any more. docrender/figure.py wraps
+# a captioned image in `<figure markdown="1">` with a `<figcaption
+# markdown="span">`, which is what lets the IMAGE stay ordinary markdown -- so
+# MkDocs keeps rewriting its relative src and we never own that arithmetic.
+# Removing `md_in_html` does not error: every captioned figure silently ships as
+# literal `![alt](src)` text inside a raw HTML block.
 markdown_extensions:
   - admonition
   - attr_list
@@ -108,7 +115,7 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
-# ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and four chains depend on it.
+# ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and five chains depend on it.
 #
 #   THE NAV CHAIN, five links, every one load-bearing. The consequence of each
 #   misordering is written down because a bare sequence tells nobody what breaks:
@@ -133,6 +140,11 @@ markdown_extensions:
 #   01 reads frontmatter -> 02 prunes files -> 03 indexes what survived
 #   01d emits marker syntax -> 03b renders it. Move 01d after 03b and the token
 #      audit page ships its specimens as literal text.
+#   01e wraps a captioned image and leaves the caption as MARKDOWN -> 03 and 03b
+#      resolve its @refs and markers on their ordinary pass. Move 01e after
+#      either one and the figure renders perfectly while its caption keeps
+#      literal `@id` and `{.tbc}` syntax -- the 01d failure exactly, one stage
+#      over, and harder to spot because only the caption is wrong.
 #   00bb decides which folders open -> 06b writes that onto the rendered page.
 #      Two different EVENTS (on_nav, on_post_page), so this pair cannot be
 #      reordered into a bug -- it is listed because the dependency is real even
@@ -162,6 +174,7 @@ hooks:
   - hooks/01_objects.py
   - hooks/01b_data.py
   - hooks/01d_audit.py
+  - hooks/01e_figure.py
   - hooks/02_visibility.py
   - hooks/03_links.py
   - hooks/03b_markers.py
