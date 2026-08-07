@@ -150,8 +150,8 @@ on:
         default: preview
         type: choice
         options:
-          - preview
           - publish
+          - preview
       note:
         # Optional on purpose -- see THE `note` INPUT at the top of this file.
         description: "Why are you publishing? (shows in the run title and the deploy commit)"
