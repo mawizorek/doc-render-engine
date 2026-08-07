@@ -8,6 +8,30 @@ becomes a `<figure>` wrapping the image with a `<figcaption>` under it.
 > lose title. Accessibility is a bonus next build."*
 
 
+A CAPTION MAY BE WRAPPED ACROSS LINES, AND A BLANK LINE ENDS IT
+===============================================================
+
+    ![Rep plot, three electrics and two box booms](rep-plot.png){ caption="Rep
+    plot as hung for the 2026 season. Supersedes the plot in the
+    [venue binder](@spac-binder)." }
+
+How it is wrapped in the source cannot change what renders: internal whitespace
+is collapsed to single spaces, so the figcaption is always one line of prose.
+
+⚠️ **THE COST, STATED RATHER THAN DISCOVERED: a two-space hard break inside a
+caption is destroyed by that collapse.** A figcaption is one line of prose, not
+a paragraph, and a caption that wants a line break is a caption that wants to be
+body text.
+
+🔴 **THE BLANK-LINE BOUND IS THE SAFETY PROPERTY, NOT A STYLE RULE.** The
+caption may contain a newline only where the next line is not blank -- which is
+markdown's own block terminator, so the grammar borrows a rule every author here
+already knows. Without it, a caption missing its closing quote would let a lazy
+match run to the next `" }` ANYWHERE later in the document and swallow every
+heading, table and paragraph in between into a single figcaption. Bounded, the
+worst case is one ruined paragraph, reported.
+
+
 🔴 THE IMAGE MARKDOWN IS RE-EMITTED BYTE-IDENTICAL, AND THAT IS THE WHOLE
    SAFETY PROPERTY OF THIS STAGE
 ========================================================================
@@ -27,6 +51,14 @@ Hence the shape: **the WRAPPER is HTML and the IMAGE never is.** The matched
 image is copied through as the literal characters the author typed, and
 Python-Markdown plus MkDocs do to it precisely what they already do today.
 Michael's *"images already embed"* stays exactly as true after this as before.
+
+⚠️ **AND THAT RULE IS ALSO THE LIMIT ON WHERE AN IMAGE MAY LIVE.** MkDocs only
+knows files inside `docs_dir`. A relative path cannot climb out of the content
+tree, because a file outside it is not in the file set, is never copied to
+`site_dir`, and 404s. An image in a SIBLING repo is therefore reached by
+absolute published URL or copied in -- there is no `@peer:` equivalent for an
+image, and `@peer:id` cannot be one: it resolves a PAGE against the peer's
+`doc-index.json`, which lists pages and nothing else.
 
 
 WHY md_in_html RATHER THAN BUILDING THE HTML
@@ -67,7 +99,14 @@ silent structural edit to a page nobody asked us to restructure. Reported.
 **WHOLE LINE ONLY.** An image mid-sentence is inline by intent; wrapping it in a
 block element would break the paragraph in half. Reported.
 
-Both follow `sheet.apply_options`, which argues the general case at length:
+**AN UNTERMINATED OR MALFORMED CAPTION.** Reported, and this one was NOT before
+2026-08-06: the near-miss scan bounded its own search at a newline, so the
+wrapped-caption case it most needed to catch was the one case it could not see.
+A reporter with the same blind spot as the thing it reports on is not a
+reporter. Fixed by dropping the closing brace from the scan entirely -- an
+unclosed brace is precisely a near miss.
+
+All three follow `sheet.apply_options`, which argues the general case at length:
 silence was asked for and refused, because *a table that looks right, behaves
 wrong, and never says why* is worse than a warning. **A caption that renders
 nothing must not look like a caption that rendered nothing visible.**
@@ -78,6 +117,14 @@ inconsistently by screen readers, and cannot be reached by keyboard. Accepting
 the key would mean shipping something that does not do what the author writing
 it believes it does -- the failure this engine writes down more often than any
 other. Michael released it explicitly on 2026-08-06.
+
+⚠️ **WHAT WE COULD NOT REMOVE IS MARKDOWN'S OWN TITLE**, and an author WILL find
+it: `![alt](file.png "a title")` still emits a `title` attribute, through
+Python-Markdown, with no involvement from this stage. So "no title support"
+reads as false to anybody who tries it. That is a documentation obligation
+rather than a code one -- the authoring page has to say *markdown's quoted title
+still works, it does nothing useful, use a caption* -- and it is written here so
+the next reader of this file knows the difference is deliberate.
 
 
 ⏳ THE SEAM FOR THE ACCESSIBILITY BUILD, NAMED NOT BUILT
@@ -122,7 +169,16 @@ import re
 from . import state
 from .util import sub_outside_code
 
-#: A whole line, at zero indent, that is an image followed by a caption block.
+#: A run of text that may wrap but may not cross a BLANK line. Used for the
+#: caption body and for the near-miss scan, so both agree about how far a
+#: caption is allowed to reach -- they disagreed until 2026-08-06 and the
+#: reporter was blind to exactly the case the matcher could not handle.
+#:
+#: 🔴 The bound is what makes a lazy match safe. Without it, a missing closing
+#: quote lets the pattern run to the next `" }` anywhere later in the document.
+_WRAPPED = r"(?:[^\n]|\n(?![ \t]*\n))"
+
+#: An image alone on its own line at zero indent, carrying a caption block.
 #:
 #: `image` is copied through untouched -- see the module docstring on why nothing
 #: here may rebuild the `<img>`. `target` is whatever sits between the parens and
@@ -134,17 +190,28 @@ from .util import sub_outside_code
 #: the other one.
 _FIGURE = re.compile(
     r"(?m)^(?P<image>!\[(?P<alt>[^\]\n]*)\]\((?P<target>[^\n]*?)\))"
-    r"[ \t]*\{[ \t]*caption[ \t]*=[ \t]*(?P<q>[\"'])(?P<caption>[^\n]*?)(?P=q)[ \t]*\}"
-    r"[ \t]*$"
+    r"[ \t]*\{[ \t]*caption[ \t]*=[ \t]*(?P<q>[\"'])"
+    r"(?P<caption>" + _WRAPPED + r"*?)"
+    r"(?P=q)[ \t]*\}[ \t]*$"
 )
 
-#: Any image carrying a caption brace, anywhere. Run over what is LEFT after the
-#: real pattern has done its work, so every remaining hit is by definition one
-#: this stage declined -- indented, mid-sentence, or malformed. It exists so a
-#: near miss is reported rather than handed to attr_list, which would put
-#: `caption="..."` on the `<img>` as an invalid attribute: no error, no render,
-#: no clue.
-_ATTEMPT = re.compile(r"!\[[^\]\n]*\]\([^\n]*?\)[ \t]*\{[^}\n]*caption[^}\n]*\}")
+#: An image followed by a brace block mentioning `caption`, closed or NOT. Run
+#: over what is LEFT after the real pattern has done its work, so every hit is by
+#: definition one this stage declined -- indented, mid-sentence, unterminated or
+#: otherwise malformed.
+#:
+#: ⚠️ NO CLOSING BRACE IS REQUIRED, and that is the fix rather than sloppiness:
+#: requiring one meant an unterminated caption -- the likeliest mistake once
+#: wrapping is legal -- matched nothing and was reported nowhere.
+#:
+#: ⚠️ It cannot match this module's own output. The emitted block puts a blank
+#: line between the image and the `<figcaption ...>` element, and this pattern
+#: needs a `{` immediately after the image.
+_ATTEMPT = re.compile(
+    r"!\[[^\]\n]*\]\([^\n]*?\)[ \t]*\{" + _WRAPPED + r"*?caption"
+)
+
+_SPACE = re.compile(r"\s+")
 
 _BLOCK = (
     '\n<figure class="dr-figure" markdown="1">\n'
@@ -164,7 +231,10 @@ def on_page_markdown(markdown, page, config, files):
     src = page.file.src_uri
 
     def build(match):
-        caption = match.group("caption").strip()
+        # Collapsed, so how the author wrapped the source cannot change what a
+        # reader sees -- and so the emitted figcaption is always one line, which
+        # keeps md_in_html's span mode away from content it has no reason to see.
+        caption = _SPACE.sub(" ", match.group("caption")).strip()
         if not caption:
             # An empty figcaption is a blank line under a picture with a
             # stylesheet reserving space for it. The author wrote `caption=`
@@ -183,11 +253,11 @@ def on_page_markdown(markdown, page, config, files):
     def report(match):
         state.note(
             "dead_links",
-            src + ": `" + match.group(0)[:80] + "` was NOT turned into a figure. "
-            + "A caption needs the image alone on its own line at zero indent -- "
-            + "an indented one would be lifted out of its list item, and one "
-            + "mid-sentence would break the paragraph in half. The image still "
-            + "renders; the caption does not.",
+            src + ": `" + _SPACE.sub(" ", match.group(0))[:80] + "` was NOT turned "
+            + "into a figure. A caption needs the image alone on its own line at "
+            + "zero indent, and a `caption=\"...\"` closed with a matching quote "
+            + "and brace before the next blank line. It may wrap; it may not "
+            + "cross a blank line. The image still renders; the caption does not.",
         )
         return match.group(0)
 
