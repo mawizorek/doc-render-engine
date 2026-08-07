@@ -206,6 +206,16 @@ def reset() -> None:
         # Directly under missing_required, cause before symptom: that check says
         # `summary` is absent, this one says where the text is.
         "body_lede": [],
+        # The same migration one field over, added 2026-08-07: `revised:` is
+        # drawn at the foot now, and these pages still type it into the body.
+        # Beside body_lede on purpose -- they are the same shape, and a reader
+        # hitting one wants the other in the same glance.
+        #
+        # ⭐ THE FIRST NEW BUCKET SINCE THE TWO-EDITS WARNING WAS WRITTEN, so
+        # it is worth recording that the warning worked: the label in
+        # sizecheck._LABELS went in during the same commit, and without it this
+        # line would have collected findings all build and printed none.
+        "body_revised": [],
         "unknown_type": [],
         "duplicate_id": [],
         "dead_links": [],
