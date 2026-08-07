@@ -1,4 +1,4 @@
-"""Hook 08 -- the size budget, the leak scan, and the build report.
+"""Hook 08 -- the size budget, the leak scan, and printing the build report.
 
 THREE JOBS, all of which want to run last.
 
@@ -65,36 +65,30 @@ THREE JOBS, all of which want to run last.
 
    Still the ONE hard failure in the pipeline. Everything else warns.
 
-3. THE REPORT. Everything every hook complained about, printed once, in one
-   block, at the end. Warnings scattered through 400 lines of MkDocs output are
-   warnings nobody reads.
+3. PRINTING THE REPORT. Everything every hook complained about, in one block, at
+   the end. Warnings scattered through 400 lines of MkDocs output are warnings
+   nobody reads.
 
-   ⭐ SECTION ORDER IS CAUSE-BEFORE-SYMPTOM, and it is set HERE, in `_LABELS`.
-   A duplicate frontmatter KEY leads the page-level findings, because it is
-   usually the reason for everything under it: a page with two `status:` lines
-   silently uses the second, so it is not built, so it is missing from the nav,
-   so every link to it renders broken -- three complaints, one cause, and only
-   one of them worth reading first.
+   ⭐ THE REPORT ITSELF MOVED TO docrender/report.py ON 2026-08-07, AND ONLY THE
+   PRINTING IS STILL HERE. It left because a second destination appeared -- a
+   page on the site -- and the section list was welded to the print loop, so
+   rendering it anywhere else meant writing it twice. Two renderers of one object
+   disagree within a month; this repo has retired three manifests for that shape.
 
-   🔴 `state.reset()` USED TO CLAIM IT SET THIS ORDER. It does not and never
-   did; the loop below has always iterated `_LABELS`. The two dicts are not even
-   in the same order -- `leaks` is second-to-last over there and first here,
-   which is correct, because a site name in engine code FAILS THE BUILD and has
-   to be the first thing read. Corrected in that file 2026-08-05. Two places
-   stating one fact, and the wrong one was the one somebody would have edited.
+   What went: `_LABELS` (which sets cause-before-symptom section order),
+   `_INVENTORY`, and the walk. What stayed: the two SCANS above, because they are
+   CHECKS rather than reports, and one line that prints what report.py returns.
 
-   ⚠️ THE LOOP ITERATES `_LABELS`, NOT `state.REPORT`. A bucket declared in
-   state.reset() with no label here is collected all build and then dropped
-   without a word -- a check that runs, finds things, and tells nobody. Adding
-   a report section is always two edits, and the note is in both files.
+   ⚠️ SO "ADDING A REPORT SECTION IS TWO EDITS" NOW POINTS AT A DIFFERENT FILE,
+   and is unchanged in every other respect: `state.reset()` declares the bucket,
+   `report._LABELS` gives it a label and therefore a place in the walk. A bucket
+   carrying only one of those is collected all build and dropped without a word.
 
-   ⭐ Four sections are INVENTORY rather than complaints, and they are among
-   the most useful things here. `markers` lists every tbc / verify / gap / est /
-   was on the site; `routers` lists every router and what kind it is;
-   `nav_default` states the site-wide sidebar default; `aliases` states every
-   name `publish <name>` accepts for this site. None counts against a clean
-   build. A thing you cannot enumerate is decoration; a thing you can
-   enumerate is a worklist.
+   🔴 AND THE CALL ORDER IN on_post_build IS NOW LOAD-BEARING ACROSS A MODULE
+   BOUNDARY rather than inside one function, which is a weaker place for it to
+   live, so it is written down: the two scans are the LAST writers into
+   state.REPORT, and a report rendered before them is missing every oversize file
+   and every leak. The scans run first. Nothing enforces that but this sentence.
 """
 
 from __future__ import annotations
@@ -107,7 +101,7 @@ import token as token_mod
 import tokenize
 from pathlib import Path
 
-from . import state
+from . import report, state
 
 HARD_KB = 22
 WARN_KB = 18
@@ -124,46 +118,6 @@ _ENGINE_SOURCE = (
     ("docrender", (".py",)),
     ("assets", (".css", ".js")),
 )
-
-# Buckets that are inventory, not defects. Present in the report, ignored when
-# deciding whether the build was clean.
-#
-# ⚠️ `nav_default` IS IN HERE AND HAS TO BE. It reports on EVERY build -- the
-# site default is always either declared or absent, and both are worth stating.
-# Counting it as a finding would mean no build on any site ever prints "No
-# findings" again, and a clean signal that can never fire is worse than none.
-#
-# ⚠️ `aliases` IS IN HERE FOR THE SAME REASON, added 2026-08-05. It also reports
-# on every build: a site either declares alternate names or it does not, and
-# "none declared" is a useful thing to read rather than a complaint.
-_INVENTORY = {"markers", "routers", "nav_default", "aliases"}
-
-_LABELS = {
-    "leaks": "SITE NAME LEAKED INTO ENGINE CODE (build will fail)",
-    "duplicate_key": "DUPLICATE FRONTMATTER KEYS -- read these first, they "
-                     "usually explain everything below",
-    "missing_status": "Pages with no usable status (NOT BUILT)",
-    "missing_required": "Missing required fields",
-    "body_lede": "Lede in the wrong place -- `summary:` is the lede now, and "
-                 "these pages have it somewhere else (or nowhere)",
-    # Beside body_lede because it is the same migration one field over. NOT
-    # inventory: every entry is a page printing its revision date twice, or a
-    # date the engine cannot see.
-    "body_revised": "Revision date in the wrong place -- `revised:` is drawn "
-                    "at the foot now, and these pages still type it into the "
-                    "body",
-    "unknown_type": "Undeclared types (fell back to 'page')",
-    "duplicate_id": "Duplicate ids",
-    "dead_links": "Broken references (rendered as visible markers)",
-    "stale_xref": "Cross-site index problems",
-    "markers": "Marked unresolved -- every tbc / verify / gap / conf / est / was",
-    "nav_default": "SIDEBAR DEFAULT for this site -- `nav:` on the root "
-                   "index.md, and what every folder inherits from it",
-    "aliases": "NAMES THIS SITE ANSWERS TO -- what `publish <name>` accepts",
-    "routers": "Routers on this site",
-    "oversize": "Over the size budget",
-    "notes": "Notes",
-}
 
 
 def _scan_sizes() -> None:
@@ -298,37 +252,20 @@ def _scan_leaks() -> bool:
 
 
 def on_post_build(config):
+    # THE SCANS FIRST. They are the last writers into state.REPORT, so anything
+    # rendered before them is missing every oversize file and every leak.
     _scan_sizes()
     leaked = _scan_leaks()
 
-    name = str(state.INSTANCE.get("name", "?"))
-    slug = str(state.INSTANCE.get("slug", "?"))
+    print(report.as_text())
 
-    print("")
-    print("=" * 72)
-    print("docrender build report -- " + name + " (" + slug + ")")
-    print("=" * 72)
-
-    clean = True
-    for bucket, label in _LABELS.items():
-        entries = state.REPORT.get(bucket) or []
-        if not entries:
-            continue
-        if bucket not in _INVENTORY:
-            clean = False
-        print("")
-        print(label + " (" + str(len(entries)) + ")")
-        for entry in entries:
-            print("  - " + entry)
-
-    print("")
-    print("Pages published: " + str(len(state.PAGES)))
-    print("Peer indexes loaded: " + (", ".join(sorted(state.PEERS)) or "none"))
-    if clean:
-        print("No findings. Everything declared, everything resolved.")
-    print("=" * 72)
-    print("")
-
+    # AND THE HARD FAILURE LAST, AFTER THE PRINT, WHICH IS THE ORIGINAL ORDER AND
+    # WORTH KEEPING ON PURPOSE: the report naming the leaked file has to reach the
+    # log before the exit code kills the build, or the one finding that matters is
+    # the one nobody gets to read.
+    #
+    # ⚠️ It also means hook 08b never runs on a leak, so a report page keeps its
+    # marker. Correct -- the build failed and nothing deploys.
     if leaked:
         print(
             "::error::docrender: engine CODE references the site it is "

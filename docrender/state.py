@@ -168,6 +168,11 @@ ROUTER_SALT: bytes = b""
 
 #: Everything the build wants to tell a human. Printed in one block at the end
 #: rather than scattered through 400 lines of output where nobody reads it.
+#:
+#: ⚠️ THIS IS THE COLLECTOR, NEVER THE RENDERER. docrender/report.py owns what
+#: the sections are called, what order they print in and which of them are
+#: inventory; hook 08 prints what it returns and hook 08b puts the same string on
+#: the site. Writing into this dict is all a hook ever does with the report.
 REPORT: dict = {}
 
 
@@ -189,15 +194,21 @@ def reset() -> None:
         # roughly -- see the warning below.
         #
         # 🔴 THIS DICT DOES NOT DECIDE THE PRINT ORDER AND THIS COMMENT USED TO
-        # SAY IT DID. sizecheck's report loop iterates `_LABELS`, not this, so
-        # the order that matters lives there. The two are not even the same
-        # today: `leaks` is second-to-last here and FIRST in _LABELS, which is
-        # correct, because a site name in engine code fails the build and has to
-        # be read first. Reordering this dict to move a report section does
-        # nothing at all.
+        # SAY IT DID. The report loop iterates `_LABELS`, not this, so the order
+        # that matters lives there. The two are not even the same today: `leaks`
+        # is second-to-last here and FIRST over there, which is correct, because
+        # a site name in engine code fails the build and has to be read first.
+        # Reordering this dict to move a report section does nothing at all.
         #
-        # ⚠️ AND DECLARING A BUCKET HERE IS NOT ENOUGH TO MAKE IT PRINT. A
-        # bucket with no label in _LABELS is collected all build and then
+        # ⚠️ AND `_LABELS` MOVED HOUSE ON 2026-08-07. It was sizecheck's; it is
+        # now `docrender/report.py`'s, because a second destination appeared and
+        # a report built inside its printer cannot render anywhere else. Repointed
+        # in the commit that moved it rather than the session after.
+        #
+        # ⚠️ DECLARING A BUCKET HERE IS STILL NOT ENOUGH TO MAKE IT PRINT, and
+        # the split made that warning matter MORE rather than less: the second
+        # edit is now in a different FILE, not three hundred lines down this one.
+        # A bucket with no label in report._LABELS is collected all build and then
         # silently dropped -- a check that runs, finds things, and tells nobody.
         # Adding a report section is always TWO edits, here and there.
         "duplicate_key": [],
@@ -215,6 +226,8 @@ def reset() -> None:
         # it is worth recording that the warning worked: the label in
         # sizecheck._LABELS went in during the same commit, and without it this
         # line would have collected findings all build and printed none.
+        # (That label now lives in report._LABELS -- it moved hours later, in the
+        # split described above. The history is left as it happened.)
         "body_revised": [],
         "unknown_type": [],
         "duplicate_id": [],
@@ -224,7 +237,7 @@ def reset() -> None:
         # The site-wide sidebar default, from the root index's `nav:`. Sits with
         # the nav reports rather than in `notes`, which prints last: a fact
         # governing every folder on the site cannot be the line under forty size
-        # warnings. INVENTORY, not a defect -- see sizecheck._INVENTORY.
+        # warnings. INVENTORY, not a defect -- see report._INVENTORY.
         "nav_default": [],
         # The names `publish <name>` accepts for this site: the slug plus the
         # `aliases:` block in site.yml. INVENTORY like nav_default -- a list of
