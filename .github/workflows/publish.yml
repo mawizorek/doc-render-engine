@@ -10,6 +10,12 @@ name: Publish a site
 #   publish.yml  is ONE site, on purpose, when its content is ready -- the
 #                closest thing this family has to 'make THIS public, now'.
 #
+# ⭐ AND IT HAS A TERMINAL FRONT DOOR AS OF 2026-08-07: `bin/publish.sh` in this
+# repo, sourced into a shell, giving `publish uritp theme:eos`. It dispatches
+# THIS workflow with these inputs and invents no vocabulary of its own. See the
+# note on the site list below for the one thing it has to do that the web form
+# does not.
+#
 # =============================================================================
 # STRUCK 2026-08-05. THE PARAGRAPH BELOW WAS THIS FILE'S CENTRAL CLAIM AND
 # IT IS FALSE AT HEAD. IT WAS QUOTED TO MICHAEL AS FACT THIS SESSION.
@@ -103,7 +109,7 @@ name: Publish a site
 # fourth copy of that union, wrong the first time anybody adds a palette
 # upstream, and wrong in the direction that REFUSES a legal name. A typed name
 # is checked against the real union by the engine, which is the only place that
-# knows it.
+# knows it. `bin/publish.sh` declines to pre-validate it for the same reason.
 #
 # ⚠️ AND THE RUN TITLE CANNOT NAME A RANDOM ROLL. `run-name` is evaluated by
 # GitHub before the job starts, so on `random` it prints the word `random` and
@@ -133,10 +139,23 @@ name: Publish a site
 # The `Resolve the site` step below no longer duplicates the content repo --
 # that comes from site.yml -- so the slug is the only thing stated twice.
 #
+# ⭐ `bin/publish.sh` IS NOT A FOURTH EDIT, AND THAT IS THE WHOLE REASON IT READS
+# `instances/` LIVE rather than carrying its own list. A new site is publishable
+# from the terminal the moment step 1 lands, with no change to the helper.
+#
 # A `choice` INPUT IS CASE-SENSITIVE AND THE SLUGS ARE LOWERCASE. `gh
 # workflow run ... -f site=URITP` is rejected before any job starts, with an
 # error about an invalid value rather than about case. Any wrapper script must
-# lower-case the argument; the terminal helper in uritp-docs/guides does.
+# lower-case the argument; `bin/publish.sh` does, in `_dr_resolve`.
+#
+# 🔴 THAT LINE POINTED AT A SCRIPT THAT DID NOT EXIST, FOR TWO DAYS (struck
+# 2026-08-07). It read "the terminal helper in uritp-docs/guides does" -- and
+# `uritp-docs` is a CONTENT repo, which may hold no machinery at all, so the
+# helper was not merely missing but described as living somewhere the
+# architecture forbids. Michael then typed the command it promised. ⚑ The pair
+# of claims (here and in instance.py, about `aliases:`) is a worked example of
+# documentation CREATING a feature: two files agreed, neither owned it, and
+# agreement between quotes is not evidence that a thing exists.
 #
 # =============================================================================
 # RE-RUN IS NOT THE SAME AS RUN (fixed 2026-08-03)
