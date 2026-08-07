@@ -68,6 +68,51 @@ name: Publish a site
 # empty note reproduces the old behaviour byte for byte.
 #
 # =============================================================================
+# THE `theme` INPUT -- A PUBLISH MAY CHOOSE THE LOOK, FOR ONE BUILD (2026-08-07)
+# =============================================================================
+# Michael: *"what would it take for our publish command to accept an additional
+# variable that lets me set the theme at the last minute... I want to be able to
+# push publishes with random themes just to debug better."*
+#
+# Optional free text, same contract as `note` and for the same reasons. It
+# reaches the engine as `DOCRENDER_THEME` and is applied in
+# `docrender/instance.py:_theme_override` -- hook 00, the only stage that runs
+# exactly ONCE per build.
+#
+#   (empty)        this build is byte for byte the build it would have been.
+#                  THE DEFAULT MUST STAY PASSIVE: an input nobody filled in can
+#                  never be why a site suddenly looks different.
+#   <a theme name> that name renders, for this run only. site.yml is NOT
+#                  edited and NOTHING is written to disk, so the override
+#                  cannot outlive the run and there is no cleanup to forget.
+#   random         the engine rolls one from every legal name and says which.
+#
+# 🔴 A BAD NAME IS DISCARDED, NOT SUBSTITUTED, and that differs on purpose from
+# how a bad theme in site.yml behaves (it falls back to `base`). A committed
+# typo should still render a readable site; an override was typed thirty seconds
+# ago by somebody watching this run, so answering it with a THIRD theme --
+# neither what was typed nor what the site declares -- would send them hunting a
+# palette bug. The declared theme renders and the report names the legal set.
+#
+# ⚠️ WHY IT IS `string` AND NOT `choice`, WHICH IS THE OBVIOUS ASK. The site
+# list below is hand-maintained because dispatch inputs are read out of this
+# file before any job starts (see the next section). A theme list is strictly
+# worse: the legal set is the UNION of maw-themes' `themes.json`, the canonical
+# colour table and this engine's local `themes.tsv` -- three files, one of them
+# in another repo, resolved live at build time. A hardcoded dropdown would be a
+# fourth copy of that union, wrong the first time anybody adds a palette
+# upstream, and wrong in the direction that REFUSES a legal name. A typed name
+# is checked against the real union by the engine, which is the only place that
+# knows it.
+#
+# ⚠️ AND THE RUN TITLE CANNOT NAME A RANDOM ROLL. `run-name` is evaluated by
+# GitHub before the job starts, so on `random` it prints the word `random` and
+# not the theme drawn -- the roll happens inside the engine, minutes later. The
+# engine therefore emits a `::notice::` naming the chosen theme, which GitHub
+# renders at the TOP of the run page. Fire five random publishes and the five
+# answers are in five notices; the titles alone would be five identical rows.
+#
+# =============================================================================
 # THE SITE LIST BELOW IS HAND-MAINTAINED, AND IT CANNOT BE OTHERWISE
 # =============================================================================
 # `workflow_dispatch` inputs are read out of THIS FILE on the default branch
@@ -115,6 +160,11 @@ name: Publish a site
 # the run it replays, so a stale rebuild now announces itself as a duplicate in
 # the list instead of looking like a fresh publish.
 #
+# ⚠️ AND A RE-RUN CARRYING A `theme` INHERITS THAT TOO (2026-08-07). Re-running
+# a themed publish re-applies the theme, because the inputs are part of the run
+# being replayed -- so a one-off costume comes back on. The title says so, which
+# is the same defence as above.
+#
 # =============================================================================
 # AND THE SAME CLASS OF STALENESS HAD A THIRD SOURCE UNTIL 2026-08-06
 # =============================================================================
@@ -130,7 +180,7 @@ name: Publish a site
 # did happen.
 
 run-name: >-
-  ${{ inputs.site }} · ${{ inputs.mode }}${{ inputs.note != '' && format(' · {0}', inputs.note) || '' }}
+  ${{ inputs.site }} · ${{ inputs.mode }}${{ inputs.theme != '' && format(' · theme: {0}', inputs.theme) || '' }}${{ inputs.note != '' && format(' · {0}', inputs.note) || '' }}
 
 on:
   workflow_dispatch:
@@ -152,6 +202,14 @@ on:
         options:
           - publish
           - preview
+      theme:
+        # Optional on purpose, and `string` on purpose -- see THE `theme` INPUT
+        # at the top of this file for why a dropdown would be a fourth copy of
+        # a union this file cannot see.
+        description: "Theme for THIS build only (blank = the site's own; `random` rolls one)"
+        required: false
+        default: ""
+        type: string
       note:
         # Optional on purpose -- see THE `note` INPUT at the top of this file.
         description: "Why are you publishing? (shows in the run title and the deploy commit)"
@@ -225,6 +283,33 @@ jobs:
             echo "No reason given. That is allowed; the field is optional."
           fi
 
+      - name: State the theme override, if one was given
+        # Same shape as the step above, and separate from it for the same
+        # reason: a step that does not appear did not run, and a reader
+        # scanning the step LIST should be able to see at a glance whether this
+        # build is wearing its own look or a borrowed one.
+        #
+        # ⚠️ THIS STEP ONLY ECHOES WHAT WAS ASKED FOR. It cannot validate the
+        # name -- the legal set is resolved live from maw-themes and is not
+        # readable here -- and on `random` it cannot know the roll. The ENGINE
+        # is the authority on both and reports them from the render step.
+        env:
+          THEME: ${{ inputs.theme }}
+        run: |
+          if [ -n "$THEME" ]; then
+            echo "Theme override requested: $THEME"
+            {
+              echo ""
+              echo "> **Theme for this build only:** \`$THEME\` — requested at"
+              echo "> dispatch. \`site.yml\` is not edited. The engine confirms"
+              echo "> the theme it actually used in a notice at the top of this"
+              echo "> run, which is the line to read if you asked for \`random\`"
+              echo "> or if the name was rejected."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No theme override. This site renders the theme its site.yml declares."
+          fi
+
       - name: Check out the content
         uses: actions/checkout@v4
         with:
@@ -285,6 +370,12 @@ jobs:
       # PREVIEW MODE IS WHERE THIS PAYS. A fallback caught during a preview
       # costs nothing; the same fallback on `publish` has already put an old
       # palette on the live site by the time anybody reads the summary.
+      #
+      # ⚠️ AND IT IS WHAT MAKES THE `theme` INPUT WORTH ANYTHING. The legal
+      # theme names are read from this checkout. If it fails, the union shrinks
+      # to the vendored copy plus the four local skins, so a canonical theme
+      # that exists upstream can be REJECTED as unknown -- with the fallback
+      # warning already printed above it, which is the line that explains why.
       - name: Check out the canonical design system
         id: canonical
         continue-on-error: true
@@ -319,6 +410,11 @@ jobs:
           # directory here, and the engine falls back to the vendored copy and
           # reports it. The variable is always set; its TARGET is what varies.
           DOCRENDER_CANONICAL: ${{ github.workspace }}/canonical
+          # THE THEME OVERRIDE, AND AN EMPTY VALUE IS A NO-OP BY CONTRACT.
+          # instance._theme_override returns immediately on an empty string, so
+          # setting this unconditionally is safe and is the same shape as
+          # DOCRENDER_CANONICAL above: always set, the VALUE is what varies.
+          DOCRENDER_THEME: ${{ inputs.theme }}
         run: |
           # Exported inline: $GITHUB_ENV only reaches LATER steps, so setting
           # these and running mkdocs in the same step would leave the build
@@ -341,7 +437,14 @@ jobs:
           # THE NOTE'S DURABLE HOME. Actions logs age out of retention; a
           # commit in the content repo does not. If the reason for a publish is
           # ever going to be read six months from now, it is read here.
-          commit_message: "publish: ${{ inputs.site }} from engine ${{ steps.engine.outputs.sha }}${{ inputs.note != '' && format(' · {0}', inputs.note) || '' }}"
+          #
+          # ⚠️ THE THEME RIDES ALONG FOR A SHARPER REASON THAN THE NOTE DOES
+          # (2026-08-07): a themed publish leaves a live site that does not
+          # match its own site.yml, and this commit is the ONLY durable record
+          # of why. Without it, the next person to open the site and the file
+          # together finds a contradiction with no explanation. It records what
+          # was ASKED FOR -- on `random` the engine's notice names the roll.
+          commit_message: "publish: ${{ inputs.site }} from engine ${{ steps.engine.outputs.sha }}${{ inputs.theme != '' && format(' · theme: {0}', inputs.theme) || '' }}${{ inputs.note != '' && format(' · {0}', inputs.note) || '' }}"
 
       - name: What happens next
         if: always()
@@ -377,5 +480,15 @@ jobs:
               echo "**Published.** Live in about a minute at the URL above."
               echo "The footer stamp on the site is how you confirm it landed:"
               echo "if it does not name this run, the deploy did not take."
+            fi
+            # A THEMED PUBLISH LEAVES THE SITE DISAGREEING WITH ITS OWN CONFIG,
+            # so the run that did it says how to undo it. One sentence, only
+            # when it applies, and only when something was actually deployed.
+            if [ -n "${{ inputs.theme }}" ] && [ "${{ inputs.mode }}" = "publish" ]; then
+              echo ""
+              echo "⚠️ **This publish wore a theme override.** The live site is"
+              echo "not rendering what its \`site.yml\` declares. Nothing was"
+              echo "written to disk, so publishing again with an empty **theme**"
+              echo "box puts it back -- there is no file to revert."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
