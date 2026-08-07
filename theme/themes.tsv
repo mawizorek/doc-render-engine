@@ -1,5 +1,33 @@
-# Named skins. An instance picks one by name in its site.yml; a page or folder
-# can override with `theme:` in frontmatter.
+# Named skins. An instance picks one by name in its site.yml, and a PUBLISH can
+# override that for ONE build with the `theme` input on publish.yml, which
+# reaches the engine as DOCRENDER_THEME (docrender/instance.py). The file is
+# never written to, so an override cannot outlive the run that asked for it.
+#
+# =============================================================================
+# STRUCK 2026-08-07: "a page or folder can override with `theme:` in
+# frontmatter." NOTHING HAS EVER READ THAT KEY.
+# =============================================================================
+# Verified at HEAD before striking, three independent ways:
+#
+#   1. theme.build_css() takes NO ARGUMENTS. It reads state.INSTANCE and
+#      nothing else -- there is no page, folder or path anywhere in its
+#      signature, so there is no input a frontmatter key could arrive on.
+#   2. assets._plan() calls it ONCE and links the result as a single
+#      tokens.css from EVERY page in the build.
+#   3. The CSS it emits is scoped to :root and to the two document-level
+#      scheme attributes. Even a second sheet published for one subtree would
+#      repaint the whole site.
+#
+# So a per-page theme is not merely unimplemented -- it is unbuildable in this
+# shape. The line survived long enough to be read as a feature and asked about
+# as one, which is the expensive kind of rot: A DOC THAT PROMISES AN EXTENSION
+# POINT THAT DOES NOT EXIST costs more than a blank, because somebody plans
+# against it. Struck rather than deleted, per the house rule on reversals --
+# deleting it teaches nobody why it was wrong to believe.
+#
+# A genuinely scoped theme is SCOPED, NOT GREENLIT as next-build-spec.md
+# BUILD 3 (specs/scoped-theme.md), and it is an architecture change to the
+# theme spine rather than a variable read.
 #
 # `base` is always applied underneath whatever else is chosen, so a new theme
 # only has to state what it CHANGES rather than redeclare every token.
