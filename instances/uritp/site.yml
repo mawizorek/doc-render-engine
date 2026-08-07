@@ -75,8 +75,8 @@ aliases: [uritp-docs, "URITP PRP", "URITP Production Resources", prp]
 # theme: sharp-utility
 # theme: soft-utility
 # theme: soft-mercedes
- theme: sharp-carbon
-# theme: database
+# theme: sharp-carbon
+theme: database
 # theme: on-track
 # theme: eos
 # theme: f1-racetracks
