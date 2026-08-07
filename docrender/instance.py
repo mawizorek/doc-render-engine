@@ -12,6 +12,11 @@ end of `on_config`. That question belongs to the BUILD -- like the name and the
 address above it -- rather than to the stylesheet generated from the answer, and
 this is the only hook that runs exactly once.
 
+⭐ AND AS OF 2026-08-07 A PUBLISH MAY OVERRIDE THE THEME. `DOCRENDER_THEME`
+joins `DOCRENDER_BASE_URL` below as a fact site.yml owns that the PUBLISHING
+PATH may override for one build. See `_theme_override` for why it can only live
+in this file.
+
 CHROME COLOUR IS NO LONGER SET HERE (2026-08-04), and the reversal is worth
 keeping because the reasoning it replaces was half right.
 
@@ -71,11 +76,15 @@ is empty. That is handled where it belongs: pagefoot.py builds the edit link
 itself from `content_repo`, so the one quiet line at the foot survives while
 the header stays clean. The two used to be the same switch; they are not any
 more, which is the entire point of the change.
+
+⚠️ THIS FILE IS PAST ITS OWN WARN LINE. The next feature added here should be
+its own module rather than a fourth job in this one.
 """
 
 from __future__ import annotations
 
 import os
+import random
 import sys
 
 from . import state, vectors
@@ -85,6 +94,111 @@ from .util import load_yaml, slug_title
 def _fail(message: str) -> None:
     print(f"::error::docrender: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def _theme_override(inst: dict, slug: str) -> None:
+    """`DOCRENDER_THEME` -- let ONE publish choose the theme, editing nothing.
+
+    Set by publish.yml's `theme` input. Same shape as `DOCRENDER_BASE_URL`
+    below: a fact site.yml owns, overridden by the publishing PATH for the
+    length of one build. Nothing is written to disk, so an override cannot
+    outlive the run that asked for it. EMPTY RETURNS IMMEDIATELY and the build
+    is byte for byte what it would have been -- an input nobody filled in must
+    never be why a site looks different.
+
+    🔴 IT CANNOT LIVE IN `vectors._declared()`, WHICH IS THE OBVIOUS HOME.
+    That function is called once per SCHEME, and `theme.build_css()` runs two or
+    three times per build (`assets._plan()` calls it from BOTH `on_config` and
+    `on_files`; tokenaudit calls it again on a `!!! tokens` page). A fixed value
+    read there is harmless; a RANDOM one answers differently every call. And the
+    damage is not the mismatched toggle -- `_plan()` names each generated sheet
+    by a CONTENT FINGERPRINT, hashing in `on_config` to build the URL it links
+    and again in `on_files` to publish the file, so two rolls mean every page
+    links `tokens.<a>.css` while the site contains `tokens.<b>.css`. Every
+    custom property gone, behind a 404, with no error and no report line.
+
+    Hook 00 runs exactly ONCE, before any hook reads a vector, so deciding here
+    means one answer exists before anything can ask. ⚠️ `mkdocs serve` re-runs
+    `on_config` per rebuild and therefore re-rolls; each rebuild is internally
+    consistent, which is the property that matters.
+
+    A BAD NAME IS DISCARDED, NOT SUBSTITUTED. `vectors.resolve()` falls an
+    unknown theme back to `base`, which is right for a value committed to
+    site.yml. An override was typed thirty seconds ago by somebody watching the
+    run, so falling back would answer a typo with a THIRD theme -- neither what
+    was typed nor what the site declares -- and send them hunting a palette bug.
+
+    ⚠️ `random` rolls from `known()`, the SAME set an explicit name is checked
+    against, deliberately one set rather than two. It can therefore draw a bare
+    colour entity; vectors.py already reports that by name, so the roulette
+    inherits an explanation instead of needing a second, narrower list of what
+    counts as a theme.
+
+    ⭐ AND IT ANNOUNCES ITSELF AS A RUN ANNOTATION, WHICH IS THE ONLY REASON
+    `random` IS USABLE. `run-name` is evaluated by GitHub before the job starts,
+    so a random publish is titled `theme: random` and cannot name the roll --
+    fire five and you get five identical rows. A `::notice::` renders at the TOP
+    of the run page, so the answer is one glance away instead of buried in the
+    build report, which by this repo's own 2026-08-06 finding nobody reads. Two
+    lines, only ever ONE of them per build, and never on a build with no
+    override -- so it cannot become the annotation noise that trains people to
+    ignore annotations.
+    """
+    raw = os.environ.get("DOCRENDER_THEME", "").strip()
+    if not raw:
+        return
+
+    declared = inst.get("theme", "base")
+    legal = vectors.known()
+
+    if raw.lower() == "random":
+        pool = sorted(legal)
+        if not pool:
+            state.note(
+                "missing_required",
+                "DOCRENDER_THEME=random, but NO theme names could be read at "
+                "all -- not a canonical join, not a colour entity, not a local "
+                "skin. Keeping the declared theme " + str(declared) + ".",
+            )
+            print(
+                "::warning title=docrender theme::random was asked for and NO "
+                "legal theme names could be read. Keeping " + str(declared) + "."
+            )
+            return
+        pick = random.choice(pool)
+        why = "rolled at random from " + str(len(pool)) + " legal names"
+    else:
+        pick = raw
+        if pick not in legal:
+            state.note(
+                "missing_required",
+                "DOCRENDER_THEME is '" + raw + "', which is not a join, a "
+                "colour entity or a local theme. THE OVERRIDE IS DISCARDED and "
+                "nothing is substituted -- this build renders the theme "
+                "instances/" + slug + "/site.yml declares (" + str(declared)
+                + "). Legal names: " + ", ".join(sorted(legal)) + ".",
+            )
+            print(
+                "::warning title=docrender theme::'" + raw + "' is not a known "
+                "theme. THE OVERRIDE WAS DISCARDED -- this build rendered "
+                + str(declared) + ", the theme site.yml declares. Legal names "
+                "are listed in the build report."
+            )
+            return
+        why = "named on the publish"
+
+    inst["theme"] = pick
+    state.note(
+        "notes",
+        "THEME OVERRIDDEN FOR THIS BUILD ONLY: '" + pick + "', " + why
+        + ". instances/" + slug + "/site.yml still declares " + str(declared)
+        + " and was NOT edited -- the next publish with an empty `theme` input "
+        "renders it again.",
+    )
+    print(
+        "::notice title=docrender theme::This build rendered '" + pick + "' ("
+        + why + "). site.yml declares " + str(declared) + " and was not edited."
+    )
 
 
 def _register_aliases(inst: dict, slug: str) -> None:
@@ -217,6 +331,12 @@ def on_config(config):
         inst["base_url"] = override
 
     state.INSTANCE = inst
+
+    # LOOK IS ALSO A PROPERTY OF THE PUBLISHING PATH, FOR ONE BUILD (2026-08-07).
+    # Placed after state.INSTANCE is bound so `state.note` has a report to write
+    # to, and in this hook because it is the only one that runs exactly once --
+    # which a value allowed to be RANDOM requires. See `_theme_override`.
+    _theme_override(inst, slug)
 
     # Object declarations are shared across every site by design: a `space`
     # means the same thing everywhere, or the family has no shared vocabulary.
