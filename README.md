@@ -50,9 +50,14 @@ hooks/NN_*.py           thin shims. They hold the ORDER; the package holds the
                         The five on_nav stages are a chain: 00, 00b, 00bb,
                         00bc, 00c. That file says what each misordering breaks.
 
+bin/publish.sh          THE TERMINAL FRONT DOOR. Sourced into a shell, gives
+                        `publish uritp theme:eos`. Dispatches publish.yml and
+                        resolves the aliases in site.yml. See §4b.
+
 objects/*.yml           WHAT A KIND OF PAGE IS. The schema layer.
 theme/*.tsv             WHAT IT LOOKS LIKE. Data, not code.
 assets/base.css         the shared style layer.
+specs/*.md              scoped, ungreenlit builds. Indexed by next-build-spec.
 
 instances/<slug>/
   site.yml              WHICH SITE. Name, URL, content repo, palette, sections.
@@ -187,6 +192,9 @@ the second when the shape of the section is the thing being withheld.
 
 That this is seven steps rather than a fork is the point.
 
+⭐ **`bin/publish.sh` is deliberately NOT an eighth step.** It reads `instances/`
+live, so a new site is publishable from a terminal the moment step 2 lands.
+
 **Pin by tag, never by branch, once other sites are consuming this repo.** The
 reason these are separate repos is that they fail separately; a floating
 reference re-couples them and one bad engine commit breaks every site at once.
@@ -237,6 +245,49 @@ document-level scheme attributes. A scoped theme is a change to the theme spine
 rather than a variable read — scoped, not greenlit, as `next-build-spec.md`
 BUILD 3.
 
+### 4b. Publishing from a terminal *(2026-08-07)*
+
+```
+publish uritp theme:eos
+publish prp
+publish theatre theme:random mode:publish note:"checking the new palette"
+publish --list
+```
+
+**Install once**, from anywhere:
+
+```
+curl -fsSL https://raw.githubusercontent.com/mawizorek/doc-render-engine/main/bin/publish.sh -o ~/.publish.sh
+echo 'source ~/.publish.sh' >> ~/.zshrc
+```
+
+Needs the [GitHub CLI](https://cli.github.com) and `gh auth login`. It works
+from any directory, because everything it needs is read over the API rather
+than out of a checkout.
+
+**The grammar is this workflow's four input names and nothing else** — `site`,
+`mode`, `theme`, `note` — so anything you learn at the prompt is true of the web
+form and the reverse. The one positional is the site.
+
+⚠️ **`mode` defaults to `preview`, so a bare `publish uritp` deploys nothing.**
+Going live is `mode:publish`, typed out, every time. A command named `publish`
+must not publish by accident.
+
+**It resolves aliases**, which is the only thing it does that the web form
+cannot: `prp` and `uritp-docs` both reach `uritp`. The names come from each
+`site.yml`'s `aliases:` block, read live — the helper keeps no list of sites.
+Slugs are checked before aliases, which is the order `instance.py`'s collision
+warning assumes; reversing it in one place and not the other makes that warning
+false. `publish --list` prints every name that resolves.
+
+🔴 **This file existed as a claim in two other files for two days before it
+existed as a file.** `publish.yml` said the helper was "in uritp-docs/guides"
+and `instance.py` named it as the only consumer of `aliases:`. Neither was true,
+and the named location is one the architecture forbids — a content repo holds no
+machinery. Michael typed `publish uritp theme:eos` on 2026-08-07 expecting it to
+work, which is what a promised-and-absent tool costs. ⚑ **Two files agreeing is
+not evidence a thing exists; it is one unverified claim, copied.**
+
 ---
 
 ## 5. Rules this engine enforces on itself
@@ -247,6 +298,12 @@ BUILD 3.
   being portable silently.
 - **22KB per source file**, 18KB warn. A file that cannot be read whole cannot
   be safely edited.
+  - ⚠️ **MEASURED 2026-08-07: FOUR FILES ARE ALREADY OVER IT** — `visibility.py`
+    (29,648), `router.py` (28,770), `navstate.py` (25,631) and `instance.py`
+    (23,047, pushed over by the theme override). **Nothing enforces this rule on
+    `docrender/` and it has been decorative for some time.** Stated rather than
+    quietly raised: a limit four files break is not a limit, and either the
+    number is wrong or the files need splitting. Neither is a one-line fix.
 - **Warn, never die**, for everything else. v1 built with `--strict` and one
   typo froze the entire live site twice in forty minutes while Pages kept
   serving a stale commit. Broken things render as visible markers and appear in
@@ -402,6 +459,10 @@ live in a variable; that would put the routine's shape in two places again.
   **auto-disables a schedule after 60 days of repo inactivity** — by putting
   the workflow into the same state the off switch uses, so a routine that
   stopped for no reason you remember is the first thing to check.
+- **`bin/publish.sh` parses `aliases:` with grep when PyYAML is absent**, which
+  handles the flow style all four instances use and would silently miss a
+  block-style list. The fix is installing PyYAML, not a better regex. It is the
+  first thing to check if a name stops resolving.
 
 ---
 
