@@ -140,10 +140,10 @@ on:
         required: true
         type: choice
         options:
-          - uritp
           - theatre
           - hml
           - template
+          - uritp
       mode:
         description: Preview shows the diff and deploys nothing
         required: true
