@@ -32,7 +32,35 @@ requires:
   - status
   - summary
 optional:
-  - revised      # when this was last true. Provenance, not decoration.
+  - revised      # when this was last true.
+                 #
+                 # ⭐ IT RENDERS AS OF 2026-08-07, AND UNTIL THEN IT DID NOT.
+                 # This comment used to end "Provenance, not decoration" and
+                 # the second half was exactly backwards: NOTHING in the engine
+                 # read this field, so the date a reader saw was a line typed
+                 # by hand at the foot of the page. The key was the decoration
+                 # and the body line was the provenance. The README and
+                 # _template.md both described it as though it did something.
+                 #
+                 # docrender/lede.py `revised()` now draws it as the last thing
+                 # the document says, italicised, and `check_revised()` reports
+                 # every page still typing the line by hand -- both the pages
+                 # that would now print it twice and the pages whose date the
+                 # engine still cannot see.
+                 #
+                 # ⚠️ RENDERED VERBATIM. `Revised` is the label the engine
+                 # supplies, the same way `Keywords:` is; the field supplies
+                 # everything after it. So `2026-08` and `Aug 2026` both render
+                 # exactly as written, and the content repos do not currently
+                 # agree on which to use. Reformatting was available and was
+                 # refused: this is provenance typed by a human, and an engine
+                 # that rewrites it starts owning a calendar it cannot verify.
+                 #
+                 # ⚠️ YAML TYPES IT FOR YOU, ON THREE CHARACTERS. `revised:
+                 # 2026-08` is a string; `revised: 2026-08-07` is a date
+                 # object. Both render, because the renderer stringifies rather
+                 # than type-checking, but they are not the same value and a
+                 # quoted `"2026-08-07"` is the way to keep it text.
   - order        # sort weight in the sidebar. Absent sorts alphabetically.
   - theme        # skin override. A page beats its folder on LOOK.
   - related      # ids, not paths
@@ -77,6 +105,13 @@ optional:
                  # it shipped, so the engine was reading a field no type had
                  # ever declared. Exactly the defect the type system exists to
                  # prevent, sitting inside the type system.
+                 #
+                 # ⚠️ AND `revised` WAS THE MIRROR OF THAT DEFECT, FOUND
+                 # 2026-08-07: a field DECLARED here that the engine never
+                 # read. One direction is the engine honouring an undeclared
+                 # key; the other is this file offering a key that does
+                 # nothing. Both are the declaration and the behaviour drifting
+                 # apart, and neither is visible from the page.
                  #
                  # WHICH slots are legal is `data_slots` below, per type.
 
