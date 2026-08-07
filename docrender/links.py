@@ -5,6 +5,7 @@
     [rep plot](@oph:rep-plot)              a page in a SIBLING site
     [the schedule](@data:circuit_schedule) a data table on THIS page
     [ETC](@term:etc)                       a defined term, styled as terminology
+    [the front panel](@img:h5-front)       an image anywhere in this site
 
 Moving the file, renaming its folder, or retitling the page cannot break an inbound
 link, because none of those things is what the link points at. Set `id:` once and never
@@ -16,8 +17,9 @@ RESOLUTION ORDER (rewritten 2026-08-04, DL J8)
 
 0. A TOKEN CARRYING A FILE EXTENSION is refused, with the reason said out loud.
 1. RESERVED PREFIX. `@<prefix>:<rest>` claimed by a handler in docrender/prefixes.py.
-   `data` is claimed by datatable.py, `term` by markers.py. Read that module for why
-   the registry is DERIVED from its handlers rather than typed as a list here.
+   `data` is claimed by datatable.py, `term` by markers.py, `img` by images.py. Read
+   that module for why the registry is DERIVED from its handlers rather than typed as
+   a list here.
 2. PEER SITE. `@<slug>:<id>` against the peer's published index.
 3. PAGE ID. `@<id>` in this site.
 
@@ -31,6 +33,13 @@ And the extension refusal matters because the token charset accepts dots, so
 `[x](@circuits-and-dimmers.tsv)` matched this regex and resolved as a page id -- the
 wrong error, on a page one edit from right. Data files are reached by SLOT, never by
 filename; that is the entire point of a slot.
+
+⚠️ THE REFUSAL LIST HAD A HOLE FOR IMAGES UNTIL 2026-08-07, and it was the same bug
+wearing the same clothes: no image suffix was listed, so `[fig](@rep-plot.png)` walked
+straight past step 0 and came back as "no page yet with id: rep-plot.png". The list
+now covers both families and the message BRANCHES -- a data file is sent to
+`@data:<slot>`, an image to `@img:<name>` -- because a reader chasing a broken picture
+should not be told about frontmatter data slots.
 
 ⚠️ A RESERVED PREFIX TAKES NO `#anchor`, AND THAT WAS SILENT UNTIL 2026-08-04. A
 handler's signature is `(rest, page, label)` -- no anchor -- so `@data:x#totals` or
@@ -95,9 +104,18 @@ _LINK = re.compile(
     r"\[(?P<label>[^\]]*)\]\(@(?P<token>[A-Za-z0-9_.:-]+)(?P<anchor>#[A-Za-z0-9_-]+)?\)"
 )
 
-#: Suffixes that mean somebody named a FILE where an id or a slot belongs. Not a
-#: security check, a legibility one: the error has to name the right subsystem.
+#: Suffixes that mean somebody named a FILE where a SLOT belongs. Not a security
+#: check, a legibility one: the error has to name the right subsystem.
 _DATA_SUFFIXES = (".tsv", ".csv", ".json", ".yml", ".yaml", ".md", ".txt", ".xlsx")
+
+#: The same mistake, made about a picture. Kept as its OWN tuple rather than
+#: appended above, because a name is a promise: seven image extensions inside a
+#: constant called `_DATA_SUFFIXES` would be a lie the next reader has to discover.
+#:
+#: ⚠️ Mirrors `images.SUFFIXES` and must stay in step with it. `.pdf` is absent from
+#: both for the same reason -- a PDF is a document you LINK to, not a picture you
+#: place, and naming it here would invite `![alt](@img:some-plan)`.
+_IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif")
 
 _TIMEOUT = 10
 
@@ -191,16 +209,28 @@ def on_page_markdown(markdown, page, config, files):
         token = match.group("token")
         anchor = match.group("anchor") or ""
 
-        if token.lower().endswith(_DATA_SUFFIXES):
-            state.note(
-                "dead_links",
-                src + ": '@" + token + "' names a FILE. References point at ids and "
-                + "data slots, never at filenames -- that is what makes renaming a "
-                + "file safe. For a table use @data:<slot> and declare the filename "
-                + "once in `data:` frontmatter.",
-            )
+        lowered = token.lower()
+        if lowered.endswith(_DATA_SUFFIXES) or lowered.endswith(_IMAGE_SUFFIXES):
+            # One mistake, two subsystems. The advice branches because sending
+            # somebody chasing a broken picture into the frontmatter `data:` block
+            # is the same class of wrong error this refusal exists to prevent.
+            if lowered.endswith(_IMAGE_SUFFIXES):
+                advice = (
+                    "names an IMAGE FILE. Images are reached by NAME, never by "
+                    "path: write @img:" + token.rsplit(".", 1)[0] + " instead. The "
+                    "name is the filename without its extension, which is what "
+                    "lets a png become a webp without touching a single page."
+                )
+            else:
+                advice = (
+                    "names a FILE. References point at ids and data slots, never "
+                    "at filenames -- that is what makes renaming a file safe. For "
+                    "a table use @data:<slot> and declare the filename once in "
+                    "`data:` frontmatter."
+                )
+            state.note("dead_links", src + ": '@" + token + "' " + advice)
             state.ref(src_id, token, "filename", token, False)
-            return _dead(label, "references point at ids, not filenames: " + token)
+            return _dead(label, "references point at names, not filenames: " + token)
 
         if ":" in token:
             prefix, _, rest = token.partition(":")
