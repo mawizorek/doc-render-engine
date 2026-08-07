@@ -64,6 +64,16 @@ normalises them, checks them against the rest of the family, and prints them in
 the build report -- which makes the key demonstrably live, and puts a typo in
 front of a human on the next build rather than at a command line.
 
+🔴 AND THAT PARAGRAPH WAS FALSE FOR TWO DAYS, IN A WAY WORTH KEEPING (2026-08-07).
+It named the helper as `aliases:`'s consumer, and pointed at `uritp-docs/guides`
+-- a CONTENT repo, where a script may not live at all. **No such helper existed
+anywhere.** So this file validated a key whose only consumer was imaginary, in
+the docstring that exists to condemn exactly that. ⚑ VALIDATING A VALUE IS NOT
+CONSUMING IT, AND A VALIDATOR CAN MAKE A DEAD KEY LOOK ALIVE -- the collision
+warnings below all fired correctly, about names nothing could resolve. The
+paragraph is now true: the helper is `bin/publish.sh` IN THIS REPO, added
+2026-08-07 after Michael typed a command the docs had promised him.
+
 NO ROUTE BACK TO THE SOURCE (LOCKED 2026-08-03, Michael).
 `repo_url` is deliberately NOT set. Setting it makes Material render a repo
 widget in the header with the owner/name and a star count, and these are
@@ -99,12 +109,13 @@ def _fail(message: str) -> None:
 def _theme_override(inst: dict, slug: str) -> None:
     """`DOCRENDER_THEME` -- let ONE publish choose the theme, editing nothing.
 
-    Set by publish.yml's `theme` input. Same shape as `DOCRENDER_BASE_URL`
-    below: a fact site.yml owns, overridden by the publishing PATH for the
-    length of one build. Nothing is written to disk, so an override cannot
-    outlive the run that asked for it. EMPTY RETURNS IMMEDIATELY and the build
-    is byte for byte what it would have been -- an input nobody filled in must
-    never be why a site looks different.
+    Set by publish.yml's `theme` input, and reachable from a terminal as
+    `publish <site> theme:<name>` (`bin/publish.sh`). Same shape as
+    `DOCRENDER_BASE_URL` below: a fact site.yml owns, overridden by the
+    publishing PATH for the length of one build. Nothing is written to disk, so
+    an override cannot outlive the run that asked for it. EMPTY RETURNS
+    IMMEDIATELY and the build is byte for byte what it would have been -- an
+    input nobody filled in must never be why a site looks different.
 
     🔴 IT CANNOT LIVE IN `vectors._declared()`, WHICH IS THE OBVIOUS HOME.
     That function is called once per SCHEME, and `theme.build_css()` runs two or
@@ -132,7 +143,9 @@ def _theme_override(inst: dict, slug: str) -> None:
     against, deliberately one set rather than two. It can therefore draw a bare
     colour entity; vectors.py already reports that by name, so the roulette
     inherits an explanation instead of needing a second, narrower list of what
-    counts as a theme.
+    counts as a theme. ⚠️ `bin/publish.sh` does NOT pre-validate the name for
+    the same reason: a client-side copy of that union would refuse legal names
+    the day a palette is added upstream.
 
     ⭐ AND IT ANNOUNCES ITSELF AS A RUN ANNOTATION, WHICH IS THE ONLY REASON
     `random` IS USABLE. `run-name` is evaluated by GitHub before the job starts,
@@ -204,16 +217,22 @@ def _theme_override(inst: dict, slug: str) -> None:
 def _register_aliases(inst: dict, slug: str) -> None:
     """Normalise this site's command-line aliases and prove they resolve here.
 
-    An alias is an extra NAME the `publish` helper accepts for this site --
-    the content repo's name, a house abbreviation, a retired slug. The engine
-    never uses one; see the ⭐ block in the module docstring for why it reads
-    them anyway.
+    An alias is an extra NAME `bin/publish.sh` accepts for this site -- the
+    content repo's name, a house abbreviation, a retired slug. The engine never
+    uses one to render a page; see the ⭐ block in the module docstring for why
+    it reads them anyway, and the 🔴 block for the two days when the consumer it
+    names did not exist.
 
     ⚠️ AN ALIAS IS AN IDENTIFIER, NOT A TITLE, and the distinction is the whole
     reason the block exists. `name:` is prose and gets edited; a command bound
     to prose breaks when somebody improves a heading. An alias is allowed to
     LOOK like a title while being immutable in practice, because nothing
     renders it.
+
+    ⚠️ THE HELPER RESOLVES SLUGS BEFORE ALIASES, AND THE COLLISION WARNING BELOW
+    ASSUMES IT. If that order is ever reversed in `bin/publish.sh`, the warning
+    about an alias equal to another site's slug becomes false -- two resolvers
+    disagreeing about precedence is worse than either rule alone.
 
     WARNS, NEVER FAILS. Only the portability leak fails a build. A bad alias
     cannot render a wrong page -- the worst it does is fail to resolve, which
