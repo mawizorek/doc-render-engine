@@ -115,7 +115,7 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
-# ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and five chains depend on it.
+# ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and six chains depend on it.
 #
 #   THE NAV CHAIN, five links, every one load-bearing. The consequence of each
 #   misordering is written down because a bare sequence tells nobody what breaks:
@@ -155,6 +155,22 @@ markdown_extensions:
 #      Two different EVENTS (on_nav, on_post_page), so this pair cannot be
 #      reordered into a bug -- it is listed because the dependency is real even
 #      where the ordering is free.
+#
+#   08 finishes the report -> 08b renders it into the page that asked for one.
+#      🔴 THE ONLY ORDERING HERE THAT IS ABOUT AN ACCUMULATOR RATHER THAN A
+#      TREE, which is why it does not read like its neighbours. Everything above
+#      describes pages, nav entries or markdown moving through stages; this is
+#      about `state.REPORT` still FILLING. Hook 08's size budget and leak scan
+#      are its last two writers, so 08b substituting first ships a page missing
+#      exactly the findings 08 exists to produce -- silently, and looking
+#      completely correct, which is the whole reason the report was moved out of
+#      a print loop in the first place.
+#      ⚠️ 08b's `on_page_markdown` is therefore late TOO, and not by choice: one
+#      registration sets the position of every event a stage handles, and the
+#      post-build end is the end that matters. Nothing between 01 and 08 reads
+#      `!!!` directives it does not own, so the literal line costs nothing while
+#      it waits.
+#
 #   09 runs last, because it describes the finished site
 # Renumbering without reading hooks/README.md will break something silently.
 #
@@ -191,4 +207,5 @@ hooks:
   - hooks/06b_navstate.py
   - hooks/07_buildstamp.py
   - hooks/08_sizecheck.py
+  - hooks/08b_report.py
   - hooks/09_index.py
