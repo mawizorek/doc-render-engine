@@ -145,6 +145,12 @@ markdown_extensions:
 #      either one and the figure renders perfectly while its caption keeps
 #      literal `@id` and `{.tbc}` syntax -- the 01d failure exactly, one stage
 #      over, and harder to spot because only the caption is wrong.
+#   01f indexes every image by filename for `@img:`. ⭐ ITS POSITION IS FREE and
+#      that is worth stating so nobody defends it: the prefix claim happens at
+#      hook IMPORT, and MkDocs runs every hook's on_files before any hook's
+#      on_page_markdown, so links.py at 03 cannot see a half-built index no
+#      matter where this line sits. It is here because 01e and 01f read as one
+#      feature -- 01e wraps a captioned image, 01f knows where the image is.
 #   00bb decides which folders open -> 06b writes that onto the rendered page.
 #      Two different EVENTS (on_nav, on_post_page), so this pair cannot be
 #      reordered into a bug -- it is listed because the dependency is real even
@@ -175,6 +181,7 @@ hooks:
   - hooks/01b_data.py
   - hooks/01d_audit.py
   - hooks/01e_figure.py
+  - hooks/01f_images.py
   - hooks/02_visibility.py
   - hooks/03_links.py
   - hooks/03b_markers.py
