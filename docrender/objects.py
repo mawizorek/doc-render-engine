@@ -24,6 +24,11 @@ _base and rendered into the slot after the H1; it used to be whatever paragraph
 happened to sit there. The reasoning, and the deliberate absence of a
 positional fallback, are in docrender/lede.py.
 
+AS OF 2026-08-07 THE REVISION DATE IS ANOTHER. `revised:` was declared optional
+and read by nothing, so the date a reader actually saw was a line typed by hand
+at the foot of the page. Same shape as the lede, one field over, and the same
+loud migration. Also docrender/lede.py.
+
 Runs FIRST, before visibility, deliberately: a page with a broken declaration
 is broken whether or not it happens to be hidden today.
 
@@ -208,6 +213,12 @@ def on_files(files, config):
         # hidden pages too, same posture as everything above it.
         lede.check(f.src_uri, meta, body, state.note)
 
+        # And whether the revision date is still typed at the foot. A SEPARATE
+        # function reporting to a SEPARATE bucket, deliberately: it is a
+        # different migration with a different fix, and folding it into the
+        # lede report would bury one worklist inside another.
+        lede.check_revised(f.src_uri, meta, body, state.note)
+
         meta["_type"] = type_name
         meta["_spec"] = spec
 
@@ -379,9 +390,10 @@ def on_page_markdown(markdown, page, config, files):
     the same rules as hand-written ones -- including reporting one as dead if a
     page it lists somehow fails to publish.
 
-    Two fields are drawn here that no type declares, because they belong to
-    every page: `summary:` (the lede, into the slot after the H1) and
-    `keywords:` (a visible line at the foot). See docrender/lede.py.
+    THREE fields are drawn here that no type declares, because they belong to
+    every page: `summary:` (the lede, into the slot after the H1), `keywords:`
+    (a visible line at the foot) and `revised:` (the last line of the
+    document). See docrender/lede.py.
     """
     meta = state.BY_SRC.get(page.file.src_uri, {})
     spec = meta.get("_spec") or {}
@@ -425,5 +437,18 @@ def on_page_markdown(markdown, page, config, files):
     words = lede.keywords(meta.get("keywords"))
     if words:
         markdown = markdown.rstrip() + "\n\n" + words + "\n"
+
+    # LAST, and below the keywords line. Michael, 2026-08-07: the revision date
+    # is "the very last thing on any page".
+    #
+    # ⚠️ THE EDIT LINK STILL LANDS UNDER IT, and that is the ordering rather
+    # than a miss. Hook 06 appends a rule and a link in on_page_content, which
+    # runs after every markdown hook, so the foot reads: keywords, revised,
+    # rule, edit link. The rule is the seam -- everything above it is the
+    # DOCUMENT, everything below it is scaffolding, and `edit_links: false`
+    # removes the whole lower half without touching this line.
+    stamp = lede.revised(meta.get("revised"))
+    if stamp:
+        markdown = markdown.rstrip() + "\n\n" + stamp + "\n"
 
     return markdown
