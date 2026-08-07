@@ -125,12 +125,52 @@ optional:
 # So a slot is a FIELD, visible to the type spec and reportable at build, for
 # the same reason the lede became one.
 #
-# ⚠️ EMPTY HERE ON PURPOSE. A slot legal on every page in the family is legal in
-# places it makes no sense (a procedure does not have an inventory). Declare
+# ══════════════════════════════════════════════════════════════════════════════
+# ⭐ AN EMPTY LIST MEANS UNRESTRICTED. RULED 2026-08-06 BY MICHAEL: "empty means
+# anything goes."
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# A type declaring NO slots accepts ANY slot name. A type declaring some accepts
+# ONLY those. So `data_slots` is opt-IN to the closed vocabulary, not a wall that
+# every type starts behind.
+#
+# ⚠️ THIS IS NOT A NEW BEHAVIOUR -- IT IS THE BEHAVIOUR, FINALLY WRITTEN DOWN.
+# datatable._declared() guards with `if legal and slot not in legal`, and an
+# empty list is falsy in Python, so the check has never run for `page`,
+# `procedure`, `standard`, `venue` or `space`. Nothing said so anywhere, in this
+# file least of all. Live proof at the time of the ruling:
+# 01-utility/automatic-revision-log.md is `type: page` and runs slot `revlog`,
+# which is in no type's list and is a near-miss on `revision_log` -- it renders
+# perfectly, while the identical mistake on a `reference` page draws a red box.
+# The SAME data: block passed or failed purely on the value of `type:`.
+#
+# ⭐ THE CONSEQUENCE IS WORTH STATING PLAINLY, because it reads backwards: this
+# type system is strict in INVERSE proportion to how much a type declares. The
+# more vocabulary a type owns, the less freedom its pages have. That is correct
+# and intended -- a type earns its strictness by having something to be strict
+# ABOUT -- but nobody would guess it from the outside.
+#
+# ⚠️ SO IF YOU ADD A FIRST SLOT TO A TYPE, YOU ARE NOT ADDING A SLOT. You are
+# switching that type from unrestricted to closed, and every page under it that
+# uses any other name starts reporting in the same commit. Grep the content
+# repos for that type's `data:` keys before you do it. Same class of migration
+# as making `summary` required: not a regression, a worklist.
+#
+# ~~⚠️ EMPTY HERE ON PURPOSE. A slot legal on every page in the family is legal
+# in places it makes no sense (a procedure does not have an inventory). Declare
 # slots on the TYPE that needs them. A one-line global list was offered and
 # rejected; so was "declared slots plus page-local extras", which would have
-# reopened the free-naming hole through a side door.
+# reopened the free-naming hole through a side door.~~
+#
+# 🔴 STRUCK 2026-08-06, and struck rather than deleted because the ARGUMENT is
+# still right for a type that declares slots -- deleting it invites somebody to
+# make it again. What was wrong was the claim about THIS list. It said empty was
+# a restriction and named "page-local extras" as a rejected hole, while an empty
+# list was already the widest possible hole and had been since the feature
+# shipped. A file arguing against free naming WAS the file permitting it.
 #
 # ⚠️ SLOTS ARE NOT INHERITED SIDEWAYS. Adding `revision_log` to `reference` does
-# NOT make it legal on `procedure`. That is the intended cost.
+# NOT make it legal on `procedure`. That is the intended cost, and it is
+# unaffected by the ruling above: inheritance runs along `extends`, and an empty
+# list at the top of a chain grants nothing to a child that declares its own.
 data_slots: []
