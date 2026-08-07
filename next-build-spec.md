@@ -1,13 +1,18 @@
 # doc-render-engine — next build spec
 
-⚠️ **TWO INDEPENDENT BUILDS LIVE IN THIS FILE.** Neither depends on the other; they are together because neither is big enough for its own document.
+⚠️ **THREE INDEPENDENT BUILDS ARE INDEXED HERE.** None depends on another. 1 and 2 live in this file because neither was big enough for its own document; **3 lives in its own file, and that is the new convention** — see the size note below.
 
-| | Build | Scoped | State |
-|---|---|---|---|
-| **1** | `dialect.py` + `clean.py` — publish the vocabulary, perform the removal | 2026-08-04 | ⚠️ SCOPED, NOT GREENLIT |
-| **2** | **The build report has no reader** — annotations, digest, `report.py` | 2026-08-06 | ⚠️ SCOPED, NOT GREENLIT |
+| | Build | Scoped | State | Where |
+|---|---|---|---|---|
+| **1** | `dialect.py` + `clean.py` — publish the vocabulary, perform the removal | 2026-08-04 | ⚠️ SCOPED, NOT GREENLIT | below |
+| **2** | **The build report has no reader** — annotations, digest, `report.py` | 2026-08-06 | ⚠️ SCOPED, NOT GREENLIT | below |
+| **3** | **A scoped theme, and the report page that needs it** | 2026-08-07 | ⚠️ SCOPED, NOT GREENLIT | [`specs/scoped-theme.md`](specs/scoped-theme.md) |
 
-Decision history for both: the **doc-render-engine (repo) — Decision Log** subpage in ClickUp.
+🔴 **THIS FILE WAS 22,660 B BEFORE THIS LINE WAS ADDED — PAST THE 22KB CEILING IT DOCUMENTS OTHER FILES AGAINST.** A file that cannot be read whole cannot be safely edited, and this one holds the plans. BUILD 3 went to `specs/` for that reason rather than as a style choice. **Builds 1 and 2 should follow it, leaving this as an index**; that is a real edit somebody has to make and it is not part of BUILD 3.
+
+⚠️ **BUILD 3 DEPENDS ON BUILD 2 — the only dependency in the table.** Its report page is a second caller of the renderer BUILD 2 Piece C extracts into `report.py`. Building 3 first means writing that renderer twice.
+
+Decision history for all three: the **doc-render-engine (repo) — Decision Log** subpage in ClickUp.
 
 ---
 
@@ -150,6 +155,8 @@ This is how *"I could feed it actual Markdown"* gets answered without a second i
 
 ⚠️ **SCOPED, NOT GREENLIT.** 2026-08-06.
 
+⚠️ **AND IT NOW HAS A DOWNSTREAM CONSUMER (2026-08-07).** BUILD 3's report PAGE is a second caller of the renderer Piece C extracts. That does not change any decision below; it raises Piece C's priority from tidiness to a dependency.
+
 > Michael, 2026-08-06, after a session that fixed three defects in a row: *"spec the build-report digest."*
 
 ## The evidence, and it is not anecdotal
@@ -192,6 +199,8 @@ So the build is: make the run LOOK different when the report is not clean. Every
 
 **3. Annotations are already emitted from sizecheck** — one `::error::`, for the leak scan. **The mechanism for making a run look different is already in the file that needs it.** It has only ever been used for the one failure that also exits 1.
 
+⚠️ **4. AND AS OF 2026-08-07 THERE IS A SECOND ANNOTATION IN THE PIPELINE**, from `instance._theme_override`: one `::notice::` naming the theme a publish overrode to, or one `::warning::` when the name was refused. It fires only on an override, so it does not affect the 10-per-step cap arithmetic in Piece A — but Piece A must count it rather than discovering it.
+
 ---
 
 ## The three pieces, cheapest first
@@ -213,7 +222,7 @@ GitHub renders workflow-command annotations at the top of the run page and inlin
 
 Append the report to `GITHUB_STEP_SUMMARY` beside docindex's publish preview.
 
-⭐ **ONE RENDERER, TWO DESTINATIONS — this is the whole design constraint.** A markdown renderer for the summary *plus* the existing `print()` loop is two implementations of one output, and they will disagree inside a month. **Markdown reads perfectly well as plain text** (`###` headings, `-` bullets), so render once and send the same string to stdout and to the summary file. The current plain-text loop is deleted, not kept alongside.
+⭐ **ONE RENDERER, TWO DESTINATIONS — this is the whole design constraint.** A markdown renderer for the summary *plus* the existing `print()` loop is two implementations of one output, and they will disagree inside a month. **Markdown reads perfectly well as plain text** (`###` headings, `-` bullets), so render once and send the same string to stdout and to the summary file. The current plain-text loop is deleted, not kept alongside. *(2026-08-07: BUILD 3 makes it THREE destinations. The constraint is unchanged and the argument is stronger.)*
 
 ⚠️ **APPEND ORDER IS HOOK ORDER, AND IT IS INVISIBLE.** Both writers open the file in append mode. sizecheck is hook 08 and docindex is 09, so the naive implementation puts findings ABOVE the publish preview. **Recommend findings BELOW the preview** — the preview answers *what am I about to ship*, which is the headline, and Piece A carries urgency independently of where the section sits. That requires the digest to run after hook 09. **Ruling 2.**
 
@@ -235,7 +244,7 @@ The report was never a size-budget concern; it lives there because both run last
 
 **1. Is the Actions surface enough?** Everything above still requires opening a workflow run. The alternatives, with the objection to each:
 
-- **A published `/build-report/` page on the site.** 🚫 Recommend against: it puts internal validation output on a public docs site, and the content-repo purity rule says the content tree holds documents, not machinery.
+- **A published `/build-report/` page on the site.** 🚫 Recommend against: it puts internal validation output on a public docs site, and the content-repo purity rule says the content tree holds documents, not machinery. ⚠️ **PARTIALLY OVERTURNED 2026-08-07 — see `specs/scoped-theme.md` §2.** The purity half is wrong: a GENERATED page never enters the content repo, which is what the rule is about, and `assets.py` already publishes six such files via `File.generated`. **The public-exposure half stands and is the real problem**, and BUILD 3 §5 is where it gets answered.
 - **A ClickUp comment posted from the workflow.** 🚫 Recommend against *inside the engine*: it needs a token, and it makes the engine know about a system that is not the web — the leak scan exists to stop exactly that class of coupling. If it is wanted, it belongs in the **workflow**, reading the summary file the engine already wrote. The engine stays ignorant, which is the seam that keeps it portable.
 - **Recommend: ship A and B, live with it a week, let the annotations prove whether the surface is the problem.** Today's evidence says nobody looks because nothing tells them to look, not because the log is hard to reach.
 
@@ -266,3 +275,13 @@ The report was never a size-budget concern; it lives there because both run last
 3. **Piece B — the summary section.** Needs ruling 2 first.
 
 🚫 **Do not start with B.** It is the piece that looks like the feature, and it is the one blocked on a ruling. A ships value the same day and is reversible in one line.
+
+---
+
+# BUILD 3 — a scoped theme, and the report page that needs it
+
+⚠️ **SCOPED, NOT GREENLIT.** 2026-08-07. **The spec is [`specs/scoped-theme.md`](specs/scoped-theme.md)** — it is not reproduced here, because a second copy of a plan is the defect both builds above already exist to prevent.
+
+One-line summary: a build report that renders as a generated PAGE on the site, wearing the `utility` theme rather than the site's own — which requires a theme that can apply to part of a site, which this engine has never had.
+
+🔴 **Its §1 is a blocking ruling on what "UTILITY" meant** (the theme, or the `01-utility/` folder), and the answer decides whether half the build exists at all. ⚠️ **Its §4c is the finding worth reading even if the build never happens:** a scoped selector silently kills `print.css` on the pages it scopes, because that sheet wins on source order at equal specificity and a two-attribute scope outranks it.
