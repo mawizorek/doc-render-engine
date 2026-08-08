@@ -79,35 +79,24 @@ marker was not, which is what the inline property existed to avoid.
 ⭐ THE CHIP TINT IS A NUMBER, NOT A FIFTH SHAPE (2026-08-07)
 ============================================================
 
-Michael asked for a highlighter that still renders a box. `.dr-mark--box` has
-ALWAYS painted a tinted ground -- `color-mix(... 10%, transparent)` -- so nothing
-was missing. 10% is simply below the level at which a reader reads the chip as
-highlighted rather than merely bordered.
+`.dr-mark--box` has ALWAYS painted a tinted ground. 10% is simply below the
+level at which a reader reads the chip as highlighted rather than bordered, so a
+highlight family needed a heavier tint and NOT a new shape.
 
-☑ SO THE REQUEST WAS FOR A PARAMETER AND ARRIVED SOUNDING LIKE A KIND, and that
-is the generalisable half. A `mark` shape was the obvious build and it would have
-been the fifth member of a set held to four in three separate files. The test
-that caught it: state the difference from `box` WITHOUT using a number. You
-cannot -- "a box with more tint" is the same shape with a different value in it.
+☑ THE REQUEST WAS FOR A PARAMETER AND ARRIVED SOUNDING LIKE A KIND. The test
+that caught it: state the difference from `box` without using a number. You
+cannot. `wash` is therefore a column on marker-classes.tsv, emitted here as
+`--dr-mark-wash`. A blank cell emits nothing and the CSS fallback supplies 10%,
+so every family that predates the column renders byte-identically.
 
-`wash` is therefore a column on marker-classes.tsv, emitted here as
-`--dr-mark-wash` and consumed by the `.dr-mark--box` rule below. A blank cell
-emits nothing and the CSS fallback supplies 10%, so every family that existed
-before this column renders byte-identically.
+⚠️ THE RULE CONSUMING IT IS EMITTED HERE RATHER THAN EDITED INTO base.css, for
+the same reason `.dr-term` was: two classes outrank base.css's one, so the
+background moves without rewriting a 17.4KB file from a single read -- the
+clobber that ate util.py on 2026-08-03. base.css still owns border, radius and
+padding, and its 10% survives as the var() fallback, not as a second live value.
 
-⚠️ AND THE RULE THAT CONSUMES IT IS EMITTED HERE RATHER THAN EDITED INTO
-assets/base.css, WHICH IS A DELIBERATE REPEAT OF WHAT THE `.dr-term` RULE DID.
-base.css is ~17.4KB, and a wholesale rewrite of it from one read is the clobber
-that ate util.py on 2026-08-03. `.md-typeset .dr-mark--box` is two classes and
-outranks base.css's one-class `.dr-mark--box`, so the background moves here
-without base.css needing to know this sheet exists -- the same specificity
-mechanism the class colours already use. ⚠️ base.css STILL OWNS the border,
-radius and padding: only the background moved, and its 10% literal survives as
-the var() fallback rather than as a second live value.
-
-⚠️ WASH IS NOT A FREE DIAL. The chip's text sits on a wash of ITSELF, so raising
-the wash lowers text-against-chip contrast. markers.tsv already says measure the
-chip and not the page; that warning now has a knob attached to it.
+⚠️ WASH IS NOT A FREE DIAL: the chip's text sits on a wash of ITSELF, so raising
+it lowers text-against-chip contrast. Measure the chip, not the page.
 
 
 🔴 THE VALIDATION LIST WENT STALE WHEN THE PALETTE MOVED (fixed 2026-08-05)
@@ -132,13 +121,11 @@ second place stating a fact the first place already owns.
 The union is read from the canonical table's own HEADER ROW, so a column added
 upstream is usable the day it is vendored. No third list.
 
-⚠️ AND THE NEAR-MISS THAT SURVIVES IT IS `accent-1`, WHICH DOES NOT EXIST. The
-canonical four are `accent`, `accent-deep`, `accent-2` and `accent-soft`. Once a
-file contains `accent-2` the obvious thing to type for the first one is
-`accent-1`; it is a legal token NAME, so it passes the regex, fails the set, and
-lands in exactly the report line everybody read as "not vendored yet" for two
-days. Nothing here can catch that beyond naming it, which markers.tsv now does at
-the point the cell is typed.
+⚠️ THE NEAR-MISS THAT SURVIVES IT IS `accent-1`, WHICH DOES NOT EXIST -- the
+four are `accent`, `accent-deep`, `accent-2`, `accent-soft`. It is a legal token
+NAME, so it passes the regex, fails the set, and lands in the same report line
+everybody read as "not vendored yet" for two days. Named in markers.tsv, at the
+point the cell is typed.
 
 Defined in theme/markers.tsv + theme/marker-classes.tsv. Adding one is a row.
 """
@@ -160,16 +147,14 @@ _MARK = re.compile(
 # thing else -- #hex, oklch(...), rgb(...) -- is passed through as written.
 _TOKEN = re.compile(r"^[a-z][a-z0-9-]*$")
 
-#: A wash is a PERCENTAGE and nothing else. Deliberately narrower than what
-#: color-mix() accepts: the alternatives all render as something plausible and
-#: wrong. A bare number is dropped by color-mix (silently no background), and a
+#: A wash is a PERCENTAGE and nothing else -- deliberately narrower than what
+#: color-mix() accepts, because every alternative renders as something plausible
+#: and wrong. A bare number is DROPPED by color-mix (no background at all), and a
 #: length unit computes to a different tint than the author read in the cell.
-#: One legal spelling means the report can name the fix.
 _WASH = re.compile(r"^(?:100|[1-9]?[0-9])%$")
 
-#: The wash used when a family declares none. Stated here AND as the fallback
-#: inside the emitted var(), which is not redundancy: the var() fallback is what
-#: protects a page if this sheet fails to load at all.
+#: Stated here AND as the fallback inside the emitted var(). Not redundancy: the
+#: var() fallback is what protects a page if this sheet fails to load at all.
 _DEFAULT_WASH = "10%"
 
 _SHAPES = {"box", "plain", "strike", "soft"}
@@ -256,18 +241,15 @@ def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> st
 def _wash(value: str, where: str, report: bool = True) -> str:
     """Validate a family's chip tint. Returns "" to mean "emit nothing".
 
-    Empty is the NORMAL answer and is not reported: a family that never mentions
-    wash is inheriting the default on purpose, and every family but one does.
+    Empty is the NORMAL answer and is never reported: a family that does not
+    mention wash is inheriting the default on purpose, and every family but one
+    does. `report` mirrors _colour's, for the same twice-per-build reason.
 
-    `report` mirrors _colour's, and for the same reason -- build_css() runs twice
-    per build and the single honest complaint comes from _build_table.
-
-    ⚠️ A REJECTED WASH FALLS BACK TO THE DEFAULT RATHER THAN TO NOTHING, which is
-    the opposite of what _colour does with a bad token, deliberately. An
-    unresolvable colour must not be silently replaced because the marker would be
-    the wrong COLOUR and nobody could tell by looking. A wash that reverts to 10%
-    is a chip that looks exactly like every other chip -- visible, legible, and
-    obviously not the emphasis that was asked for.
+    ⚠️ A REJECTED WASH FALLS BACK TO THE DEFAULT, which is the OPPOSITE of what
+    _colour does with a bad token, deliberately. An unresolvable colour must not
+    be quietly substituted -- the marker would be the wrong colour and nobody
+    could tell by looking. A wash reverting to 10% is a chip that looks like
+    every other chip: legible, and obviously not the emphasis that was asked for.
     """
     value = (value or "").strip()
     if not value:
@@ -317,10 +299,9 @@ def _build_table() -> dict[str, dict]:
         wash = _wash(classes[name].get("wash", ""), where)
         shape = (classes[name].get("shape") or "").strip()
         if wash and shape and shape != "box":
-            # Not an error -- the cell is simply inert, because only the box
-            # shape paints a ground. Said out loud because the author is looking
-            # at a real value in a real column and reasonably expects it to do
-            # something.
+            # Not an error -- only `box` paints a ground, so the cell is inert.
+            # Said out loud because the author is looking at a real value in a
+            # real column and reasonably expects it to do something.
             state.note(
                 "notes",
                 where + " sets wash '" + wash + "' but its shape is '" + shape
@@ -379,8 +360,7 @@ def build_css() -> str:
     Specificity is deliberate: `.md-typeset .dr-mark--cls-x` is two classes and
     beats base.css's one-class `.dr-mark` currentColor default, so base.css does
     not need to know this sheet exists. A ROW override is inline and beats both.
-    Shape stays in base.css -- only colour, and now the chip's tint, are
-    generated.
+    Shape stays in base.css; colour and the chip tint are generated.
     """
     classes = _classes()
     tokens = _known_tokens()
@@ -402,9 +382,8 @@ def build_css() -> str:
             )
         ]
         # Emitted ONLY when the family declares one, so a blank cell leaves the
-        # var() fallback below to supply the default. The alternative -- writing
-        # 10% onto every class -- would be a second live copy of a value
-        # base.css already states, and the two would drift.
+        # var() fallback to supply the default. Writing 10% onto every class
+        # would be a second live copy of a value base.css already states.
         wash = _wash(classes[name].get("wash", ""), "", report=False)
         if wash:
             decls.append("--dr-mark-wash: " + wash)
@@ -412,19 +391,15 @@ def build_css() -> str:
             ".md-typeset .dr-mark--cls-" + name + " { " + "; ".join(decls) + "; }"
         )
 
-    # THE CHIP TINT. base.css keeps the border, the radius and the padding; only
-    # the background moves here, because only the background is now data.
+    # THE CHIP TINT. base.css keeps the border, radius and padding; only the
+    # background moves here, because only the background is now data.
     #
-    # ⚠️ TWO CLASSES, WHICH IS THE WHOLE MECHANISM. base.css's `.dr-mark--box` is
-    # one class; this is two, so it wins wherever both apply and base.css needs
-    # no edit. That matters more than it sounds: base.css is ~17.4KB, and the
-    # documented way this repo has broken a file that size is a wholesale rewrite
-    # from a single read.
+    # ⚠️ TWO CLASSES IS THE WHOLE MECHANISM: base.css's `.dr-mark--box` is one,
+    # this is two, so it wins and base.css needs no edit.
     #
-    # ⚠️ THE FALLBACK IS NOT DECORATION. If marks.css fails to load, every chip
-    # loses its tint AND its colour, which is a visible, diagnosable failure. If
-    # this rule loads and a class simply declares no wash, the fallback is what
-    # keeps the chip looking like it always has.
+    # ⚠️ THE FALLBACK IS NOT DECORATION. If marks.css fails to load, a chip loses
+    # its tint AND its colour -- visible and diagnosable. If this rule loads and a
+    # class simply declares no wash, the fallback keeps the chip as it always was.
     lines.append(
         ".md-typeset .dr-mark--box { background: color-mix(in oklch,"
         + " var(--dr-mark-color) var(--dr-mark-wash, " + _DEFAULT_WASH + "),"
@@ -440,11 +415,6 @@ def build_css() -> str:
     # persists an underline in this build. An affordance the design depends on is
     # not left to somebody else's default. If Material underlines too, this is a
     # no-op.
-    #
-    # Emitted HERE rather than in base.css for a boring reason worth stating:
-    # base.css is ~18.9KB, past its warn line, and a wholesale rewrite from one
-    # read is the clobber that ate util.py on 2026-08-03. This file already
-    # generates the colour half.
     lines.append(
         ".md-typeset a." + _TERM_LINK_CLASS + " { color: var(--dr-mark-color);"
         + " text-decoration: underline; text-decoration-thickness: 1px;"
