@@ -1,0 +1,11 @@
+# ROUTE TABLES for this site. See instances/uritp/routes.yml for the full
+# explanation; the short version:
+#
+#   - a page opts in with `router: <table>` and renders a text field
+#   - the value on the right is a page `id`, never a path
+#   - NOT security. A router does not know where to send a wrong code; it does
+#     not stop anyone reaching the destination another way.
+#
+# ⚠️ Deliberately empty. A router here would read as an access control on the
+# HML folder and it is explicitly not one - see the scope warning in site.yml.
+# Do not solve a visibility problem with a route table.
