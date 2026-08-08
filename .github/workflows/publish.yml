@@ -1,7 +1,7 @@
 name: Publish a site
 
 # THE PUBLISH BUTTON. One site, on purpose, when its content is ready.
-# Rationale, traps and superseded reasoning: ./README.md § publish.yml
+# Reasoning, traps and struck claims: ./publish-dl.md
 
 run-name: >-
   ${{ inputs.site }} · ${{ inputs.mode }}${{ inputs.theme != '' && format(' · theme: {0}', inputs.theme) || '' }}${{ inputs.note != '' && format(' · {0}', inputs.note) || '' }}
@@ -18,10 +18,10 @@ on:
           - publish
           - preview
       site:
-        # ⚠️ HAND-MAINTAINED, and the only site list in the family that is not
-        # derived. Adding an instance is TWO edits: instances/<slug>/ AND this
-        # list. `hml` shipped unpublishable for two days on one of them.
-        # README § The `site` dropdown
+        # ⚠️ HAND-MAINTAINED and it cannot be otherwise: dispatch inputs are read
+        # before any job starts. Adding a site is THREE edits — instance,
+        # build.yml matrix, this list. `hml` shipped unpublishable on this one.
+        # publish-dl.md § The site list is hand-maintained
         description: Which site
         required: true
         type: choice
@@ -33,13 +33,13 @@ on:
           - uritp
           - prose
       theme:
-        # `string`, not a dropdown — README § The `theme` input
+        # `string`, not `choice` — publish-dl.md § The `theme` input
         description: "(opt) For THIS build only."
         required: false
         default: ""
         type: string
       note:
-        # README § The `note` input
+        # publish-dl.md § The `note` input
         description: "Shows in the run title and the deploy commit."
         required: false
         default: ""
@@ -53,17 +53,16 @@ jobs:
     runs-on: ubuntu-latest
     name: ${{ inputs.site }} (${{ inputs.mode }})
 
-    # Matches build.yml. A hung render holds a runner 6h on the default.
-    # README § timeout-minutes
+    # Matches build.yml. A hung render holds a runner 6h on the default ceiling.
     timeout-minutes: 10
 
     steps:
       - name: Check out the engine
         uses: actions/checkout@v4
         with:
-          # ⚠️ EXPLICITLY main, not the triggering SHA. Otherwise re-running an
-          # old run publishes an old engine and looks healthy.
-          # README § Checkout pins main
+          # ⚠️ EXPLICITLY main, not the triggering SHA. Otherwise a re-run
+          # publishes an OLD engine over a newer build and looks healthy.
+          # publish-dl.md § Re-run is not the same as run
           ref: main
           path: engine
 
@@ -75,8 +74,7 @@ jobs:
       - name: Resolve the site
         id: site
         working-directory: engine
-        # The content repo is read from the instance's site.yml, never restated
-        # here. README § The content repo is NOT restated
+        # Content repo comes from the instance's site.yml, never restated here.
         run: |
           slug="${{ inputs.site }}"
           if [ ! -f "instances/$slug/site.yml" ]; then
@@ -90,7 +88,6 @@ jobs:
 
       - name: State the reason, if one was given
         # Own step so it shows in the step LIST, not a collapsed log.
-        # README § The reporting steps are separate on purpose
         env:
           NOTE: ${{ inputs.note }}
         run: |
@@ -105,8 +102,7 @@ jobs:
           fi
 
       - name: State the theme override, if one was given
-        # ⚠️ ECHOES ONLY. It cannot validate the name and cannot know a `random`
-        # roll; the engine reports both from the render step.
+        # ⚠️ ECHOES ONLY. Cannot validate a name, cannot know a `random` roll.
         env:
           THEME: ${{ inputs.theme }}
         run: |
@@ -130,24 +126,20 @@ jobs:
           repository: ${{ steps.site.outputs.repo }}
           ref: main
           path: content
-          # ⚠️ AUTHENTICATED. A private content repo dies at exit 128 on an
-          # unauthenticated checkout, which reads as a broken build rather than
-          # a missing credential. `template` is the one exception, stated the
-          # same way here and on the deploy step.
-          # README § The content checkout is authenticated
+          # ⚠️ AUTHENTICATED. A private content repo dies at exit 128 unauthenticated,
+          # which reads as a broken build rather than a missing credential.
+          # `template` is the one exception, stated the same way on the deploy step.
+          # publish-dl.md § The content checkout is authenticated
           token: ${{ inputs.site != 'template' && secrets.DOCRENDER_TOKEN || github.token }}
-          # A preference now, not a requirement (revlog.py no longer calls git).
-          # The shallow-clone trap MOVED to the content repo's own workflow.
-          # README § fetch-depth
+          # A preference now, not a requirement. publish-dl.md § fetch-depth
           fetch-depth: 0
 
       - name: Check out the canonical design system
         id: canonical
         # continue-on-error IS the fallback: no directory means the vendored
         # theme/canonical/ renders and the report says so. Red X, green job.
-        # ⚠️ A fallback here also SHRINKS the legal theme set, so an upstream
-        # theme can be rejected as unknown.
-        # README § The canonical design system is read live
+        # ⚠️ A fallback here also SHRINKS the legal theme set.
+        # publish-dl.md § The same staleness had a third source
         continue-on-error: true
         uses: actions/checkout@v4
         with:
@@ -176,13 +168,12 @@ jobs:
           DOCRENDER_OUTPUT: ${{ github.workspace }}/site
           DOCRENDER_ENGINE_REF: ${{ steps.engine.outputs.sha }}
           DOCRENDER_DRY_RUN: ${{ inputs.mode == 'preview' && '1' || '0' }}
-          # Both of these are ALWAYS set; the VALUE is what varies.
-          # README § Why the env exports are inline
+          # Both ALWAYS set; the VALUE is what varies.
           DOCRENDER_CANONICAL: ${{ github.workspace }}/canonical
           DOCRENDER_THEME: ${{ inputs.theme }}
         run: |
           # ⚠️ Exported inline: $GITHUB_ENV only reaches LATER steps, so setting
-          # these in another step leaves the build stamp reading `unstamped`.
+          # these elsewhere leaves the build stamp reading `unstamped`.
           cd "${{ github.workspace }}/content"
           export DOCRENDER_COMMIT_SHA="$(git rev-parse HEAD)"
           export DOCRENDER_COMMIT_SUBJECT="$(git log -1 --pretty=%s)"
@@ -198,9 +189,9 @@ jobs:
           publish_branch: gh-pages
           publish_dir: ./site
           enable_jekyll: false
-          # The note's DURABLE home (Actions logs age out; a commit does not),
-          # and the only record of why a live site disagrees with its site.yml
-          # after a themed publish. README § The `note` input
+          # The note's DURABLE home (Actions logs age out; a commit does not), and
+          # the only record of why a live site disagrees with its own site.yml
+          # after a themed publish. publish-dl.md § The `note` input
           commit_message: "publish: ${{ inputs.site }} from engine ${{ steps.engine.outputs.sha }}${{ inputs.theme != '' && format(' · theme: {0}', inputs.theme) || '' }}${{ inputs.note != '' && format(' · {0}', inputs.note) || '' }}"
 
       - name: What happens next
