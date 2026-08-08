@@ -1,6 +1,14 @@
 # BUILD 4 — splitting `visibility.py`
 
-⚠️ **SCOPED, NOT GREENLIT.** 2026-08-07. No code. Indexed from `next-build-spec.md`.
+⚠️ **SCOPED, NOT GREENLIT.** 2026-08-07. No code.
+
+⚠️ **NOT YET INDEXED from `next-build-spec.md`, and the header used to claim it
+was.** Corrected by the second reader: the commit that created this file added
+exactly one file. The row is deferred to whoever edits that file next — it is
+**22,660 B, already past its own 22 KB ceiling**, and §10d is the argument that
+widening it is its own build rather than a passenger on this one. 🔴 **A claim
+that is not true yet is the defect this repo hunts; an unwritten table row is
+only a task.**
 
 > Michael, 2026-08-07, after the first build report rendered on the site:
 > *"Split visibility.py first, spec the seams before cutting."*
@@ -39,6 +47,11 @@ it got there honestly, one correct decision at a time.
 The cut that is worth making follows the concerns. It also fixes the bytes. If
 those two ever disagree, follow the concerns.
 
+⭐ **THEY DISAGREE IN EXACTLY ONE PLACE AND THIS SECTION ALREADY SETTLED IT.**
+See §11: two helpers sit on the wrong side of the seam, and moving them where
+they belong makes the biggest new file BIGGER. This paragraph is the ruling, made
+before the case arrived, which is the only time a rule like it is worth anything.
+
 ---
 
 ## 2. What is actually in the file
@@ -56,8 +69,8 @@ Every top-level definition, in source order, with the concern it serves.
 | `_find_index` | **tree** | 00b |
 | `_mark_indexes` | **tree** | 00b |
 | `_index_of` | **tree** | 00b + exported to navstate |
-| `_title` | **tree** | shared |
-| `_node_url` | **tree** | shared |
+| ~~`_title`~~ | ~~tree~~ → **seal** | ⚠️ corrected, §11 |
+| ~~`_node_url`~~ | ~~tree~~ → **seal** | ⚠️ corrected, §11 |
 | `_next_visible_url` | **seal** | 00bc |
 | `_unchain` | **tree** | shared + exported to navstate |
 | `_collect` | **seal** | 00bc |
@@ -77,6 +90,9 @@ Every top-level definition, in source order, with the concern it serves.
 | `00bb_navstate.py` | `_index_of`, `_unchain` | repoint to `navtree` |
 
 Nothing in `docrender/` imports it. Every other mention across the repo is prose.
+
+✅ **BOTH TABLES RE-VERIFIED AGAINST SOURCE BY A SECOND READER**, 2026-08-07, and
+the importer list came back identical. The concern column did not — see §11.
 
 ---
 
@@ -103,11 +119,15 @@ Four stages, four modules, and the two that already existed were already named
 this way. **The odd one out today is the file holding two of the four.**
 
 ⚠️ **`navtree` AND NOT `navprune`, DELIBERATELY.** The stage name maps better,
-and the name would lie: this module also holds `_title`, `_node_url`, `_unchain`
-and `_index_of`, which the seal and navstate both use and which are not the
-prune. Same rule `links.py` applied when it refused to append seven image
-suffixes to a tuple called `_DATA_SUFFIXES` — *"a name is a promise."* Name it
-for what it holds.
+and the name would lie: this module also holds `_unchain` and `_index_of`, which
+the seal and navstate both use and which are not the prune. Same rule `links.py`
+applied when it refused to append seven image suffixes to a tuple called
+`_DATA_SUFFIXES` — *"a name is a promise."* Name it for what it holds.
+
+⚠️ **That sentence originally listed `_title` and `_node_url` here too. It no
+longer can — see §11 — and the name survives the correction on the two genuinely
+shared helpers that remain.** Recorded rather than silently reworded, because an
+argument that loses half its evidence is worth re-reading.
 
 ---
 
@@ -132,6 +152,12 @@ navstate  <- navseal
 
 **`navstate` importing `navtree` directly becomes legal.** The constraint that
 forced the hand-wiring is a consequence of the bundling, not of the design.
+
+✅ **§11 STRENGTHENS THIS RATHER THAN THREATENING IT.** Moving `_title` and
+`_node_url` out of `navtree` removes two more functions from the module that must
+stay dependency-free, so `navtree imports nothing but state` gets easier to keep
+true, not harder. Worth checking, because a correction that quietly broke §4
+would be a bad trade.
 
 🚫 **AND DO NOT CASH IT IN THIS BUILD.** Collapsing that shim means changing
 `navstate.shape()`'s signature, and **`navstate.py` is 25,631 B — the
@@ -170,7 +196,9 @@ is the build.
 
 ## 6. `navseal.py` will still be over the warn line, and that is the right answer
 
-Estimated **~19–20 KB**: under the 22KB hard limit, past the 18KB warn line.
+Estimated **~19–20 KB**, and **§11 adds roughly another 1 KB to it**: under the
+22KB hard limit, past the 18KB warn line, and with less headroom than this
+section originally claimed.
 
 The obvious further cut is to separate **describing a node for the manifest**
 (`_collect`, `_title`, `_node_url`, `_next_visible_url`) from **deciding to seal**
@@ -182,6 +210,12 @@ section's children. Putting them in two modules puts a cycle between them —
 **which is precisely the thing §4 just spent the whole split removing.** Trading
 a real cycle for a byte count would be a bad deal made twice in one build.
 
+✅ **RE-VERIFIED INDEPENDENTLY, 2026-08-07**, because this is the claim the whole
+section rests on and "two functions call each other" is easy to assert and cheap
+to check. Both call sites are in the source: `_collect` → `_seal(node, index)` in
+its nested-routed branch, `_seal` → `_collect(kid, items, 1)` in its harvest
+loop. The recursion is real.
+
 So: accept it, and say so in the report rather than letting it look like an
 oversight. The Source-Size Budget Enforcer's own instruction is to flag the
 pathological case, not to fragment one coherent unit into arbitrary A/B pieces —
@@ -190,7 +224,7 @@ and the seal is one feature (DL J14, plus `nav: routed`), not a bag of leftovers
 ⚠️ **The next honest reduction in that file is PROSE, not code.** `_seal` is
 ~7.5 KB and most of it is comment and report text. That is a separate decision
 about how much argument a function should carry, and this build must not make it
-quietly while doing something else.
+quietly while doing something else. **§11 makes this more urgent, not less.**
 
 ---
 
@@ -208,6 +242,10 @@ quietly while doing something else.
   oversight.** A pure move is reviewable by reading a diff; a move plus a rename
   is not. Precedent: BUILD 2 Piece C shipped as a pure move eight hours ago.
 - 🚫 **NO BEHAVIOUR CHANGE OF ANY KIND**, which is what makes §8 possible.
+
+⚠️ **§11 IS A MOVE, NOT A RENAME OR A BEHAVIOUR CHANGE**, so it does not breach
+any line above and does not weaken §8. Two functions land in a different file;
+not one caller, signature or byte of logic differs.
 
 ---
 
@@ -243,13 +281,14 @@ And **read the byte sizes back** rather than quoting §9.
 ## 9. Files and sizes — ⚠️ ESTIMATED, NOT MEASURED
 
 Derived by summing the source read in §2. **Every one of these is a guess about a
-file that does not exist yet.**
+file that does not exist yet**, and §11 moves roughly 1 KB from `navtree` to
+`navseal` after these were written.
 
 | File | Now | After (est.) |
 | --- | --- | --- |
 | `docrender/visibility.py` | 29,648 B | **~6 KB** |
-| **NEW** `docrender/navtree.py` | — | **~7–8 KB** |
-| **NEW** `docrender/navseal.py` | — | **~19–20 KB** ⚠️ over the warn line, §6 |
+| **NEW** `docrender/navtree.py` | — | **~6–7 KB** |
+| **NEW** `docrender/navseal.py` | — | **~20–21 KB** ⚠️ over the warn line, §6 |
 | `hooks/00b_unlisted.py` | 1,333 B | +0, one import line |
 | `hooks/00bb_navstate.py` | 1,531 B | +0, one import line, plus §10 |
 | `hooks/00bc_seal.py` | 1,460 B | +0, one import line, plus §10 |
@@ -265,6 +304,9 @@ in `next-build-spec.md` was wrong within 48 hours and **had changed an
 instruction rather than just a figure**; seven size claims on 2026-08-01 were
 wrong on arrival, one of them inside the sentence documenting the pattern.
 **Measure at the moment you act.**
+
+⚠️ **AND THIS TABLE HAS NOW BEEN EDITED ONCE BEFORE ANY CODE EXISTS**, which is
+the warning above proving itself inside its own document.
 
 ---
 
@@ -308,9 +350,63 @@ survives only as long as everybody remembers it, which is not a mechanism."*
 build, not riding inside a refactor of a different module. But it is the reason
 the README got to 25 KB unremarked, and it will do it again.
 
+**e. And it is why this spec is not indexed.** The header claim was corrected
+rather than the row added: `next-build-spec.md` is past its own ceiling, the
+budget cannot see it, and inflating it further inside a refactor spec is the
+exact side-effect surgery §4 refuses. The row goes in when that file is next
+opened deliberately.
+
 ---
 
-## ⏳ Rulings needed (four)
+## 11. ⚠️ AMENDMENT — two helpers are on the wrong side of the seam
+
+Added by a second reader, 2026-08-07, before any code existed.
+
+**`_title` and `_node_url` are filed in §2 as shared tree vocabulary. They are
+not shared.** Every caller of either is in the seal half:
+
+| Helper | Called by | Concern of every caller |
+| --- | --- | --- |
+| `_title` | `_collect`, `_seal` | seal |
+| `_node_url` | `_next_visible_url` (twice) | seal |
+
+Nothing in the prune, in `prune_nav`, or in the pair exported to `navstate`
+touches either one.
+
+⭐ **AND THE RULE THAT DECIDES IT IS ALREADY WRITTEN DOWN, IN `state.py`, ABOUT
+ITSELF:** *"EVERY VALUE HERE NEEDS A WRITER AND A READER IN DIFFERENT HOOKS. That
+is the admission price… If a value is only ever touched by one module, it belongs
+in that module."* That rule got `REVLOG` deleted on 2026-08-04 after its reader
+went away and it sat in the shared namespace *"by preference."* **Two functions
+about to be placed in a shared module, used by exactly one consumer, is the same
+situation caught one step earlier — before the shared copy exists rather than
+four weeks after.**
+
+🔴 **THE COST RUNS THE WRONG WAY, AND THAT IS WHY IT IS WORTH A SECTION.** Moving
+them **shrinks `navtree` and grows `navseal`** — the file that is already past the
+warn line and the one thing about this plan anybody would want to make smaller.
+Roughly 1 KB, in the wrong direction, to satisfy a placement rule.
+
+⭐ **§1 SETTLED THIS BEFORE THE CASE AROSE:** *"The cut that is worth making
+follows the concerns. It also fixes the bytes. If those two ever disagree, follow
+the concerns."* This is the disagreement, and it arrived within one reading of the
+rule being written. **Keeping two seal-only helpers in `navtree` to protect a byte
+count would be precisely the arbitrary cut §1 exists to refuse** — and it would
+leave `navtree` exporting vocabulary its own stage never speaks.
+
+✅ **It costs §4 nothing** (two fewer functions in the module that must stay
+dependency-free) and **breaches nothing in §7** (a move, not a rename, not a
+behaviour change), so §8's byte-identical test is unaffected.
+
+⚠️ **What it does cost is headroom**, and the honest consequence is that §6's
+closing note stops being a nice-to-have: **the prose reduction in `_seal` is now
+the next real decision in that file**, not a someday. Named here rather than
+solved, because how much argument a function should carry is Michael's call and
+not a thing to settle as a passenger on a refactor.
+
+---
+
+## ⏳ Rulings needed (five)
 
 **1. Three modules, or two?** The two-way alternative is gate + everything-nav,
 which leaves one ~23 KB module still over the hard limit. **Recommend three.**
@@ -321,11 +417,18 @@ The only argument for two is fewer files, and the file count is not the problem.
 
 **3. Accept `navseal.py` past the warn line?** **Recommend yes**, on the mutual
 recursion in §6, and report it in the same commit rather than letting the next
-reader find it as a surprise.
+reader find it as a surprise. ⚠️ §11 makes this ~1 KB worse; the recommendation
+does not change.
 
 **4. Pure move, or fix the private cross-module names in the same pass?**
 **Recommend pure move.** §8's byte-identical test only works if nothing else
 changed, and that test is worth more than the rename.
+
+**5. NEW — §11: follow the concerns, or protect the byte count?** **Recommend
+following the concerns**, per §1, which ruled on it in advance. The alternative is
+defensible only if `navseal` turning out over 22 KB when measured makes the hard
+limit the binding constraint — in which case the answer is the prose reduction in
+§6, not a helper parked in the wrong module.
 
 ---
 
@@ -333,8 +436,10 @@ changed, and that test is worth more than the rename.
 
 1. **Capture the before-build.** `site/` at HEAD, on one instance. Without it §8
    does not exist, and it cannot be captured after the fact.
-2. **`navtree.py`** — move the tree helpers and the prune. Nothing imports it yet.
-3. **`navseal.py`** — move the seal. It imports `navtree` and `navstate`.
+2. **`navtree.py`** — move the prune and the genuinely shared helpers. Nothing
+   imports it yet.
+3. **`navseal.py`** — move the seal, including `_title` and `_node_url` per §11.
+   It imports `navtree` and `navstate`.
 4. **Trim `visibility.py`** to the gate, and rewrite its docstring to the gate's
    contract only.
 5. **Repoint the three shims**, and fix §10a and §10b while there.
@@ -344,7 +449,8 @@ changed, and that test is worth more than the rename.
 🚫 **Do not start at 5.** A shim repointed before its target exists is the §5
 outage, arrived at deliberately.
 
-⚠️ **And claim the branch first.** Six parallel-session collisions in this repo
+⚠️ **And claim the branch first.** Seven parallel-session collisions in this repo
 have ended the same way: complete, correct, unmerged work that nobody could see.
-This file's own feature shipped four minutes after it was asked for, on a branch
-with no PR.
+**This document was the seventh** — written, committed, and sitting on an
+unopened branch when a second session tried to claim the same name. The 422 is
+what surfaced it, which is luck rather than a mechanism.
