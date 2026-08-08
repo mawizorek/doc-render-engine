@@ -1,0 +1,117 @@
+# MAWPROSE - Michael's long-form notes and FileMaker app documentation.
+#
+# The content repo predates the doc-site family (created 2026-07-29, "for long
+# form notes") and had been authored in engine dialect for weeks without an
+# instance to render it: `!!! data`, `{.tbc}`, `{.conf}`, `@table-*` object
+# references and numbered section folders were all already in the tree.
+
+name: MAW Prose
+description: Long-form notes, standards, and FileMaker application documentation.
+slug: mawprose
+base_url: https://mawizorek.github.io/maw-prose/
+
+content_repo: mawizorek/maw-prose
+content_branch: main
+
+# 🔴 THE SLUG IS `mawprose` AND NOT `prose`, AND THIS IS THE SECOND TIME THIS
+# FAMILY HAS LEARNED IT (renamed 2026-08-08, first build).
+#
+# `prose` FAILED the leak scan on its very first run - five hits, all of them
+# correct code and none of them about this site:
+#
+#   docrender/sheet.py · theme/typography.tsv · theme/canonical/themes.json
+#   assets/data.css · assets/data-list.css
+#
+# "Prose" is a TYPOGRAPHY TERM. Those files use it to mean running body text,
+# which is exactly what a rendering engine should be talking about. There was
+# nothing to remove and nothing to move.
+#
+# ⚠️ THE ORIGINAL COMMENT ON THIS FILE GOT THIS EXACTLY BACKWARDS. It said an
+# ordinary English word makes the check "pass trivially" and kept the scan on
+# because "an opt-out is a permanent hole bought for a check that costs
+# nothing." The check does not pass trivially on a dictionary word - it CANNOT
+# PASS AT ALL. Recorded rather than deleted, because the wrong reason was
+# plausible enough to be written down once already.
+#
+# ⭐ THE RULE, and hml/site.yml already had the other half of it: a SLUG is an
+# identifier the engine's own code must never be able to say by accident. Two
+# of the four earlier sites had ordinary-word slugs (`theatre`, `template`) and
+# both had to opt OUT of the scan under the old design - so the scan was
+# redesigned to read code and ignore comments, and even that cannot save a word
+# the code legitimately uses as a CSS class. **Pick a slug no engine file would
+# ever type.** `mawprose` is unpronounceable as prose and therefore safe.
+#
+# 🚫 The alternative - opting this instance out - would have traded a permanent
+# hole in a real portability check for a name nobody says out loud.
+
+# ⭐ OTHER NAMES THIS SITE ANSWERS TO ON THE COMMAND LINE.
+# One-line flow list, per the shell helper's regex fallback (see
+# instances/uritp/site.yml for why that constraint exists).
+#
+# ⭐ `prose` IS HERE ON PURPOSE - it is the retired slug, and a retired name is
+# precisely what a hand types from memory. Same reasoning that keeps `oph` on
+# the theatre instance. `publish prose` still works and resolves to `mawprose`.
+#
+# ⚠️ "mawster" and "production-mawster" resolve HERE rather than to a site of
+# their own. Production MAWster is an app FOLDER inside this content repo, and a
+# name that reads like a site but is not one is what somebody types later.
+aliases: [prose, maw-prose, "MAW Prose", prose-docs, mawster, production-mawster]
+
+# ONE LINE. `database` treats a table as the primary content rather than an
+# illustration of it - correct for a site whose real pages are FileMaker field
+# menus rendered from .tsv.
+theme: database
+
+edit_links: true
+
+# 🔴 SCOPE WARNING - READ BEFORE `mode:publish`.
+#
+# maw-prose is a PUBLIC repository and it holds MORE than the theatre work:
+# `apps/hml-llc/` is the Hard Money Loan documentation, which is family
+# business material. This instance points the renderer at the whole tree.
+#
+# HML content has already leaked into a public repo twice (2026-07-29 and
+# 2026-07-31). This is not a hypothetical risk profile.
+#
+# ⚠️ AND THE FIRST REAL BUILD SHOWED WHY IT IS NOT URGENT *YET*, WHICH IS A
+# WORSE REASON TO RELAX THAN IT SOUNDS: all 20-odd `apps/hml-llc/` pages are
+# currently NOT BUILT because they carry no `status:` field. **They are being
+# protected by an accident of incomplete front matter, not by a decision.** The
+# day somebody backfills front matter across that tree, they publish.
+#
+# The three real options, unchanged:
+#   1. leave it in `mode:preview` forever (deploys nothing) and read the build
+#   2. scope the site to `apps/production-mawster/` + the shared standards
+#   3. split prose into a separate content repo per audience
+#
+# ⚠️ Option 2 is NOT expressible in this file today - the engine takes a whole
+# content repo. It needs either a `docs_dir` key on the instance or a content
+# split. `sections:` below only ORDERS what it finds; it does not limit it.
+
+# Fallback titles only: a folder with an index.md takes that page's title.
+# Numbered folders inside an app (20-tables, 70-scripts) are the app's own
+# ordering and need nothing here.
+sections:
+  apps:
+    order: 10
+  standards:
+    order: 20
+  guides:
+    order: 30
+  handbooks:
+    order: 40
+  programs:
+    order: 50
+  venues:
+    order: 60
+  paperwork:
+    order: 70
+  email-templates:
+    order: 80
+
+peers:
+  template: https://mawizorek.github.io/doc-render-engine/
+  theatre: https://mawizorek.github.io/theatre-docs/
+
+# ✅ Full leak scan, no opt-out - and now it is a MEANINGFUL check rather than a
+# guaranteed failure, because `mawprose` appears nowhere in the engine.
