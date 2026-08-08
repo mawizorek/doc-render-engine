@@ -24,8 +24,32 @@
 # shape    default shape for the family: box · plain · strike · soft
 # color    default colour: any token from EITHER colour table, or a literal
 #          hex/oklch
+# wash     BOX SHAPES ONLY. How much of the marker's own colour tints the chip
+#          behind the text, as a percentage. BLANK inherits the 10% baked into
+#          the `.dr-mark--box` fallback, so every existing family renders
+#          byte-identically to before this column existed.
 # label    what this family MEANS. For the reader of this file and the report.
 # ---------------------------------------------------------------------------
+#
+# ⭐ `wash` EXISTS BECAUSE THE HIGHLIGHT FAMILY NEEDED A FIFTH SHAPE AND DID NOT
+# GET ONE (2026-08-07). Michael asked for a highlighter that renders a box like
+# `tbc` does. The chip ALREADY had a tinted ground -- `color-mix(... 10%,
+# transparent)` -- so nothing was missing; 10% is simply below the threshold
+# where a reader registers it as highlighting rather than as a border.
+#
+# The obvious move was a `mark` shape with a heavier tint. Rejected: the closed
+# set of four is argued in THREE files on the grounds that a reader can tell four
+# shapes apart at a glance and cannot tell nine, and "same shape, more tint" is
+# not a new shape -- it is the same shape with a different number in it. ⚑ A
+# request for a new VARIANT is a request for a new PARAMETER far more often than
+# it is a request for a new KIND, and the tell is whether you can state the
+# difference without using a number.
+#
+# ⚠️ WASH AND COLOUR ARE NOT INDEPENDENT, WHICH IS WHY THIS IS NOT A FREE DIAL.
+# The chip text sits on a wash of ITSELF, so raising the wash lowers the contrast
+# between the two. markers.tsv's header already says to measure the chip and not
+# the page; that warning now has a knob attached to it, so measure after changing
+# this cell rather than after changing only `color`.
 #
 # 🔴 `terminology` ASKED FOR `accent-soft` FOR TWO DAYS AND NEVER GOT IT, AND THE
 # COMMENT THAT USED TO SIT HERE EXPLAINED IT AS A PLAN. Two things were wrong.
@@ -50,6 +74,30 @@
 # is the colour of a named, tracked value, which is exactly what a defined term
 # is. ⭐ Still ONE CELL: the token is named here and nowhere else, so changing it
 # again is a data edit. The moment a second surface hardcodes it, that is dead.
-class	shape	color	label
-confidence	box	warn	how much to trust the value beside it
-terminology	plain	accent-2	a defined term, with or without a page behind it
+#
+# ⚠️ `highlight` TAKES `accent` ON MICHAEL'S RULING, AGAINST MY RECOMMENDATION,
+# AND HIS REASONING IS THE ONE THAT SURVIVES (2026-08-07). I argued for `accent-2`
+# because `accent` already paints the `note` CALLOUT and a highlight is closer to
+# the `abstract` register. He pointed out that `accent-2` already paints a MARKER
+# -- terminology, one row below -- and that the callout collision costs nothing
+# because a box and an inline chip are different surfaces a reader never compares.
+#
+# ⭐ THE GENERAL RULE, WRITTEN DOWN BECAUSE IT DECIDES THE NEXT FAMILY TOO:
+# COLOUR COLLISIONS ONLY COUNT WITHIN A SURFACE. Two callouts sharing a token is
+# the documented design (`tip`/`success`/`good` all take `good`). Two INLINE
+# MARKERS sharing one would be a genuine defect, because they appear in the same
+# sentence, at the same size, and the only thing telling them apart is the paint.
+# blocks.tsv can reuse freely; this file cannot.
+#
+# ⚠️ AND THE SEPARATION IS NOW LOAD-BEARING RATHER THAN INCIDENTAL. `highlight`
+# and `confidence` are the only two BOXED marker families, so their two tokens --
+# `accent` and `warn` -- are the one pair on this whole surface that a reader has
+# to distinguish mid-sentence. On the URITP palette that is #b38216 against
+# #ffcc33: the same hue, ~40% apart in lightness, which is enough at 25% wash and
+# is the thinnest margin in this file. 🚩 If a third boxed family is ever added,
+# it does NOT get to pick a colour by taste -- measure it against both of these
+# first, and Michael's note is that the hex is the free variable if it is tight.
+class	shape	color	wash	label
+confidence	box	warn		how much to trust the value beside it
+terminology	plain	accent-2		a defined term, with or without a page behind it
+highlight	box	accent	25%	worth noticing. Says nothing about the value, only that Michael wanted your eye here
