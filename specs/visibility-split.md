@@ -1,0 +1,350 @@
+# BUILD 4 — splitting `visibility.py`
+
+⚠️ **SCOPED, NOT GREENLIT.** 2026-08-07. No code. Indexed from `next-build-spec.md`.
+
+> Michael, 2026-08-07, after the first build report rendered on the site:
+> *"Split visibility.py first, spec the seams before cutting."*
+
+---
+
+## 0. The read, first, because everything below depends on it
+
+`docrender/visibility.py` is **29,648 B** at `9a74c7d`. It came back **whole** on
+the git blob path this session, and every claim in this document is read out of
+that source rather than recalled.
+
+🔴 **AND THAT FACT CORRECTS SOMETHING I SAID EARLIER TONIGHT.** Refusing to edit
+`README.md`, I wrote that at 25,119 B it *"cannot be read back whole."* That
+inferred a **read cliff from a policy line**, and it is wrong: a larger file just
+came back intact. ⚑ **The 22KB budget is a MARGIN, not an observed limit**, and
+the two are worth keeping apart — the margin is still correct, because the read
+ceiling is a property of the READ PATH (blob API, raw URL, an editor, whatever
+comes next) and not of the file, so a number that holds on one path proves
+nothing about another. The refusal was right. The reason given for it was not.
+
+---
+
+## 1. 🔴 Size is the TRIGGER. Cohesion is the REASON. Do not confuse them.
+
+The build report flagged this file, which is why it is being cut. But **a cut
+made to satisfy a byte count is an arbitrary cut**, and arbitrary cuts are
+exactly what the Source-Size Budget Enforcer tells us to refuse.
+
+The reason worth acting on is in the filename. **The publication gate — the thing
+this module is NAMED for — is roughly a fifth of it.** Over half is the router
+nav-seal, which is a routing feature that happens to run during `on_nav`. The
+file holds **three concerns across two MkDocs events and three hook stages**, and
+it got there honestly, one correct decision at a time.
+
+The cut that is worth making follows the concerns. It also fixes the bytes. If
+those two ever disagree, follow the concerns.
+
+---
+
+## 2. What is actually in the file
+
+Every top-level definition, in source order, with the concern it serves.
+
+| Definition | Concern | Stage |
+| --- | --- | --- |
+| module docstring | all three | — |
+| `on_files` | **gate** | 02 |
+| `_prune` | **tree** | 00b |
+| *(routed-folders comment block)* | **seal** | — |
+| `_routed` | **seal** | 00bc |
+| `_nav_routed` | **seal** | 00bc |
+| `_find_index` | **tree** | 00b |
+| `_mark_indexes` | **tree** | 00b |
+| `_index_of` | **tree** | 00b + exported to navstate |
+| `_title` | **tree** | shared |
+| `_node_url` | **tree** | shared |
+| `_next_visible_url` | **seal** | 00bc |
+| `_unchain` | **tree** | shared + exported to navstate |
+| `_collect` | **seal** | 00bc |
+| `_seal` | **seal** | 00bc |
+| `_seal_routers` | **seal** | 00bc |
+| `prune_nav` | **tree** | 00b |
+| `seal_nav` | **seal** | 00bc |
+| `on_page_markdown` | **gate** | 02 |
+
+**Who imports it — verified, not assumed.** Exactly four hook shims:
+
+| Shim | Imports | After the split |
+| --- | --- | --- |
+| `02_visibility.py` | `on_files`, `on_page_markdown` | ✅ **untouched** |
+| `00b_unlisted.py` | `prune_nav` | repoint to `navtree` |
+| `00bc_seal.py` | `seal_nav` | repoint to `navseal` |
+| `00bb_navstate.py` | `_index_of`, `_unchain` | repoint to `navtree` |
+
+Nothing in `docrender/` imports it. Every other mention across the repo is prose.
+
+---
+
+## 3. The proposed cut — three modules, one per concern
+
+| Module | Holds | Stage |
+| --- | --- | --- |
+| `visibility.py` *(stays)* | the publication gate: `on_files`, `on_page_markdown` | 02 |
+| **NEW** `navtree.py` | the prune, and the shared tree vocabulary | 00b |
+| **NEW** `navseal.py` | the router nav-seal, whole | 00bc |
+
+⭐ **AND IT LANDS ON A STRUCTURE THAT ALREADY EXISTS: ONE MODULE PER `on_nav`
+STAGE.** That is not a pattern being imposed, it is one the chain has been
+asking for since the 08-05 split:
+
+```
+00b   prune   navtree.py    <- new
+00bb  shape   navstate.py   <- exists
+00bc  seal    navseal.py    <- new
+00c   chain   nav.py        <- exists
+```
+
+Four stages, four modules, and the two that already existed were already named
+this way. **The odd one out today is the file holding two of the four.**
+
+⚠️ **`navtree` AND NOT `navprune`, DELIBERATELY.** The stage name maps better,
+and the name would lie: this module also holds `_title`, `_node_url`, `_unchain`
+and `_index_of`, which the seal and navstate both use and which are not the
+prune. Same rule `links.py` applied when it refused to append seven image
+suffixes to a tuple called `_DATA_SUFFIXES` — *"a name is a promise."* Name it
+for what it holds.
+
+---
+
+## 4. ⭐ THE SPLIT DISSOLVES THE IMPORT CYCLE THAT FORCED THE THICK SHIM
+
+This is the finding, and it was not why anybody asked for the split.
+
+**Today:** `visibility` imports `navstate` (for `declared()`). `navstate` needs
+`_index_of` and `_unchain`, which live in `visibility`. That is a cycle, so it is
+not allowed — and `hooks/00bb_navstate.py` does the wiring by hand instead,
+passing both functions in as arguments. Its docstring says so plainly: *"this
+shim is thicker than the others and that is the job."*
+
+**After:** only `navseal` needs `navstate`. `navtree` imports nothing but
+`state`. So the graph is acyclic in a way it has never been:
+
+```
+state     <- everybody
+navtree   <- navseal, and legally navstate
+navstate  <- navseal
+```
+
+**`navstate` importing `navtree` directly becomes legal.** The constraint that
+forced the hand-wiring is a consequence of the bundling, not of the design.
+
+🚫 **AND DO NOT CASH IT IN THIS BUILD.** Collapsing that shim means changing
+`navstate.shape()`'s signature, and **`navstate.py` is 25,631 B — the
+second-largest module in the engine and over the same ceiling this build exists
+to clear.** Performing surgery on an over-budget file as a *side effect* of
+splitting a different one is how a tidy-up becomes an outage.
+
+**Repoint the shim's import. Change nothing else about it.** Record that the
+collapse is now available; let whoever splits `navstate` decide whether to take
+it.
+
+---
+
+## 5. 🔴 THE RISK THAT MATTERS: AN IMPORTERROR HERE KILLS EVERY SITE AT CONFIG LOAD
+
+Four hook shims import this module. **An ImportError in a hook is raised while
+MkDocs validates its config, before one page is read** — so `strict: false`, the
+warn-never-die posture, and every `try/except` in the pipeline are all downstream
+of it and none of them can help. All four sites, at once, with no page to report
+the failure on.
+
+⚑ **This has already happened here, on 2026-08-05**, when `blocks.py` imported
+`_token_sets` from a `markers.py` that no longer had it. `mkdocs.yml` carries the
+lesson in its own comments: a listed file that cannot import *"takes every later
+hook down with it."*
+
+**This build's version of that failure is subtler than that one.** The 08-05
+outage was a caller written against a closed branch's API. Here it is a name that
+changes module while a shim still points at the old one — which is a one-line
+mistake that no amount of care about the *content* of the move will catch.
+
+**Consequence for the plan:** the verification in §8 is not optional polish. It
+is the build.
+
+---
+
+## 6. `navseal.py` will still be over the warn line, and that is the right answer
+
+Estimated **~19–20 KB**: under the 22KB hard limit, past the 18KB warn line.
+
+The obvious further cut is to separate **describing a node for the manifest**
+(`_collect`, `_title`, `_node_url`, `_next_visible_url`) from **deciding to seal**
+(`_seal`, `_seal_routers`, `seal_nav`). It is refused, and not on taste:
+
+🔴 **`_collect` AND `_seal` ARE MUTUALLY RECURSIVE.** `_collect` calls `_seal`
+when it meets a nested routed folder; `_seal` calls `_collect` to harvest a
+section's children. Putting them in two modules puts a cycle between them —
+**which is precisely the thing §4 just spent the whole split removing.** Trading
+a real cycle for a byte count would be a bad deal made twice in one build.
+
+So: accept it, and say so in the report rather than letting it look like an
+oversight. The Source-Size Budget Enforcer's own instruction is to flag the
+pathological case, not to fragment one coherent unit into arbitrary A/B pieces —
+and the seal is one feature (DL J14, plus `nav: routed`), not a bag of leftovers.
+
+⚠️ **The next honest reduction in that file is PROSE, not code.** `_seal` is
+~7.5 KB and most of it is comment and report text. That is a separate decision
+about how much argument a function should carry, and this build must not make it
+quietly while doing something else.
+
+---
+
+## 7. What must NOT change
+
+- 🚫 **`mkdocs.yml` — UNTOUCHED.** Same four `on_nav` stages, same numbers, same
+  count, no new hook file. ⭐ **This is the first split in this repo that adds no
+  stage**, and it is worth stating out loud: every previous one (`00bc`, `01e`,
+  `01f`, `08b`) was two edits and an ordering argument. This one is neither.
+- 🚫 **`navstate.py` — UNTOUCHED.** See §4.
+- 🚫 **`hooks/02_visibility.py` — UNTOUCHED.** Both symbols it imports stay put.
+- 🚫 **NO RENAMES.** `_index_of` and `_unchain` stay private and stay imported
+  across a module boundary by a shim. That is a real smell — the same one
+  `blocks.py` was left carrying after the outage — and it is **known debt, not an
+  oversight.** A pure move is reviewable by reading a diff; a move plus a rename
+  is not. Precedent: BUILD 2 Piece C shipped as a pure move eight hours ago.
+- 🚫 **NO BEHAVIOUR CHANGE OF ANY KIND**, which is what makes §8 possible.
+
+---
+
+## 8. ⭐ Verification: a pure move must produce a BYTE-IDENTICAL site
+
+The strongest available test, and it is free.
+
+1. Build one instance at HEAD. Keep `site/`.
+2. Build the same instance on the branch.
+3. **Diff. Any difference at all is a defect.** Not "looks right" — identical.
+
+⚠️ Exclude the build stamp, which carries a timestamp by design. Nothing else has
+licence to differ.
+
+Then the import checks, which are what §5 demands:
+
+- Import each of the three modules on its own.
+- **Import all four hook shims**, because that is what MkDocs does, and it is the
+  step that would have caught the 08-05 outage.
+- Assert the five exported names resolve: `on_files`, `on_page_markdown`,
+  `prune_nav`, `seal_nav`, and the `_index_of`/`_unchain` pair.
+- Assert `navtree` imports nothing but `state`.
+
+🔴 **IMPORT THE REAL MODULES. DO NOT REIMPLEMENT THEM IN A TEST.** The 08-05
+post-mortem is one sentence long and it is the whole rule here: *"a test that
+reimplements its subject tests the reimplementation."* That test passed while the
+import it was supposed to prove had never once executed.
+
+And **read the byte sizes back** rather than quoting §9.
+
+---
+
+## 9. Files and sizes — ⚠️ ESTIMATED, NOT MEASURED
+
+Derived by summing the source read in §2. **Every one of these is a guess about a
+file that does not exist yet.**
+
+| File | Now | After (est.) |
+| --- | --- | --- |
+| `docrender/visibility.py` | 29,648 B | **~6 KB** |
+| **NEW** `docrender/navtree.py` | — | **~7–8 KB** |
+| **NEW** `docrender/navseal.py` | — | **~19–20 KB** ⚠️ over the warn line, §6 |
+| `hooks/00b_unlisted.py` | 1,333 B | +0, one import line |
+| `hooks/00bb_navstate.py` | 1,531 B | +0, one import line, plus §10 |
+| `hooks/00bc_seal.py` | 1,460 B | +0, one import line, plus §10 |
+| `hooks/02_visibility.py` | 1,333 B* | **untouched** |
+| `README.md` | 25,119 B | one module-map entry becomes three |
+| `hooks/README.md` | 5,032 B | one paragraph names two modules |
+| `mkdocs.yml` | 10,137 B | **untouched** |
+
+\* not re-measured this session.
+
+🔴 **DO NOT QUOTE THIS TABLE.** This repo's own history on the point: a size table
+in `next-build-spec.md` was wrong within 48 hours and **had changed an
+instruction rather than just a figure**; seven size claims on 2026-08-01 were
+wrong on arrival, one of them inside the sentence documenting the pattern.
+**Measure at the moment you act.**
+
+---
+
+## 10. 🚩 Found while reading. Flagged, not fixed.
+
+**a. `hooks/00bb_navstate.py` carries live doc rot.** Its docstring says *"00b
+prunes unlisted pages **and seals routed subtrees**"* — the seal moved to 00bc on
+2026-08-05. `00bc_seal.py` says the opposite, correctly, three files away.
+**Fix it in this build**, because the split has to edit that line anyway, and the
+commit that moves a thing is the only one that still remembers where it was.
+
+**b. `hooks/00bc_seal.py` will be falsified BY this build.** *"Thin on purpose:
+`visibility` owns the prune and the seal both, so there is nothing to wire across
+modules here."* After the split they are two modules. **The conclusion survives —
+the shim stays thin, one symbol from one module — but its stated reason does
+not.** Rewrite the reason, keep the claim.
+
+**c. The five-stage `on_nav` chain is written out in full in at least three
+places**: `visibility.seal_nav`, `hooks/00b_unlisted.py`, and `mkdocs.yml`, with
+`00bb` carrying a stale partial and `00bc` pointing at it. 🚫 **The split must not
+add a fourth full copy.** Each new module's docstring POINTS at the chain. A
+fourth copy of a five-line ordering law in a repo that has retired three
+manifests for exactly that shape would be an unforced error.
+
+**d. 🔴 THE SIZE BUDGET DOES NOT WALK THIS REPO'S OWN MARKDOWN, AND THAT IS WHY
+NOBODY NOTICED THE README.** `sizecheck._ENGINE_SOURCE` is `docrender/*.py` plus
+`assets/*.css|.js`; the markdown half of `_scan_sizes` walks `DOCRENDER_CONTENT`,
+which is the CONTENT repo. So the engine repo's own `README.md` (**25,119 B**),
+`next-build-spec.md` (**22,660 B**), `hooks/README.md` and everything in
+`specs/` are **unbudgeted and unreported.** Two of them are over the ceiling right
+now, and `next-build-spec.md` has to warn about **itself, in prose**, in its own
+header — which is a hand-maintained check standing in for a mechanism.
+
+⚑ **This is the assets/ hole of 2026-08-04, one directory over, and it was found
+the same way: by somebody citing a warning that could never have fired.** That
+entry's conclusion applies here unchanged — *"an unenforced rule is a rule that
+survives only as long as everybody remembers it, which is not a mechanism."*
+
+🚫 **Not fixed here, and deliberately not**: widening the scan is a change to
+`sizecheck.py` that would report several files at once and belongs in its own
+build, not riding inside a refactor of a different module. But it is the reason
+the README got to 25 KB unremarked, and it will do it again.
+
+---
+
+## ⏳ Rulings needed (four)
+
+**1. Three modules, or two?** The two-way alternative is gate + everything-nav,
+which leaves one ~23 KB module still over the hard limit. **Recommend three.**
+The only argument for two is fewer files, and the file count is not the problem.
+
+**2. The names.** `navtree.py` and `navseal.py`. **Recommend as proposed** — see
+§3 for why not `navprune`.
+
+**3. Accept `navseal.py` past the warn line?** **Recommend yes**, on the mutual
+recursion in §6, and report it in the same commit rather than letting the next
+reader find it as a surprise.
+
+**4. Pure move, or fix the private cross-module names in the same pass?**
+**Recommend pure move.** §8's byte-identical test only works if nothing else
+changed, and that test is worth more than the rename.
+
+---
+
+## Sequence, if it is greenlit
+
+1. **Capture the before-build.** `site/` at HEAD, on one instance. Without it §8
+   does not exist, and it cannot be captured after the fact.
+2. **`navtree.py`** — move the tree helpers and the prune. Nothing imports it yet.
+3. **`navseal.py`** — move the seal. It imports `navtree` and `navstate`.
+4. **Trim `visibility.py`** to the gate, and rewrite its docstring to the gate's
+   contract only.
+5. **Repoint the three shims**, and fix §10a and §10b while there.
+6. **Verify** — §8, all of it, before the PR exists.
+7. **The two READMEs.**
+
+🚫 **Do not start at 5.** A shim repointed before its target exists is the §5
+outage, arrived at deliberately.
+
+⚠️ **And claim the branch first.** Six parallel-session collisions in this repo
+have ended the same way: complete, correct, unmerged work that nobody could see.
+This file's own feature shipped four minutes after it was asked for, on a branch
+with no PR.
