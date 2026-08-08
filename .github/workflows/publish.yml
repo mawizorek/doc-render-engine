@@ -208,6 +208,7 @@ on:
         description: Which site
         required: true
         type: choice
+        default: uritp
         options:
           - theatre
           - hml
@@ -216,7 +217,7 @@ on:
       mode:
         description: Preview shows the diff and deploys nothing
         required: true
-        default: preview
+        default: publish
         type: choice
         options:
           - publish
