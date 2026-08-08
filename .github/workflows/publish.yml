@@ -204,6 +204,14 @@ run-name: >-
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: Preview shows the diff and deploys nothing
+        required: true
+        default: publish
+        type: choice
+        options:
+          - publish
+          - preview
       site:
         description: Which site
         required: true
@@ -214,14 +222,6 @@ on:
           - hml
           - template
           - uritp
-      mode:
-        description: Preview shows the diff and deploys nothing
-        required: true
-        default: publish
-        type: choice
-        options:
-          - publish
-          - preview
       theme:
         # Optional on purpose, and `string` on purpose -- see THE `theme` INPUT
         # at the top of this file for why a dropdown would be a fourth copy of
