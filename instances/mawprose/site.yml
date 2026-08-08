@@ -1,0 +1,101 @@
+# MAWPROSE - Michael's long-form notes and FileMaker app documentation.
+#
+# 🔴 SLUG IS `mawprose`, NOT `prose`, AND THE RENAME IS THE WHOLE LESSON.
+#
+# The first attempt used `prose`. It failed the leak scan on 2026-08-08 with
+# FIVE hits, all false positives, because "prose" is an ordinary English word
+# and a TYPOGRAPHY TERM: docrender/sheet.py, theme/typography.tsv,
+# theme/canonical/themes.json, assets/data.css and assets/data-list.css all use
+# it to mean running text. The scan reads code and ignores comments, but it
+# cannot tell a typographic noun from a site name -- nothing can.
+#
+# ⚠️ THE ORIGINAL VERSION OF THIS FILE PREDICTED THE OPPOSITE. It said the slug
+# "is NOT a meaningful test of engine-agnosticism -- it will pass trivially."
+# It did not pass; it hard-failed the build. **A slug that is a common word does
+# not weaken the check, it BREAKS it** -- and the hml comment already recorded
+# this exact class (`themes.json` naming a company, PR #93). Second instance.
+#
+# THE RULE, for the next site: **a slug must be a proper noun that appears
+# nowhere in the engine's vocabulary.** `uritp` and `hml` pass because they are
+# meaningless outside this family. `prose`, `theatre` and `template` are
+# ordinary words -- two of those three had to opt out of the scan under the old
+# design, and this one could not opt out because it is a HARD failure.
+#
+# `prose` survives as an ALIAS, which is safe: aliases are not scanned.
+
+name: MAW Prose
+description: Long-form notes, standards, and FileMaker application documentation.
+slug: mawprose
+base_url: https://mawizorek.github.io/maw-prose/
+
+content_repo: mawizorek/maw-prose
+content_branch: main
+
+# ⭐ OTHER NAMES THIS SITE ANSWERS TO ON THE COMMAND LINE.
+# One-line flow list, per the shell helper's regex fallback (see
+# instances/uritp/site.yml for why that constraint exists).
+#
+# `prose` is here because it is what Michael will type and what the retired slug
+# was -- the same reasoning that keeps `oph` on the theatre instance.
+#
+# ⚠️ "mawster" and "production-mawster" resolve HERE rather than to a site of
+# their own. Production MAWster is an app FOLDER inside this content repo, and a
+# name that reads like a site but is not one is exactly what somebody types six
+# months from now.
+aliases: [prose, maw-prose, "MAW Prose", prose-docs, mawster, production-mawster]
+
+# ONE LINE. `database` treats a table as the primary content rather than an
+# illustration of it - correct for a site whose real pages are FileMaker field
+# menus rendered from .tsv.
+theme: database
+
+edit_links: true
+
+# 🔴 SCOPE WARNING - READ BEFORE `mode:publish`.
+#
+# maw-prose is a PUBLIC repository and it holds MORE than the theatre work:
+# `apps/hml-llc/` is the Hard Money Loan documentation, which is family
+# business material. An instance points the renderer at the WHOLE tree.
+#
+# ⭐ AS OF THE 08-08 BUILD THIS IS MEASURED RATHER THAN FEARED: every one of the
+# ~33 `apps/hml-llc/` pages reported "status is missing -- PAGE WILL NOT BE
+# BUILT." They are currently invisible BY ACCIDENT, because they have no front
+# matter. **That is not protection, it is an unowned default** -- the day someone
+# adds `status: public` to those pages while filling in front matter, family loan
+# documentation goes live and nothing in this pipeline will object.
+#
+# HML content has already leaked into a public repo twice (2026-07-29,
+# 2026-07-31). Options, none of them decided here:
+#   1. stay in `mode:preview` (deploys nothing)
+#   2. scope the site to a subtree -- NOT expressible today, needs a `docs_dir`
+#      key on the instance or a content split
+#   3. split prose into a separate content repo per audience
+
+# Fallback titles only: a folder with an index.md takes that page's title.
+# Numbered folders inside an app (20-tables, 70-scripts) are the app's own
+# ordering and need nothing here.
+sections:
+  apps:
+    order: 10
+  standards:
+    order: 20
+  guides:
+    order: 30
+  handbooks:
+    order: 40
+  programs:
+    order: 50
+  venues:
+    order: 60
+  paperwork:
+    order: 70
+  email-templates:
+    order: 80
+
+peers:
+  template: https://mawizorek.github.io/doc-render-engine/
+  theatre: https://mawizorek.github.io/theatre-docs/
+
+# ✅ Full leak scan, no opt-out -- and now it is MEANINGFUL, which is the point of
+# the rename. `mawprose` appears nowhere in the engine's vocabulary, so a hit
+# here would be a real dependency rather than a typography term.

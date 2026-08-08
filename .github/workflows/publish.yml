@@ -22,6 +22,12 @@ on:
         # before any job starts. Adding a site is THREE edits — instance,
         # build.yml matrix, this list. `hml` shipped unpublishable on this one.
         # publish-dl.md § The site list is hand-maintained
+        #
+        # ⚠️ THESE MUST BE SLUGS, NOT NAMES. `mawprose` was `prose` until
+        # 2026-08-08, when the slug failed the leak scan because "prose" is an
+        # ordinary English word appearing in five engine files. A renamed slug
+        # means editing this list AGAIN — the alias in site.yml covers the
+        # terminal, not this dropdown.
         description: Which site
         required: true
         type: choice
@@ -31,7 +37,7 @@ on:
           - hml
           - template
           - uritp
-          - prose
+          - mawprose
       theme:
         # `string`, not `choice` — publish-dl.md § The `theme` input
         description: "(opt) For THIS build only."
