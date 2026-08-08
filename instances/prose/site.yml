@@ -1,0 +1,82 @@
+# PROSE - Michael's long-form notes and FileMaker app documentation.
+#
+# The content repo predates the doc-site family (created 2026-07-29, "for long
+# form notes") and has been authored in engine dialect for a while without an
+# instance to render it: `!!! data`, `{.tbc}`, `{.conf}`, `@table-*` object
+# references and numbered section folders are all already in the tree. This
+# file is the config that was missing, not a new content model.
+
+name: MAW Prose
+description: Long-form notes, standards, and FileMaker application documentation.
+slug: prose
+base_url: https://mawizorek.github.io/maw-prose/
+
+content_repo: mawizorek/maw-prose
+content_branch: main
+
+# ⭐ OTHER NAMES THIS SITE ANSWERS TO ON THE COMMAND LINE.
+# One-line flow list, per the shell helper's regex fallback (see
+# instances/uritp/site.yml for why that constraint exists).
+#
+# ⚠️ "mawster" and "production-mawster" resolve HERE rather than to a site of
+# their own. Production MAWster is an app FOLDER inside this content repo, and
+# a name that reads like a site but is not one is exactly what somebody types
+# six months from now.
+aliases: [maw-prose, "MAW Prose", prose-docs, mawster, production-mawster]
+
+# ONE LINE. `database` treats a table as the primary content rather than an
+# illustration of it - correct for a site whose real pages are FileMaker field
+# menus rendered from .tsv.
+theme: database
+
+edit_links: true
+
+# 🔴 SCOPE WARNING - READ BEFORE `mode:publish`.
+#
+# maw-prose is a PUBLIC repository and it holds MORE than the theatre work:
+# `apps/hml-llc/` is the Hard Money Loan documentation, which is family
+# business material. Standing up this instance points a renderer at the whole
+# tree, so publishing renders that folder into a website.
+#
+# HML content has already leaked into a public repo twice (2026-07-29 and
+# 2026-07-31). This is not a hypothetical risk profile.
+#
+# Nothing here is decided for you. The three real options:
+#   1. leave it in `mode:preview` forever (deploys nothing) and read the build
+#   2. scope the site to `apps/production-mawster/` + the shared standards
+#   3. split prose into a separate content repo per audience
+#
+# ⚠️ Option 2 is NOT expressible in this file today - the engine takes a whole
+# content repo. It needs either a `docs_dir` key on the instance or a content
+# split. Do not assume `sections:` below limits what publishes; it only orders
+# what it finds.
+
+# Fallback titles only: a folder with an index.md takes that page's title.
+# Numbered folders inside an app (02-tables, 07-scripts) are the app's own
+# ordering and need nothing here.
+sections:
+  apps:
+    order: 10
+  standards:
+    order: 20
+  guides:
+    order: 30
+  handbooks:
+    order: 40
+  programs:
+    order: 50
+  venues:
+    order: 60
+  paperwork:
+    order: 70
+  email-templates:
+    order: 80
+
+peers:
+  template: https://mawizorek.github.io/doc-render-engine/
+  theatre: https://mawizorek.github.io/theatre-docs/
+
+# ✅ Full leak scan, no opt-out. "prose" is an ordinary English word, so unlike
+# `uritp` this slug is NOT a meaningful test of engine-agnosticism - it will
+# pass trivially. Kept on anyway: an opt-out is a permanent hole bought for a
+# check that costs nothing.

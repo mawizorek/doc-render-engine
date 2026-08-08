@@ -1,0 +1,17 @@
+/* MAW Prose's own look. Loaded last, so this file has the final word. */
+
+/* Field menus rendered from .tsv are the primary content here, and they are
+   read as reference rather than prose. Tighten the row rhythm so a 20-field
+   table fits on one screen. */
+.md-typeset .dr-datatable td,
+.md-typeset .dr-datatable th {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+/* A section-header row in a field menu (NORMALIZED FIELDS / RELATIONSHIP /
+   CHILDREN / AUDIT FIELDS) is structure, not data. */
+.md-typeset .dr-datatable td:first-child:empty + td {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
