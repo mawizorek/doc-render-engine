@@ -28,6 +28,13 @@
 #          repaints the whole family, where an override is inline on every span.
 # tooltip  hover text. Say what the READER should DO about it.
 #
+# ⚠️ THERE IS NO PER-ROW `wash` OVERRIDE, DELIBERATELY. Wash is a CLASS property
+# (marker-classes.tsv) and stops there. A row-level colour override already costs
+# an inline style on every single span, which is why that file's own header tells
+# you to prefer inheriting; adding a second inline property would double that cost
+# to buy a distinction nobody has asked for. If two markers in one family need
+# different washes, they are two families.
+#
 # ⭐ SHAPE AND COLOUR ARE SEPARATE AXES, and that split is the whole flexibility.
 # Shape is structural -- does this thing have a border, is it struck out -- and
 # there are only FOUR because a reader can distinguish four shapes at a glance and
@@ -42,7 +49,9 @@
 #
 # ✅ THE CLASS AXIS COST THE SHAPE AXIS NOTHING. Terminology needed colour and
 # weight WITHOUT an underline, which is exactly `plain` -- it was already there.
-# Four shapes still cover every family.
+# Four shapes still cover every family. ✅ AND SO DID THE HIGHLIGHT FAMILY, which
+# is the second time this has held: it wanted a heavier tint, which is a NUMBER on
+# an existing shape rather than a shape.
 #
 # ⚠️ PREFER INHERITING, THEN A TOKEN, AND ONLY THEN A HEX. A token follows the
 # theme into light mode and into every other site; a hex is frozen where you typed
@@ -50,10 +59,12 @@
 # because it is genuinely useful for a one-off, not because it is the good path.
 #
 # ⚠️ THE BOX SHAPE MEANS A COLOUR HAS TO SURVIVE ITS OWN BACKGROUND. `box` tints
-# the chip with 10% of the marker's own colour, so the text is not sitting on the
-# page ground -- it is sitting on a wash of itself. A value measured only against
-# the page can still fail inside the chip, and three amber candidates did exactly
-# that on 2026-08-05. Measure the chip, not the page.
+# the chip with the class's `wash` of the marker's own colour (10% unless the
+# family says otherwise), so the text is not sitting on the page ground -- it is
+# sitting on a wash of itself. A value measured only against the page can still
+# fail inside the chip, and three amber candidates did exactly that on 2026-08-05.
+# Measure the chip, not the page -- and re-measure if the family's wash changes,
+# because that number moves the ground the text stands on.
 #
 # 🔴 `conf` AND `gap` MOVED TO CANONICAL TOKEN NAMES ON 2026-08-05, and it is not
 # a rename. `ok` and `danger` exist ONLY in the nine-token stand-in, so a
@@ -61,6 +72,13 @@
 # while every other colour on the page followed the design system. `good` and
 # `bad` are the canonical names for the same two meanings, and they were
 # unreachable until the validator learned to read both tables.
+#
+# ⚠️ THE TOKEN IS `accent`, NOT `accent-1`. There is no `-1` anywhere in the
+# canonical palette -- the four are `accent`, `accent-deep`, `accent-2` and
+# `accent-soft`. `accent-1` is the natural thing to type once `accent-2` exists,
+# it validates as a legal token NAME, and it resolves to nothing: reported once
+# per build and painted in the body colour. That is the `accent-soft` bug wearing
+# a different name, so it is written here where the cell is typed.
 # ---------------------------------------------------------------------------
 marker	class	label	shape	color	tooltip
 tbc	confidence	To be confirmed			Not yet verified against a source. Do not rely on this without checking.
@@ -70,3 +88,4 @@ conf	confidence	Confirmed		good	Double-checked against the real thing. Trust it.
 est	confidence	Estimate	soft	ink-muted	Approximate. Close enough to plan with, not close enough to cut to.
 was	confidence	Superseded	strike	ink-muted	The old value, kept so paperwork quoting it can still be matched up.
 term	terminology				House terminology. Where it is also a link there is a page defining it.
+hi	highlight	Highlight			Flagged as worth your attention. This says nothing about whether the value is correct -- if you want that, the confidence markers are the ones that mean it.
