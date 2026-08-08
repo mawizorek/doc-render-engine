@@ -226,13 +226,13 @@ on:
         # Optional on purpose, and `string` on purpose -- see THE `theme` INPUT
         # at the top of this file for why a dropdown would be a fourth copy of
         # a union this file cannot see.
-        description: "Theme for THIS build only (blank = the site's own; `random` rolls one)"
+        description: "(opt) For THIS build only."
         required: false
         default: ""
         type: string
       note:
         # Optional on purpose -- see THE `note` INPUT at the top of this file.
-        description: "Why are you publishing? (shows in the run title and the deploy commit)"
+        description: "Shows in the run title and the deploy commit."
         required: false
         default: ""
         type: string
