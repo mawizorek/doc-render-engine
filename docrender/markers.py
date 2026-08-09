@@ -8,8 +8,9 @@ The LINK form -- `[ETC](@term:etc)`, `[fkCal](@rel:table-events)` -- lives in
 docrender/markerlinks.py, which also carries the history of the two-form design.
 This file owns the DATA and the PAINT.
 
-Decision history: doc-render-engine (repo) Decision Log in ClickUp, Q6/J7 for the
-class axis and J8 for the `@term:` prefix; maw-themes J11 for the colour token.
+Decision history: doc-render-engine (repo) Decision Log in ClickUp -- Q6/J7 for
+the class axis, J8 for `@term:`, 2026-08-05 for the palette-staleness outage;
+maw-themes J11 for the colour token. The arguments live THERE.
 
 
 TWO AXES OF MEANING
@@ -19,47 +20,41 @@ Every marker used to be a confidence claim, and that narrowness protected the
 BUILD REPORT: "what is unconfirmed across this whole site" is answerable only
 while every row answers the same question. What was missing was a way to say
 which kind a row IS -- so terminology was nearly built as a second, parallel
-family, because the table had no column for it.
-
-`class` is now a column, families live in theme/marker-classes.tsv, and the
-report groups by class. Confidence stays answerable however many terms a site
-marks.
+family, because the table had no column for it. `class` is now a column and the
+report groups by it.
 
 SHAPE IS A CLOSED SET OF FOUR (box, plain, strike, soft): four are
 distinguishable at a glance, nine are not. Three families in a row have wanted a
 fifth and needed none -- terminology wanted colour without an underline, which is
-`plain`; highlight wanted a heavier tint, which is a NUMBER on `box` (`wash`, a
-column on marker-classes.tsv); and the FMP pair split on `box` against `plain`.
-⚑ A request for a new VARIANT is a request for a new PARAMETER far more often
-than a new KIND, and the tell is whether you can state the difference without
-using a number.
+`plain`; highlight wanted a heavier tint, which is a NUMBER on `box` (`wash`);
+and the FMP pair split on `box` against `plain`. ⚑ A request for a new VARIANT is
+a request for a new PARAMETER far more often than a new KIND, and the tell is
+whether you can state the difference without using a number.
 
 
 🔴 THIS FILE WAS SPLIT ON 2026-08-09, AND THE ARGUMENT AGAINST SPLITTING IT
 ===========================================================================
 
-The docstring that used to sit here said this module claimed `@term:` itself
-"not for tidiness, but so the two forms cannot disagree about which family they
-are... A second module would be a second place to name the family."
-
-That was correct, and it stopped being true rather than being overruled.
+The docstring here used to say this module claimed `@term:` itself "so the two
+forms cannot disagree about which family they are... A second module would be a
+second place to name the family." That was correct, and it stopped being true
+rather than being overruled.
 
 ⚑ THE OBJECTION DISSOLVED WHEN THE FAMILY MOVED INTO THE DATA. `_TERM_CLASS =
 "terminology"` was a constant in Python, so a second module genuinely would have
 been a second place naming it. markers.tsv now carries a `prefix` column, so both
-forms look the family up in the SAME ROW of the same table and NEITHER module
-names one. There is no fact left for them to disagree about. ⭐ Generally: an
-argument against splitting a file is usually an argument about a SHARED CONSTANT,
-and it expires the moment that constant becomes data.
+forms look the family up in the SAME ROW and NEITHER module names one. ⭐
+Generally: an argument against splitting a file is usually an argument about a
+SHARED CONSTANT, and it expires the moment that constant becomes data.
 
 ⚠️ WHAT FORCED IT was size -- 23,084 B against a ~22KB safe-edit ceiling, in the
 one module whose history includes killing every site at once.
 
-🔴 AND THE FIRST ATTEMPT AT THIS SPLIT CAME OUT AT 26,362 B. The code left and the
-prose grew, so the change failed the exact test that justified it while looking
-like it passed. ⚑ A refactor justified by a NUMBER has to have the number read
-back, and that byte count was in the API response the whole time. Same family as
-every unverified size claim this repo has written down.
+🔴 AND IT TOOK THREE PASSES TO ACTUALLY GET SMALLER: 26,362, then 22,707, then
+this. The code left and the prose grew, twice. ⚑ A refactor justified by a NUMBER
+has to have the number READ BACK, and ~22KB is a truncation threshold rather than
+a style preference -- a file just over it hands the next reader a partial view
+that looks complete. Same family as every unverified size claim here.
 
 🚨 THE SEAM IS THE TABLE, NEVER A FUNCTION. markerlinks imports `table()`,
 `marker_rows()` and `LINK_CLASS` -- data and one name. It does NOT import
@@ -67,13 +62,13 @@ every unverified size claim this repo has written down.
 resolver that encodes one module's policy is what broke the build on 2026-08-05.
 
 
-COLOUR IS RESOLVED ONCE PER BUILD, AND THAT IS A FIX
-====================================================
+RESOLVED ONCE PER BUILD
+=======================
 
 `_colour()` used to run inside the per-MATCH replacement, so an unknown token
-reported once per OCCURRENCE -- a terminology class used three hundred times
-would have buried the report under three hundred copies of one complaint, and the
-report is the only reason this beats a highlighter.
+reported once per OCCURRENCE -- a class used three hundred times would have
+buried the report under three hundred copies of one complaint, and the report is
+the only reason this beats a highlighter.
 
 The table is merged in `on_files`, once. In an event and not at import, because
 `mkdocs serve` rebuilds in-process and a table cached at import would outlive an
@@ -84,29 +79,6 @@ edit to either TSV.
 cannot wait for an event. The cost is stated where it is paid: a prefix ADDED
 during a live `mkdocs serve` session needs a restart, and markerlinks reports it.
 Everything else about a marker stays hot.
-
-
-🔴 THE VALIDATION LIST WENT STALE WHEN THE PALETTE MOVED (fixed 2026-08-05)
-==========================================================================
-
-`_known_tokens()` read theme/colors.tsv and nothing else -- the nine-token
-stand-in -- while the engine had been emitting the CANONICAL 22 since the
-four-vector join. Exactly two names overlap, so every other canonical token was
-REFUSED by a validator that had never heard of it. The visible cost was one cell
-asking for `accent-soft`, reported unknown once per build, quietly painting in the
-body colour -- long enough that the comment explaining it read as a plan.
-
-☑ A PALETTE MOVED AND THE LIST OF WHAT IS ALLOWED DID NOT: a second place stating
-a fact the first place already owns. The union now reads the canonical table's own
-HEADER ROW, so a column added upstream is usable the day it is vendored.
-
-⚠️ THE NEAR-MISS THAT SURVIVES IT IS `accent-1`, WHICH DOES NOT EXIST -- the four
-are `accent`, `accent-deep`, `accent-2`, `accent-soft`. It is a legal token NAME,
-so it passes the regex, fails the set, and lands in the report line everybody read
-as "not vendored yet" for two days. Named in markers.tsv, where the cell is typed.
-
-⚠️ AND WASH IS NOT A FREE DIAL: a chip's text sits on a wash of ITSELF, so raising
-it lowers text-against-chip contrast. Measure the chip, not the page.
 
 Defined in theme/markers.tsv + theme/marker-classes.tsv. Adding one is a row.
 """
@@ -204,11 +176,16 @@ def _known_tokens() -> set[str]:
       CANONICAL  theme/canonical/colors.tsv, read from its HEADER ROW rather
                  than from a list kept here. No third place to update.
 
+    🔴 THE UNION IS THE FIX. This read the local table alone until 2026-08-05 while
+    the engine emitted the canonical 22 -- exactly two names overlap, so every other
+    canonical token was refused by a validator that had never heard of it, and the
+    one cell asking for `accent-soft` painted body colour for two days while its
+    comment read as a plan. A palette moved and the list of what was allowed did not.
+
     ⚠️ THIS ANSWERS "MAY A MARKER NAME IT", NOT "IS IT EMITTED". A canonical token
-    is emitted only by a theme that has a join; a nine-token local theme emits a
-    handful. A marker naming a token the ACTIVE theme does not emit resolves to
-    `var(--dr-x)` with no fallback, which paints nothing -- so the honest widening
-    is to accept the name and let the theme decide.
+    is emitted only by a theme that has a join. A marker naming a token the ACTIVE
+    theme does not emit resolves to `var(--dr-x)` with no fallback, which paints
+    nothing -- so the honest widening is to accept the name and let the theme decide.
     """
     local = {r["token"] for r in _rows("colors.tsv") if r.get("token")}
 
@@ -231,7 +208,6 @@ def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> st
     unresolvable token falls back to the body colour rather than painting nothing --
     which is right for a marker and wrong for other consumers. Exporting a resolver
     that encodes one module's policy is what took every site down on 2026-08-05.
-    markerlinks shares the TABLE and never this.
     """
     value = (value or "").strip()
     if not value:
@@ -256,14 +232,16 @@ def _wash(value: str, where: str, report: bool = True) -> str:
     """Validate a family's chip tint. Returns "" to mean "emit nothing".
 
     Empty is the NORMAL answer and is never reported: a family that does not
-    mention wash is inheriting the default on purpose, and every family but one
-    does.
+    mention wash is inheriting the default on purpose.
 
-    ⚠️ A REJECTED WASH FALLS BACK TO THE DEFAULT, which is the OPPOSITE of what
-    _colour does with a bad token, deliberately. An unresolvable colour must not be
-    quietly substituted -- the marker would be the wrong colour and nobody could
-    tell by looking. A wash reverting to 10% is a chip that looks like every other
-    chip: legible, and obviously not the emphasis that was asked for.
+    ⚠️ A REJECTED WASH FALLS BACK TO THE DEFAULT, the OPPOSITE of what _colour does
+    with a bad token, deliberately. An unresolvable colour must not be quietly
+    substituted -- the marker would be the wrong colour and nobody could tell by
+    looking. A wash reverting to 10% is a chip that looks like every other chip:
+    legible, and obviously not the emphasis that was asked for.
+
+    ⚠️ AND WASH IS NOT A FREE DIAL: the chip's text sits on a wash of ITSELF, so
+    raising it lowers text-against-chip contrast. Measure the chip, not the page.
     """
     value = (value or "").strip()
     if not value:
