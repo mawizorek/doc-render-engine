@@ -84,20 +84,77 @@
 #
 # ⭐ THE GENERAL RULE, WRITTEN DOWN BECAUSE IT DECIDES THE NEXT FAMILY TOO:
 # COLOUR COLLISIONS ONLY COUNT WITHIN A SURFACE. Two callouts sharing a token is
-# the documented design (`tip`/`success`/`good` all take `good`). Two INLINE
-# MARKERS sharing one would be a genuine defect, because they appear in the same
-# sentence, at the same size, and the only thing telling them apart is the paint.
-# blocks.tsv can reuse freely; this file cannot.
+# the documented design (`tip`/`success`/`good` all take `good`). blocks.tsv can
+# reuse freely. ~~Two INLINE MARKERS sharing one would be a genuine defect,
+# because they appear in the same sentence, at the same size, and the only thing
+# telling them apart is the paint.~~ STRUCK 2026-08-09 -- see the next section,
+# which is the amendment and not an exception to this.
 #
-# ⚠️ AND THE SEPARATION IS NOW LOAD-BEARING RATHER THAN INCIDENTAL. `highlight`
-# and `confidence` are the only two BOXED marker families, so their two tokens --
-# `accent` and `warn` -- are the one pair on this whole surface that a reader has
-# to distinguish mid-sentence. On the URITP palette that is #b38216 against
-# #ffcc33: the same hue, ~40% apart in lightness, which is enough at 25% wash and
-# is the thinnest margin in this file. 🚩 If a third boxed family is ever added,
-# it does NOT get to pick a colour by taste -- measure it against both of these
-# first, and Michael's note is that the hex is the free variable if it is tight.
+# ⭐ AND THE THIRD BOXED FAMILY DID NOT GET TO PICK A COLOUR AT ALL, WHICH IS A
+# BETTER ANSWER THAN THE ONE THIS FILE WAS HOLDING (2026-08-09, Michael's ruling).
+#
+# The rule above was written when the four boxed markers were amber, green, red
+# and blue -- one hue per meaning, and a reader genuinely does separate them by
+# paint. `layout` was the fifth, the palette had one distinct hue left, and this
+# file's own 🚩 said to measure it against both incumbents first. I measured, and
+# then Michael refused the whole frame: *"i don't care if they're visually
+# identical. the reporting tag is usually to be different. the front end would
+# begin to look like skittles if everything had its own color at this point."*
+#
+# ⚑ THE CORRECTED RULE, AND IT IS NARROWER THAN WHAT IT REPLACES: a colour
+# collision is a defect only where the COLOUR IS CARRYING THE MEANING. A reader
+# separates `conf` from `gap` by paint, so those must stay apart. Nobody reads a
+# `.calc` chip and asks how confident it is -- the TAG carries that meaning, the
+# report consumes the tag, and the paint is only saying "this is marked." ⭐ The
+# tell that the old rule was too wide: it was derived from ONE family type
+# (confidence, where hue IS the semantics) and then stated about all of them.
+#
+# ⚠️ SO `layout` AND `highlight` BOTH TAKE `accent` AND DIFFER ONLY BY WASH
+# (10% against 25%), AND THAT IS DELIBERATE, NOT AN OVERSIGHT. Do not "fix" it.
+# The one thing that WOULD be a defect is a reader needing to tell them apart and
+# being unable to -- if that ever comes up, the answer is a different SHAPE or a
+# different tag, never a fifth hue.
+#
+# ---------------------------------------------------------------------------
+# 🗄️ THE FMP FAMILIES (`layout` + `schema`), 2026-08-09. Owner: FMP Fiona.
+#
+# These two exist to document a FileMaker solution in git, and the reason there
+# are TWO is not what it looks like. It is not layout-object versus not-an-object
+# -- a relationship and a calculation are both objects, and Michael said so when
+# the first split was proposed on those grounds. The line that survived is about
+# WHERE THE TRUTH LIVES:
+#
+#   layout   FileMaker owns it. Open the file and you can see every button on a
+#            layout. This doc POINTS AT a thing that exists over there.
+#   schema   FileMaker has NO surface that enumerates these. There is no screen
+#            listing every calculation in a file, every script trigger, or every
+#            global. So this doc is not a pointer, IT IS THE REGISTER.
+#
+# ⭐ WHICH IS WHY THE BUILD REPORT IS THE POINT AND THE COLOUR IS NOT. Every use
+# is already counted and grouped by class by markers.py, so the day these rows
+# land, `!!! schema` answers "every calc across this doc set" in one block --
+# a question FileMaker cannot answer about itself. That is the whole return, and
+# it needed a TAG, never a hue.
+#
+# ⚠️ TWO FAMILIES RATHER THAN ONE FMP FAMILY, FOR THE SAME REASON CLASSES EXIST
+# AT ALL. One family would answer "show me the FileMaker things," which nobody
+# needs. Two answer "every relationship" and "every control" separately, and the
+# report is only worth reading while each class answers ONE question.
+#
+# ⚠️ `schema` IS `plain` ON PURPOSE. These are typed inside data-table cells
+# (`[Text]{.calc}` in a .tsv), and a boxed chip in every cell of a table is a
+# wall. `layout` is boxed because it appears in prose, where a control being
+# named wants to look like a control. Same reasoning as `terminology`, which is
+# also plain and also lives mid-sentence.
+#
+# 🚩 NOT BUILT, NAMED SO IT IS NOT RE-DISCOVERED: `portal`, `tab` and `popover`
+# were raised as `layout` candidates and DEFERRED by Michael on 2026-08-09. They
+# are real, they are just not yet typed anywhere. The build report is what should
+# decide them -- add the family when the marker is being reached for, not before.
+# ---------------------------------------------------------------------------
 class	shape	color	wash	label
 confidence	box	warn		how much to trust the value beside it
 terminology	plain	accent-2		a defined term, with or without a page behind it
 highlight	box	accent	25%	worth noticing. Says nothing about the value, only that Michael wanted your eye here
+layout	box	accent		a FileMaker LAYOUT object -- a control the user acts on. FileMaker owns it; this doc points at it
+schema	plain	accent-2		HOW THE DATA IS SHAPED. FileMaker has no screen that lists these, so this doc is the register, not a pointer

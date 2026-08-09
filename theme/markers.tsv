@@ -51,7 +51,9 @@
 # weight WITHOUT an underline, which is exactly `plain` -- it was already there.
 # Four shapes still cover every family. ✅ AND SO DID THE HIGHLIGHT FAMILY, which
 # is the second time this has held: it wanted a heavier tint, which is a NUMBER on
-# an existing shape rather than a shape.
+# an existing shape rather than a shape. ✅ AND THE FMP FAMILIES MADE IT THREE:
+# `layout` is `box` and `schema` is `plain`, both already present, and the two
+# were told apart by SHAPE rather than by a fifth hue.
 #
 # ⚠️ PREFER INHERITING, THEN A TOKEN, AND ONLY THEN A HEX. A token follows the
 # theme into light mode and into every other site; a hex is frozen where you typed
@@ -79,6 +81,37 @@
 # it validates as a legal token NAME, and it resolves to nothing: reported once
 # per build and painted in the body colour. That is the `accent-soft` bug wearing
 # a different name, so it is written here where the cell is typed.
+#
+# ---------------------------------------------------------------------------
+# 🔴 TWO OF THE FMP ROWS BELOW WERE ALREADY BEING TYPED, AND HAD NEVER RENDERED
+# (2026-08-09). Before this commit `uritp-docs` carried six `{.calc}` across
+# `20-tables/import_EVENTS.tsv` and `20-tables/WORKDAYS.tsv`, and two `{.button}`
+# in `10-user-experience/index.md`. None of them were rows here.
+#
+# ⚑ AND THE FAILURE IS SILENT BY DESIGN, WHICH IS THE PART WORTH KEEPING. An
+# unknown marker is NOT an error: `on_page_markdown` hands it back untouched on
+# purpose, because `{ .md-button }` is somebody else's attr_list syntax and
+# eating it would be worse. So an author who invents a marker gets valid-looking
+# markdown, plain body text, and one line in a build report. ⭐ The same shape as
+# the `danger` callout that lost its red on 08-05 and sat unnoticed for four
+# hours: the mechanism reported itself correctly and being REPORTED is not the
+# same as being SEEN.
+#
+# ⚠️ CONSEQUENCE FOR THE NEXT PERSON, STATED BECAUSE IT NOW CUTS BOTH WAYS:
+# adding a row here RETROACTIVELY CLAIMS every `{.name}` already written across
+# every site. `field` is the one to watch -- it is a plausible attr_list class
+# name as well as a marker. Nothing in the fleet uses it as one today (checked
+# before this commit), but a future `{ .field }` meant as an HTML attribute will
+# now render as a chip instead.
+#
+# 🚩 THE LINK FORMS ARE NOT WIRED YET, AND THIS IS THE ONE GAP IN THIS COMMIT.
+# `[fkOtherTable](@rel:table-other)` -- plus `@script:` and `@layout:` -- is the
+# half that makes the report an EDGE LIST rather than a count, because the link
+# resolver records source → target where a span records only a mention. It needs
+# `docrender/markers.py`, which is **23,084 B against a ~22KB safe-edit ceiling**,
+# so generalising `_resolve_term` into a prefix table is a structural call and
+# not a data edit. Deliberately not smuggled into a TSV commit. The span form
+# `{.rel}` works today; the link form renders as a broken reference until then.
 # ---------------------------------------------------------------------------
 marker	class	label	shape	color	tooltip
 tbc	confidence	To be confirmed			Not yet verified against a source. Do not rely on this without checking.
@@ -89,3 +122,9 @@ est	confidence	Estimate	soft	ink-muted	Approximate. Close enough to plan with, n
 was	confidence	Superseded	strike	ink-muted	The old value, kept so paperwork quoting it can still be matched up.
 term	terminology				House terminology. Where it is also a link there is a page defining it.
 hi	highlight	Highlight			Flagged as worth your attention. This says nothing about whether the value is correct -- if you want that, the confidence markers are the ones that mean it.
+button	layout	Button			A button on a FileMaker layout. The marked text is what the button SAYS, so it can be found by reading the label the way a user would.
+field	layout	Field			A field placed on a layout. Names the object the user types into, not the underlying schema field -- for that, look the table up.
+calc	schema	Calculation			A calculated value. FileMaker has no screen that lists every calc in a file, so this marker IS the register -- the build report is where you read them all at once.
+rel	schema	Relationship			A relationship between tables. Where the other table has a page, prefer the link form so the report records the edge and not just the mention.
+trigger	schema	Script trigger			A script trigger. Nothing in FileMaker enumerates these, and they are the objects most likely to be forgotten -- if it fires, mark it.
+global	schema	Global			A global field or a $$variable. Scattered across a solution by nature; this is the only place they can be counted.
