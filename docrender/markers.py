@@ -5,12 +5,11 @@
     A [source 4]{.term} is an ERS fixture
 
 The LINK form -- `[ETC](@term:etc)`, `[fkCal](@rel:table-events)` -- lives in
-docrender/markerlinks.py. Read that file for why the two are separate and what the
-seam between them is allowed to be.
+docrender/markerlinks.py, which also carries the history of the two-form design.
+This file owns the DATA and the PAINT.
 
 Decision history: doc-render-engine (repo) Decision Log in ClickUp, Q6/J7 for the
 class axis and J8 for the `@term:` prefix; maw-themes J11 for the colour token.
-The arguments live THERE. This file states the contract and the traps.
 
 
 TWO AXES OF MEANING
@@ -26,128 +25,88 @@ family, because the table had no column for it.
 report groups by class. Confidence stays answerable however many terms a site
 marks.
 
-A class carries the default SHAPE and COLOUR; a row overrides either. `est` and
-`was` keep soft and struck as OVERRIDES rather than as the only mechanism, and a
-new terminology row is a slug and a tooltip.
-
-SHAPE IS STILL A CLOSED SET OF FOUR (box, plain, strike, soft): four are
-distinguishable at a glance, nine are not. Terminology needed colour and weight
-without an underline, which is `plain`, which already existed -- the class axis
-cost the shape axis nothing. The FMP families made it three for three: `layout`
-is box, `schema` is plain, and the two are told apart by shape, not a new hue.
+SHAPE IS A CLOSED SET OF FOUR (box, plain, strike, soft): four are
+distinguishable at a glance, nine are not. Three families in a row have wanted a
+fifth and needed none -- terminology wanted colour without an underline, which is
+`plain`; highlight wanted a heavier tint, which is a NUMBER on `box` (`wash`, a
+column on marker-classes.tsv); and the FMP pair split on `box` against `plain`.
+⚑ A request for a new VARIANT is a request for a new PARAMETER far more often
+than a new KIND, and the tell is whether you can state the difference without
+using a number.
 
 
 🔴 THIS FILE WAS SPLIT ON 2026-08-09, AND THE ARGUMENT AGAINST SPLITTING IT
 ===========================================================================
 
-The docstring that used to sit here said the module claimed `@term:` itself
+The docstring that used to sit here said this module claimed `@term:` itself
 "not for tidiness, but so the two forms cannot disagree about which family they
-are. `_TERM_CLASS` is read by the span renderer AND the link resolver. A second
-module would be a second place to name the family."
+are... A second module would be a second place to name the family."
 
 That was correct, and it stopped being true rather than being overruled.
 
 ⚑ THE OBJECTION DISSOLVED WHEN THE FAMILY MOVED INTO THE DATA. `_TERM_CLASS =
 "terminology"` was a constant in Python, so a second module genuinely would have
-been a second place naming it. theme/markers.tsv now carries a `prefix` column,
-so the link form and the span form both look the family up in the SAME ROW of the
-same table, and NEITHER module names a family anywhere. There is no fact left for
-them to disagree about.
+been a second place naming it. markers.tsv now carries a `prefix` column, so both
+forms look the family up in the SAME ROW of the same table and NEITHER module
+names one. There is no fact left for them to disagree about. ⭐ Generally: an
+argument against splitting a file is usually an argument about a SHARED CONSTANT,
+and it expires the moment that constant becomes data.
 
-⭐ Worth keeping as a general shape: an argument against splitting a file is
-usually an argument about a SHARED CONSTANT, and it expires the moment that
-constant becomes data. Re-test the objection against the current mechanism rather
-than honouring it -- the same move as the icon column, where a refusal aimed at
-authoring SVG data did not survive contact with naming a variable.
+⚠️ WHAT FORCED IT was size -- 23,084 B against a ~22KB safe-edit ceiling, in the
+one module whose history includes killing every site at once.
 
-⚠️ WHAT ACTUALLY FORCED IT was size: 23,084 B against a ~22KB safe-edit ceiling,
-in the one module whose history includes killing every site on the family at once.
-A file that cannot be read whole cannot be edited safely, and this one had two
-genuinely separable jobs sitting in it.
+🔴 AND THE FIRST ATTEMPT AT THIS SPLIT CAME OUT AT 26,362 B. The code left and the
+prose grew, so the change failed the exact test that justified it while looking
+like it passed. ⚑ A refactor justified by a NUMBER has to have the number read
+back, and that byte count was in the API response the whole time. Same family as
+every unverified size claim this repo has written down.
 
-🚨 AND THE SEAM IS THE TABLE, NEVER A FUNCTION. markerlinks.py imports `table()`,
+🚨 THE SEAM IS THE TABLE, NEVER A FUNCTION. markerlinks imports `table()`,
 `marker_rows()` and `LINK_CLASS` -- data and one name. It does NOT import
-`_colour`, and must not: that helper encodes THIS module's policy (an unresolvable
-token falls back to the body colour rather than painting nothing), and sharing a
-resolver that encodes one module's policy is exactly what broke the build on
-2026-08-05. Sharing the token LIST is correct; sharing the resolver was not.
+`_colour`, and must not: that helper encodes THIS module's policy, and sharing a
+resolver that encodes one module's policy is what broke the build on 2026-08-05.
 
 
 COLOUR IS RESOLVED ONCE PER BUILD, AND THAT IS A FIX
 ====================================================
 
 `_colour()` used to run inside the per-MATCH replacement, so an unknown token
-reported once per OCCURRENCE. Six markers on a page hid that completely; a
-terminology class used three hundred times would have buried the report under
-three hundred copies of one complaint -- and the report is the only reason this
-beats a highlighter.
+reported once per OCCURRENCE -- a terminology class used three hundred times
+would have buried the report under three hundred copies of one complaint, and the
+report is the only reason this beats a highlighter.
 
-The table is merged and resolved in `on_files`, once. In an event and not at
-import, because `mkdocs serve` rebuilds in-process and a table cached at import
-would outlive an edit to either TSV.
+The table is merged in `on_files`, once. In an event and not at import, because
+`mkdocs serve` rebuilds in-process and a table cached at import would outlive an
+edit to either TSV.
 
-⚠️ THE ONE THING THAT IS READ AT IMPORT IS THE `prefix` COLUMN, and it is read by
-markerlinks rather than here, through `marker_rows()`. A namespace has to be
-claimed before any page renders, so that read cannot wait for an event. The cost
-is stated where it is paid: a prefix ADDED during a live `mkdocs serve` session
-needs a restart, and markerlinks reports exactly that. Everything else about a
-marker -- its colour, label, shape, tooltip -- stays hot.
-
-Class colour is emitted as a REAL CSS RULE by `build_css()`. The inline custom
-property survives for a ROW override only: a rule per class is cheap, a rule per
-marker was not, which is what the inline property existed to avoid.
-
-
-⭐ THE CHIP TINT IS A NUMBER, NOT A FIFTH SHAPE (2026-08-07)
-============================================================
-
-`.dr-mark--box` has ALWAYS painted a tinted ground. 10% is simply below the
-level at which a reader reads the chip as highlighted rather than bordered, so a
-highlight family needed a heavier tint and NOT a new shape.
-
-☑ THE REQUEST WAS FOR A PARAMETER AND ARRIVED SOUNDING LIKE A KIND. The test
-that caught it: state the difference from `box` without using a number. You
-cannot. `wash` is therefore a column on marker-classes.tsv, emitted here as
-`--dr-mark-wash`. A blank cell emits nothing and the CSS fallback supplies 10%,
-so every family that predates the column renders byte-identically.
-
-⚠️ THE RULE CONSUMING IT IS EMITTED HERE RATHER THAN EDITED INTO base.css, for
-the same reason the link rule is: two classes outrank base.css's one, so the
-background moves without rewriting a 17.4KB file from a single read -- the
-clobber that ate util.py on 2026-08-03. base.css still owns border, radius and
-padding, and its 10% survives as the var() fallback, not as a second live value.
-
-⚠️ WASH IS NOT A FREE DIAL: the chip's text sits on a wash of ITSELF, so raising
-it lowers text-against-chip contrast. Measure the chip, not the page.
+⚠️ THE ONE THING READ AT IMPORT IS THE `prefix` COLUMN, by markerlinks, through
+`marker_rows()`. A namespace must be claimed before any page renders, so that read
+cannot wait for an event. The cost is stated where it is paid: a prefix ADDED
+during a live `mkdocs serve` session needs a restart, and markerlinks reports it.
+Everything else about a marker stays hot.
 
 
 🔴 THE VALIDATION LIST WENT STALE WHEN THE PALETTE MOVED (fixed 2026-08-05)
 ==========================================================================
 
-`_known_tokens()` read theme/colors.tsv and nothing else -- the NINE-TOKEN
-stand-in, the file whose own header says it is on death row. Meanwhile the
-engine has been emitting the CANONICAL 22 since the four-vector join landed, and
-exactly two of those (`accent`, `warn`) happen to share a name with the
-stand-in. Every other canonical token was REFUSED by a validator that had never
-heard of it.
+`_known_tokens()` read theme/colors.tsv and nothing else -- the nine-token
+stand-in -- while the engine had been emitting the CANONICAL 22 since the
+four-vector join. Exactly two names overlap, so every other canonical token was
+REFUSED by a validator that had never heard of it. The visible cost was one cell
+asking for `accent-soft`, reported unknown once per build, quietly painting in the
+body colour -- long enough that the comment explaining it read as a plan.
 
-The visible cost was one line in marker-classes.tsv asking for `accent-soft`,
-reporting unknown once per build, and quietly rendering in the body colour --
-for long enough that the comment explaining it read as a plan rather than a bug.
+☑ A PALETTE MOVED AND THE LIST OF WHAT IS ALLOWED DID NOT: a second place stating
+a fact the first place already owns. The union now reads the canonical table's own
+HEADER ROW, so a column added upstream is usable the day it is vendored.
 
-☑ A PALETTE MOVED AND THE LIST OF WHAT IS ALLOWED DID NOT. Same shape as the
-hardcoded `_SHEETS` list in tokenaudit.py that went stale in under two hours,
-and as contrast.tsv certifying a floor nothing in the design system meets: a
-second place stating a fact the first place already owns.
+⚠️ THE NEAR-MISS THAT SURVIVES IT IS `accent-1`, WHICH DOES NOT EXIST -- the four
+are `accent`, `accent-deep`, `accent-2`, `accent-soft`. It is a legal token NAME,
+so it passes the regex, fails the set, and lands in the report line everybody read
+as "not vendored yet" for two days. Named in markers.tsv, where the cell is typed.
 
-The union is read from the canonical table's own HEADER ROW, so a column added
-upstream is usable the day it is vendored. No third list.
-
-⚠️ THE NEAR-MISS THAT SURVIVES IT IS `accent-1`, WHICH DOES NOT EXIST -- the
-four are `accent`, `accent-deep`, `accent-2`, `accent-soft`. It is a legal token
-NAME, so it passes the regex, fails the set, and lands in the same report line
-everybody read as "not vendored yet" for two days. Named in markers.tsv, at the
-point the cell is typed.
+⚠️ AND WASH IS NOT A FREE DIAL: a chip's text sits on a wash of ITSELF, so raising
+it lowers text-against-chip contrast. Measure the chip, not the page.
 
 Defined in theme/markers.tsv + theme/marker-classes.tsv. Adding one is a row.
 """
@@ -162,11 +121,11 @@ from .util import load_tsv, sub_outside_code
 
 # [text]{.marker} with optional whitespace, or bare {.marker}.
 #
-# ⚠️ THE TEXT GROUP FORBIDS `]`, WHICH MEANS A MARKER SPAN CANNOT HOLD A LINK.
+# ⚠️ THE TEXT GROUP FORBIDS `]`, SO A MARKER SPAN CANNOT HOLD A LINK.
 # `[Saved [SET](@table-print-sets)]{.button}` does not fail -- it matches the BARE
-# form and renders a chip carrying the row's label, with the link left beside it as
-# ordinary markdown. That is the syntax to reach for the link form instead: put the
-# prefix on the row and write `[SET](@rel:table-print-sets)`.
+# form and renders a chip carrying the row's label, leaving the link beside it as
+# ordinary markdown. The link form is the answer: put a prefix on the row and
+# write `[SET](@rel:table-print-sets)`.
 _MARK = re.compile(
     r"(?:\[(?P<text>[^\]\n]*)\])?\{[ \t]*\.(?P<marker>[a-z][a-z0-9-]*)[ \t]*\}"
 )
@@ -190,20 +149,13 @@ _FALLBACK_SHAPE = "box"
 
 #: Carried by the LINK form on top of its family class, so an anchor can take the
 #: family colour without also taking `.dr-mark` -- whose `cursor: help` and
-#: `white-space: nowrap` are both wrong on something clickable.
+#: `white-space: nowrap` are both wrong on something clickable. Defined HERE
+#: because this module owns paint and emits the rule; markerlinks imports the name.
 #:
-#: ⚠️ IT LIVES HERE, NOT IN markerlinks, BECAUSE THIS MODULE OWNS PAINT. The rule
-#: consuming it is emitted by `build_css()` below; markerlinks imports the name and
-#: puts it on the anchor. One name, one home, two readers -- which is the same
-#: discipline that makes the split legal at all.
-#:
-#: 🔴 RENAMED FROM `dr-term` ON 2026-08-09. That was one marker's name on a
-#: mechanism now serving seven, and a class called `dr-term` on an `@rel:` link
-#: would be a lie in the rendered HTML. Verified safe rather than assumed: a code
-#: search returned nothing, WHICH IS NOT EVIDENCE -- an empty search result is the
-#: same shape as the naming gate that cleared every collision by reading a
-#: tombstone. assets/base.css was then read in full and carries no `.dr-term` rule,
-#: so the generated rule below was always its only home.
+#: 🔴 RENAMED FROM `dr-term` ON 2026-08-09 -- one marker's name on a mechanism now
+#: serving seven. Verified rather than assumed: a code search returned nothing,
+#: WHICH IS NOT EVIDENCE, so assets/base.css was read in full and carries no
+#: `.dr-term` rule. The generated rule below was always its only home.
 LINK_CLASS = "dr-mark-link"
 
 #: Marker name -> resolved row. Built by on_files, read by on_page_markdown AND by
@@ -219,13 +171,12 @@ def marker_rows() -> list[dict]:
     """The RAW markers.tsv rows, unresolved.
 
     Public for one caller and one purpose: markerlinks reads the `prefix` column at
-    IMPORT time, before any event has run and therefore before `_TABLE` exists. A
-    namespace has to be claimed before a page renders, so that read cannot wait.
+    IMPORT time, before any event has run and therefore before `_TABLE` exists.
 
     🚨 DO NOT REACH FOR THIS TO GET A MARKER'S COLOUR, SHAPE OR CLASS. Those are
-    only correct after `_build_table()` has merged the row with its family and
-    validated it; a raw row's `shape` cell is blank on almost every marker because
-    blank means INHERIT. Use `table()` for anything that has to be right.
+    only correct after `_build_table()` has merged the row with its family: a raw
+    row's `shape` cell is blank on almost every marker, because blank means INHERIT.
+    Use `table()` for anything that has to be right.
     """
     return _rows("markers.tsv")
 
@@ -233,9 +184,9 @@ def marker_rows() -> list[dict]:
 def table() -> dict:
     """The RESOLVED marker table. Empty until on_files has run.
 
-    This is the entire seam between this module and markerlinks: data, not
-    behaviour. A caller reading a name that is not here should degrade rather than
-    fail -- an unstyled link is a working link.
+    The entire seam between this module and markerlinks: data, not behaviour. A
+    caller reading a name that is not here should degrade rather than fail -- an
+    unstyled link is still a working link.
     """
     return _TABLE
 
@@ -245,24 +196,19 @@ def _classes() -> dict[str, dict]:
 
 
 def _known_tokens() -> set[str]:
-    """Every colour token a marker may legally name.
-
-    THE UNION OF BOTH TABLES, and the union is the whole point -- see the red
-    section in the module docstring for what a single-table version cost.
+    """Every colour token a marker may legally name: the union of both tables.
 
       LOCAL      theme/colors.tsv, the nine-token stand-in. Still contributes
                  `dead`, which canonical genuinely lacks (maw-themes D11) and
                  which is the only reason that file is still loaded at all.
       CANONICAL  theme/canonical/colors.tsv, read from its HEADER ROW rather
-                 than from a list kept here. A column added upstream is usable
-                 the day it is vendored, and there is no third place to update.
+                 than from a list kept here. No third place to update.
 
-    ⚠️ THIS ANSWERS "MAY A MARKER NAME IT", NOT "IS IT EMITTED". A canonical
-    token is emitted only by a theme that has a join; a nine-token local theme
-    emits a handful. A marker naming a token the ACTIVE theme does not emit
-    resolves to `var(--dr-x)` with no fallback, which paints nothing -- so the
-    honest widening is to accept the name and let the theme decide, exactly as
-    every stylesheet in this engine already does with `var(--dr-x, fallback)`.
+    ⚠️ THIS ANSWERS "MAY A MARKER NAME IT", NOT "IS IT EMITTED". A canonical token
+    is emitted only by a theme that has a join; a nine-token local theme emits a
+    handful. A marker naming a token the ACTIVE theme does not emit resolves to
+    `var(--dr-x)` with no fallback, which paints nothing -- so the honest widening
+    is to accept the name and let the theme decide.
     """
     local = {r["token"] for r in _rows("colors.tsv") if r.get("token")}
 
@@ -283,9 +229,9 @@ def _colour(value: str, where: str, tokens: set[str], report: bool = True) -> st
 
     🚨 PRIVATE TO THIS MODULE AND IT STAYS THAT WAY. It encodes a POLICY -- an
     unresolvable token falls back to the body colour rather than painting nothing --
-    and that policy is right for a marker and wrong for other consumers. Exporting a
-    resolver that encodes one module's policy is what took every site down on
-    2026-08-05. markerlinks shares the TABLE and never this.
+    which is right for a marker and wrong for other consumers. Exporting a resolver
+    that encodes one module's policy is what took every site down on 2026-08-05.
+    markerlinks shares the TABLE and never this.
     """
     value = (value or "").strip()
     if not value:
@@ -311,13 +257,13 @@ def _wash(value: str, where: str, report: bool = True) -> str:
 
     Empty is the NORMAL answer and is never reported: a family that does not
     mention wash is inheriting the default on purpose, and every family but one
-    does. `report` mirrors _colour's, for the same twice-per-build reason.
+    does.
 
     ⚠️ A REJECTED WASH FALLS BACK TO THE DEFAULT, which is the OPPOSITE of what
-    _colour does with a bad token, deliberately. An unresolvable colour must not
-    be quietly substituted -- the marker would be the wrong colour and nobody
-    could tell by looking. A wash reverting to 10% is a chip that looks like
-    every other chip: legible, and obviously not the emphasis that was asked for.
+    _colour does with a bad token, deliberately. An unresolvable colour must not be
+    quietly substituted -- the marker would be the wrong colour and nobody could
+    tell by looking. A wash reverting to 10% is a chip that looks like every other
+    chip: legible, and obviously not the emphasis that was asked for.
     """
     value = (value or "").strip()
     if not value:
@@ -405,10 +351,8 @@ def _build_table() -> dict[str, dict]:
             "label": row.get("label") or "",
             "shape": shape,
             "tooltip": row.get("tooltip") or "",
-            # Carried on the resolved row so markerlinks can report what it claimed
-            # against what the table now says. THIS module never acts on it -- a
-            # span has no namespace -- but dropping it here would mean the link
-            # side reading the raw TSV twice for two different halves of one row.
+            # Carried on the resolved row so the link side reads ONE row for both
+            # halves. This module never acts on it -- a span has no namespace.
             "prefix": (row.get("prefix") or "").strip(),
             # A row override becomes an inline property. An unset colour inherits
             # the generated class rule and needs nothing on the span at all.
@@ -454,18 +398,16 @@ def build_css() -> str:
             ".md-typeset .dr-mark--cls-" + name + " { " + "; ".join(decls) + "; }"
         )
 
-    # THE CHIP TINT. base.css keeps the border, radius and padding; only the
-    # background moves here, because only the background is now data.
+    # THE CHIP TINT. base.css keeps border, radius and padding; only the background
+    # moves here, because only the background is now data. Two classes beats
+    # base.css's one, so base.css needs no edit.
     #
-    # ⚠️ TWO CLASSES IS THE WHOLE MECHANISM: base.css's `.dr-mark--box` is one,
-    # this is two, so it wins and base.css needs no edit.
-    #
-    # ⭐ AND A BOXED LINK NEEDED NO NEW CSS AT ALL, WHICH IS WHY THE SHAPE AXIS
-    # KEEPS PAYING. An anchor from a `box` family carries `dr-mark--box` WITHOUT
-    # `dr-mark`, so it picks up base.css's border, radius, padding and this
-    # background, and picks up NEITHER `cursor: help` NOR `white-space: nowrap` --
-    # the two declarations that made the link form refuse `.dr-mark` in the first
-    # place. The classes were already separate rules; nobody had used them apart.
+    # ⭐ AND A BOXED LINK NEEDED NO NEW CSS AT ALL, WHICH IS WHY THE SHAPE AXIS KEEPS
+    # PAYING. An anchor from a `box` family carries `dr-mark--box` WITHOUT
+    # `dr-mark`, so it picks up border, radius, padding and this background, and
+    # picks up NEITHER `cursor: help` NOR `white-space: nowrap` -- the two
+    # declarations that made the link form refuse `.dr-mark` in the first place.
+    # The classes were already separate rules; nobody had used them apart.
     lines.append(
         ".md-typeset .dr-mark--box { background: color-mix(in oklch,"
         + " var(--dr-mark-color) var(--dr-mark-wash, " + _DEFAULT_WASH + "),"
@@ -478,14 +420,12 @@ def build_css() -> str:
     # ⚠️ THE UNDERLINE IS EXPLICIT, AND THAT IS NOT REDUNDANCY. The whole design
     # rests on underline being the one visible difference between the two forms,
     # and Material's link styling is a framework default nobody has verified
-    # persists an underline in this build. An affordance the design depends on is
-    # not left to somebody else's default. If Material underlines too, this is a
+    # persists an underline in this build. If Material underlines too, this is a
     # no-op.
     #
     # ⚠️ ONE RULE FOR EVERY PREFIX, WHICH IS WHY IT NAMES NO FAMILY. It used to be
-    # `a.dr-term` beside a hardcoded `.dr-mark--cls-terminology`. Seven namespaces
-    # later that would have been seven near-identical rules, or one rule lying
-    # about which family it served.
+    # `a.dr-term` beside a hardcoded terminology class. Seven namespaces later that
+    # would be seven near-identical rules, or one rule lying about who it serves.
     lines.append(
         ".md-typeset a." + LINK_CLASS + " { color: var(--dr-mark-color);"
         + " text-decoration: underline; text-decoration-thickness: 1px;"
@@ -516,10 +456,10 @@ def on_page_markdown(markdown, page, config, files):
             # emitted for a link-form marker, so hand it back untouched rather than
             # eating syntax that belongs to somebody else.
             #
-            # ⚠️ THIS BRANCH IS LOAD-BEARING IN BOTH DIRECTIONS. It is why an
-            # invented marker degrades to plain text instead of erroring -- and
-            # therefore why `{.calc}` sat unrendered on a live site for days before
-            # 2026-08-09. Being reported is not the same as being seen.
+            # ⚠️ LOAD-BEARING IN BOTH DIRECTIONS. It is why an invented marker
+            # degrades to plain text instead of erroring -- and therefore why
+            # `{.calc}` sat unrendered on a live site for days before 2026-08-09.
+            # Being reported is not the same as being seen.
             return match.group(0)
 
         text = (match.group("text") or "").strip() or row["label"] or name
@@ -559,9 +499,8 @@ def on_post_build(config):
     """Sort the inventory so it reads as families rather than as page order.
 
     Runs before hook 08 prints, because MkDocs dispatches an event to hooks in
-    REGISTRATION order and 03b is registered before 08. That is the same ordering
-    dependency mkdocs.yml already documents for the nav chain -- if this ever
-    stops working, check that list before you check this function.
+    REGISTRATION order and 03b is registered before 08 -- the same ordering
+    dependency mkdocs.yml already documents for the nav chain.
 
     ⚠️ IT SORTS ENTRIES THIS MODULE DID NOT WRITE. markerlinks appends to the same
     bucket, on purpose, and is registered at 03c -- also before 08. One sort, one
