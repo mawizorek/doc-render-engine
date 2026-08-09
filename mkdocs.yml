@@ -102,6 +102,13 @@ plugins:
 # MkDocs keeps rewriting its relative src and we never own that arithmetic.
 # Removing `md_in_html` does not error: every captioned figure silently ships as
 # literal `![alt](src)` text inside a raw HTML block.
+#
+# ⚠️ AND `attr_list` IS WHAT MAKES EVERY MARKER RENDER. docrender/markers.py and
+# markerlinks.py both emit `{ .class }` blocks for Python-Markdown to consume.
+# Remove it and every chip and every marker link ships as literal `{ .dr-mark }`
+# text on the page -- and `toc: permalink` is what gives a heading an id for
+# `@calc:table-x#calc-y` to land on, with `attr_list` supplying the `{#explicit}`
+# form that survives a heading being retitled.
 markdown_extensions:
   - admonition
   - attr_list
@@ -151,6 +158,18 @@ markdown_extensions:
 #      on_page_markdown, so links.py at 03 cannot see a half-built index no
 #      matter where this line sits. It is here because 01e and 01f read as one
 #      feature -- 01e wraps a captioned image, 01f knows where the image is.
+#   03 resolves links -> 03b renders marker SPANS. Marker syntax and link syntax
+#      are different patterns, but running the id resolver first keeps its output
+#      out of the marker pattern's way: a resolved marker link emits a two-class
+#      attr_list block, and 03b's pattern only matches a single-class one.
+#   03c claims the marker LINK namespaces (@rel:, @calc:, @vl: and the rest,
+#      derived from the `prefix` column of theme/markers.tsv). ⭐ ITS POSITION IS
+#      ALSO FREE, for exactly the reason 01f's is -- the claim happens at import,
+#      and its resolvers are called BY links.py at 03, not by a later stage. It
+#      sits here because 03b and 03c are two halves of one feature.
+#      🚨 BUT ITS PRESENCE IS NOT OPTIONAL. Remove this line and markerlinks is
+#      never imported, so nothing claims anything and every marker link on every
+#      site renders as a broken reference. See hooks/03c_markerlinks.py.
 #   00bb decides which folders open -> 06b writes that onto the rendered page.
 #      Two different EVENTS (on_nav, on_post_page), so this pair cannot be
 #      reordered into a bug -- it is listed because the dependency is real even
@@ -201,6 +220,7 @@ hooks:
   - hooks/02_visibility.py
   - hooks/03_links.py
   - hooks/03b_markers.py
+  - hooks/03c_markerlinks.py
   - hooks/04b_router.py
   - hooks/05_assets.py
   - hooks/06_pagefoot.py
