@@ -105,13 +105,24 @@
 # now render as a chip instead.
 #
 # 🚩 THE LINK FORMS ARE NOT WIRED YET, AND THIS IS THE ONE GAP IN THIS COMMIT.
-# `[fkOtherTable](@rel:table-other)` -- plus `@script:` and `@layout:` -- is the
-# half that makes the report an EDGE LIST rather than a count, because the link
-# resolver records source → target where a span records only a mention. It needs
-# `docrender/markers.py`, which is **23,084 B against a ~22KB safe-edit ceiling**,
-# so generalising `_resolve_term` into a prefix table is a structural call and
-# not a data edit. Deliberately not smuggled into a TSV commit. The span form
-# `{.rel}` works today; the link form renders as a broken reference until then.
+# `[fkOtherTable](@rel:table-other)` -- plus `@script:`, `@layout:` and `@vl:` --
+# is the half that makes the report an EDGE LIST rather than a count, because the
+# link resolver records source → target where a span records only a mention. It
+# needs `docrender/markers.py`, which is **23,084 B against a ~22KB safe-edit
+# ceiling**, so generalising `_resolve_term` into a prefix table is a structural
+# call and not a data edit. Deliberately not smuggled into a TSV commit. The span
+# forms work today; the link forms render as broken references until then.
+#
+# 🚫 `.value` WAS PROPOSED WITH `.vl` AND REFUSED (2026-08-09, Fiona). A marker
+# for one entry ON a value list. Production MAWster already carries a VALUES
+# table with `VALUES.tsv` as its catalog, so every value on every list is already
+# a row in a file that RENDERS AS A TABLE. An inline marker would be a second
+# claimant on data the first place already owns -- the defect that retired
+# `roster.json`, `registry.json` and `app-index.md`. ⚑ The distinction that
+# decides this one and the next one: `.vl` is a THING OTHER OBJECTS POINT AT
+# (fields use it, scripts read it), so marking it records an edge. A value is a
+# ROW IN A TABLE, and the answer to "show me all of them" is that table, not a
+# report. Written down because an unwritten refusal gets re-proposed.
 # ---------------------------------------------------------------------------
 marker	class	label	shape	color	tooltip
 tbc	confidence	To be confirmed			Not yet verified against a source. Do not rely on this without checking.
@@ -124,7 +135,8 @@ term	terminology				House terminology. Where it is also a link there is a page d
 hi	highlight	Highlight			Flagged as worth your attention. This says nothing about whether the value is correct -- if you want that, the confidence markers are the ones that mean it.
 button	layout	Button			A button on a FileMaker layout. The marked text is what the button SAYS, so it can be found by reading the label the way a user would.
 field	layout	Field			A field placed on a layout. Names the object the user types into, not the underlying schema field -- for that, look the table up.
-calc	schema	Calculation			A calculated value. FileMaker has no screen that lists every calc in a file, so this marker IS the register -- the build report is where you read them all at once.
-rel	schema	Relationship			A relationship between tables. Where the other table has a page, prefer the link form so the report records the edge and not just the mention.
-trigger	schema	Script trigger			A script trigger. Nothing in FileMaker enumerates these, and they are the objects most likely to be forgotten -- if it fires, mark it.
+calc	schema	Calculation			A calculated value. NOTHING in FileMaker lists every calc in a file, so this marker is the only register there is -- the build report is where you read them all at once.
+rel	schema	Relationship			A relationship between tables. The Graph shows it; nothing lists it as text. Where the other table has a page, prefer the link form so the report records the edge and not just the mention.
+trigger	schema	Script trigger			A script trigger. Nothing enumerates these either, and they are the objects most likely to be forgotten -- if it fires, mark it.
 global	schema	Global			A global field or a $$variable. Scattered across a solution by nature; this is the only place they can be counted.
+vl	schema	Value list			A value list. Manage > Value Lists does enumerate these, so this marker is not the register -- it is here to record WHO USES IT, which is the part FileMaker cannot show you.

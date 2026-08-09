@@ -46,7 +46,7 @@
 # difference without using a number.
 #
 # ⚠️ WASH AND COLOUR ARE NOT INDEPENDENT, WHICH IS WHY THIS IS NOT A FREE DIAL.
-# The chip text sits on a wash of ITSELF, so raising the wash lowers the contrast
+# The chip text sits on a wash of ITSELF, so raising it lowers the contrast
 # between the two. markers.tsv's header already says to measure the chip and not
 # the page; that warning now has a knob attached to it, so measure after changing
 # this cell rather than after changing only `color`.
@@ -121,20 +121,47 @@
 # These two exist to document a FileMaker solution in git, and the reason there
 # are TWO is not what it looks like. It is not layout-object versus not-an-object
 # -- a relationship and a calculation are both objects, and Michael said so when
-# the first split was proposed on those grounds. The line that survived is about
-# WHERE THE TRUTH LIVES:
+# the first split was proposed on those grounds. The line that survived:
 #
-#   layout   FileMaker owns it. Open the file and you can see every button on a
-#            layout. This doc POINTS AT a thing that exists over there.
-#   schema   FileMaker has NO surface that enumerates these. There is no screen
-#            listing every calculation in a file, every script trigger, or every
-#            global. So this doc is not a pointer, IT IS THE REGISTER.
+#   layout   A CONTROL THE USER ACTS ON. A button, a field on a layout. It lives
+#            in Layout mode and a reader meets it in prose, mid-sentence.
+#   schema   HOW THE DATA IS SHAPED. A calculation, a relationship, a trigger, a
+#            global, a value list. It lives in the Graph and in Manage, and a
+#            reader meets it inside a table of fields.
 #
-# ⭐ WHICH IS WHY THE BUILD REPORT IS THE POINT AND THE COLOUR IS NOT. Every use
-# is already counted and grouped by class by markers.py, so the day these rows
-# land, `!!! schema` answers "every calc across this doc set" in one block --
-# a question FileMaker cannot answer about itself. That is the whole return, and
-# it needed a TAG, never a hue.
+# FileMaker's own two halves. The test is what the object IS, and nothing else.
+#
+# 🔴 AND THAT TEST IS NARROWER THAN THE ONE THIS SECTION SHIPPED WITH THREE HOURS
+# AGO, WHICH WAS WRONG (2026-08-09, corrected before the row that contradicted it
+# landed). The original text defined `schema` as *"FileMaker has NO surface that
+# enumerates these, so this doc is not a pointer, IT IS THE REGISTER"* -- and
+# that is a genuinely load-bearing observation about `calc`, `trigger` and
+# `global`. It is simply not what makes something `schema`.
+#
+# `.vl` is what caught it. A value list is unmistakably data-shape, and
+# **Manage > Value Lists lists every one of them** -- so under the shipped
+# definition the correct row would have joined the family while contradicting
+# its stated reason for existing.
+#
+# ⚑ THE GENERALISABLE PART, AND IT IS WHY THIS IS WORTH THE PARAGRAPH: THE FIRST
+# FOUR ROWS PASSED BOTH TESTS, SO ONE SENTENCE WAS WRITTEN FOR TWO PROPOSITIONS
+# AND NOTHING COULD TELL THEM APART. "Is it data-shape" and "does FileMaker fail
+# to enumerate it" agreed on calc, rel, trigger and global, and a definition
+# validated only against cases where two tests agree has not been validated at
+# all. The fifth row is the first place they diverge, and a definition is only
+# ever tested by the case that splits it. Same shape as the `base` theme
+# reaching thirteen callout families with two tokens: correct on everything
+# anybody had looked at.
+#
+# ✅ SO THE ENUMERATION GAP IS DEMOTED FROM A DEFINITION TO A PER-ROW PROPERTY,
+# and it is recorded in each marker's TOOLTIP in markers.tsv, where it varies
+# honestly, rather than asserted here about all of them. It is still the reason
+# `calc` earns its keep hardest -- nothing in FileMaker lists calculations -- and
+# it is now a fact about `calc`, not a claim about the family.
+#
+# ⭐ THE RETURN IS THE BUILD REPORT EITHER WAY. Every use is counted and grouped
+# by class by markers.py, so `schema` answers "every calculation across this doc
+# set" in one block. That was always the point, and it needed a TAG, never a hue.
 #
 # ⚠️ TWO FAMILIES RATHER THAN ONE FMP FAMILY, FOR THE SAME REASON CLASSES EXIST
 # AT ALL. One family would answer "show me the FileMaker things," which nobody
@@ -156,5 +183,5 @@ class	shape	color	wash	label
 confidence	box	warn		how much to trust the value beside it
 terminology	plain	accent-2		a defined term, with or without a page behind it
 highlight	box	accent	25%	worth noticing. Says nothing about the value, only that Michael wanted your eye here
-layout	box	accent		a FileMaker LAYOUT object -- a control the user acts on. FileMaker owns it; this doc points at it
-schema	plain	accent-2		HOW THE DATA IS SHAPED. FileMaker has no screen that lists these, so this doc is the register, not a pointer
+layout	box	accent		a FileMaker LAYOUT object -- a control the user acts on. Lives in Layout mode, read in prose
+schema	plain	accent-2		HOW THE DATA IS SHAPED -- calculations, relationships, triggers, globals, value lists. Lives in the Graph and in Manage, read inside a table
