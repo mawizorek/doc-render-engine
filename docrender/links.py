@@ -5,6 +5,7 @@
     [rep plot](@oph:rep-plot)              a page in a SIBLING site
     [the schedule](@data:circuit_schedule) a data table on THIS page
     [ETC](@term:etc)                       a defined term, styled as terminology
+    [fkCal](@rel:table-events)             a relationship, styled as schema
     [the front panel](@img:h5-front)       an image anywhere in this site
 
 Moving the file, renaming its folder, or retitling the page cannot break an inbound
@@ -17,9 +18,10 @@ RESOLUTION ORDER (rewritten 2026-08-04, DL J8)
 
 0. A TOKEN CARRYING A FILE EXTENSION is refused, with the reason said out loud.
 1. RESERVED PREFIX. `@<prefix>:<rest>` claimed by a handler in docrender/prefixes.py.
-   `data` is claimed by datatable.py, `term` by markers.py, `img` by images.py. Read
-   that module for why the registry is DERIVED from its handlers rather than typed as
-   a list here.
+   `data` is claimed by datatable.py, `img` by images.py, and every marker prefix by
+   markerlinks.py -- which derives them from the `prefix` column of theme/markers.tsv,
+   so that set GROWS WITH A DATA EDIT and is not a list anybody maintains. Read that
+   module for why the registry is DERIVED from its handlers rather than typed here.
 2. PEER SITE. `@<slug>:<id>` against the peer's published index.
 3. PAGE ID. `@<id>` in this site.
 
@@ -41,15 +43,36 @@ now covers both families and the message BRANCHES -- a data file is sent to
 `@data:<slot>`, an image to `@img:<name>` -- because a reader chasing a broken picture
 should not be told about frontmatter data slots.
 
-⚠️ A RESERVED PREFIX TAKES NO `#anchor`, AND THAT WAS SILENT UNTIL 2026-08-04. A
+
+AN `#anchor` IS NOW PASSED TO HANDLERS THAT ASKED FOR IT (2026-08-09)
+=====================================================================
+
+~~⚠️ A RESERVED PREFIX TAKES NO `#anchor`, AND THAT WAS SILENT UNTIL 2026-08-04. A
 handler's signature is `(rest, page, label)` -- no anchor -- so `@data:x#totals` or
 `@term:etc#history` parsed fine, resolved fine, and lost the anchor on the way out.
 The reader got a correct-looking link to the top of the wrong place. It is now
 REPORTED and still dropped, which is the honest minimum: passing it through would
 mean changing the signature every handler already implements, and datatable.py is
 over the read ceiling tonight, so that is a deliberate later change and not a thing
-to sneak into a feature branch. Same class as every other bug in this file's history
--- resolution that succeeds while quietly discarding half the request.
+to sneak into a feature branch.~~
+
+STRUCK 2026-08-09, and left struck because "still dropped" was true for four days.
+That later change is here, and it did NOT need the signature edit it was waiting on.
+
+⭐ THE OPT-IN IS ON THE CLAIM. `prefixes.claim(..., anchors=True)` says a handler
+accepts a fourth positional argument; this file asks `prefixes.takes_anchor()` and
+picks the call shape. `@data:` and `@img:` never opted in, are called exactly as
+before, and keep the complaint below -- correctly, because `@data:` addresses a whole
+TABLE and `@img:` a whole PICTURE, and neither has anywhere for a fragment to point.
+So the parked fix turned out not to require touching datatable.py at all.
+
+⚑ Worth keeping: a change blocked on "we would have to edit that file too" is worth
+re-examining for a version that does not. The blocker was assumed to be the signature
+and it was actually the ASSUMPTION THAT ONE ANSWER FITS EVERY HANDLER.
+
+What forced it was the calc marker: a calculation has no page of its own, it lives at
+a HEADING on its table's page, so `@calc:table-workdays#calc-fkCalendar` is the whole
+address and the fragment is the half that carries the meaning.
 
 
 EVERY RESOLUTION IS RECORDED (added 2026-08-06)
@@ -64,6 +87,10 @@ reference graph existed once per link, for the length of one function call, and 
 never written down. The recording sits INSIDE the branch that produces the href,
 which is the only placement where the report cannot drift from the page: there is no
 second pass to disagree with the first.
+
+⭐ AND THAT IS WHAT MAKES A MARKER LINK WORTH TYPING. `[fkCal](@rel:table-events)`
+records a real edge here, so "every relationship in this doc set" is a graph rather
+than a count. The span form `{.rel}` can only record a mention.
 
 ⚠️ A DEAD REFERENCE IS RECORDED TOO, with `ok: false`. A report of only the working
 links would describe a site that does not exist, and the broken ones are the reason
@@ -149,6 +176,11 @@ def on_files(files, config):
     _load_peers()
     # Every hook has been imported by now, so the registry is complete. A peer slugged
     # with a reserved word would otherwise stop resolving and say nothing at all.
+    #
+    # ⚠️ THE RESERVED SET IS NO LONGER FIXED AT DEVELOPMENT TIME. markerlinks derives
+    # its claims from theme/markers.tsv, so adding a marker row can newly collide with
+    # a peer slug that has been fine for months. This call is what turns that into a
+    # line in the report rather than a peer that quietly stops resolving.
     prefixes.audit_peers((state.INSTANCE.get("peers") or {}).keys(), state.note)
     return files
 
@@ -237,11 +269,16 @@ def on_page_markdown(markdown, page, config, files):
 
             handler = prefixes.resolver(prefix)
             if handler:
-                if anchor:
-                    # A handler takes no anchor, so one written here is DROPPED. Said
-                    # out loud rather than swallowed: the link still works and still
-                    # goes to the wrong part of the page, which is the shape of every
-                    # bug this file has had.
+                # THE CALL SHAPE IS THE HANDLER'S CHOICE, NOT A GUESS MADE HERE.
+                # A handler that never opted in is called with three arguments,
+                # byte-identically to before 2026-08-09 -- calling it with four
+                # would be a TypeError inside a page render, which is a dead site.
+                takes = prefixes.takes_anchor(prefix)
+                if anchor and not takes:
+                    # Still dropped for these, and still said out loud. This is now
+                    # a genuine statement about the NAMESPACE rather than a blanket
+                    # limitation: @data: addresses a whole table and @img: a whole
+                    # picture, so a fragment has nowhere to point.
                     state.note(
                         "dead_links",
                         src + ": '@" + token + anchor + "' carries a heading anchor, "
@@ -249,7 +286,10 @@ def on_page_markdown(markdown, page, config, files):
                         + "-- it takes no anchor, so '" + anchor + "' was ignored. "
                         + "The link itself is fine; it lands at the top.",
                     )
-                resolved = handler(rest, page, label)
+                resolved = (
+                    handler(rest, page, label, anchor) if takes
+                    else handler(rest, page, label)
+                )
                 if resolved is None:
                     state.note(
                         "dead_links",

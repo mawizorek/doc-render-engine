@@ -1,6 +1,7 @@
 # INLINE MARKERS.
 #
 # Written in a page as   [some text]{.marker}   or bare as   {.marker}
+# and, where the row has a PREFIX, as a link:   [some text](@rel:table-events)
 #
 # EVERY ROW BELONGS TO A CLASS (theme/marker-classes.tsv), and the class supplies
 # the default shape and colour. Read that file first -- it is where the families
@@ -12,8 +13,7 @@
 # point -- a marker nobody can list is just a colour. It is what lets you ask
 # "what is unconfirmed across this whole site" and get an answer, and grouping by
 # class is what keeps that answer clean now that not every marker is a confidence
-# claim. A terminology marker used three hundred times must not drown the six
-# rows that mean something is unverified.
+# claim.
 #
 # ---------------------------------------------------------------------------
 # COLUMNS
@@ -22,121 +22,117 @@
 # class    which family this belongs to. REQUIRED. See marker-classes.tsv.
 # label    shown when used bare, with no text of its own
 # shape    OVERRIDE the class shape. Blank = inherit.
-#          box · plain · strike · soft
+#          box - plain - strike - soft
 # color    OVERRIDE the class colour. Blank = inherit -- and inheriting is the
 #          better path: the class colour is a generated CSS rule, so one cell
 #          repaints the whole family, where an override is inline on every span.
+# prefix   the `@x:` namespace this marker answers to, giving it a LINK form.
+#          Blank = span-only, which is the normal case.
 # tooltip  hover text. Say what the READER should DO about it.
 #
-# ⚠️ THERE IS NO PER-ROW `wash` OVERRIDE, DELIBERATELY. Wash is a CLASS property
-# (marker-classes.tsv) and stops there. A row-level colour override already costs
-# an inline style on every single span, which is why that file's own header tells
-# you to prefer inheriting; adding a second inline property would double that cost
-# to buy a distinction nobody has asked for. If two markers in one family need
-# different washes, they are two families.
+# ---------------------------------------------------------------------------
+# THE `prefix` COLUMN -- what it buys and what it costs (2026-08-09)
 #
-# ⭐ SHAPE AND COLOUR ARE SEPARATE AXES, and that split is the whole flexibility.
-# Shape is structural -- does this thing have a border, is it struck out -- and
-# there are only FOUR because a reader can distinguish four shapes at a glance and
-# cannot distinguish nine. Colour is free. Any shape works with any colour, so a
-# boxed green confirmation and a boxed amber warning are the same mechanism
-# wearing different paint.
+# A span records a MENTION. A link records an EDGE: links.py writes source ->
+# target into the reference graph for every reference it resolves, and
+# docindex.py publishes it as /doc-refs.json. So `[fkCal](@rel:table-events)` puts
+# a real relationship in a real graph, where `[fkCal]{.rel}` can only be counted.
+#
+# Nothing new is computed to get that -- the resolution was already happening to
+# build the href. It was simply being thrown away.
+#
+# THE COLUMN IS ALSO WHY THE ENGINE COULD BE SPLIT. markers.py used to hardcode
+# `_TERM_CLASS = "terminology"` and claim `@term:` itself, and argued that a
+# second module would be a second place naming the family. Naming the family in a
+# CELL retired that argument: both forms read the same row, so neither module
+# names anything. docrender/markerlinks.py contains no marker name at all.
+#
+# COSTS, both real:
+#
+#   A namespace is claimed at IMPORT, so a prefix ADDED during a live
+#   `mkdocs serve` session is not live until the process restarts. Reported.
+#
+#   A prefix here can COLLIDE with `@data:`, `@img:` or a peer site slug. All
+#   three are checked and reported, and the existing owner always wins. Nothing
+#   in this file can fail a build.
+#
+# WRITE THE PREFIX THE SAME AS THE MARKER unless there is a reason not to.
+# `.rel` / `@rel:` is one idea with one name. `.relat` beside `@rel:` was the
+# first draft and was rejected on the spot: two names for one thing is the defect
+# that retired three manifests in brain-config.
+#
+# ---------------------------------------------------------------------------
+# SHAPE AND COLOUR ARE SEPARATE AXES, and that split is the whole flexibility.
+# There are only FOUR shapes because a reader can distinguish four at a glance
+# and cannot distinguish nine. Colour is free.
 #
 #   box     bordered chip, tinted background. Demands attention.
 #   plain   coloured text, no chrome. Present but not shouting.
 #   strike  struck through. Superseded, kept findable.
 #   soft    italic, prefixed with ~. Approximate rather than doubtful.
 #
-# ✅ THE CLASS AXIS COST THE SHAPE AXIS NOTHING. Terminology needed colour and
-# weight WITHOUT an underline, which is exactly `plain` -- it was already there.
-# Four shapes still cover every family. ✅ AND SO DID THE HIGHLIGHT FAMILY, which
-# is the second time this has held: it wanted a heavier tint, which is a NUMBER on
-# an existing shape rather than a shape. ✅ AND THE FMP FAMILIES MADE IT THREE:
-# `layout` is `box` and `schema` is `plain`, both already present, and the two
-# were told apart by SHAPE rather than by a fifth hue.
+# FOUR HAS NOW HELD THREE TIMES RUNNING: terminology wanted colour without an
+# underline (`plain`, already there); highlight wanted a heavier tint (a NUMBER on
+# `box`, not a shape); and the FMP families split on `box` against `plain`. A
+# BOXED LINK needed no fifth shape either -- an anchor from a `box` family wears
+# `dr-mark--box` without `dr-mark`, so it gets the chip and skips the help cursor.
 #
-# ⚠️ PREFER INHERITING, THEN A TOKEN, AND ONLY THEN A HEX. A token follows the
-# theme into light mode and into every other site; a hex is frozen where you typed
-# it and will be wrong on the scheme you were not looking at. Hex is supported
-# because it is genuinely useful for a one-off, not because it is the good path.
+# PREFER INHERITING, THEN A TOKEN, AND ONLY THEN A HEX. A token follows the theme
+# into light mode and into every other site; a hex is frozen where you typed it
+# and will be wrong on the scheme you were not looking at.
 #
-# ⚠️ THE BOX SHAPE MEANS A COLOUR HAS TO SURVIVE ITS OWN BACKGROUND. `box` tints
-# the chip with the class's `wash` of the marker's own colour (10% unless the
-# family says otherwise), so the text is not sitting on the page ground -- it is
-# sitting on a wash of itself. A value measured only against the page can still
-# fail inside the chip, and three amber candidates did exactly that on 2026-08-05.
-# Measure the chip, not the page -- and re-measure if the family's wash changes,
-# because that number moves the ground the text stands on.
+# THE BOX SHAPE MEANS A COLOUR HAS TO SURVIVE ITS OWN BACKGROUND. `box` tints the
+# chip with the class's `wash` of the marker's own colour, so the text is not
+# sitting on the page ground -- it is sitting on a wash of itself. A value
+# measured only against the page can still fail inside the chip, and three amber
+# candidates did exactly that on 2026-08-05. Measure the chip.
 #
-# 🔴 `conf` AND `gap` MOVED TO CANONICAL TOKEN NAMES ON 2026-08-05, and it is not
-# a rename. `ok` and `danger` exist ONLY in the nine-token stand-in, so a
-# confirmed value and a known gap were being painted by a table nobody maintains
-# while every other colour on the page followed the design system. `good` and
-# `bad` are the canonical names for the same two meanings, and they were
-# unreachable until the validator learned to read both tables.
-#
-# ⚠️ THE TOKEN IS `accent`, NOT `accent-1`. There is no `-1` anywhere in the
+# THE TOKEN IS `accent`, NOT `accent-1`. There is no `-1` anywhere in the
 # canonical palette -- the four are `accent`, `accent-deep`, `accent-2` and
 # `accent-soft`. `accent-1` is the natural thing to type once `accent-2` exists,
 # it validates as a legal token NAME, and it resolves to nothing: reported once
-# per build and painted in the body colour. That is the `accent-soft` bug wearing
-# a different name, so it is written here where the cell is typed.
+# per build and painted in the body colour.
 #
 # ---------------------------------------------------------------------------
-# 🔴 TWO OF THE FMP ROWS BELOW WERE ALREADY BEING TYPED, AND HAD NEVER RENDERED
-# (2026-08-09). Before this commit `uritp-docs` carried six `{.calc}` across
-# `20-tables/import_EVENTS.tsv` and `20-tables/WORKDAYS.tsv`, and two `{.button}`
-# in `10-user-experience/index.md`. None of them were rows here.
+# ADDING A ROW RETROACTIVELY CLAIMS EVERY `{.name}` ALREADY WRITTEN
 #
-# ⚑ AND THE FAILURE IS SILENT BY DESIGN, WHICH IS THE PART WORTH KEEPING. An
-# unknown marker is NOT an error: `on_page_markdown` hands it back untouched on
-# purpose, because `{ .md-button }` is somebody else's attr_list syntax and
-# eating it would be worse. So an author who invents a marker gets valid-looking
-# markdown, plain body text, and one line in a build report. ⭐ The same shape as
-# the `danger` callout that lost its red on 08-05 and sat unnoticed for four
-# hours: the mechanism reported itself correctly and being REPORTED is not the
-# same as being SEEN.
+# An unknown marker is NOT an error: `on_page_markdown` hands it back untouched on
+# purpose, because `{ .md-button }` is somebody else's attr_list syntax and eating
+# it would be worse. So an author who invents a marker gets valid-looking
+# markdown, plain body text, and one line in a build report.
 #
-# ⚠️ CONSEQUENCE FOR THE NEXT PERSON, STATED BECAUSE IT NOW CUTS BOTH WAYS:
-# adding a row here RETROACTIVELY CLAIMS every `{.name}` already written across
-# every site. `field` is the one to watch -- it is a plausible attr_list class
-# name as well as a marker. Nothing in the fleet uses it as one today (checked
-# before this commit), but a future `{ .field }` meant as an HTML attribute will
-# now render as a chip instead.
+# THAT CUTS BOTH WAYS, AND BOTH EDGES HAVE NOW DRAWN BLOOD. Before 2026-08-09,
+# `uritp-docs` carried six `{.calc}`, five `{.button}` and one `{.portal}` that
+# had never rendered -- reported every build, seen by nobody, which is the same
+# shape as the `danger` callout that lost its red on 08-05. And in the other
+# direction, `field` is a plausible attr_list class as well as a marker: nothing
+# in the fleet uses it as one today (checked), but a future `{ .field }` meant as
+# an HTML attribute will now render as a chip.
 #
-# 🚩 THE LINK FORMS ARE NOT WIRED YET, AND THIS IS THE ONE GAP IN THIS COMMIT.
-# `[fkOtherTable](@rel:table-other)` -- plus `@script:`, `@layout:` and `@vl:` --
-# is the half that makes the report an EDGE LIST rather than a count, because the
-# link resolver records source → target where a span records only a mention. It
-# needs `docrender/markers.py`, which is **23,084 B against a ~22KB safe-edit
-# ceiling**, so generalising `_resolve_term` into a prefix table is a structural
-# call and not a data edit. Deliberately not smuggled into a TSV commit. The span
-# forms work today; the link forms render as broken references until then.
-#
-# 🚫 `.value` WAS PROPOSED WITH `.vl` AND REFUSED (2026-08-09, Fiona). A marker
-# for one entry ON a value list. Production MAWster already carries a VALUES
-# table with `VALUES.tsv` as its catalog, so every value on every list is already
-# a row in a file that RENDERS AS A TABLE. An inline marker would be a second
-# claimant on data the first place already owns -- the defect that retired
-# `roster.json`, `registry.json` and `app-index.md`. ⚑ The distinction that
-# decides this one and the next one: `.vl` is a THING OTHER OBJECTS POINT AT
-# (fields use it, scripts read it), so marking it records an edge. A value is a
-# ROW IN A TABLE, and the answer to "show me all of them" is that table, not a
-# report. Written down because an unwritten refusal gets re-proposed.
+# `.value` WAS PROPOSED AND REFUSED (2026-08-09, Fiona) -- a marker for one entry
+# ON a value list. Production MAWster already has a VALUES table with VALUES.tsv
+# as its catalog, so every value is already a row in a file that renders. The
+# distinction that decides the next one too: `.vl` is a THING OTHER OBJECTS POINT
+# AT, so marking it records an edge; a value is a ROW IN A TABLE, and the answer
+# to "show me all of them" is that table, not a report.
 # ---------------------------------------------------------------------------
-marker	class	label	shape	color	tooltip
-tbc	confidence	To be confirmed			Not yet verified against a source. Do not rely on this without checking.
-verify	confidence	Verify on site			Recorded once and never re-checked. Measure it before you build to it.
-gap	confidence	Not recorded		bad	This fact should exist and does not. The absence is known, not overlooked.
-conf	confidence	Confirmed		good	Double-checked against the real thing. Trust it.
-est	confidence	Estimate	soft	ink-muted	Approximate. Close enough to plan with, not close enough to cut to.
-was	confidence	Superseded	strike	ink-muted	The old value, kept so paperwork quoting it can still be matched up.
-term	terminology				House terminology. Where it is also a link there is a page defining it.
-hi	highlight	Highlight			Flagged as worth your attention. This says nothing about whether the value is correct -- if you want that, the confidence markers are the ones that mean it.
-button	layout	Button			A button on a FileMaker layout. The marked text is what the button SAYS, so it can be found by reading the label the way a user would.
-field	layout	Field			A field placed on a layout. Names the object the user types into, not the underlying schema field -- for that, look the table up.
-calc	schema	Calculation			A calculated value. NOTHING in FileMaker lists every calc in a file, so this marker is the only register there is -- the build report is where you read them all at once.
-rel	schema	Relationship			A relationship between tables. The Graph shows it; nothing lists it as text. Where the other table has a page, prefer the link form so the report records the edge and not just the mention.
-trigger	schema	Script trigger			A script trigger. Nothing enumerates these either, and they are the objects most likely to be forgotten -- if it fires, mark it.
-global	schema	Global			A global field or a $$variable. Scattered across a solution by nature; this is the only place they can be counted.
-vl	schema	Value list			A value list. Manage > Value Lists does enumerate these, so this marker is not the register -- it is here to record WHO USES IT, which is the part FileMaker cannot show you.
+marker	class	label	shape	color	prefix	tooltip
+tbc	confidence	To be confirmed				Not yet verified against a source. Do not rely on this without checking.
+verify	confidence	Verify on site				Recorded once and never re-checked. Measure it before you build to it.
+gap	confidence	Not recorded		bad		This fact should exist and does not. The absence is known, not overlooked.
+conf	confidence	Confirmed		good		Double-checked against the real thing. Trust it.
+est	confidence	Estimate	soft	ink-muted		Approximate. Close enough to plan with, not close enough to cut to.
+was	confidence	Superseded	strike	ink-muted		The old VALUE, kept so paperwork quoting it can still be matched up. For an old NAME, use alias.
+term	terminology				term	House terminology. Where it is also a link there is a page defining it.
+hi	highlight	Highlight				Flagged as worth your attention. This says nothing about whether the value is correct -- if you want that, the confidence markers are the ones that mean it.
+button	layout	Button				A button on a FileMaker layout. The marked text is what the button SAYS, so it can be found by reading the label the way a user would.
+field	layout	Field				A field placed on a layout. Names the object the user types into, not the underlying schema field -- for that, look the table up.
+portal	layout	Portal				A portal on a layout. Marks WHERE related records are shown; the relationship feeding it is a separate mark, and usually a rel link.
+layout	layout	Layout			layout	A layout. Prefer the link form where the layout has a page, so the report records which layouts a workflow actually touches.
+calc	schema	Calculation			calc	A calculated value. NOTHING in FileMaker lists every calc in a file, so this marker is the only register there is. The link form takes a heading anchor: @calc:table-x#calc-name.
+rel	schema	Relationship			rel	A relationship between tables. The Graph shows it; nothing lists it as text. Prefer the link form so the report records the EDGE and not just the mention.
+script	schema	Script			script	A script. Link it and the report becomes a call graph rather than a list of names.
+trigger	schema	Script trigger				A script trigger. Nothing in FileMaker enumerates these, and they are the objects most likely to be forgotten -- if it fires, mark it.
+global	schema	Global				A global field or a $$variable. Scattered across a solution by nature; this is the only place they can be counted.
+vl	schema	Value list			vl	A value list. Manage > Value Lists does enumerate these, so this marker is not the register -- it is here to record WHO USES IT, which is the part FileMaker cannot show you.
+alias	alias	Former name			alias	A RETIRED NAME. Point it at the live one so paperwork quoting the old name still lands: [fkCal](@alias:table-x#calc-fkCalendar). For an old VALUE rather than an old name, use was.

@@ -4,15 +4,6 @@
 # A row in markers.tsv names its class; the class supplies the default SHAPE and
 # COLOUR, and the row overrides either one.
 #
-# ⭐ WHY CLASSES EXIST (DL J7, 2026-08-04). Every marker used to be a confidence
-# claim, and that narrowness was genuinely the feature: you can ask "what is
-# unconfirmed across this whole site" only while every row answers the same
-# question. When terminology arrived it was nearly built as a SECOND, parallel
-# family -- two mechanisms for one concept -- because the table had no way to say
-# which KIND a row was. Michael's ruling: it IS a marker, put it in markers, you
-# have found CLASSES. The report groups by class, so the confidence question stays
-# answerable no matter how many glossary terms a site marks.
-#
 # ADDING A MARKER is a row in markers.tsv. ADDING A WHOLE FAMILY is a row here.
 # Neither is a code change and neither is a CSS change -- the class colour is
 # emitted as generated CSS by docrender/markers.py.
@@ -21,167 +12,122 @@
 # COLUMNS
 #
 # class    the token a markers.tsv row names
-# shape    default shape for the family: box · plain · strike · soft
+# shape    default shape for the family: box - plain - strike - soft
 # color    default colour: any token from EITHER colour table, or a literal
 #          hex/oklch
 # wash     BOX SHAPES ONLY. How much of the marker's own colour tints the chip
 #          behind the text, as a percentage. BLANK inherits the 10% baked into
-#          the `.dr-mark--box` fallback, so every existing family renders
-#          byte-identically to before this column existed.
+#          the `.dr-mark--box` fallback, so every family that predates this
+#          column renders byte-identically.
 # label    what this family MEANS. For the reader of this file and the report.
 # ---------------------------------------------------------------------------
 #
-# ⭐ `wash` EXISTS BECAUSE THE HIGHLIGHT FAMILY NEEDED A FIFTH SHAPE AND DID NOT
-# GET ONE (2026-08-07). Michael asked for a highlighter that renders a box like
-# `tbc` does. The chip ALREADY had a tinted ground -- `color-mix(... 10%,
-# transparent)` -- so nothing was missing; 10% is simply below the threshold
-# where a reader registers it as highlighting rather than as a border.
+# WHY CLASSES EXIST (DL J7, 2026-08-04). Every marker used to be a confidence
+# claim, and that narrowness was the feature: you can ask "what is unconfirmed
+# across this whole site" only while every row answers the same question. When
+# terminology arrived it was nearly built as a SECOND, parallel family, because
+# the table had no way to say which KIND a row was. Michael's ruling: it IS a
+# marker, put it in markers, you have found CLASSES. The report groups by class,
+# so the confidence question stays answerable however many terms a site marks.
 #
-# The obvious move was a `mark` shape with a heavier tint. Rejected: the closed
-# set of four is argued in THREE files on the grounds that a reader can tell four
-# shapes apart at a glance and cannot tell nine, and "same shape, more tint" is
-# not a new shape -- it is the same shape with a different number in it. ⚑ A
-# request for a new VARIANT is a request for a new PARAMETER far more often than
-# it is a request for a new KIND, and the tell is whether you can state the
-# difference without using a number.
+# `wash` EXISTS BECAUSE THE HIGHLIGHT FAMILY NEEDED A FIFTH SHAPE AND DID NOT GET
+# ONE (2026-08-07). The chip ALREADY had a tinted ground; 10% is simply below the
+# level where a reader reads it as highlighting rather than as a border. A `mark`
+# shape was rejected because "same shape, more tint" is not a new shape -- it is
+# the same shape with a different number in it. The test that caught it: state
+# the difference from `box` without using a number. You cannot.
 #
-# ⚠️ WASH AND COLOUR ARE NOT INDEPENDENT, WHICH IS WHY THIS IS NOT A FREE DIAL.
-# The chip text sits on a wash of ITSELF, so raising it lowers the contrast
-# between the two. markers.tsv's header already says to measure the chip and not
-# the page; that warning now has a knob attached to it, so measure after changing
-# this cell rather than after changing only `color`.
+# WASH AND COLOUR ARE NOT INDEPENDENT, so this is not a free dial. The chip text
+# sits on a wash of ITSELF, so raising the wash lowers the contrast between the
+# two. Measure the CHIP, not the page, and re-measure after changing this cell
+# rather than only after changing `color`.
 #
-# 🔴 `terminology` ASKED FOR `accent-soft` FOR TWO DAYS AND NEVER GOT IT, AND THE
-# COMMENT THAT USED TO SIT HERE EXPLAINED IT AS A PLAN. Two things were wrong.
+# `terminology` TAKES `accent-2`, NOT `accent-soft`, AND THE REASON IS A BUG WORTH
+# REMEMBERING. `accent-soft` is a tinted GROUND, not a text colour -- on eos dark
+# it measures 1.4:1 on the canvas. The validator refused it for two days (it read
+# only the nine-token local table), everyone read the report line as "not vendored
+# yet", and the fallback to body colour is the only reason nobody noticed the cell
+# was ALSO wrong. A broken reference that degrades gracefully can hide a second,
+# worse mistake underneath it.
 #
-# 1. THE VALIDATOR COULD NOT SEE IT. `_known_tokens()` read only the nine-token
-#    stand-in, so every canonical token except `accent` and `warn` was refused --
-#    reported unknown once per build and silently painted in the body colour.
-#    Fixed 2026-08-05: the two tables are unioned.
+# ---------------------------------------------------------------------------
+# COLOUR COLLISIONS ONLY COUNT WHERE COLOUR CARRIES THE MEANING
 #
-# 2. RED AND `accent-soft` WAS THE WRONG TOKEN ANYWAY, which the fallback hid.
-#    It is a tinted GROUND, not a text colour: on eos dark it is #1a2b42, a
-#    near-black navy measuring 1.4:1 on the canvas. Had the validator accepted
-#    it on the day it was written, the terminology marker would have rendered
-#    invisible. The fallback to body colour is the only reason nobody noticed.
-#
-# ⚑ Worth keeping: A BROKEN REFERENCE THAT DEGRADES GRACEFULLY CAN HIDE A SECOND,
-# WORSE MISTAKE UNDERNEATH IT. The report said "unknown token" and everyone read
-# that as "not vendored yet" rather than "and also wrong."
-#
-# `accent-2` is the Eos TRACKED violet -- 6.63 dark / 5.81 light against the
-# canvas -- and it is semantically right as well as legible: on the console it
-# is the colour of a named, tracked value, which is exactly what a defined term
-# is. ⭐ Still ONE CELL: the token is named here and nowhere else, so changing it
-# again is a data edit. The moment a second surface hardcodes it, that is dead.
-#
-# ⚠️ `highlight` TAKES `accent` ON MICHAEL'S RULING, AGAINST MY RECOMMENDATION,
-# AND HIS REASONING IS THE ONE THAT SURVIVES (2026-08-07). I argued for `accent-2`
-# because `accent` already paints the `note` CALLOUT and a highlight is closer to
-# the `abstract` register. He pointed out that `accent-2` already paints a MARKER
-# -- terminology, one row below -- and that the callout collision costs nothing
-# because a box and an inline chip are different surfaces a reader never compares.
-#
-# ⭐ THE GENERAL RULE, WRITTEN DOWN BECAUSE IT DECIDES THE NEXT FAMILY TOO:
-# COLOUR COLLISIONS ONLY COUNT WITHIN A SURFACE. Two callouts sharing a token is
-# the documented design (`tip`/`success`/`good` all take `good`). blocks.tsv can
-# reuse freely. ~~Two INLINE MARKERS sharing one would be a genuine defect,
-# because they appear in the same sentence, at the same size, and the only thing
-# telling them apart is the paint.~~ STRUCK 2026-08-09 -- see the next section,
-# which is the amendment and not an exception to this.
-#
-# ⭐ AND THE THIRD BOXED FAMILY DID NOT GET TO PICK A COLOUR AT ALL, WHICH IS A
-# BETTER ANSWER THAN THE ONE THIS FILE WAS HOLDING (2026-08-09, Michael's ruling).
-#
-# The rule above was written when the four boxed markers were amber, green, red
-# and blue -- one hue per meaning, and a reader genuinely does separate them by
-# paint. `layout` was the fifth, the palette had one distinct hue left, and this
-# file's own 🚩 said to measure it against both incumbents first. I measured, and
-# then Michael refused the whole frame: *"i don't care if they're visually
+# The rule here used to be: two callouts may share a token, two INLINE MARKERS
+# may not, because they appear in the same sentence and only the paint tells them
+# apart. STRUCK 2026-08-09 on Michael's ruling: *"i don't care if they're visually
 # identical. the reporting tag is usually to be different. the front end would
 # begin to look like skittles if everything had its own color at this point."*
 #
-# ⚑ THE CORRECTED RULE, AND IT IS NARROWER THAN WHAT IT REPLACES: a colour
-# collision is a defect only where the COLOUR IS CARRYING THE MEANING. A reader
-# separates `conf` from `gap` by paint, so those must stay apart. Nobody reads a
-# `.calc` chip and asks how confident it is -- the TAG carries that meaning, the
-# report consumes the tag, and the paint is only saying "this is marked." ⭐ The
-# tell that the old rule was too wide: it was derived from ONE family type
-# (confidence, where hue IS the semantics) and then stated about all of them.
+# The corrected rule is narrower. A collision is a defect only where the COLOUR IS
+# CARRYING THE MEANING. A reader separates `conf` from `gap` by paint, so those
+# must stay apart. Nobody reads a `.calc` chip and asks how confident it is -- the
+# TAG carries that, the report consumes the tag, and the paint only says "this is
+# marked." The old rule was derived from ONE family type, where hue IS the
+# semantics, and then stated about all of them.
 #
-# ⚠️ SO `layout` AND `highlight` BOTH TAKE `accent` AND DIFFER ONLY BY WASH
-# (10% against 25%), AND THAT IS DELIBERATE, NOT AN OVERSIGHT. Do not "fix" it.
-# The one thing that WOULD be a defect is a reader needing to tell them apart and
-# being unable to -- if that ever comes up, the answer is a different SHAPE or a
-# different tag, never a fifth hue.
+# CONSEQUENCE: `layout` and `highlight` both take `accent` and differ only by wash
+# (10% against 25%); `schema` and `terminology` both take `accent-2`. DELIBERATE.
+# Do not "fix" either pair. If a reader ever genuinely needs to tell two apart and
+# cannot, the answer is a different SHAPE or a different tag, never a new hue.
 #
 # ---------------------------------------------------------------------------
-# 🗄️ THE FMP FAMILIES (`layout` + `schema`), 2026-08-09. Owner: FMP Fiona.
+# THE FMP FAMILIES -- `layout`, `schema`, `alias`. Owner: FMP Fiona, 2026-08-09.
 #
-# These two exist to document a FileMaker solution in git, and the reason there
-# are TWO is not what it looks like. It is not layout-object versus not-an-object
-# -- a relationship and a calculation are both objects, and Michael said so when
-# the first split was proposed on those grounds. The line that survived:
+# These document a FileMaker solution in git. The membership test is FileMaker's
+# OWN TWO HALVES:
 #
-#   layout   A CONTROL THE USER ACTS ON. A button, a field on a layout. It lives
-#            in Layout mode and a reader meets it in prose, mid-sentence.
-#   schema   HOW THE DATA IS SHAPED. A calculation, a relationship, a trigger, a
-#            global, a value list. It lives in the Graph and in Manage, and a
-#            reader meets it inside a table of fields.
+#   layout   LAYOUT MODE. A button, a field, a portal, the layout itself.
+#            Something you place on a screen. Met in prose, so it is boxed.
+#   schema   THE MANAGE MENU. Manage > Database (calculations, relationships),
+#            Manage > Scripts (scripts, triggers), Manage > Value Lists, and
+#            globals. Met inside a table of fields, so it is plain -- a boxed
+#            chip in every cell of a .tsv is a wall.
+#   alias    NEITHER, because you can alias either one. A retired NAME pointing
+#            at the live one.
 #
-# FileMaker's own two halves. The test is what the object IS, and nothing else.
+# THIS TEST IS THE THIRD ONE WRITTEN TODAY AND THE FIRST THAT SURVIVES ITS OWN
+# MEMBERSHIP. The first was "layout objects vs not-objects" -- killed by Michael
+# in one line, *"the relationship is an object tho."* The second was "FileMaker has
+# no surface that enumerates these, so this doc is the register" -- true of calcs,
+# triggers and globals, and false of value lists the moment `.vl` arrived, because
+# Manage > Value Lists is exactly such a surface. The third failed on SCRIPTS,
+# which are not "how the data is shaped" by any honest reading.
 #
-# 🔴 AND THAT TEST IS NARROWER THAN THE ONE THIS SECTION SHIPPED WITH THREE HOURS
-# AGO, WHICH WAS WRONG (2026-08-09, corrected before the row that contradicted it
-# landed). The original text defined `schema` as *"FileMaker has NO surface that
-# enumerates these, so this doc is not a pointer, IT IS THE REGISTER"* -- and
-# that is a genuinely load-bearing observation about `calc`, `trigger` and
-# `global`. It is simply not what makes something `schema`.
+# THE PATTERN IN ALL THREE FAILURES IS ONE THING: a definition was written from
+# the rows that existed, and every one of those rows passed several tests at once,
+# so nothing could tell the tests apart. A definition is only ever tested by the
+# case that SPLITS it -- which means the next marker, not the current five.
 #
-# `.vl` is what caught it. A value list is unmistakably data-shape, and
-# **Manage > Value Lists lists every one of them** -- so under the shipped
-# definition the correct row would have joined the family while contradicting
-# its stated reason for existing.
+# HONEST WRINKLE, STATED RATHER THAN SMOOTHED OVER: `schema` is now the wider half
+# and its name is the narrower word. A script is not a schema. The name is kept
+# because it is already shipped and already in content, and because "the Manage
+# menu" is not a word. If a fourth failure arrives, rename it then and say so.
 #
-# ⚑ THE GENERALISABLE PART, AND IT IS WHY THIS IS WORTH THE PARAGRAPH: THE FIRST
-# FOUR ROWS PASSED BOTH TESTS, SO ONE SENTENCE WAS WRITTEN FOR TWO PROPOSITIONS
-# AND NOTHING COULD TELL THEM APART. "Is it data-shape" and "does FileMaker fail
-# to enumerate it" agreed on calc, rel, trigger and global, and a definition
-# validated only against cases where two tests agree has not been validated at
-# all. The fifth row is the first place they diverge, and a definition is only
-# ever tested by the case that splits it. Same shape as the `base` theme
-# reaching thirteen callout families with two tokens: correct on everything
-# anybody had looked at.
+# WHY TWO FAMILIES AND NOT ONE "fmp": one family answers "show me the FileMaker
+# things," which nobody needs. Two answer "every relationship" and "every control"
+# separately, and the report is only worth reading while each class answers ONE
+# question. The build report is the entire return here -- it needed a TAG, never a
+# hue.
 #
-# ✅ SO THE ENUMERATION GAP IS DEMOTED FROM A DEFINITION TO A PER-ROW PROPERTY,
-# and it is recorded in each marker's TOOLTIP in markers.tsv, where it varies
-# honestly, rather than asserted here about all of them. It is still the reason
-# `calc` earns its keep hardest -- nothing in FileMaker lists calculations -- and
-# it is now a fact about `calc`, not a claim about the family.
+# `alias` IS `was` ONE LAYER UP. `was` supersedes a VALUE; alias supersedes a
+# NAME. It is a separate row rather than a reuse because it carries an ID: an
+# alias RESOLVES to the live name (`[fkCal](@alias:table-workdays#calc-fkCalendar)`),
+# so its link form is the primary one and the underline is honest. `text-soft`
+# measures 6.31 dark / 5.45 light against its own 10% chip, clearing the 4.5 text
+# floor in both schemes, and it reads quiet -- which is right for a name that is
+# no longer the name.
 #
-# ⭐ THE RETURN IS THE BUILD REPORT EITHER WAY. Every use is counted and grouped
-# by class by markers.py, so `schema` answers "every calculation across this doc
-# set" in one block. That was always the point, and it needed a TAG, never a hue.
-#
-# ⚠️ TWO FAMILIES RATHER THAN ONE FMP FAMILY, FOR THE SAME REASON CLASSES EXIST
-# AT ALL. One family would answer "show me the FileMaker things," which nobody
-# needs. Two answer "every relationship" and "every control" separately, and the
-# report is only worth reading while each class answers ONE question.
-#
-# ⚠️ `schema` IS `plain` ON PURPOSE. These are typed inside data-table cells
-# (`[Text]{.calc}` in a .tsv), and a boxed chip in every cell of a table is a
-# wall. `layout` is boxed because it appears in prose, where a control being
-# named wants to look like a control. Same reasoning as `terminology`, which is
-# also plain and also lives mid-sentence.
-#
-# 🚩 NOT BUILT, NAMED SO IT IS NOT RE-DISCOVERED: `portal`, `tab` and `popover`
-# were raised as `layout` candidates and DEFERRED by Michael on 2026-08-09. They
-# are real, they are just not yet typed anywhere. The build report is what should
-# decide them -- add the family when the marker is being reached for, not before.
+# NOT BUILT, NAMED SO IT IS NOT RE-DISCOVERED: `tab` and `popover` were raised as
+# `layout` candidates and DEFERRED by Michael on 2026-08-09. `portal` was deferred
+# with them and then added anyway in the same session, because it was ALREADY
+# TYPED on a live page and therefore already rendering as nothing -- the rule is
+# add the marker when it is being reached for, and it was.
 # ---------------------------------------------------------------------------
 class	shape	color	wash	label
 confidence	box	warn		how much to trust the value beside it
 terminology	plain	accent-2		a defined term, with or without a page behind it
 highlight	box	accent	25%	worth noticing. Says nothing about the value, only that Michael wanted your eye here
-layout	box	accent		a FileMaker LAYOUT object -- a control the user acts on. Lives in Layout mode, read in prose
-schema	plain	accent-2		HOW THE DATA IS SHAPED -- calculations, relationships, triggers, globals, value lists. Lives in the Graph and in Manage, read inside a table
+layout	box	accent		FileMaker LAYOUT MODE -- something placed on a screen. Met in prose
+schema	plain	accent-2		FileMaker's MANAGE MENU -- calculations, relationships, scripts, triggers, globals, value lists. Met inside a table
+alias	box	text-soft		a RETIRED NAME that points at the live one. Neither layout nor schema, because you can alias either
