@@ -70,7 +70,7 @@ aliases: [uritp-docs, "URITP PRP", "URITP Production Resources", prp]
 # theme: eos
 # theme: mclaren
 # theme: sharp-mclaren
- theme: mclaren-mobile
+theme: mclaren-mobile
 # theme: grounded-neutral
 # theme: sharp-utility
 # theme: soft-utility
