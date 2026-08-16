@@ -1,36 +1,30 @@
 /* Styling for the REVEALED SIDEBAR. Split out of assets/router.css 2026-08-16
  * at 21,273 B, within a kilobyte of the engine's 22KB hard read limit, so any
- * addition at all crossed it.
+ * addition at all crossed it. The split was the commit before this one.
  *
- * A pure MOVE -- every rule and every comment below is byte-faithful to what was
- * in router.css, because a split that also edits is two changes wearing one
- * commit and you cannot tell which one broke the render. The behaviour change
- * that motivated it is the NEXT commit. Same discipline as the nav.css split out
- * of base.css on 2026-08-04, and as assets/navtree.js an hour ago.
- *
- * THE SEAM IS THE SAME ONE THE JS TOOK, WHICH IS WHY THIS IS NOT AN ARBITRARY
- * CUT. router.css now owns the FORM and the CURTAIN -- the surfaces that only
- * exist where a router is declared. This file owns the injected menu, which
- * ships on every page of the site. One pairing, four files, two per half:
+ * THE SEAM IS THE SAME ONE THE JS TOOK. router.css owns the FORM and the
+ * CURTAIN -- surfaces that exist only where a router is declared. This file owns
+ * the injected menu, which ships on every page of the site. One pairing, four
+ * files, two per half:
  *
  *     router.css + router.js     the form, the curtain, the crypto
  *     navtree.css + navtree.js   the sealed sidebar
  *
- * Published only to a site that has a router, same as its siblings. Load order
- * is set in docrender/assets.py `_FEATURE_ASSETS`; unlike the JS pair, the CSS
- * order here is genuinely FREE -- these are `.dr-` classes that override nothing
- * of Material's, and the one place a Material class appears
+ * Published only to a site that has a router. Load order is set in
+ * docrender/assets.py `_FEATURE_ASSETS`; unlike the JS pair, the CSS order here
+ * is genuinely FREE -- these are `.dr-` classes that override nothing of
+ * Material's, and the one place a Material class appears
  * (`.dr-nav-injected__link`) deliberately INHERITS nav.css's top-level caps
  * rather than fighting it. Stated so nobody defends a position that was never
  * load-bearing.
  */
 
 /* ---------------------------------------------------------------------------
- * THE REVEALED SIDEBAR (DL J14, corrected J18)
+ * THE REVEALED SIDEBAR (DL J14, corrected J18, collapsed 2026-08-16)
  *
  * A routed folder's children are removed from the nav at build time and their
- * titles ship sealed. router.js decrypts them on a correct code and appends
- * this list to the section's own `li.md-nav__item`.
+ * titles ship sealed. router.js decrypts them on a correct code and navtree.js
+ * builds this menu under the folder's row.
  *
  * WHY NOT MATERIAL'S OWN NAV MARKUP. A nested Material nav needs a <nav>, a
  * <label> and a hidden checkbox per level to drive expand/collapse -- and on a
@@ -39,19 +33,25 @@
  * would put the menu somewhere unreachable on mobile only. Own classes,
  * Material's variables, so it still matches the sidebar in both schemes.
  *
+ * ⚠️ AND THAT RULE IS ABOUT MATERIAL'S MARKUP, NOT ABOUT COLLAPSING -- it was
+ * read as a ban on the idea for ten days, which is why this menu shipped flat
+ * and fully open. The disclosure block near the bottom of this file is our own
+ * markup and breaks none of the above. navtree.js has the whole account.
+ *
  * 🔴 EVERY TYPOGRAPHIC PROPERTY HERE IS DECLARED RATHER THAN INHERITED, AND
  * THAT IS THE FIX FOR A REAL BUG, NOT DEFENSIVENESS. In #48 this list was
- * appended inside `div.md-nav__container`, which matches base.css's top-level
+ * appended inside `div.md-nav__container`, which matches nav.css's top-level
  * caps rule -- and `text-transform`, `letter-spacing`, `font-weight` and
  * `font-size` all INHERIT. The child pages rendered in bold 700 uppercase,
  * shouting louder than the section above them, with nothing in this file
- * saying so. router.js now hoists the list to the <li>, which carries none of
+ * saying so. navtree.js now hoists the menu to the <li>, which carries none of
  * those properties; these declarations are the second line of defence, because
  * a site's own theme.css is loaded LAST and could put caps on anything.
  *
- * ⚠️ NOTHING HERE HIDES ANYTHING. If these rules fail to load, the list is
+ * ⚠️ NOTHING HERE WITHHOLDS ANYTHING. If these rules fail to load, the menu is
  * still only in the DOM once a code has been typed. The withholding is done by
- * the build, not by this stylesheet.
+ * the build, not by this stylesheet. (The collapse is UI STATE on content the
+ * reader has already unlocked -- see the note on `[hidden]` below.)
  * ------------------------------------------------------------------------ */
 .dr-nav-revealed {
   margin: 0.1rem 0 0.5rem;
@@ -62,6 +62,28 @@
    * section link either way instead of trying to sit beside it. */
   flex: 1 0 100%;
   width: 100%;
+}
+
+/* A nested level. Same class as the root list so every type, depth and active
+ * rule below applies unchanged; the modifier only drops the outer margin, so a
+ * three-deep tree does not accumulate a gap per level. */
+.dr-nav-revealed--sub {
+  margin: 0;
+}
+
+/* 🔴 THE ONE RULE IN THIS FILE THAT HIDES SOMETHING, AND IT DOES NOT BREACH THE
+ * NOTE ABOVE. That note is about WITHHOLDING: content a reader has no code for
+ * is absent from the DOM entirely, decided by the build, and that is still true.
+ * This is UI STATE on content the reader has already unlocked and can open with
+ * one click.
+ *
+ * ⚠️ THE `hidden` ATTRIBUTE IS THE SOURCE OF TRUTH, NOT A CLASS, so the state is
+ * legible to assistive technology and survives this stylesheet failing to load:
+ * the browser's own `[hidden]` rule still applies, the level stays shut, and the
+ * button still opens it. Declared anyway because a site's theme.css loads last
+ * and a `display` on `.dr-nav-revealed` would otherwise beat the UA rule. */
+.dr-nav-revealed[hidden] {
+  display: none;
 }
 
 .dr-nav-revealed__item {
@@ -83,8 +105,14 @@
  * sidebar would have re-animated on every single navigation, which is precisely
  * the twitch the pre-paint boot script exists to prevent.
  *
- * router.js adds `--in` only when a code was just typed. MOTION NOW MEANS
+ * navtree.js adds `--in` only when a code was just typed. MOTION NOW MEANS
  * SOMETHING HAPPENED; stillness means it was already true.
+ *
+ * ⚠️ SCOPED TO DIRECT CHILDREN AS OF 2026-08-16, when the menu became a tree.
+ * A descendant selector staggered nested rows too -- rows that start life inside
+ * a `hidden` list, so their animation ran and finished while nobody could see
+ * it, and expanding a level later revealed already-played rows. Only the top
+ * level arrives on unlock, so only the top level animates.
  *
  * Capped by arithmetic rather than by hope: a folder with forty pages must not
  * animate for two seconds, so the delay stops climbing after the eighth row.
@@ -92,18 +120,18 @@
  * ⭐ Duration and curve are the theme's. Was 0.32s cubic-bezier(.16,1,.3,1),
  * and `soft` still sets exactly that -- so a site on soft forms renders this
  * identically and eos gets its own quicker 160ms. */
-.dr-nav-revealed--in .dr-nav-revealed__item {
+.dr-nav-revealed--in > .dr-nav-revealed__item {
   animation: dr-nav-in var(--dr-motion-med, 0.32s)
     var(--dr-ease, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
-.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(1) { animation-delay: 0ms; }
-.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(2) { animation-delay: 40ms; }
-.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(3) { animation-delay: 80ms; }
-.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(4) { animation-delay: 120ms; }
-.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(5) { animation-delay: 160ms; }
-.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(6) { animation-delay: 200ms; }
-.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(7) { animation-delay: 240ms; }
-.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(n + 8) { animation-delay: 280ms; }
+.dr-nav-revealed--in > .dr-nav-revealed__item:nth-child(1) { animation-delay: 0ms; }
+.dr-nav-revealed--in > .dr-nav-revealed__item:nth-child(2) { animation-delay: 40ms; }
+.dr-nav-revealed--in > .dr-nav-revealed__item:nth-child(3) { animation-delay: 80ms; }
+.dr-nav-revealed--in > .dr-nav-revealed__item:nth-child(4) { animation-delay: 120ms; }
+.dr-nav-revealed--in > .dr-nav-revealed__item:nth-child(5) { animation-delay: 160ms; }
+.dr-nav-revealed--in > .dr-nav-revealed__item:nth-child(6) { animation-delay: 200ms; }
+.dr-nav-revealed--in > .dr-nav-revealed__item:nth-child(7) { animation-delay: 240ms; }
+.dr-nav-revealed--in > .dr-nav-revealed__item:nth-child(n + 8) { animation-delay: 280ms; }
 
 @keyframes dr-nav-in {
   from { opacity: 0; transform: translateX(-0.35rem); }
@@ -154,10 +182,12 @@ a.dr-nav-revealed__link.md-nav__link--active {
   font-weight: 700;
 }
 
-/* Depth rides on an attribute rather than on nesting, because the manifest is a
- * flat list -- see docrender/state.py on why it is flat. Two levels indent and
- * anything deeper stops, rather than marching off the sidebar, which is the
- * same choice Material makes.
+/* Depth rides on an attribute as well as on nesting, and both are deliberate:
+ * the manifest is flat on the wire (see docrender/state.py), navtree.js nests it
+ * for the COLLAPSE, and the indent is still driven by the authored depth so a
+ * row's padding never depends on the injection getting the tree right. Two
+ * levels indent and anything deeper stops, rather than marching off the
+ * sidebar, which is the same choice Material makes.
  *
  * ⚠️ THE STEPS ARE SMALL ON PURPOSE. A phone drawer is about 17rem wide and
  * these titles are real sentences ("Vectorworks Doc Specs"), so a generous
@@ -169,17 +199,116 @@ a.dr-nav-revealed__link.md-nav__link--active {
 .dr-nav-revealed__item[data-d="4"] .dr-nav-revealed__link { padding-left: 2.2rem; }
 
 /* ---------------------------------------------------------------------------
+ * THE DISCLOSURE (2026-08-16)
+ *
+ * Michael: "ends up auto-expanding like entirely after entering some routers.
+ * it's not good and not useful." A folder row that has children now carries a
+ * chevron, and the level under it is shut unless the reader is inside it.
+ *
+ * OUR OWN BUTTON, NOT MATERIAL'S CHECKBOX-AND-LABEL. That machinery is what
+ * drags in the off-canvas nested <nav> the block above refuses. A <button> with
+ * `aria-expanded` is the same affordance with none of the drawer behaviour, and
+ * it is reachable by keyboard for free.
+ * ------------------------------------------------------------------------ */
+
+/* 🔴 ABSOLUTE, AND THE REASON IS A DIRECT-CHILD SELECTOR IN nav.css.
+ *
+ * The obvious markup is a flex row wrapping the link and the button. It is
+ * wrong here: nav.css caps the top level with
+ * `.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link`, so
+ * wrapping the injected folder's link breaks that chain and the folder renders
+ * in quiet sentence case beside sections that shout. That is the #48 typography
+ * bug arriving from the opposite side. The button is a SIBLING of the link and
+ * is placed over the row from here.
+ *
+ * `top: 0` rather than vertical centring: on a title long enough to wrap, the
+ * chevron belongs on the first line, not beside the middle of a paragraph. */
+.dr-nav-parent {
+  position: relative;
+}
+
+.dr-nav-revealed__toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.8rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--dr-ink-muted);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Material's top-level row is taller than a revealed one -- it carries the caps
+ * rule's padding and bottom border -- so without this the chevron on an injected
+ * folder sits above its own title. */
+.dr-nav-injected > .dr-nav-revealed__toggle {
+  height: 2.1rem;
+}
+
+/* DRAWN, NOT SET AS A GLYPH. A `content: '\25B8'` chevron lands at a different
+ * weight and baseline in every font a site might set, and this one has to line
+ * up with Material's own chevrons two rows above it. Two borders and a rotation
+ * are the same shape in every face. */
+.dr-nav-revealed__toggle::before {
+  content: '';
+  display: block;
+  width: 0.32rem;
+  height: 0.32rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--dr-motion-fast, 120ms) var(--dr-ease, ease);
+}
+.dr-nav-revealed__toggle[aria-expanded="true"]::before {
+  transform: rotate(45deg);
+}
+
+.dr-nav-revealed__toggle:hover,
+.dr-nav-revealed__toggle:focus-visible {
+  color: var(--md-accent-fg-color);
+}
+
+/* Matches the router input's ring rather than inventing a second focus idiom.
+ * Inset offset because the button sits flush against the sidebar's right edge
+ * and an outward ring would be clipped by the drawer on a phone. */
+.dr-nav-revealed__toggle:focus-visible {
+  outline: 2px solid var(--dr-accent);
+  outline-offset: -2px;
+}
+
+/* ⚠️ ROOM RESERVED OFF A CLASS, NOT WITH `:has()`. The obvious selector is
+ * `.dr-nav-revealed__item:has(> .dr-nav-revealed__toggle)`, and `:has()` needs
+ * Safari 15.4 -- this engine already ships a `-webkit-mask-image` prefix
+ * specifically to survive Safari below 16.4, so a support floor that high is not
+ * ours to assume. navtree.js adds `.dr-nav-parent` when it hangs a level.
+ *
+ * The `.md-nav__link` arm covers both Material rows this can land on: the
+ * injected folder's own link, and -- with `navigation.indexes` on -- the
+ * `div.md-nav__link.md-nav__container` that wraps a built section's index link. */
+.dr-nav-parent > .dr-nav-revealed__link,
+.dr-nav-parent > .md-nav__link {
+  padding-right: 2.1rem;
+}
+
+/* ---------------------------------------------------------------------------
  * THE INJECTED FOLDER (`nav: routed`, 2026-08-06)
  *
  * A routed folder is absent from the sidebar entirely -- not just its children,
  * the folder itself. Its own row travels as entry ZERO of the sealed manifest
- * and router.js builds it on a correct code, then places it where its `order:`
+ * and navtree.js builds it on a correct code, then places it where its `order:`
  * would have put it.
  *
  * ⭐ THIS BLOCK IS DELIBERATELY TINY, WHICH IS THE POINT. The injected row is a
  * real `li.md-nav__item` holding a real `a.md-nav__link`, so it inherits every
  * bit of Material's own top-level type, spacing, hover and active styling for
- * free. The list INSIDE it is `.dr-nav-revealed` above, which owns its own type
+ * free. The menu INSIDE it is `.dr-nav-revealed` above, which owns its own type
  * for the reasons in that block's red note. Two different markup strategies in
  * one injected element, and each is right for its own job: the row has to read
  * as one of the sections it just joined, the children must not borrow a nested
@@ -220,8 +349,13 @@ a.dr-nav-revealed__link.md-nav__link--active {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dr-nav-revealed--in .dr-nav-revealed__item,
+  .dr-nav-revealed--in > .dr-nav-revealed__item,
   .dr-nav-injected--in {
     animation: none;
+  }
+  /* The chevron still turns, it just turns instantly. A control that gives no
+   * feedback at all reads as broken, which is not what reduced motion asks for. */
+  .dr-nav-revealed__toggle::before {
+    transition: none;
   }
 }
