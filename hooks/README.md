@@ -12,7 +12,7 @@ the package holds the LOGIC and these files hold the ORDER.
 
 ## The nav chain, and what each misordering actually breaks
 
-Five stages, all on `on_nav`, and every link matters:
+Six stages, all on `on_nav`, and every link matters:
 
 | stage | does | file |
 | --- | --- | --- |
@@ -20,11 +20,12 @@ Five stages, all on `on_nav`, and every link matters:
 | `00b` | `unlisted` pages leave the sidebar | `00b_unlisted.py` |
 | `00bb` | `nav: hidden` folders lose their children | `00bb_navstate.py` |
 | `00bc` | routed folders seal whatever is LEFT | `00bc_seal.py` |
+| `00bd` | `navigation.prune` is spent on what SURVIVED | `00bd_navsettle.py` |
 | `00c` | prev/next rebuilt from what survived | `00c_nav.py` |
 
 ⚠️ **"Any other arrangement disagrees with itself" was the old wording here, and
-it is true and useless.** It never said which arrangement breaks what. These two
-have actually happened:
+it is true and useless.** It never said which arrangement breaks what. These
+three have actually happened:
 
 - **`00b` or `00bb` after `00c`** — the footer Next button walks through pages
   that are not in the sidebar. Visible on any page, found in minutes.
@@ -36,6 +37,20 @@ have actually happened:
   seal became its own stage instead of staying pass 3 of the prune, and why
   `visibility.seal_nav` **also** checks `state.NAV_SHAPED` at runtime — a
   filename convention cannot defend a `hooks:` list that somebody edits.
+- **`00bd` folded into `00bb`, which is where it lived until 2026-08-16** — a
+  folder that resolves `nav: expanded` and is then SEALED still counted, so the
+  site dropped `navigation.prune` and shipped its whole nav tree on every page
+  (~33% of page weight) for a folder no reader could click. Also silent, also
+  invisible without a code, and live on uritp for eleven days:
+  `roles/addendum` inside `roles/`, which declares `router: [pm]`.
+
+⭐ **Those last two are the same law arriving from opposite ends.** 00bc-before-00bb
+sealed a subtree that had not been trimmed yet; 00bd-inside-00bb spent a global
+budget on a subtree that was about to be sealed. **A stage that READS a
+declaration and a stage that SPENDS a resource on it are not the same stage.**
+The first belongs where the declaration can be resolved; the second belongs after
+everything allowed to invalidate it has run. If a third instance of this shows
+up, it is a pattern rather than two bugs.
 
 The other chains:
 
@@ -63,9 +78,14 @@ entire premise is that the filename carries the order. `00bb` sorts and runs in
 the same place. Learned 2026-08-05, before it shipped rather than after.
 
 **The suffix sequence is alphabetical**, so the stage after `00bc` is `00bd`.
-Two live instances now, `00bb` and `00bc`. A third letter is only needed to land
-something between two adjacent stages — which is itself a signal to check whether
-the thing being inserted is really its own stage.
+Three live instances now: `00bb`, `00bc`, `00bd`. A fourth letter is only needed
+to land something between two adjacent stages — which is itself a signal to check
+whether the thing being inserted is really its own stage.
+
+⚠️ **`00bd` is the first one added by SPLITTING an existing stage's job rather
+than by adding a new feature**, and that is the signal worth watching: the
+question to ask is not "does this deserve a number" but "does this have to happen
+at a different MOMENT than the code it currently lives in."
 
 ## Two stages out of one module, and that is not a mistake
 
@@ -88,9 +108,19 @@ event, and split anyway.** The prune and the router seal were one function until
 2026-08-05 and had to come apart so a third stage could run BETWEEN them.
 Nothing about MkDocs forced this one; an ordering requirement did.
 
+⚠️ **`00bd_navsettle.py` is the second of that odd kind, and it got its own
+MODULE rather than a third `navstate` shim.** Same event, same concept, split for
+ordering alone — but `docrender/navstate.py` was already past the 22KB read line,
+and `navsettle` needs `visibility._index_of`, which navstate is forbidden to
+import. A new module answered both at once. **A stage that cannot be added to its
+natural home without breaking a rule is usually telling you it is not the same
+concern.**
+
 ⚠️ **`00bb_navstate.py` is the one shim with real code in it**, and the file
 says why: `navstate` needs `_index_of` and `_unchain` from `visibility`, and
 `visibility` cannot pass them in without importing `navstate` back, which is a
 cycle. The wiring goes in the shim rather than a copy of either function going
-into the module. If a third stage ever needs those two, that is the moment they
-stop being private and get a home of their own.
+into the module. **`00bd` is thin for the mirror-image reason: nothing imports
+`navsettle`, so it may import `visibility` directly.** If a third stage ever
+needs those two private functions, that is the moment they stop being private and
+get a home of their own.
