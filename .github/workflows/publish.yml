@@ -28,6 +28,14 @@ on:
         # ordinary English word appearing in five engine files. A renamed slug
         # means editing this list AGAIN — the alias in site.yml covers the
         # terminal, not this dropdown.
+        #
+        # ⚠️ AND THE TWO URITP ENTRIES ARE DIFFERENT SITES (2026-08-16), which
+        # is the one confusion this list can actively cause. `uritp` is the
+        # working tree where safety material is drafted; `uritp-safety` is the
+        # published human-facing filter of it. Publishing one never touches the
+        # other, and picking the wrong one from this dropdown is a real mistake
+        # somebody will make in a hurry — the run title names the slug, which is
+        # the line to read before believing a deploy went where you meant.
         description: Which site
         required: true
         type: choice
@@ -37,6 +45,7 @@ on:
           - hml
           - template
           - uritp
+          - uritp-safety
           - mawprose
       theme:
         # `string`, not `choice` — publish-dl.md § The `theme` input
@@ -136,6 +145,14 @@ jobs:
           # which reads as a broken build rather than a missing credential.
           # `template` is the one exception, stated the same way on the deploy step.
           # publish-dl.md § The content checkout is authenticated
+          #
+          # 🔴 AND A REPO TRANSFERRED IN AFTER THE PAT WAS MINTED IS NOT ON IT.
+          # A fine-grained PAT is scoped to an explicit repository list and
+          # nothing is added automatically. `uritp-safety` arrived by transfer on
+          # 2026-08-16, so it needs adding to DOCRENDER_TOKEN by hand — and the
+          # symptom of forgetting is this step failing with `exit code 128`,
+          # which has already cost one debugging round on 2026-08-03 for exactly
+          # this reason. It is a missing checkbox, not a broken build.
           token: ${{ inputs.site != 'template' && secrets.DOCRENDER_TOKEN || github.token }}
           # A preference now, not a requirement. publish-dl.md § fetch-depth
           fetch-depth: 0
