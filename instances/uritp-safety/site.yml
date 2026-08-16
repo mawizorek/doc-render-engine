@@ -58,40 +58,59 @@ content_branch: main
 # to another site's slug silently publishes the wrong site.
 aliases: [safety, uritp-safety-docs, "URITP Safety"]
 
-# ONE LINE, AND IT IS NOT A DEFAULT WORTH TAKING LIGHTLY HERE.
+# ONE LINE. `database`, by Michael's choice, 2026-08-16.
 #
-# 🔴 CURRENT VALUE `database` IS A NINE-TOKEN LOCAL SKIN, NOT A CANONICAL ROW,
-# AND THAT HAS A CONSEQUENCE ON THIS SITE SPECIFICALLY. Verified 2026-08-16 two
-# ways: `theme/themes.tsv` lists exactly four local skins (`base`, `utility`,
-# `eos`, `database`), and the Decision Log entry of 2026-08-05 names `utility`,
-# `database` and `base` as the nine-token set by hand.
+# =============================================================================
+# 🔴 CORRECTION, SAME DAY, SAME FILE: THE CLAIM THAT WAS HERE WAS FALSE
+# =============================================================================
+# An earlier version of this comment stated that `database` was a nine-token
+# LOCAL skin with no canonical row, that the four-vector join therefore never
+# happened, and that eleven of the thirteen callout families -- INCLUDING
+# `danger` -- would fall back to `currentColor` and render grey on a safety site.
 #
-# `eos` is the one name in BOTH tables -- local skin AND canonical row -- so it
-# resolves to the canonical join. `database` does not, so `vectors.resolve()`
-# returns no colorRow, `build_css()` takes its else branch, the aliases pass is
-# skipped, and ~10 tokens reach the page instead of the full four-vector set.
+# None of that is true, and it was committed here in the voice of something
+# verified. What is actually true, read off the registry and the resolver:
 #
-# ⚠️ WHAT THAT COSTS, MEASURED RATHER THAN GUESSED: on a nine-token theme,
-# eleven of the thirteen callout families name a canonical token that is never
-# emitted, so they fall back to `currentColor`. Only `note` and `warning`
-# survive. **`danger` IS ONE OF THE ELEVEN** -- the family whose entire job on a
-# safety page is to say "someone gets hurt."
+#     `database` IS a canonical JOIN, in maw-themes registry/_themes.json:
+#         color        mercedes
+#         alt-color    mercedes-light
+#         typography   sharp-racing
+#         forms        sharp
+#         spacing      database
 #
-# 🔴 It does NOT fail, warn, or look broken. It renders perfectly, in grey. The
-# gold standard shipped exactly this defect for four hours on 2026-08-05 and
-# nobody noticed, which is why it is written here in full rather than trusted to
-# memory.
+# So `vectors.resolve()` finds the join, takes `mercedes`, and `color_row()`
+# returns a real row. This site gets the FULL four-vector join. The `mercedes`
+# row carries `bad` = #d64f3f, which is the token the `danger` family asks for,
+# so a `!!! danger` box on this site DOES get its red border.
 #
-# ⭐ THE VALUE IS MICHAEL'S CALL AND IS LEFT AS HE SET IT. Look is his; this
-# comment's job is to make sure the trade is visible rather than discovered on a
-# page somebody is working from. `database` is a defensible pick for a
-# record-first site -- if the callout colours matter more than the surfaces,
-# `eos` measured 3.48 in both schemes against the 3.0 UI floor, and a
-# `theme: eos` publish override tests it for one build without editing anything.
+# ⚑ HOW THE WRONG CLAIM HAPPENED, because the SHAPE is worth more than the
+# error. It was read off `theme/themes.tsv` -- the engine's LOCAL nine-token
+# underlay -- plus a Decision Log entry of 2026-08-05 naming `utility`,
+# `database` and `base` as that local set. Both sources are accurate about the
+# LOCAL table. Neither is the authority on what a theme resolves to.
+# `docrender/vectors.py` says in plain text that `eos`, `papyrus` and `database`
+# exist as both a join and an entity and that JOIN WINS -- and that file was not
+# opened before the claim was written. A PROXY READ PRESENTED AS A VERIFICATION.
+# The authority for a theme is the registry plus the resolver, and nothing else.
 #
-# 🚩 AND THE REAL FIX IS UPSTREAM: `database` wants a canonical row in
-# maw-themes. Then it keeps its record-first surfaces AND gets thirteen working
-# callout families, and nobody has to choose.
+# ⚠️ WHAT IS GENUINELY WORTH KNOWING, and it survives the correction: upstream
+# marks `database` status DRAFT, and its own registry entry says it was
+# "composed but never rendered -- nothing has consumed it yet, so nobody has
+# looked at it. Promote to locked only after it has been seen."
+#
+# THIS SITE IS ITS FIRST CONSUMER. The theme is UNPROVEN rather than broken, and
+# this build is the render somebody finally has to judge. If it reads well, that
+# is the evidence upstream is waiting for to promote it to `locked`.
+#
+# ⭐ AND A THIRD OPTION NOBODY HAS PUT ON THE TABLE: `uritp` is also a canonical
+# join (also draft), carrying actual URITP identity -- black ground, gold accent,
+# #bd0000 for `bad`, and it is one of only four colour rows in the whole table
+# that fill BOTH `on-accent` and `link`. On a URITP safety site that is a
+# defensible pick on identity grounds rather than on measurement. Stated so it
+# is a choice rather than an omission.
+#
+# Testing an alternative costs nothing and writes nothing to disk: the `theme`
+# input on the publish workflow overrides this for ONE build.
 theme: database
 
 # THE LAST DOOR BACK TO THE SOURCE, DELIBERATELY SHUT (2026-08-16).
