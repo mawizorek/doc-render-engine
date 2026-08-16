@@ -1,18 +1,19 @@
 # doc-render-engine — next build spec
 
-⚠️ **THREE INDEPENDENT BUILDS ARE INDEXED HERE.** None depends on another. 1 and 2 live in this file because neither was big enough for its own document; **3 lives in its own file, and that is the new convention** — see the size note below.
+⚠️ **FOUR INDEPENDENT BUILDS ARE INDEXED HERE.** None depends on another except where noted. 1 and 2 live in this file because neither was big enough for its own document; **3 and 4 live in their own files, and that is the convention now** — see the size note below.
 
 | | Build | Scoped | State | Where |
 |---|---|---|---|---|
 | **1** | `dialect.py` + `clean.py` — publish the vocabulary, perform the removal | 2026-08-04 | ⚠️ SCOPED, NOT GREENLIT | below |
 | **2** | **The build report has no reader** — annotations, digest, `report.py` | 2026-08-06 | ⚠️ SCOPED, NOT GREENLIT | below |
 | **3** | **A scoped theme, and the report page that needs it** | 2026-08-07 | ⚠️ SCOPED, NOT GREENLIT | [`specs/scoped-theme.md`](specs/scoped-theme.md) |
+| **4** | **The `draft` status, and the watermark it drives** | 2026-08-16 | ⚠️ SCOPED, NOT GREENLIT | [`specs/draft-watermark.md`](specs/draft-watermark.md) |
 
-🔴 **THIS FILE WAS 22,660 B BEFORE THIS LINE WAS ADDED — PAST THE 22KB CEILING IT DOCUMENTS OTHER FILES AGAINST.** A file that cannot be read whole cannot be safely edited, and this one holds the plans. BUILD 3 went to `specs/` for that reason rather than as a style choice. **Builds 1 and 2 should follow it, leaving this as an index**; that is a real edit somebody has to make and it is not part of BUILD 3.
+🔴 **THIS FILE WAS 22,660 B BEFORE BUILD 3 WAS ADDED — PAST THE 22KB CEILING IT DOCUMENTS OTHER FILES AGAINST.** A file that cannot be read whole cannot be safely edited, and this one holds the plans. BUILDS 3 AND 4 went to `specs/` for that reason. **Builds 1 and 2 should follow them, leaving this as an index**; that is a real edit somebody has to make and it is not part of any current build.
 
-⚠️ **BUILD 3 DEPENDS ON BUILD 2 — the only dependency in the table.** Its report page is a second caller of the renderer BUILD 2 Piece C extracts into `report.py`. Building 3 first means writing that renderer twice.
+⚠️ **BUILD 3 DEPENDS ON BUILD 2 — the only dependency in the table.** Its report page is a second caller of the renderer BUILD 2 Piece C extracts into `report.py`. Building 3 first means writing that renderer twice. **BUILD 4 depends on nothing.**
 
-Decision history for all three: the **doc-render-engine (repo) — Decision Log** subpage in ClickUp.
+Decision history for all four: the **doc-render-engine (repo) — Decision Log** subpage in ClickUp.
 
 ---
 
@@ -285,3 +286,13 @@ The report was never a size-budget concern; it lives there because both run last
 One-line summary: a build report that renders as a generated PAGE on the site, wearing the `utility` theme rather than the site's own — which requires a theme that can apply to part of a site, which this engine has never had.
 
 🔴 **Its §1 is a blocking ruling on what "UTILITY" meant** (the theme, or the `01-utility/` folder), and the answer decides whether half the build exists at all. ⚠️ **Its §4c is the finding worth reading even if the build never happens:** a scoped selector silently kills `print.css` on the pages it scopes, because that sheet wins on source order at equal specificity and a two-attribute scope outranks it.
+
+---
+
+# BUILD 4 — the `draft` status, and the watermark it drives
+
+⚠️ **SCOPED, NOT GREENLIT.** 2026-08-16. **The spec is [`specs/draft-watermark.md`](specs/draft-watermark.md)** — not reproduced here, same reason as BUILD 3.
+
+One-line summary: make `draft` a first-class page status, and let a **status → treatment map** (only `draft` populated) paint a fixed 45° **DRAFT** watermark over the scroll viewport on screen. Print adds DRAFT **manually** in the existing print flow — the same path that strips "edit on git" and forces a white background — rather than inheriting the screen rule.
+
+🔴 **Its §0 is a blocking read that must happen first:** what does the engine do with `status: draft` TODAY? If an unrecognized status falls through to *publish*, the whole `safety/` tree (all `draft`) may be live right now, which turns this from a feature into a fix. ⚠️ **It touches `print.css`, which BUILD 3 §4c flags as fragile under scoping** — if both land, the draft print rule and the scoped-theme selector interact.
