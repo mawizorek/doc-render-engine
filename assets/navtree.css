@@ -1,6 +1,6 @@
 /* Styling for the REVEALED SIDEBAR. Split out of assets/router.css 2026-08-16
  * at 21,273 B, within a kilobyte of the engine's 22KB hard read limit, so any
- * addition at all crossed it. The split was the commit before this one.
+ * addition at all crossed it. The split was its own commit.
  *
  * THE SEAM IS THE SAME ONE THE JS TOOK. router.css owns the FORM and the
  * CURTAIN -- surfaces that exist only where a router is declared. This file owns
@@ -246,9 +246,17 @@ a.dr-nav-revealed__link.md-nav__link--active {
 }
 
 /* Material's top-level row is taller than a revealed one -- it carries the caps
- * rule's padding and bottom border -- so without this the chevron on an injected
- * folder sits above its own title. */
-.dr-nav-injected > .dr-nav-revealed__toggle {
+ * rule's padding and its bottom border -- so without this the chevron sits above
+ * its own title.
+ *
+ * ⚠️ KEYED ON `md-nav__item`, NOT ON `dr-nav-injected`, AND THAT WAS A REVIEW
+ * CATCH RATHER THAN THE FIRST ANSWER. BOTH placements land on a Material row:
+ * `at` builds the row itself (and it is an `md-nav__item`), while `in` hangs the
+ * menu on a row Material already built. The injected-only version would have
+ * mis-aligned the COMMONER of the two -- an ordinary `router:` with no
+ * `nav: routed` -- which is exactly the half nobody would have thought to look
+ * at, because the new-looking case is the one that gets tested. */
+.md-nav__item.dr-nav-parent > .dr-nav-revealed__toggle {
   height: 2.1rem;
 }
 
