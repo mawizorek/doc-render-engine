@@ -80,7 +80,13 @@ This repo has killed three manifests for that defect and then kept a fourth
 inside a function. One list now, derived, in the file that has to be right or
 nothing ships at all.
 
-⚠️ THAT IS WHY `_PRINT_ASSETS` IS A CONSTANT AND NOT A LITERAL IN `_plan()`.
+⭐ AND IT PAID OFF ON 2026-08-16, WHICH IS WORTH RECORDING BECAUSE THE PAYOFF IS
+USUALLY INVISIBLE. `navtree.css` and `navtree.js` were split out of the router
+pair that day and added to `_FEATURE_ASSETS`; the audit picked up the new sheet
+with no edit anywhere. The 08-04 version of this repo would have under-reported
+for exactly as long as nobody looked.
+
+⚠️ THAT IS ALSO WHY `_PRINT_ASSETS` IS A CONSTANT AND NOT A LITERAL IN `_plan()`.
 It is a third group only because of WHERE it loads (see below), not because it
 is a different kind of thing -- and `hand_written_css()` derives from all three
 groups so the audit cannot go stale the way it did in 2026-08-04.
@@ -130,22 +136,32 @@ _DATA_ASSETS = (
 
 #: Published ONLY to a site that uses the feature. See `_uses_router`.
 #:
-#: 🔴 navtree.js COMES BEFORE router.js, AND THAT IS AN ORDERING LAW OF THE SAME
-#: CLASS AS `_DATA_ASSETS` ABOVE -- not alphabetising, not tidiness.
-#: assets/navtree.js was split out of router.js on 2026-08-16 at 22,232 B, past
-#: the engine's 22KB hard read limit, along the seam router.js had already
-#: declared in its own header: the FORM and its crypto stay there, everything
-#: that DRAWS the sealed sidebar moved here.
+#: FOUR FILES, TWO HALVES, split on 2026-08-16 when both router files hit the
+#: engine's 22KB hard read limit (router.js at 22,232 B, router.css at 21,273 B
+#: with no room left for the change that was needed). The seam is the one
+#: router.js had already declared in its own header:
 #:
-#: router.js calls into `window.docrenderNavTree` during its own IIFE, so a
-#: later position makes every one of those calls a TypeError on the first paint.
+#:   router.css + router.js      the FORM, the curtain, the crypto. Only where a
+#:                               router is declared or inherited.
+#:   navtree.css + navtree.js    the SEALED SIDEBAR. On every page of the site.
+#:
+#: 🔴 navtree.js MUST COME BEFORE router.js, AND THAT IS AN ORDERING LAW OF THE
+#: SAME CLASS AS `_DATA_ASSETS` ABOVE -- not alphabetising, not tidiness.
+#: router.js calls into `window.docrenderNavTree` during its own IIFE, so a later
+#: position makes every one of those calls a TypeError on the first paint.
 #: ⚠️ AND THE FAILURE IS THE QUIET SHAPE: the form keeps unlocking pages
 #: perfectly while the revealed menu silently stops being injected, which is
 #: exactly the class of defect that survives longest here. router.js guards the
-#: reference so a MISSING navtree.js degrades the same safe way rather than
+#: reference, so a MISSING navtree.js degrades the same safe way rather than
 #: killing the unlock -- but a mis-ORDERED one is still a dead sidebar, and no
 #: guard can fix an order.
-_FEATURE_ASSETS = ("router.css", "navtree.js", "router.js")
+#:
+#: ⭐ THE CSS ORDER, BY CONTRAST, IS GENUINELY FREE, and it is said out loud so
+#: nobody defends a position that was never load-bearing: navtree.css is `.dr-`
+#: classes overriding nothing of Material's, and the one Material class it
+#: touches deliberately INHERITS nav.css's top-level caps rather than fighting
+#: it. It sits beside its own JS because that reads as one feature.
+_FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 
 #: 🔴 LOADS AFTER THE GENERATED SHEETS, AND THAT IS THE ONLY REASON IT IS A
 #: SEPARATE GROUP RATHER THAN THE EIGHTH ENTRY IN `_DATA_ASSETS`.
@@ -179,10 +195,10 @@ def hand_written_css() -> tuple[str, ...]:
     here is precisely how the old hardcoded tuple in tokenaudit.py went stale
     within two hours.
 
-    ⭐ AND THE `.css` FILTER IS WHAT MADE A GROUP GAINING A SCRIPT FREE.
-    `navtree.js` joined `_FEATURE_ASSETS` on 2026-08-16 and needed no edit
-    here, because this DERIVES from the groups instead of restating them. That
-    is the whole reason it is a function and not a fourth tuple.
+    ⭐ AND THE `.css` FILTER IS WHAT MADE THE 2026-08-16 SPLIT FREE. Two files
+    joined `_FEATURE_ASSETS` that day, one sheet and one script; the sheet was
+    picked up here and the script was correctly ignored, with no edit. That is
+    the whole reason this is a function and not a fourth tuple.
     """
     return tuple(
         name
