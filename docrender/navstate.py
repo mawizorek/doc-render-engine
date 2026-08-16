@@ -69,10 +69,9 @@ inside a routed one is still cut before the seal sees it.
 ⚠️ `nav: routed expand` IS ACCEPTED AND HALF OF IT IS NOISE, WHICH IS SAID
 RATHER THAN SWALLOWED. That is the spelling Michael wrote, so the canonicaliser
 collapses internal whitespace and takes it. But there is no collapsed state to
-expand FROM: the revealed list is flat and always rendered in full, because
-Material's nested-nav markup needs a toggle per level and a folder that was
-never in the tree has none. Accepting a spelling and quietly ignoring half of it
-is worse than refusing it.
+expand FROM: the revealed list is drawn by assets/navtree.js, which carries its
+own disclosure and never reads this key. Accepting a spelling and quietly
+ignoring half of it is worse than refusing it.
 
 WHY THIS IS ADD-ONLY, AND WHY THAT IS THE WHOLE DESIGN. Michael: *active stays
 open.* Material writes `checked` onto a toggle only when the section is an
@@ -84,10 +83,11 @@ add `checked` where `expanded` resolved true.
 available to it is a folder open when it should have been shut. Fail-open, on
 the surface a reader navigates by.
 
-TWO STAGES, BECAUSE MKDOCS SPLITS THE TWO QUESTIONS. `hidden` is a question
+THREE STAGES, AND MKDOCS ONLY FORCED TWO OF THE SPLITS. `hidden` is a question
 about the nav TREE (`on_nav`); `expanded` is a question about rendered HTML
-(`on_post_page`). They are two events, not two lines that could have been moved
-next to each other.
+(`on_post_page`). Those are two events. The third split is OURS: whether a
+folder that resolved `expanded` is still in the sidebar cannot be known until
+the seal has run, so SPENDING anything on that answer belongs at 00bd.
 
     shape()          stage 00bb. Reads the site default, applies `hidden`,
                      resolves the cascade, fills NAV_OPEN. Raises NAV_SHAPED,
@@ -95,6 +95,8 @@ next to each other.
                      before it -- see shape() for why that is not paranoia.
     declared()       PUBLIC, and silent. visibility asks this whether a folder
                      said `routed`. One reader of the key, not two.
+    navsettle.settle stage 00bd, its own module. Drops NAV_OPEN entries whose
+                     folder left the sidebar, THEN decides navigation.prune.
     on_post_page()   stage 06b. Reads NAV_OPEN, checks the toggles.
 
 ⚠️ THE SHIM PASSES IN `_index_of` AND `_unchain` FROM visibility.py, AND THAT IS
@@ -104,18 +106,18 @@ because reading it afterwards was a live bug, and `_unchain` is the prev/next
 detachment every removal in this engine owes. Copying either here would create a
 second copy free to drift. The dependency runs one way only, which is why
 visibility may import THIS module and this module may never import that one.
+⚠️ `navsettle` imports visibility DIRECTLY and that is legal, because nothing
+imports navsettle back. The shim is thick here and thin there for that reason
+alone.
 
-⚠️ `navigation.prune` AND `expanded` CANNOT BOTH BE ON. A pruned nav renders no
-children for any section the reader is not inside, so checking that toggle opens
-an empty box. `shape()` drops the feature -- but only when something actually
-resolved to `expanded`, so a site that never uses it never pays. NOT available
-per-subtree: prune is one boolean for the whole theme. Cost and consequences in
-README section 7.
-
-⚠️ THE TIMING IS THE ONLY REASON THAT DROP IS LEGAL. Every `on_nav` runs before
-any page renders, and the template reads `features` at render time. `on_config`
-would NOT work -- `state.BY_SRC` is empty then, the trap `assets.py` already
-fell into and documented.
+🔴 `navigation.prune` AND `expanded` STILL CANNOT BOTH BE ON, BUT THIS FILE NO
+LONGER DECIDES IT (moved 2026-08-16). A pruned nav renders no children for any
+section the reader is not inside, so checking that toggle opens an empty box --
+that part is unchanged. What changed is WHEN: `shape()` used to drop the feature
+the moment anything resolved to `expanded`, and two stages later the seal could
+take that very folder out of the sidebar. The site then shipped its whole nav
+tree on every page for a folder nobody could click. `navsettle` asks the question
+against the tree that survived. Cost and consequences in README section 7.
 
 WHAT THIS DOES NOT DO: unbuild anything, touch search, or have any opinion about
 `status:`. A `hidden` folder is exactly as public as it was before, and so is a
@@ -395,9 +397,10 @@ def _walk(items, index_of, unchain, inherited: str) -> None:
                     index.file.src_uri + ': `nav: ' + _raw(index.file.src_uri)
                     + '` is read as `routed`. There is no collapsed state to '
                     + 'expand FROM -- a routed folder is absent from the sidebar '
-                    + 'entirely and the list a correct code injects is flat and '
-                    + 'always shown in full. The second word is accepted and '
-                    + 'does nothing.',
+                    + 'entirely, and the menu a correct code injects carries its '
+                    + 'own disclosure (assets/navtree.js) which does not read '
+                    + '`nav:` at all. The second word is accepted and does '
+                    + 'nothing.',
                 )
             _walk(children, index_of, unchain, DEFAULT)
             continue
@@ -434,8 +437,17 @@ def _walk(items, index_of, unchain, inherited: str) -> None:
         _walk(children, index_of, unchain, resolved)
 
 
-def shape(items, config, index_of, unchain) -> None:
-    '''Stage 00bb. See hooks/README.md for why the number has two b's.'''
+def shape(items, index_of, unchain) -> None:
+    '''Stage 00bb. See hooks/README.md for why the number has two b's.
+
+    ⚠️ NO `config` PARAMETER ANY MORE (2026-08-16). It existed for exactly one
+    reason -- dropping `navigation.prune` off `config.theme` -- and that decision
+    moved to `navsettle.settle` at stage 00bd, because it cannot be made
+    correctly until the seal has finished removing folders. A parameter kept for
+    a job the function no longer has is the dead control this file spends its
+    whole docstring warning about, so it went with the job. The 00bb shim was
+    edited in the same commit.
+    '''
     # ⭐ FIRST, AND UNCONDITIONALLY. visibility.seal_nav (00bc) reads this to
     # prove this stage ran before it, because it MUST: the seal harvests a routed
     # subtree into ciphertext, and a `nav: hidden` folder that has not been cut
@@ -452,24 +464,15 @@ def shape(items, config, index_of, unchain) -> None:
     _misplaced()
     _walk(items, index_of, unchain, _site_default())
 
-    if not state.NAV_OPEN:
-        return
-
-    features = list(config.theme.get('features') or [])
-    if 'navigation.prune' not in features:
-        return
-
-    config.theme['features'] = [f for f in features if f != 'navigation.prune']
-    state.note(
-        'nav_default',
-        'navigation.prune DISABLED for this build: ' + str(len(state.NAV_OPEN))
-        + ' folder(s) resolved to `nav: expanded`, and a pruned nav renders no '
-        + 'children for any section the reader is not already inside -- so the '
-        + 'expansion would open an empty box. Every page now ships the whole '
-        + "nav tree (~33% of page weight, Material's own figure). Not available "
-        + 'per-subtree: prune is one boolean for the theme. Remove every '
-        + '`expanded` declaration, INCLUDING the site default, to get it back.',
-    )
+    # ⚠️ AND NOTHING IS SPENT HERE. NAV_OPEN is a PROPOSAL at this point: every
+    # folder that asked to be open, before the seal at 00bc has had its say about
+    # which of them a reader can still see. `navsettle` (00bd) prunes it against
+    # the surviving tree and decides `navigation.prune` from what is left.
+    #
+    # 🔴 The version of this function that shipped between 2026-08-05 and
+    # 2026-08-16 dropped the feature right here, and uritp paid ~33% of every
+    # page's weight for `roles/addendum` -- a folder the seal removed two stages
+    # later. See docrender/navsettle.py for the whole account.
 
 
 # ===========================================================================
@@ -488,6 +491,12 @@ def shape(items, config, index_of, unchain) -> None:
 # into a tag it has fully matched, and only when the adjacent href resolves to a
 # folder index that asked for it. Anything it does not recognise, it leaves
 # exactly as Material wrote it.
+#
+# ⭐ AND SINCE 00bd EXISTS IT NO LONGER HUNTS TOGGLES THAT CANNOT BE THERE.
+# NAV_OPEN used to carry folders the seal had removed, so this pass searched
+# every page of the site for a row that was never emitted, found nothing, and
+# said nothing. Correct output, wasted work, and a silence that hid a real
+# defect one stage upstream.
 
 _INPUT = re.compile(r'<input class="md-nav__toggle md-toggle"[^>]*>')
 _HREF = re.compile(r'href="([^"]*)"')

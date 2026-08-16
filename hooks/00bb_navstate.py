@@ -20,6 +20,13 @@ import `navstate` to call it, and `navstate` importing back is a cycle. So the
 wiring lives here, which is what these files are for: the package holds the
 LOGIC, hooks/ holds the ORDER, and this one also holds the one edge where two
 stages of the same event have to see each other.
+
+⚠️ NO `config` IN THE CALL ANY MORE (2026-08-16). `shape()` took it for exactly
+one job -- dropping `navigation.prune` off `config.theme` -- and that moved to
+stage 00bd, which can only be decided after the seal has finished removing
+folders. `00bd_navsettle.py` is a thin shim because `navsettle` is allowed to
+import `visibility` directly: nothing imports navsettle back, so the cycle that
+makes THIS file thick does not exist over there.
 """
 
 from docrender import navstate
@@ -27,5 +34,5 @@ from docrender.visibility import _index_of, _unchain
 
 
 def on_nav(nav, config, files):
-    navstate.shape(nav.items, config, _index_of, _unchain)
+    navstate.shape(nav.items, _index_of, _unchain)
     return nav

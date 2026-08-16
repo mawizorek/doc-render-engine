@@ -56,11 +56,16 @@ theme:
     # all. Enabling this feature checks everything, collapses that rule into
     # nothing, and silently turns the `nav:` key into a no-op.
     #
-    # ⚠️ `navigation.prune` IS CONDITIONAL AT RUNTIME. navstate drops it from
-    # this list during on_nav if any page in the content repo declares
-    # `nav: expanded`, because a pruned nav renders no children for a section
-    # the reader is not inside, so expanding one would open an empty box. The
-    # build report says so on any build where it happens.
+    # ⚠️ `navigation.prune` IS CONDITIONAL AT RUNTIME, and since 2026-08-16 the
+    # condition is stricter than it reads. It is dropped from this list during
+    # on_nav only if a folder declares `nav: expanded` AND IS STILL IN THE
+    # SIDEBAR once the router seal has run -- because a pruned nav renders no
+    # children for a section the reader is not inside, so expanding one would
+    # open an empty box. 🔴 The old rule dropped it the moment ANYTHING resolved
+    # to `expanded`, including folders the seal removed two stages later, so
+    # uritp shipped its whole nav tree on every page for eleven days on account
+    # of one invisible folder. docrender/navsettle.py (stage 00bd) owns the
+    # decision now. The build report says which way it went on every build.
     - navigation.indexes
     - navigation.prune
     - navigation.top
@@ -124,14 +129,15 @@ markdown_extensions:
 
 # ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and six chains depend on it.
 #
-#   THE NAV CHAIN, five links, every one load-bearing. The consequence of each
+#   THE NAV CHAIN, six links, every one load-bearing. The consequence of each
 #   misordering is written down because a bare sequence tells nobody what breaks:
 #
-#     00    sort   instance.py orders the tree
-#     00b   prune  unlisted pages leave the sidebar
-#     00bb  shape  `nav: hidden` folders lose their children
-#     00bc  seal   routed folders seal whatever is LEFT
-#     00c   chain  prev/next rebuilt from what survived all four
+#     00    sort    instance.py orders the tree
+#     00b   prune   unlisted pages leave the sidebar
+#     00bb  shape   `nav: hidden` folders lose their children
+#     00bc  seal    routed folders seal whatever is LEFT
+#     00bd  settle  navigation.prune is spent on what SURVIVED all of the above
+#     00c   chain   prev/next rebuilt from what survived all five
 #
 #   00b or 00bb after 00c  -> the footer Next button walks through pages that
 #                             are not in the sidebar.
@@ -143,6 +149,18 @@ markdown_extensions:
 #                             which is why `visibility.seal_nav` ALSO checks
 #                             `state.NAV_SHAPED` at runtime and reports if this
 #                             list drifts. See docrender/visibility.py.
+#   00bd before 00bc       -> it reads a provisional tree. A folder sealed behind
+#                             a router still counts as `expanded`, so the site
+#                             drops `navigation.prune` and ships its whole nav
+#                             tree on EVERY page (~33% of page weight) for a row
+#                             no reader can click. Also silent, also invisible
+#                             without a code. Live on uritp for eleven days until
+#                             2026-08-16, when this stage was split OUT of 00bb
+#                             -- which is where that decision used to be made.
+#                             See docrender/navsettle.py.
+#
+#   ⭐ THOSE LAST TWO ARE ONE LAW FROM OPPOSITE ENDS: a stage that READS a
+#   declaration and a stage that SPENDS a resource on it are not the same stage.
 #
 #   01 reads frontmatter -> 02 prunes files -> 03 indexes what survived
 #   01d emits marker syntax -> 03b renders it. Move 01d after 03b and the token
@@ -170,10 +188,11 @@ markdown_extensions:
 #      🚨 BUT ITS PRESENCE IS NOT OPTIONAL. Remove this line and markerlinks is
 #      never imported, so nothing claims anything and every marker link on every
 #      site renders as a broken reference. See hooks/03c_markerlinks.py.
-#   00bb decides which folders open -> 06b writes that onto the rendered page.
-#      Two different EVENTS (on_nav, on_post_page), so this pair cannot be
-#      reordered into a bug -- it is listed because the dependency is real even
-#      where the ordering is free.
+#   00bb decides which folders WANT to open -> 00bd decides which of them still
+#      CAN -> 06b writes it onto the rendered page. The first two are the same
+#      event (on_nav) and their order is a real constraint; 06b is on_post_page
+#      and cannot be reordered into a bug. Listed because the dependency is real
+#      even where part of the ordering is free.
 #
 #   08 finishes the report -> 08b renders it into the page that asked for one.
 #      🔴 THE ONLY ORDERING HERE THAT IS ABOUT AN ACCUMULATOR RATHER THAN A
@@ -211,6 +230,7 @@ hooks:
   - hooks/00b_unlisted.py
   - hooks/00bb_navstate.py
   - hooks/00bc_seal.py
+  - hooks/00bd_navsettle.py
   - hooks/00c_nav.py
   - hooks/01_objects.py
   - hooks/01b_data.py
