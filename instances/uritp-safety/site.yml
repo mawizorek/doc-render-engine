@@ -1,0 +1,113 @@
+# URITP SAFETY - the published, human-facing safety surface.
+#
+# Distinct from `uritp` in the one way that decides everything else: that site
+# is where safety material is WORKED OUT, this one is where a finished page
+# arrives once Michael has decided a real person can act on it. Two audiences,
+# two repos, and they are not copies of each other.
+#
+# Michael, 2026-08-16: *"this is the final filter that is me taking what we
+# write in uritp-docs/safety and filtering it for real humans finally."*
+#
+# CONTENT LAW, and it lives in the content repo's own README as well: agents
+# READ and AUDIT this tree and never commit to it. A safety document somebody
+# acts on has to have been read by the person accountable for it.
+
+name: URITP Safety
+description: Published safety policies, programs and privileges for URITP spaces.
+slug: uritp-safety
+base_url: https://mawizorek.github.io/uritp-safety/
+
+content_repo: mawizorek/uritp-safety
+content_branch: main
+
+# Other names `publish` accepts for this site. Resolved against the slug first,
+# then this list, case-insensitively.
+#
+# WARNING: KEEP IT A ONE-LINE FLOW LIST. The engine parses this with real YAML
+# and does not care, but the terminal helper reads it with a regex over one
+# line, because a shell function cannot depend on PyYAML being installed.
+#
+# `safety` is here because it is what anybody will actually type, and it is
+# unclaimed: no instance uses it as a slug, and no sibling declares it. That
+# check is not a courtesy -- the resolver reads slugs FIRST, so an alias equal
+# to another site's slug silently publishes the wrong site.
+aliases: [safety, uritp-safety-docs, "URITP Safety"]
+
+# ONE LINE, and it is NOT a default worth taking lightly here.
+#
+# WARNING: DO NOT LEAVE THIS UNSET. An absent theme resolves to `base`, the
+# engine's nine-token local stand-in, and `base` is not a row in the canonical
+# colour table -- so the four-vector join never happens and eleven of the
+# thirteen callout families resolve to `currentColor`. Including `danger`.
+#
+# That is disqualifying on THIS site specifically. A safety page carries
+# `!!! danger` and `!!! warning` blocks as load-bearing content, and a danger
+# box with no red border is a page that has stopped saying the thing it exists
+# to say. The gold standard shipped exactly that defect for four hours on
+# 2026-08-05 and nobody noticed, because it renders perfectly -- just grey.
+#
+# `eos` is chosen on MEASUREMENT rather than taste: callout border against
+# surface-3 scored 3.48 in both schemes against the 3.0 UI floor, where
+# `soft-utility` (1.46) and `sharp-carbon` (1.70) each fail five of eight
+# tokens in light mode.
+#
+# It is still a LOOK decision and therefore Michael's, not the engine's. Change
+# this line, or override it for one build with the `theme` input on the publish
+# workflow -- which writes nothing to disk, so it cannot outlive the run.
+theme: eos
+
+# THE LAST DOOR BACK TO THE SOURCE, DELIBERATELY SHUT (2026-08-16).
+#
+# `true` puts one quiet "Edit this page on GitHub" line at the foot of every
+# page. On `uritp` it is scaffolding, and its own site.yml says the intended end
+# state is `false` once the site goes out to designers, guest artists and
+# students.
+#
+# THIS SITE IS THAT END STATE ON DAY ONE. Every reader here is one of those
+# people, so the link is not scaffolding -- it is an affordance offered to
+# somebody who cannot use it.
+#
+# AND THE REASON IS NOT LEAK RISK, which is worth stating so nobody "restores"
+# it on the grounds that the repo is private. A private repo means the edit URL
+# 404s for every reader who is not on it, so nothing is exposed either way. It
+# is off because a link that looks like an invitation and delivers a 404 is a
+# DEAD CONTROL, and this engine kills those on sight.
+#
+# WARNING: PRIVATE REPO IS NOT A PRIVATE SITE. The repo being private stops
+# somebody swapping `github.io` for `github.com` and reading the source tree.
+# It does nothing whatsoever to the PUBLISHED site, which Pages serves from
+# `gh-pages` to anybody with the URL. Nothing in this content tree should be
+# written on the assumption that only URITP people can read it.
+edit_links: false
+
+# NO `sections:` BLOCK, and its absence is deliberate.
+#
+# That block exists to ORDER folders and to TITLE the ones with no index page.
+# Every folder here has an index that declares its own `order:` (policies 10,
+# programs 20, privileges-hazards 30) and its own `title:`, and the engine reads
+# the index first -- config only covers what the content cannot speak for.
+#
+# A `sections:` entry here would restate a fact the content already states, or
+# worse, name a folder that does not exist. `uritp`'s block carries a
+# `reference:` row for a folder absent from its tree, which is exactly the
+# config-key-that-does-nothing this engine keeps writing down.
+
+# NO `peers:` BLOCK, and this one is a judgement rather than a technicality.
+#
+# `uritp` is the obvious candidate and is deliberately not listed. Cross-site
+# links resolve through a peer's published page index, so declaring it would let
+# a page here point at the WORKSHOP tree -- sending a reader who came for the
+# adopted standard into the draft it was filtered out of. That is the one
+# direction this repo exists to prevent.
+#
+# A safety page needing something from `uritp-docs` is a signal that the thing
+# has not been filtered yet, not a signal that it needs a link.
+
+# NO `routes.yml` in this folder, and the engine is fine with that: `_uses_router`
+# reads the file if it exists and answers False when it does not, so neither
+# `router.css` nor `router.js` is even published to a site with no routers.
+#
+# There should never be one here. A router is a curtain, it protects nothing,
+# and the content it would withhold is the content everybody is meant to have
+# read. Anything on this site that cannot be shown to everyone does not belong
+# on this site.
