@@ -1,0 +1,227 @@
+/* Styling for the REVEALED SIDEBAR. Split out of assets/router.css 2026-08-16
+ * at 21,273 B, within a kilobyte of the engine's 22KB hard read limit, so any
+ * addition at all crossed it.
+ *
+ * A pure MOVE -- every rule and every comment below is byte-faithful to what was
+ * in router.css, because a split that also edits is two changes wearing one
+ * commit and you cannot tell which one broke the render. The behaviour change
+ * that motivated it is the NEXT commit. Same discipline as the nav.css split out
+ * of base.css on 2026-08-04, and as assets/navtree.js an hour ago.
+ *
+ * THE SEAM IS THE SAME ONE THE JS TOOK, WHICH IS WHY THIS IS NOT AN ARBITRARY
+ * CUT. router.css now owns the FORM and the CURTAIN -- the surfaces that only
+ * exist where a router is declared. This file owns the injected menu, which
+ * ships on every page of the site. One pairing, four files, two per half:
+ *
+ *     router.css + router.js     the form, the curtain, the crypto
+ *     navtree.css + navtree.js   the sealed sidebar
+ *
+ * Published only to a site that has a router, same as its siblings. Load order
+ * is set in docrender/assets.py `_FEATURE_ASSETS`; unlike the JS pair, the CSS
+ * order here is genuinely FREE -- these are `.dr-` classes that override nothing
+ * of Material's, and the one place a Material class appears
+ * (`.dr-nav-injected__link`) deliberately INHERITS nav.css's top-level caps
+ * rather than fighting it. Stated so nobody defends a position that was never
+ * load-bearing.
+ */
+
+/* ---------------------------------------------------------------------------
+ * THE REVEALED SIDEBAR (DL J14, corrected J18)
+ *
+ * A routed folder's children are removed from the nav at build time and their
+ * titles ship sealed. router.js decrypts them on a correct code and appends
+ * this list to the section's own `li.md-nav__item`.
+ *
+ * WHY NOT MATERIAL'S OWN NAV MARKUP. A nested Material nav needs a <nav>, a
+ * <label> and a hidden checkbox per level to drive expand/collapse -- and on a
+ * phone that nested <nav> is a sliding panel positioned OFF-CANVAS until its
+ * toggle is checked. A sealed section has no toggle, so borrowing the structure
+ * would put the menu somewhere unreachable on mobile only. Own classes,
+ * Material's variables, so it still matches the sidebar in both schemes.
+ *
+ * 🔴 EVERY TYPOGRAPHIC PROPERTY HERE IS DECLARED RATHER THAN INHERITED, AND
+ * THAT IS THE FIX FOR A REAL BUG, NOT DEFENSIVENESS. In #48 this list was
+ * appended inside `div.md-nav__container`, which matches base.css's top-level
+ * caps rule -- and `text-transform`, `letter-spacing`, `font-weight` and
+ * `font-size` all INHERIT. The child pages rendered in bold 700 uppercase,
+ * shouting louder than the section above them, with nothing in this file
+ * saying so. router.js now hoists the list to the <li>, which carries none of
+ * those properties; these declarations are the second line of defence, because
+ * a site's own theme.css is loaded LAST and could put caps on anything.
+ *
+ * ⚠️ NOTHING HERE HIDES ANYTHING. If these rules fail to load, the list is
+ * still only in the DOM once a code has been typed. The withholding is done by
+ * the build, not by this stylesheet.
+ * ------------------------------------------------------------------------ */
+.dr-nav-revealed {
+  margin: 0.1rem 0 0.5rem;
+  padding: 0;
+  list-style: none;
+  /* The <li> is not a flex container, but a future Material release or a site
+   * sheet could make one. A full-width basis means the menu stacks under the
+   * section link either way instead of trying to sit beside it. */
+  flex: 1 0 100%;
+  width: 100%;
+}
+
+.dr-nav-revealed__item {
+  margin: 0;
+  /* ⚠️ Material puts a `border-top` on drawer items (see base.css on the double
+   * rule). These are not `md-nav__item`, so they get none -- stated because the
+   * absence is deliberate: the revealed pages are a sub-list, not more
+   * top-level sections, and ruling them would claim a weight they do not have.
+   */
+  border: 0;
+}
+
+/* ⭐ THE STAGGER IS OPT-IN, AND THAT CHANGED ON 2026-08-06 FOR A REAL REASON.
+ *
+ * It used to run on every `.dr-nav-revealed__item` and be suppressed by
+ * `.dr-open`. That worked only while the menu could appear on pages carrying a
+ * form. The sealed nav now ships site-wide, so a reader navigating with a held
+ * code lands on pages with NO form and therefore no `.dr-open` -- and the
+ * sidebar would have re-animated on every single navigation, which is precisely
+ * the twitch the pre-paint boot script exists to prevent.
+ *
+ * router.js adds `--in` only when a code was just typed. MOTION NOW MEANS
+ * SOMETHING HAPPENED; stillness means it was already true.
+ *
+ * Capped by arithmetic rather than by hope: a folder with forty pages must not
+ * animate for two seconds, so the delay stops climbing after the eighth row.
+ *
+ * ⭐ Duration and curve are the theme's. Was 0.32s cubic-bezier(.16,1,.3,1),
+ * and `soft` still sets exactly that -- so a site on soft forms renders this
+ * identically and eos gets its own quicker 160ms. */
+.dr-nav-revealed--in .dr-nav-revealed__item {
+  animation: dr-nav-in var(--dr-motion-med, 0.32s)
+    var(--dr-ease, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(1) { animation-delay: 0ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(2) { animation-delay: 40ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(3) { animation-delay: 80ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(4) { animation-delay: 120ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(5) { animation-delay: 160ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(6) { animation-delay: 200ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(7) { animation-delay: 240ms; }
+.dr-nav-revealed--in .dr-nav-revealed__item:nth-child(n + 8) { animation-delay: 280ms; }
+
+@keyframes dr-nav-in {
+  from { opacity: 0; transform: translateX(-0.35rem); }
+  to   { opacity: 1; transform: none; }
+}
+
+.dr-nav-revealed__link {
+  display: block;
+  padding: 0.4rem 0.6rem 0.4rem 1rem;
+  color: var(--md-typeset-color);
+  /* Declared, not inherited. See the red note above. */
+  font-family: var(--dr-font-body);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1.5;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: color var(--dr-motion-fast, 125ms) var(--dr-ease, ease);
+}
+
+/* A destination is a link and reacts to the pointer. A folder heading is a
+ * <span>, so it gets neither -- the difference in affordance is the only thing
+ * telling a reader which rows they can click. */
+a.dr-nav-revealed__link:hover,
+a.dr-nav-revealed__link:focus-visible {
+  color: var(--md-accent-fg-color);
+}
+
+span.dr-nav-revealed__link {
+  color: var(--dr-ink-muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ⭐ THE PAGE THE READER IS ON. Michael, 2026-08-06: "notated which page i then
+ * nav to."
+ *
+ * ⚠️ MATERIAL'S OWN `md-nav__link--active` IS NOT ENOUGH HERE, AND THE REASON IS
+ * the red note at the top of this block: these links DECLARE their colour and
+ * weight rather than inheriting, so a single-class rule from Material loses to
+ * the two-class selector above. The active state has to be re-stated at this
+ * specificity or the highlight silently does nothing -- a dead control, on the
+ * one row a reader is looking for. */
+a.dr-nav-revealed__link.md-nav__link--active {
+  color: var(--md-accent-fg-color);
+  font-weight: 700;
+}
+
+/* Depth rides on an attribute rather than on nesting, because the manifest is a
+ * flat list -- see docrender/state.py on why it is flat. Two levels indent and
+ * anything deeper stops, rather than marching off the sidebar, which is the
+ * same choice Material makes.
+ *
+ * ⚠️ THE STEPS ARE SMALL ON PURPOSE. A phone drawer is about 17rem wide and
+ * these titles are real sentences ("Vectorworks Doc Specs"), so a generous
+ * indent does not read as hierarchy -- it reads as a column three words wide.
+ * The #48 version stepped 0.75rem at every level inside a container that was
+ * already squeezed, and the result was a staircase. */
+.dr-nav-revealed__item[data-d="2"] .dr-nav-revealed__link { padding-left: 1.6rem; }
+.dr-nav-revealed__item[data-d="3"] .dr-nav-revealed__link,
+.dr-nav-revealed__item[data-d="4"] .dr-nav-revealed__link { padding-left: 2.2rem; }
+
+/* ---------------------------------------------------------------------------
+ * THE INJECTED FOLDER (`nav: routed`, 2026-08-06)
+ *
+ * A routed folder is absent from the sidebar entirely -- not just its children,
+ * the folder itself. Its own row travels as entry ZERO of the sealed manifest
+ * and router.js builds it on a correct code, then places it where its `order:`
+ * would have put it.
+ *
+ * ⭐ THIS BLOCK IS DELIBERATELY TINY, WHICH IS THE POINT. The injected row is a
+ * real `li.md-nav__item` holding a real `a.md-nav__link`, so it inherits every
+ * bit of Material's own top-level type, spacing, hover and active styling for
+ * free. The list INSIDE it is `.dr-nav-revealed` above, which owns its own type
+ * for the reasons in that block's red note. Two different markup strategies in
+ * one injected element, and each is right for its own job: the row has to read
+ * as one of the sections it just joined, the children must not borrow a nested
+ * nav they have no toggle for.
+ * ------------------------------------------------------------------------ */
+
+/* ⭐ THE ARRIVAL IS THE FEATURE, NOT DECORATION. Michael, asking for this: "i
+ * want the sidebar to feel almost dynamic if something unlocks." A folder that
+ * simply exists on the next paint reads as a rendering glitch; one that slides
+ * in reads as something that just happened.
+ *
+ * ⚠️ AND IT IS OPT-IN FOR THE SAME REASON THE STAGGER IS -- see that block. The
+ * client adds `--in` only on a fresh unlock, never on the cached redraw that
+ * runs on every subsequent page. */
+.dr-nav-injected--in {
+  animation: dr-nav-folder-in var(--dr-motion-med, 0.32s)
+    var(--dr-ease, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+@keyframes dr-nav-folder-in {
+  from { opacity: 0; transform: translateY(-0.3rem); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ⭐ THE FOLDER IS MARKED WHEN A CHILD IS ACTIVE, not only when the folder page
+ * itself is -- that case is Material's own active class and needs nothing here.
+ *
+ * Without this, clicking from the folder index into one of its pages takes the
+ * highlight off the only row that is always on screen, and the reader is inside
+ * an injected section with nothing saying so.
+ *
+ * A left rule rather than a colour, deliberately: it is Material's own "you are
+ * in this section" idiom, and colouring the folder as well would put two
+ * competing highlights in one small column. */
+.dr-nav-injected--here > .dr-nav-injected__link {
+  box-shadow: inset 2px 0 0 var(--md-accent-fg-color);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dr-nav-revealed--in .dr-nav-revealed__item,
+  .dr-nav-injected--in {
+    animation: none;
+  }
+}
