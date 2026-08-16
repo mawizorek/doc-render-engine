@@ -129,7 +129,23 @@ _DATA_ASSETS = (
 )
 
 #: Published ONLY to a site that uses the feature. See `_uses_router`.
-_FEATURE_ASSETS = ("router.css", "router.js")
+#:
+#: 🔴 navtree.js COMES BEFORE router.js, AND THAT IS AN ORDERING LAW OF THE SAME
+#: CLASS AS `_DATA_ASSETS` ABOVE -- not alphabetising, not tidiness.
+#: assets/navtree.js was split out of router.js on 2026-08-16 at 22,232 B, past
+#: the engine's 22KB hard read limit, along the seam router.js had already
+#: declared in its own header: the FORM and its crypto stay there, everything
+#: that DRAWS the sealed sidebar moved here.
+#:
+#: router.js calls into `window.docrenderNavTree` during its own IIFE, so a
+#: later position makes every one of those calls a TypeError on the first paint.
+#: ⚠️ AND THE FAILURE IS THE QUIET SHAPE: the form keeps unlocking pages
+#: perfectly while the revealed menu silently stops being injected, which is
+#: exactly the class of defect that survives longest here. router.js guards the
+#: reference so a MISSING navtree.js degrades the same safe way rather than
+#: killing the unlock -- but a mis-ORDERED one is still a dead sidebar, and no
+#: guard can fix an order.
+_FEATURE_ASSETS = ("router.css", "navtree.js", "router.js")
 
 #: 🔴 LOADS AFTER THE GENERATED SHEETS, AND THAT IS THE ONLY REASON IT IS A
 #: SEPARATE GROUP RATHER THAN THE EIGHTH ENTRY IN `_DATA_ASSETS`.
@@ -162,6 +178,11 @@ def hand_written_css() -> tuple[str, ...]:
     ⚠️ ALL THREE GROUPS ARE WALKED. Adding a fourth group and forgetting it
     here is precisely how the old hardcoded tuple in tokenaudit.py went stale
     within two hours.
+
+    ⭐ AND THE `.css` FILTER IS WHAT MADE A GROUP GAINING A SCRIPT FREE.
+    `navtree.js` joined `_FEATURE_ASSETS` on 2026-08-16 and needed no edit
+    here, because this DERIVES from the groups instead of restating them. That
+    is the whole reason it is a function and not a fourth tuple.
     """
     return tuple(
         name
@@ -242,6 +263,9 @@ def _plan(config) -> list[tuple[str, bytes]]:
     It overrides scheme-scoped custom properties that tokens.css also writes,
     at equal specificity, so it wins on source order or it does not win at all.
     See `_PRINT_ASSETS`.
+
+    ⚠️ AND THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the
+    only thing keeping navtree.js ahead of router.js. See `_FEATURE_ASSETS`.
     """
     plan: list[tuple[str, bytes]] = []
 
