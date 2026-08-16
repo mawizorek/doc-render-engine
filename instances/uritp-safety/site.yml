@@ -1,4 +1,4 @@
-# URITP SAFETY - the published, human-facing safety surface.
+l# URITP SAFETY - the published, human-facing safety surface.
 #
 # Distinct from `uritp` in the one way that decides everything else: that site
 # is where safety material is WORKED OUT, this one is where a finished page
@@ -54,7 +54,7 @@ aliases: [safety, uritp-safety-docs, "URITP Safety"]
 # It is still a LOOK decision and therefore Michael's, not the engine's. Change
 # this line, or override it for one build with the `theme` input on the publish
 # workflow -- which writes nothing to disk, so it cannot outlive the run.
-theme: eos
+theme: database
 
 # THE LAST DOOR BACK TO THE SOURCE, DELIBERATELY SHUT (2026-08-16).
 #
