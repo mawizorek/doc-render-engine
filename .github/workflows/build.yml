@@ -126,6 +126,21 @@ jobs:
           - instance: uritp
             repo: mawizorek/uritp-docs
             publisher: matrix
+          # ⚠️ A SECOND URITP SITE, AND IT IS NOT A DUPLICATE (2026-08-16).
+          # `uritp` is the working tree where safety material is drafted;
+          # `uritp-safety` is the published human-facing filter of it. Separate
+          # audiences, separate repos, separate rows -- which is exactly what
+          # fail-fast: false is for, since a broken draft site must never stop
+          # the published one rendering.
+          #
+          # 🔴 ARRIVED BY TRANSFER, so DOCRENDER_TOKEN does not cover it until
+          # somebody adds it by hand. A fine-grained PAT is scoped to an
+          # explicit repository list and a transferred repo is never added
+          # automatically -- the note on the content checkout below records the
+          # `exit code 128` this produced on 2026-08-03, from this same cause.
+          - instance: uritp-safety
+            repo: mawizorek/uritp-safety
+            publisher: matrix
           - instance: theatre
             repo: mawizorek/theatre-docs
             publisher: matrix
@@ -165,6 +180,13 @@ jobs:
           # serving `gh-pages` to the public. GITHUB_TOKEN is scoped to THIS
           # repository and cannot read another private one, so the checkout
           # died exactly as the paragraph above predicted it would.
+          #
+          # 🔴 AND IT PREDICTED `uritp-safety` TOO, ON 2026-08-16. That repo was
+          # created and TRANSFERRED into this account, which is the precise
+          # phrase in the struck comment above -- "right after a repo transfer
+          # left it off the token's list." Third instance of one cause. If the
+          # `uritp-safety` row fails at this step with exit 128, the repo is
+          # missing from DOCRENDER_TOKEN and nothing about the build is wrong.
           #
           # WHY THIS IS KEYED TO `publisher` AND NOT TO A NEW `private` FLAG.
           # The `publisher: matrix` rows are precisely the repos this job
