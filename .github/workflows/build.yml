@@ -61,6 +61,14 @@ name: Build and deploy doc sites
 # STILL NOT GATED, and still deliberately: `publish.yml` is an explicit human
 # act with a preview mode. Turning the routine off must never mean "I cannot
 # publish."
+#
+# =============================================================================
+# AND IT SHARES A DEPLOY QUEUE WITH publish.yml (2026-08-18)
+# =============================================================================
+# Running every five minutes makes this workflow the likeliest half of any
+# collision on a content repo's `gh-pages` ref. The `concurrency:` block on the
+# job below is what stops that; the full incident is written up there and in
+# publish.yml. Read both before touching either group name.
 
 on:
   push:
@@ -148,6 +156,37 @@ jobs:
             repo: mawizorek/hml-docs
             publisher: matrix
     name: ${{ matrix.instance }}
+
+    # =====================================================================
+    # ONE DEPLOY AT A TIME PER SITE (2026-08-18)
+    # =====================================================================
+    # The deploy step clones the content repo's `gh-pages`, replaces the whole
+    # tree, commits and pushes. If a second deploy lands on that ref between the
+    # clone and the push, git refuses:
+    #
+    #   cannot lock ref 'refs/heads/gh-pages': is at X but expected Y
+    #
+    # ⚠️ The loser goes RED ON ITS LAST STEP having rendered a perfect site, so
+    # it reads as a broken build when nothing is broken at all.
+    #
+    # This routine fires every five minutes, which makes it the likelier half of
+    # any such collision. On 2026-08-18 it beat a deliberate human publish of
+    # `uritp` by roughly two seconds — same engine SHA, same content SHA,
+    # byte-identical output — and the human run took the error for work that had
+    # already shipped.
+    #
+    # 🔴 THE GROUP NAME MUST STAY IDENTICAL TO publish.yml's. That one string is
+    # the only thing making these two workflows share a queue: rename it here
+    # and the race returns silently, with the symptom surfacing in the OTHER
+    # file. Per-JOB rather than per-workflow, so the matrix still renders every
+    # site in parallel and only same-site deploys serialise.
+    #
+    # `cancel-in-progress: false` is deliberate: a queued run waits instead of
+    # killing whatever is mid-push.
+    concurrency:
+      group: gh-pages-${{ matrix.instance }}
+      cancel-in-progress: false
+
     env:
       # A secret cannot be read inside an `if:`, so its presence is resolved
       # once, here, into something a step can test.
@@ -187,6 +226,14 @@ jobs:
           # left it off the token's list." Third instance of one cause. If the
           # `uritp-safety` row fails at this step with exit 128, the repo is
           # missing from DOCRENDER_TOKEN and nothing about the build is wrong.
+          #
+          # ⚠️ FOURTH INSTANCE, DIFFERENT SHAPE, 2026-08-18: the `||` fallback
+          # below means an EMPTY or WRONGLY-SCOPED secret does not fail loudly.
+          # It hands the checkout `github.token`, which can only see THIS repo,
+          # and the error becomes `remote: Write access to repository not
+          # granted` + 403 -- which reads as a permission problem on the content
+          # repo when the truth is DOCRENDER_TOKEN never arrived. Suspect the
+          # SECRET before you audit the repo.
           #
           # WHY THIS IS KEYED TO `publisher` AND NOT TO A NEW `private` FLAG.
           # The `publisher: matrix` rows are precisely the repos this job

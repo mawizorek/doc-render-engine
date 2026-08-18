@@ -68,6 +68,43 @@ jobs:
     runs-on: ubuntu-latest
     name: ${{ inputs.site }} (${{ inputs.mode }})
 
+    # =====================================================================
+    # ONE DEPLOY AT A TIME PER SITE (2026-08-18)
+    # =====================================================================
+    # `gh-pages` is a branch, and a branch is a lock. The deploy action clones
+    # that ref, empties it, copies the new site in, commits and pushes — so if
+    # ANYTHING else lands on the ref between the clone and the push, the push is
+    # rejected outright:
+    #
+    #   ! [remote rejected] gh-pages -> gh-pages (cannot lock ref
+    #     'refs/heads/gh-pages': is at 1b5b9f1 but expected d5526e3)
+    #
+    # ⚠️ THAT IS NOT A BUILD FAILURE AND IT READS EXACTLY LIKE ONE. The render
+    # was already finished and correct — 284 pages, live theme, full report —
+    # and the job goes red on its last step having done every bit of the work.
+    #
+    # It happened for real on 2026-08-18: this workflow and `build.yml` (fired
+    # by the five-minute poll) rendered `uritp` from the same engine SHA and the
+    # same content SHA in the same SECOND. The poll pushed first, the human
+    # publish lost the ref, and the site was already up to date by the time the
+    # error appeared. A routine that deploys every five minutes makes that
+    # window permanent rather than unlucky.
+    #
+    # 🔴 THE GROUP NAME IS THE ENTIRE MECHANISM AND IT MUST MATCH build.yml's.
+    # Two workflows only share a queue if they name the same group; rename it on
+    # one side and the race comes back silently, with the symptom appearing in
+    # the OTHER file. Keyed to the SITE, so different sites still deploy in
+    # parallel — they are different refs in different repos and have never been
+    # able to conflict with each other.
+    #
+    # `cancel-in-progress: false` IS THE POINT, not a default worth skimming: a
+    # queued run WAITS its turn. Cancelling would let a five-minute cron kill a
+    # deliberate human publish mid-push, which is a worse failure than the one
+    # this fixes.
+    concurrency:
+      group: gh-pages-${{ inputs.site }}
+      cancel-in-progress: false
+
     # Matches build.yml. A hung render holds a runner 6h on the default ceiling.
     timeout-minutes: 10
 
@@ -153,6 +190,14 @@ jobs:
           # symptom of forgetting is this step failing with `exit code 128`,
           # which has already cost one debugging round on 2026-08-03 for exactly
           # this reason. It is a missing checkbox, not a broken build.
+          #
+          # ⚠️ AND THE OTHER SHAPE OF THE SAME PROBLEM, seen 2026-08-18: the
+          # fallback below means an EMPTY OR WRONGLY-SCOPED SECRET does not fail
+          # loudly, it quietly hands this step `github.token`, which is scoped to
+          # THIS repo only. The message you get is `remote: Write access to
+          # repository not granted` + 403 — which reads as a permissions problem
+          # on the content repo when the real answer is that DOCRENDER_TOKEN
+          # never reached the checkout. Check the SECRET before the repo.
           token: ${{ inputs.site != 'template' && secrets.DOCRENDER_TOKEN || github.token }}
           # A preference now, not a requirement. publish-dl.md § fetch-depth
           fetch-depth: 0
