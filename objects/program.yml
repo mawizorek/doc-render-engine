@@ -25,6 +25,28 @@
 # material that several programs walk through; it does not belong to any of
 # them, it is not moved, and it is not edited. This is the one type whose
 # ordering names pages in other folders as a matter of course.
+#
+# ══════════════════════════════════════════════════════════════════════════════
+# 🔴 THE FOOTER CONTRACT, RULED BY MICHAEL 2026-08-19 AND NOT EXPRESSIBLE HERE
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# A program page and every page in its chain should carry `hide: footer`, so the
+# FLOW STRIP is the only navigation. The first version shipped the strip BESIDE
+# Material's prev/next and Michael rejected it in exactly the right words: "all
+# this other foot matter," and "is that what I'm supposed to click next? It's not
+# actually appearing in the main footer; it's in this other separate footer you
+# created." Two footers, and the wrong one looked authoritative.
+#
+# ⭐ HIDING THE DEFAULT FOOTER ALSO DISSOLVES THE ONE-SLOT PROBLEM. A page has one
+# `previous_page` and one `next_page`, so two programs sharing a policy cannot
+# both own its buttons -- but strips do not compete, so if strips are the only
+# navigation then both programs navigate correctly.
+#
+# ⚠️ AND IT IS A TRAP, WHICH IS WHY IT IS WRITTEN DOWN RATHER THAN ASSUMED: a
+# page with `hide: footer` and NO flow has ZERO navigation, and nothing reports
+# it. Dropping a page out of a chain removes its strip and strands it. The type
+# system cannot see this -- `hide:` is Material's key, not ours, and nothing in
+# this family validates `optional` at all.
 
 type: program
 label: Program
@@ -50,6 +72,16 @@ optional:
                   # later, because on a program it reported the wrong siblings
                   # entirely: the other programs, and never the policies.
                   #
+                  # 🔴 ONE PAGE, ONE SET OF BUTTONS. If two chains name the same
+                  # page, the FIRST declaration (alphabetical by source path)
+                  # keeps prev/next and the other gets a strip only. This bit for
+                  # real: `20-policies/index.md` declared a chain over the same
+                  # nine policies, sorted ahead of `30-programs/`, and every
+                  # program resolved to ZERO steps -- so a program's Next pointed
+                  # at the next PROGRAM and the first policy's Previous pointed
+                  # back at the policy shelf. A reference folder should not
+                  # declare a chain over pages its programs walk.
+                  #
                   # 🚫 It is NOT a completion record and cannot become one. The
                   # chain says what to read; the FORM says somebody did. A
                   # static site can prove neither, which is what `forms:` is
@@ -62,6 +94,7 @@ optional:
                   #       completion:
                   #         src: https://forms.clickup.com/<...>?Program_ID=X
                   #         text: General Safety completion form
+                  #         collapsed: true
                   #
                   # and in the body, `!!! form "completion"` draws it.
                   #
@@ -73,6 +106,23 @@ optional:
                   # machinery, so the page NAMES a form and the engine builds
                   # the element. Same split as `data:` slots and the `links:`
                   # registry.
+                  #
+                  # ⭐ `collapsed: true` RENDERS IT SHUT, AND IT SOLVES A
+                  # SEQUENCING PROBLEM RATHER THAN A STYLING ONE. A program page
+                  # is BOTH the entrance and the exit: a reader lands there
+                  # before reading anything and returns there to submit. An open
+                  # form on arrival instructs somebody to certify material they
+                  # have not read -- the pre-filled-checklist hazard
+                  # `30-programs/index.md` already warns about. Michael:
+                  # "if the form could not be so stand out on the first landing
+                  # but then when we circle back to ending there on the same
+                  # page - it's easily found."
+                  #
+                  # The LAST STEP of the chain links to the form's own fragment,
+                  # and a fragment pointing inside a closed `<details>` expands
+                  # it -- so arriving from the end of the program opens the form
+                  # with no script and no state. Where that browser behaviour is
+                  # missing it degrades to one visible click, never a dead end.
                   #
                   # ⚠️ LEGAL ON ANY PAGE, unlike `chain:`. A form is not a fact
                   # about an ordering -- a single policy page can carry an
