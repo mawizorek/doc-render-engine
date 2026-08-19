@@ -25,11 +25,8 @@ label: Index
 extends: _base
 optional:
   - contents      # `false` draws nothing. `auto` opts IN from any other type.
-  - nav           # WHAT THIS FOLDER DOES IN THE SIDEBAR. The only key in the
-                  # family that is legal HERE and nowhere else: a folder's open
-                  # state is a fact about the FOLDER, and the index page is the
-                  # only page that can speak for one. navstate.py reports it on
-                  # any other page rather than ignoring it.
+  - nav           # WHAT THIS FOLDER DOES IN THE SIDEBAR. navstate.py reports it
+                  # on any other page rather than ignoring it.
                   #
                   #     hidden | hide         keep the folder's row, drop its
                   #                           children from the sidebar. Still
@@ -59,5 +56,44 @@ optional:
                   #
                   # 🚫 It is a CURTAIN, never a lock. `status:` controls what
                   # reaches the site; this controls what a reader is offered.
+  - chain         # THE READING ORDER THROUGH THIS FOLDER, as a list of `id:`
+                  # values in the order a reader should meet them. Drives the
+                  # prev/next buttons at the foot of the page -- and NOTHING
+                  # else. Added 2026-08-19.
+                  #
+                  # ⭐ IT EXISTS BECAUSE THE SIDEBAR USED TO BE THE ONLY ANSWER.
+                  # Until this key, prev/next was re-derived at stage 00c from
+                  # whatever tree survived stages 00b / 00bb / 00bc -- so
+                  # `status: unlisted`, `nav: hidden` and a router seal each
+                  # amputated the reading chain as a SIDE EFFECT of doing their
+                  # own job. There was no way to say "keep this page out of the
+                  # sidebar and out of search, but keep it in the flow." Now
+                  # there is, and the three concerns are finally separate:
+                  #
+                  #     status:   reachable + searchable
+                  #     nav:      offered in the sidebar
+                  #     chain:    in the reading order
+                  #
+                  # 🚥 AN OVERRIDE, NOT A REPLACEMENT. The default rewiring runs
+                  # first and unchanged; a chain re-points prev/next among the
+                  # pages it NAMES and touches nothing else. A site that never
+                  # declares one builds byte for byte what it built before.
+                  #
+                  # ⚠️ Same legality rule as `nav:` above -- an `index.md` only,
+                  # because a reading order through a folder is a fact about the
+                  # folder. docrender/nav.py REPORTS it anywhere else rather
+                  # than ignoring it, and that is not cosmetic: this key was
+                  # built after `sort:` sat in eleven content files doing
+                  # absolutely nothing, parsing as valid YAML, reported by
+                  # no one.
+                  #
+                  # ⚠️ OMISSION IS A FEATURE. A sibling page left out of the
+                  # chain simply is not in the flow -- which is how an empty
+                  # stub or a second hub stays out of it. The build REPORTS the
+                  # omitted siblings by name, because "deliberately skipped"
+                  # and "forgotten" are indistinguishable from the engine.
+                  #
+                  # ⚠️ UNENFORCED, like every entry in this list. objects.py
+                  # never reads `optional`.
 renders:
   - child_list: []
