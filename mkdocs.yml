@@ -162,6 +162,15 @@ markdown_extensions:
 #   ⭐ THOSE LAST TWO ARE ONE LAW FROM OPPOSITE ENDS: a stage that READS a
 #   declaration and a stage that SPENDS a resource on it are not the same stage.
 #
+#   ⭐ AND 00c IS NO LONGER PURELY DOWNSTREAM OF THAT TREE (2026-08-19). A
+#   `chain:` on a page that owns an ordering -- a folder `index.md`, or a
+#   `type: program` -- re-points prev/next among the pages it NAMES, reading
+#   `state.BY_SRC` rather than the nav. That is the whole point: BY_SRC is
+#   populated before anything prunes, so a reading order can include pages that
+#   are `unlisted`, behind a `nav: hidden` folder, or sealed -- out of the
+#   sidebar and out of search, still in the flow. It stays at 00c because the
+#   default wiring runs FIRST and the chain is an override on top of it.
+#
 #   01 reads frontmatter -> 02 prunes files -> 03 indexes what survived
 #   01d emits marker syntax -> 03b renders it. Move 01d after 03b and the token
 #      audit page ships its specimens as literal text.
@@ -195,6 +204,20 @@ markdown_extensions:
 #      line leaves every `@url:` on every site rendering as "unknown peer site:
 #      url" -- links.py behaving correctly, and a total mystery from the author's
 #      chair. See hooks/03d_urllinks.py and docrender/urllinks.py.
+#   05b renders the FLOW STRIP and the embedded completion FORM (2026-08-19).
+#      🔴 ITS POSITION IS NOT FREE, AND IT IS THE on_page_content HALF THAT PINS
+#      IT: it must precede 06, because pagefoot.py appends the edit link there
+#      and a reader's next step outranks a maintainer's -- a flow strip below
+#      "Edit this page on GitHub" reads as an afterthought. One registration
+#      sets the position of every event a stage handles, so its
+#      `on_page_markdown` half inherits this slot and is therefore LATE. That is
+#      safe rather than lucky: the form block it emits contains no `@`
+#      references and no marker syntax, so nothing between 03 and here had
+#      anything to resolve inside it. 🚨 AND ITS PRESENCE IS NOT OPTIONAL, same
+#      shape as 03c and 03d: remove this line and every `!!! form` renders as an
+#      ordinary grey admonition titled "form" where a compliance form should be,
+#      while every flow strip silently stops rendering and `chain:` keeps
+#      working perfectly. See hooks/05b_program.py.
 #   00bb decides which folders WANT to open -> 00bd decides which of them still
 #      CAN -> 06b writes it onto the rendered page. The first two are the same
 #      event (on_nav) and their order is a real constraint; 06b is on_post_page
@@ -215,6 +238,11 @@ markdown_extensions:
 #      post-build end is the end that matters. Nothing between 01 and 08 reads
 #      `!!!` directives it does not own, so the literal line costs nothing while
 #      it waits.
+#      ⚠️ THAT LAST SENTENCE NARROWED ON 2026-08-19: 05b DOES read a `!!!`
+#      directive, and it owns `!!! form` exclusively. Two stages now consume
+#      block directives and neither can see the other's, which is fine and is
+#      the reason the claim is written as "directives it does not own" rather
+#      than "no directives at all."
 #
 #   09 runs last, because it describes the finished site
 # Renumbering without reading hooks/README.md will break something silently.
@@ -251,6 +279,7 @@ hooks:
   - hooks/03d_urllinks.py
   - hooks/04b_router.py
   - hooks/05_assets.py
+  - hooks/05b_program.py
   - hooks/06_pagefoot.py
   - hooks/06b_navstate.py
   - hooks/07_buildstamp.py
