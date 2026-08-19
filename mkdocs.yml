@@ -14,6 +14,15 @@
 # the owner, name and star count. These are reference documents, not a project
 # recruiting contributors. The foot-of-page edit link is composed independently
 # in docrender/pagefoot.py and switched per site with `edit_links:`.
+#
+# 🚫 AND NO `theme.font` (2026-08-19). It looks like the obvious home for the
+# typeface and it is the wrong one twice over: a family name here is IDENTITY in
+# a file that holds none, and it would be a SECOND CLAIMANT on a fact
+# theme/canonical/typography.tsv already owns across six rows. docrender/fonts.py
+# (stage 04c) reads the resolved row instead and sets `theme.font = False` at
+# on_config, which is Material's documented switch for "I load fonts myself" --
+# so the Roboto request Material makes BY DEFAULT, and which assets/base.css has
+# always overridden away unused, is gone.
 
 site_name: docrender
 site_url: https://example.invalid/
@@ -114,6 +123,11 @@ plugins:
 # text on the page -- and `toc: permalink` is what gives a heading an id for
 # `@calc:table-x#calc-y` to land on, with `attr_list` supplying the `{#explicit}`
 # form that survives a heading being retitled.
+#
+# ⚠️ `attr_list` IS ALSO WHAT MAKES `{.new-page}` WORK (2026-08-19), which is
+# worth naming because that token has no Python behind it at all: it is one
+# `break-before: page` rule in assets/print-flow.css, reached entirely through
+# this extension. Remove the line and the class silently stops arriving.
 markdown_extensions:
   - admonition
   - attr_list
@@ -204,6 +218,23 @@ markdown_extensions:
 #      line leaves every `@url:` on every site rendering as "unknown peer site:
 #      url" -- links.py behaving correctly, and a total mystery from the author's
 #      chair. See hooks/03d_urllinks.py and docrender/urllinks.py.
+#   04c FETCHES the font families theme/canonical/typography.tsv already names
+#      (2026-08-19). ⭐ ITS POSITION IS FREE IN THE ONE WAY THAT USUALLY MATTERS
+#      HERE AND PINNED IN A DIFFERENT ONE. It shares no selector with any sheet
+#      this engine ships, so it can neither win nor lose a specificity tie --
+#      contrast `_DATA_ASSETS` in docrender/assets.py, where the order IS the
+#      rule. What it does need is to run AFTER 00, because it reads the resolved
+#      instance to find out which typography row applies. It sits before 05 so
+#      the font stylesheet lands ahead of the ordered asset group rather than
+#      inside it.
+#      🚨 AND ITS PRESENCE IS NOT OPTIONAL, same shape as 03c and 03d but with a
+#      quieter symptom: remove this line and `theme.font` is never set to False,
+#      so Material resumes fetching ROBOTO on every page -- a webfont downloaded
+#      and then overridden away by assets/base.css -- while every stack in the
+#      typography vector falls through to its declared `system-ui` fallback. The
+#      site looks exactly as it did before 2026-08-19 and nothing reports it.
+#      ⚠️ The build report names every family requested on every build, which is
+#      the first line to read if the faces do not change.
 #   05b renders the FLOW STRIP and the embedded completion FORM (2026-08-19).
 #      🔴 ITS POSITION IS NOT FREE, AND IT IS THE on_page_content HALF THAT PINS
 #      IT: it must precede 06, because pagefoot.py appends the edit link there
@@ -223,6 +254,15 @@ markdown_extensions:
 #      event (on_nav) and their order is a real constraint; 06b is on_post_page
 #      and cannot be reordered into a bug. Listed because the dependency is real
 #      even where part of the ordering is free.
+#   07 emits the build stamp TWICE per page -- a print-only corner mark first in
+#      the content flow and a screen-only line last (2026-08-19). 🔴 ITS
+#      REGISTRATION IS THE CAUTIONARY TALE FOR THIS WHOLE LIST: hooks/07 imported
+#      only `on_config` for the first 27 minutes of that change, so the line that
+#      REMOVED the old footer stamp ran and the line that added the replacement
+#      was never called. The stamp vanished from every page of every site,
+#      including screen, where it had worked for months. A shim that imports one
+#      event out of two is indistinguishable from a correct one until you look at
+#      the output. See hooks/07_buildstamp.py.
 #
 #   08 finishes the report -> 08b renders it into the page that asked for one.
 #      🔴 THE ONLY ORDERING HERE THAT IS ABOUT AN ACCUMULATOR RATHER THAN A
@@ -278,6 +318,7 @@ hooks:
   - hooks/03c_markerlinks.py
   - hooks/03d_urllinks.py
   - hooks/04b_router.py
+  - hooks/04c_fonts.py
   - hooks/05_assets.py
   - hooks/05b_program.py
   - hooks/06_pagefoot.py
