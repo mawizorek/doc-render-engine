@@ -1,0 +1,101 @@
+# A PROGRAM: the thing somebody COMPLETES, in an order, and proves.
+#
+# The second type in this family that describes a page's ROLE IN THE TREE
+# rather than the kind of fact it holds -- `index` was the first. The
+# difference between them is the whole reason this exists:
+#
+#   index    a hub for the pages BENEATH it. Its ordering is its folder.
+#   program  a curriculum ACROSS the tree. Its ordering is a path, and the
+#            pages on that path live wherever they live and belong to nobody.
+#
+# ⭐ IT WAS NOT INVENTED. uritp-safety already had `30-programs/`, and
+# `general-safety-for-all.md` already said "Review the following policies:" and
+# then listed them, while every policy page carried the inverse "Part of
+# [General Safety for All]" line typed by hand. Both directions of one graph,
+# maintained manually, in a repo whose engine already publishes a reference
+# graph for free. This type is that content pattern given a name.
+#
+# 🚫 AND A TRAINING IS NOT A FOURTH TYPE. `30-programs/index.md` ruled on that
+# before this file existed: "a training is a program wearing a different word.
+# It is not a separate kind of object and does not get separate machinery."
+# Quoted rather than paraphrased, because it also pre-refused a `type: flow`
+# that was drafted and dropped on 2026-08-19 for exactly this reason.
+#
+# ⚠️ THE PAGES IN A PROGRAM ARE BORROWED, NEVER OWNED. A policy is reference
+# material that several programs walk through; it does not belong to any of
+# them, it is not moved, and it is not edited. This is the one type whose
+# ordering names pages in other folders as a matter of course.
+
+type: program
+label: Program
+extends: _base
+optional:
+  - chain         # THE READING ORDER, as a list of `id:` values. Identical key,
+                  # identical semantics and the SAME implementation as on
+                  # `index` -- see objects/index.yml for the full argument and
+                  # docrender/nav.py for the code.
+                  #
+                  # ⭐ WHY THE KEY IS SHARED RATHER THAN A SECOND SPELLING. A
+                  # program-specific `steps:` would be a second name for one
+                  # idea, resolved by one function, and this repo has retired
+                  # three manifests for exactly that shape. The legality rule
+                  # is therefore stated as a CAPABILITY, not a filename: a
+                  # `chain:` is legal on a page that OWNS AN ORDERING, which is
+                  # `index` (a folder's order) or `program` (a curriculum's).
+                  #
+                  # ⚠️ AND THIS IS THE TYPE WHERE IT CROSSES FOLDERS. That
+                  # always worked -- ids resolve against every built page with
+                  # no folder filter -- but the STRAGGLER REPORT was written
+                  # folder-scoped on 2026-08-19 and had to be re-scoped hours
+                  # later, because on a program it reported the wrong siblings
+                  # entirely: the other programs, and never the policies.
+                  #
+                  # 🚫 It is NOT a completion record and cannot become one. The
+                  # chain says what to read; the FORM says somebody did. A
+                  # static site can prove neither, which is what `forms:` is
+                  # for and why the record lives in ClickUp.
+  - forms         # EMBEDDED CLICKUP FORMS, as a map of named slots. The
+                  # completion artifact, in the page, so a reader never leaves
+                  # the document they were told to read.
+                  #
+                  #     forms:
+                  #       completion:
+                  #         src: https://forms.clickup.com/<...>?Program_ID=X
+                  #         text: General Safety completion form
+                  #
+                  # and in the body, `!!! form "completion"` draws it.
+                  #
+                  # ⭐ IT IS A REGISTRY, NOT AN IFRAME IN THE BODY, AND THAT WAS
+                  # MICHAEL'S ASK VERBATIM (2026-08-19): "love that i can define
+                  # in frontmatter, well outside of the actual body content."
+                  # The content repo holds markdown and declared data and
+                  # nothing else; an iframe tag and a CDN script tag are
+                  # machinery, so the page NAMES a form and the engine builds
+                  # the element. Same split as `data:` slots and the `links:`
+                  # registry.
+                  #
+                  # ⚠️ LEGAL ON ANY PAGE, unlike `chain:`. A form is not a fact
+                  # about an ordering -- a single policy page can carry an
+                  # acknowledgement without being a program. Declared here
+                  # because this is the type that always has one.
+                  #
+                  # 🔴 THE PREFILL PARAM IS THE RECORD. `?Program_ID=` on the src
+                  # is what makes a submission land against the right program.
+                  # It was already in uritp-safety's `links:` block before this
+                  # key existed; it moves onto the src unchanged. A form
+                  # embedded WITHOUT it collects submissions nobody can
+                  # attribute, which is a compliance failure that looks like a
+                  # working page.
+                  #
+                  # ⚠️ UNVERIFIABLE AT BUILD TIME, exactly like `@url:`. The
+                  # engine checks the scheme and the host and can prove nothing
+                  # about whether the form is active, public, or still exists.
+  - contents      # `false` draws nothing. `auto` opts IN from any other type.
+                  # Inherited behaviour from the index renderer; a program
+                  # folder's landing page is still an index, and a program is
+                  # still allowed to list things.
+  - links         # the `@url:` registry, page-local. Declared for the same
+                  # reason it is used here: a program cites the outside
+                  # authority it is founded on.
+renders:
+  - flow_strip: []
