@@ -55,6 +55,19 @@ expensive than the bytes -- the whole lesson of the section above.
 usage check would have no input and no answer. It is rules behind an
 `@media print` gate that cost a screen reader nothing.
 
+⚠️ AND THE FLOW LAYER IS UNCONDITIONAL FOR THE DATA-TABLE REASON, NOT THE PRINT
+ONE (2026-08-19). `chain:` and `forms:` ARE frontmatter keys, so unlike `!!! data`
+the router's scan trick genuinely would transfer here -- which makes this the
+first asset group that was gateable and was left ungated on purpose. Two reasons,
+both honest: a second cached scan is more code and one more thing that can answer
+wrong, and `flow.css` is ~8.5KB of `.dr-flow*` rules that match nothing at all on
+a site with no chains. ⭐ AND THE CONSEQUENCE OF A WRONG ANSWER IS WORSE HERE
+THAN ANYWHERE ELSE IN THIS FILE: with `hide: footer` on program pages the flow
+strip is the ONLY navigation on the page, so a gate that answered False by
+mistake would ship an unstyled strip as a site's sole means of moving -- the
+exact failure Michael reported in words on 2026-08-19 ("all this other foot
+matter"), arrived at by a clever optimisation instead of a missing file.
+
 =============================================================================
 ⚠️ EVERY ASSET URL CARRIES A CONTENT FINGERPRINT
 =============================================================================
@@ -92,9 +105,17 @@ was added beside it hours later; both entered the audit's scan with no second
 edit. Three days, three additions, zero staleness -- which is exactly the cost
 the old hardcoded tuple used to charge.
 
+🔴 AND ON 2026-08-19 THE WARNING BELOW FIRED FOR REAL, WHICH IS BETTER EVIDENCE
+THAN ANY OF THE THREE ABOVE. `_FLOW_ASSETS` is the FOURTH group, and the
+function's own note -- "adding a fourth group and forgetting it here is
+precisely how the old hardcoded tuple went stale" -- was written before any
+fourth group existed. It was read, and the group was added to the walk in the
+SAME commit. A warning aimed at a hypothetical turned out to be aimed at
+something real, four days later.
+
 ⚠️ THAT IS ALSO WHY `_PRINT_ASSETS` IS A CONSTANT AND NOT A LITERAL IN `_plan()`.
 It is a third group only because of WHERE it loads (see below), not because it
-is a different kind of thing -- and `hand_written_css()` derives from all three
+is a different kind of thing -- and `hand_written_css()` derives from all four
 groups so the audit cannot go stale the way it did in 2026-08-04.
 """
 
@@ -211,6 +232,33 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: `line-height` and margins today and print.css sets neither.
 _PRINT_ASSETS = ("print.css", "print-flow.css", "print-type.css")
 
+#: THE FLOW STRIP AND THE EMBEDDED FORM (2026-08-19). See docrender/program.py
+#: and docrender/forms.py.
+#:
+#: ⭐ ITS POSITION IS GENUINELY FREE AND THAT IS WORTH STATING SO NOBODY DEFENDS
+#: IT LATER, on the same precedent `_FEATURE_ASSETS` and `_PRINT_ASSETS` already
+#: set. Every selector in `flow.css` is a `.dr-flow*` / `.dr-form*` class that no
+#: other sheet in this engine mentions, so it cannot win or lose a tie against
+#: anything. It CONSUMES `--dr-*` tokens rather than defining them, and custom
+#: property resolution does not depend on which sheet was parsed first -- only
+#: the cascade for one property on one selector does, and there is no overlap.
+#:
+#: ⚠️ IT SITS AFTER THE PRINT GROUP BECAUSE IT CARRIES ITS OWN `@media print`
+#: BLOCK, and reading it next to the other print rules is easier than hunting it.
+#: That is legibility, not a load-bearing order. It stays BEFORE the instance's
+#: `site.css` for the reason every group does: a site keeps the final word on its
+#: own look.
+#:
+#: 🔴 EVERY TOKEN IN THIS SHEET IS USED WITH A MATERIAL VARIABLE AS ITS FALLBACK,
+#: which is not decoration. Tokens are generated per site from
+#: theme/canonical/*.tsv, so a token that exists on `eos` may be absent on a
+#: nine-token local skin -- the exact failure that left eleven callout families
+#: painting `currentColor` on 2026-08-05, on the one site whose job was to break
+#: loudest. Falling back to Material's own variable makes the worst case
+#: Material's look rather than an invisible control, and an invisible control is
+#: what this sheet exists to prevent.
+_FLOW_ASSETS = ("flow.css",)
+
 
 def hand_written_css() -> tuple[str, ...]:
     """Every HAND-WRITTEN stylesheet this engine ships, in load order.
@@ -224,9 +272,16 @@ def hand_written_css() -> tuple[str, ...]:
     Generated sheets are NOT here -- they have no file on disk, and the audit
     builds them itself.
 
-    ⚠️ ALL THREE GROUPS ARE WALKED. Adding a fourth group and forgetting it
-    here is precisely how the old hardcoded tuple in tokenaudit.py went stale
-    within two hours.
+    ⚠️ ALL FOUR GROUPS ARE WALKED. Adding a fifth group and forgetting it here is
+    precisely how the old hardcoded tuple in tokenaudit.py went stale within two
+    hours.
+
+    🔴 THAT WARNING WAS AIMED AT A HYPOTHETICAL FOURTH GROUP AND A FOURTH GROUP
+    ARRIVED ON 2026-08-19. `_FLOW_ASSETS` was added to this walk in the same
+    commit that created it, because this line was read first. Recorded because a
+    guardrail that fires is worth more evidence than three that were never
+    tested -- and the count in the sentence above had to move with it, which is
+    the one part of this function that can rot.
 
     ⭐ AND THE `.css` FILTER IS WHAT MADE THE 2026-08-16 SPLIT FREE. Two files
     joined `_FEATURE_ASSETS` that day, one sheet and one script; the sheet was
@@ -237,11 +292,13 @@ def hand_written_css() -> tuple[str, ...]:
     ⚠️ AND `print-type.css` WILL SHOW UP IN THE TOKEN AUDIT LOUDLY, which is
     correct and worth expecting rather than discovering: `line-height`,
     `margin` and `padding` are all in tokenaudit's `_METRIC_PROPS`, so every
-    value that file sets is a new row in the metrics section.
+    value that file sets is a new row in the metrics section. ⚠️ `flow.css` will
+    do the same and more -- it sets padding, margin, border-radius and
+    font-size throughout.
     """
     return tuple(
         name
-        for name in _DATA_ASSETS + _FEATURE_ASSETS + _PRINT_ASSETS
+        for name in _DATA_ASSETS + _FEATURE_ASSETS + _PRINT_ASSETS + _FLOW_ASSETS
         if name.endswith(".css")
     )
 
@@ -300,8 +357,9 @@ def _plan(config) -> list[tuple[str, bytes]]:
     Built by both events -- `on_config` needs the URLs, `on_files` needs the
     content -- and they must never disagree. Order: base, the chrome, nav and
     type layers, the data-table layers (see `_DATA_ASSETS`), then the generated
-    sheets, THEN the print layers, then any feature sheet, then the instance
-    sheet LAST so a site always has the final word on its own look.
+    sheets, THEN the print layers, then the flow layer, then any feature sheet,
+    then the instance sheet LAST so a site always has the final word on its own
+    look.
 
     THE THREE GENERATED SHEETS ARE ORDERED BY WHAT THEY CONSUME:
 
@@ -321,6 +379,10 @@ def _plan(config) -> list[tuple[str, bytes]]:
 
     ⚠️ AND THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the
     only thing keeping navtree.js ahead of router.js. See `_FEATURE_ASSETS`.
+
+    ⭐ THE FLOW LAYER'S POSITION IS FREE and is documented as such on
+    `_FLOW_ASSETS` -- it shares no selector with anything. Do not infer a rule
+    from where it sits.
     """
     plan: list[tuple[str, bytes]] = []
 
@@ -334,6 +396,11 @@ def _plan(config) -> list[tuple[str, bytes]]:
     plan.append(("blocks.css", blocks.build_css().encode("utf-8")))
 
     for name in _PRINT_ASSETS:
+        raw = _read(state.ENGINE_ROOT / "assets" / name)
+        if raw is not None:
+            plan.append((name, raw))
+
+    for name in _FLOW_ASSETS:
         raw = _read(state.ENGINE_ROOT / "assets" / name)
         if raw is not None:
             plan.append((name, raw))
