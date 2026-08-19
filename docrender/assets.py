@@ -50,10 +50,10 @@ choice is between a whole-body scan of every page and ~24KB that matches nothing
 and binds no listener when no table exists. A check that can answer wrong is more
 expensive than the bytes -- the whole lesson of the section above.
 
-⚠️ AND `print.css` IS UNCONDITIONAL FOR THE SIMPLEST REASON OF THE THREE
+⚠️ AND THE PRINT LAYER IS UNCONDITIONAL FOR THE SIMPLEST REASON OF THE THREE
 (2026-08-06): there is no question to ask. Every page can be printed, so a
-usage check would have no input and no answer. It is ~9KB of rules behind an
-`@media print` gate that costs a screen reader nothing.
+usage check would have no input and no answer. It is rules behind an
+`@media print` gate that cost a screen reader nothing.
 
 =============================================================================
 ⚠️ EVERY ASSET URL CARRIES A CONTENT FINGERPRINT
@@ -85,6 +85,11 @@ USUALLY INVISIBLE. `navtree.css` and `navtree.js` were split out of the router
 pair that day and added to `_FEATURE_ASSETS`; the audit picked up the new sheet
 with no edit anywhere. The 08-04 version of this repo would have under-reported
 for exactly as long as nobody looked.
+
+⭐ AND AGAIN ON 2026-08-19, WHICH MAKES IT A PATTERN RATHER THAN AN ANECDOTE.
+`print-flow.css` was split out of `print.css` and added to `_PRINT_ASSETS`; the
+audit picked it up with no second edit. Three days, two splits, zero staleness --
+which is exactly the cost the old hardcoded tuple used to charge.
 
 ⚠️ THAT IS ALSO WHY `_PRINT_ASSETS` IS A CONSTANT AND NOT A LITERAL IN `_plan()`.
 It is a third group only because of WHERE it loads (see below), not because it
@@ -164,7 +169,7 @@ _DATA_ASSETS = (
 _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 
 #: 🔴 LOADS AFTER THE GENERATED SHEETS, AND THAT IS THE ONLY REASON IT IS A
-#: SEPARATE GROUP RATHER THAN THE EIGHTH ENTRY IN `_DATA_ASSETS`.
+#: SEPARATE GROUP RATHER THAN MORE ENTRIES IN `_DATA_ASSETS`.
 #:
 #: print.css re-points custom properties on `[data-md-color-scheme="slate"]`
 #: so that a reader in dark mode gets black ink on white paper. That is the
@@ -176,7 +181,27 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #:
 #: It still loads BEFORE the instance's `site.css`, because a site keeps the
 #: final word on its own look and paper is no exception.
-_PRINT_ASSETS = ("print.css",)
+#:
+#: TWO FILES, TWO JOBS, split on 2026-08-19 when print.css hit 22,844 B against
+#: the engine's ~22KB hard read limit. The seam is the one print.css had already
+#: declared in its own header -- "what appears on paper at all, how wide it runs,
+#: and where the page is allowed to break" -- where the `and` was doing the work
+#: of a chapter break:
+#:
+#:   print.css       WHAT THE SHEET IS   -- @page, chrome off, the column
+#:                                          unrailing, the slate->light
+#:                                          neutrals, print-color-adjust, code
+#:                                          wrapping, link policy
+#:   print-flow.css  WHERE IT BREAKS     -- break-*, orphans/widows, h1-h6, tab
+#:                                          labels, forced-open <details>, thead
+#:                                          repetition, {.new-page}
+#:
+#: ⭐ AND THE ORDER *WITHIN* THIS GROUP IS GENUINELY FREE, stated out loud on the
+#: `_FEATURE_ASSETS` precedent above so nobody later defends a position that was
+#: never load-bearing. The two files share no selector-and-property pair, so
+#: neither can win or lose a tie against the other. What is load-bearing is the
+#: GROUP's position, and both files inherit it.
+_PRINT_ASSETS = ("print.css", "print-flow.css")
 
 
 def hand_written_css() -> tuple[str, ...]:
@@ -198,7 +223,8 @@ def hand_written_css() -> tuple[str, ...]:
     ⭐ AND THE `.css` FILTER IS WHAT MADE THE 2026-08-16 SPLIT FREE. Two files
     joined `_FEATURE_ASSETS` that day, one sheet and one script; the sheet was
     picked up here and the script was correctly ignored, with no edit. That is
-    the whole reason this is a function and not a fourth tuple.
+    the whole reason this is a function and not a fourth tuple. The 2026-08-19
+    print split rode the same mechanism.
     """
     return tuple(
         name
@@ -261,7 +287,7 @@ def _plan(config) -> list[tuple[str, bytes]]:
     Built by both events -- `on_config` needs the URLs, `on_files` needs the
     content -- and they must never disagree. Order: base, the chrome, nav and
     type layers, the data-table layers (see `_DATA_ASSETS`), then the generated
-    sheets, THEN the print layer, then any feature sheet, then the instance
+    sheets, THEN the print layers, then any feature sheet, then the instance
     sheet LAST so a site always has the final word on its own look.
 
     THE THREE GENERATED SHEETS ARE ORDERED BY WHAT THEY CONSUME:
@@ -275,10 +301,10 @@ def _plan(config) -> list[tuple[str, bytes]]:
     Material's own admonition flavour rules, which it does on source order at
     equal specificity -- see docrender/blocks.py for that whole argument.
 
-    ⚠️ AND THE PRINT LAYER COMES AFTER ALL THREE FOR THE SAME CLASS OF REASON.
-    It overrides scheme-scoped custom properties that tokens.css also writes,
-    at equal specificity, so it wins on source order or it does not win at all.
-    See `_PRINT_ASSETS`.
+    ⚠️ AND THE PRINT LAYERS COME AFTER ALL THREE FOR THE SAME CLASS OF REASON.
+    print.css overrides scheme-scoped custom properties that tokens.css also
+    writes, at equal specificity, so it wins on source order or it does not win
+    at all. See `_PRINT_ASSETS`.
 
     ⚠️ AND THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the
     only thing keeping navtree.js ahead of router.js. See `_FEATURE_ASSETS`.
