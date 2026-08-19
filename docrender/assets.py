@@ -99,14 +99,14 @@ pair that day and added to `_FEATURE_ASSETS`; the audit picked up the new sheet
 with no edit anywhere. The 08-04 version of this repo would have under-reported
 for exactly as long as nobody looked.
 
-⭐ AND TWICE MORE ON 2026-08-19, WHICH MAKES IT A PATTERN RATHER THAN AN
-ANECDOTE. `print-flow.css` was split out of `print.css`, and `print-type.css`
-was added beside it hours later; both entered the audit's scan with no second
-edit. Three days, three additions, zero staleness -- which is exactly the cost
-the old hardcoded tuple used to charge.
+⭐ AND THREE MORE TIMES ON 2026-08-19, WHICH MAKES IT A PATTERN RATHER THAN AN
+ANECDOTE. `print-flow.css` split out of `print.css`, `print-type.css` arrived
+beside it hours later, and `print-callout.css` split out of THAT the same night.
+All three entered the audit's scan with no second edit. Three days, four
+additions, zero staleness -- exactly the cost the old hardcoded tuple charged.
 
 🔴 AND ON 2026-08-19 THE WARNING BELOW FIRED FOR REAL, WHICH IS BETTER EVIDENCE
-THAN ANY OF THE THREE ABOVE. `_FLOW_ASSETS` is the FOURTH group, and the
+THAN ANY OF THE FOUR ABOVE. `_FLOW_ASSETS` is the FOURTH group, and the
 function's own note -- "adding a fourth group and forgetting it here is
 precisely how the old hardcoded tuple went stale" -- was written before any
 fourth group existed. It was read, and the group was added to the walk in the
@@ -204,33 +204,48 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: It still loads BEFORE the instance's `site.css`, because a site keeps the
 #: final word on its own look and paper is no exception.
 #:
-#: THREE FILES, THREE JOBS, and each one answers exactly one question:
+#: FOUR FILES, FOUR JOBS, and each one answers exactly one question:
 #:
-#:   print.css       WHAT THE SHEET IS   -- @page, chrome off, the column
-#:                                          unrailing, the slate->light
-#:                                          neutrals, print-color-adjust, code
-#:                                          wrapping, link policy
-#:   print-flow.css  WHERE IT BREAKS     -- break-*, orphans/widows, h1-h6, tab
-#:                                          labels, forced-open <details>, thead
-#:                                          repetition, {.new-page}
-#:   print-type.css  HOW IT IS SET       -- leading, block spacing, list spacing
+#:   print.css          WHAT THE SHEET IS  -- @page, chrome off, the column
+#:                                            unrailing, the slate->light
+#:                                            neutrals, print-color-adjust,
+#:                                            code wrapping, link policy
+#:   print-flow.css     WHERE IT BREAKS    -- break-*, orphans/widows, h1-h6,
+#:                                            tab labels, forced-open
+#:                                            <details>, thead repetition,
+#:                                            {.new-page}
+#:   print-type.css     HOW IT IS SET      -- leading, block and list spacing
+#:   print-callout.css  WHAT THE BOX IS    -- the callout/details box: metrics,
+#:                                            the de-tinted title wash, the
+#:                                            dropped chevron, the font-size
+#:                                            anchor
 #:
-#: The first two were one file until 2026-08-19, when it hit 22,844 B against the
-#: engine's ~22KB hard read limit; the seam was already written in its own header,
-#: where "what appears on paper at all, how wide it runs, and where the page is
-#: allowed to break" had an `and` doing the work of a chapter break. The third was
-#: born the same day and was never part of that file.
+#: EVERY ONE OF THESE SPLITS WAS FORCED BY THE SAME 22KB CEILING, and each seam
+#: was already written in the header of the file that split. print.css hit
+#: 22,844 B; print-type.css hit 24,466 B carrying the callout anchor, and was
+#: still 23,447 B after its §6 post-mortem was cut to a pointer. ⭐ A FILE AT ITS
+#: SIZE LIMIT IS USUALLY A FILE WITH A SEAM IN IT -- trimming prose is what you
+#: do instead of finding the seam. The measured argument lives in
+#: print-callout.css's own header rather than being copied here.
 #:
 #: ⭐ AND THE ORDER *WITHIN* THIS GROUP IS GENUINELY FREE, stated out loud on the
 #: `_FEATURE_ASSETS` precedent above so nobody later defends a position that was
-#: never load-bearing. No two of these three share a selector-and-property pair,
+#: never load-bearing. No two of these four share a selector-and-property pair,
 #: so none can win or lose a tie against another. What is load-bearing is the
-#: GROUP's position, and all three inherit it.
+#: GROUP's position, and all four inherit it.
 #:
-#: ⚠️ IF THAT EVER STOPS BEING TRUE, THIS COMMENT IS THE THING THAT ROTS. The
-#: likeliest way: print-type.css grows a rule that print.css also sets. It sets
-#: `line-height` and margins today and print.css sets neither.
-_PRINT_ASSETS = ("print.css", "print-flow.css", "print-type.css")
+#: ⚠️ IF THAT EVER STOPS BEING TRUE, THIS COMMENT IS THE THING THAT ROTS. Two
+#: likely ways now rather than one: print-type.css growing a rule print.css also
+#: sets (it sets `line-height` and margins today and print.css sets neither), or
+#: print-callout.css and print-flow.css both reaching for `<details>` -- flow
+#: owns whether it is OPEN, callout owns what it LOOKS LIKE, and that boundary is
+#: the one to keep watching.
+_PRINT_ASSETS = (
+    "print.css",
+    "print-flow.css",
+    "print-type.css",
+    "print-callout.css",
+)
 
 #: THE FLOW STRIP AND THE EMBEDDED FORM (2026-08-19). See docrender/program.py
 #: and docrender/forms.py.
@@ -286,15 +301,15 @@ def hand_written_css() -> tuple[str, ...]:
     ⭐ AND THE `.css` FILTER IS WHAT MADE THE 2026-08-16 SPLIT FREE. Two files
     joined `_FEATURE_ASSETS` that day, one sheet and one script; the sheet was
     picked up here and the script was correctly ignored, with no edit. That is
-    the whole reason this is a function and not a fourth tuple. Both 2026-08-19
-    print additions rode the same mechanism.
+    the whole reason this is a function and not a fourth tuple. All three
+    2026-08-19 print additions rode the same mechanism.
 
-    ⚠️ AND `print-type.css` WILL SHOW UP IN THE TOKEN AUDIT LOUDLY, which is
+    ⚠️ AND THE PRINT SHEETS WILL SHOW UP IN THE TOKEN AUDIT LOUDLY, which is
     correct and worth expecting rather than discovering: `line-height`,
-    `margin` and `padding` are all in tokenaudit's `_METRIC_PROPS`, so every
-    value that file sets is a new row in the metrics section. ⚠️ `flow.css` will
-    do the same and more -- it sets padding, margin, border-radius and
-    font-size throughout.
+    `margin`, `padding` and `font-size` are all in tokenaudit's `_METRIC_PROPS`,
+    so every value print-type.css and print-callout.css set is a new row in the
+    metrics section. ⚠️ `flow.css` will do the same and more -- it sets padding,
+    margin, border-radius and font-size throughout.
     """
     return tuple(
         name
