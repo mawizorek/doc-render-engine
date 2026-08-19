@@ -38,6 +38,12 @@
  * expressed in `em`, changing the ONE base value rescales the whole document
  * proportionally. That is what makes this a dial rather than a dozen numbers.
  *
+ * ⚠️ WITH ONE EXCEPTION THAT COST A ROUND TRIP: A CHILD SIZED IN `rem` IS OUTSIDE
+ * THE DIAL ENTIRELY. §4 documents the case -- Material's callout box is `0.8rem`,
+ * anchored to the ROOT while §0 is anchored to the PAPER, so no value of
+ * `--dr-print-base` could ever move it. Anything in this file that must scale
+ * with the prose is `em`; a `rem` here is a deliberate opt-out and should say so.
+ *
  * =========================================================================
  * ⚠️ `pt`, AND IT IS THE CORRECT UNIT HERE FOR THE SAME REASON `mm` IS
  * =========================================================================
@@ -119,14 +125,15 @@
    * forcing a weight a family does not ship makes the browser synthesise one.
    * That reasoning is sound and this overrides it deliberately, on one medium.
    *
-   * 🔴 AND THE SYNTHESIS RISK IS REAL RATHER THAN THEORETICAL, WHICH IS WHY THE
-   * CORRECTED §6 MATTERS TO THIS RULE. The vector's declared families -- Inter,
-   * Archivo, Manrope, Gabarito, Chakra Petch -- all ship 600 and 700 cuts, so if
-   * they ever LOAD these weights are honest. The fallback the stacks name,
-   * `system-ui`, also ships real 600/700 on every platform this prints from. So
-   * nothing is synthesised either way. **That is a property of these particular
-   * rows, not a general licence: a new typography row naming a family with only
-   * a 400 cut would make this rule start faking bold.**
+   * ✅ AND THE SYNTHESIS RISK IS NOW MEASURED RATHER THAN REASONED, WHICH §6
+   * COULD NOT SAY UNTIL TONIGHT. Every family the vector declares -- Inter,
+   * Archivo, Manrope, Gabarito, Chakra Petch -- was checked against the font API
+   * on 2026-08-19 and serves real 300/400/600/700 cuts, and as of PR #147 they
+   * are actually FETCHED. The fallback the stacks name, `system-ui`, also ships
+   * real 600/700 on every platform this prints from. So nothing is synthesised
+   * either way. **That is a property of these particular rows, not a general
+   * licence: a new typography row naming a family with only a 400 cut would make
+   * this rule start faking bold.**
    * --------------------------------------------------------------------- */
   .md-typeset h1 {
     font-size: 1.65em;
@@ -252,8 +259,45 @@
    * 🚫 NOT A FONT-SIZE REDUCTION ON THE CALLOUT. Shrinking the text inside a
    * `!!! danger` box on a SAFETY document to save paper is the one place in this
    * build where the cheap lever is also the unsafe one. ✅ The box shrinks; the
-   * warning stays the size of the prose around it.
+   * warning stays the size of the prose around it -- **and the rule immediately
+   * below is what finally makes the second half of that sentence TRUE. It is this
+   * refusal being enforced, not relaxed.**
    * --------------------------------------------------------------------- */
+
+  /* 🔴 THE BOX AND THE PROSE WERE MEASURED AGAINST DIFFERENT RULERS.
+   *
+   * Michael, 2026-08-19, on the first sheet printed with real webfonts:
+   * *"shrink the callout text to the same size as the body ... they just look
+   * ENORMOUS right now - esp when printed."*
+   *
+   * Material sets `.md-typeset .admonition { font-size: 0.8rem }`. `rem` is
+   * anchored to the ROOT; §0's base is `pt`, anchored to the PAPER. So the box
+   * was never a participant in the dial -- turning `--dr-print-base` moved every
+   * word on the sheet EXCEPT the ones inside a callout, and the gap between them
+   * is a value neither file controls. `1em` re-anchors the box to the prose.
+   *
+   * ⭐ AND THE TITLE RULE FURTHER DOWN WAS ALREADY CORRECT -- ITS PARENT WAS NOT.
+   * `.admonition-title { font-size: 1em }` resolves against `.admonition`, so it
+   * has been faithfully inheriting the wrong anchor this whole time. Fixing the
+   * box fixes the title for free and that rule is untouched. *A correct rule on a
+   * mis-anchored parent looks exactly like a wrong rule.*
+   *
+   * ⚠️ CAUSE NOT FULLY DETERMINED, AND SAID SO RATHER THAN IMPLIED. Measured off
+   * Michael's own PDF the callout ran ~18% LARGER than the list beside it; the
+   * cascade as read predicts ~4% SMALLER. Something between the pinned build and
+   * that sheet is unaccounted for, and the likeliest suspect is that the COMPILED
+   * stylesheet the site serves differs from the master SCSS that was read -- the
+   * proxy-read failure this repo already has a scar about.
+   *
+   * ✅ THE FIX IS CORRECT UNDER EITHER HYPOTHESIS, which is the J27 move rather
+   * than luck: `1em` is a RELATIVE anchor, so it lands the box on the prose size
+   * whatever the root, the compiled value or the browser turns out to be. The
+   * outstanding read is the computed `font-size` on `.admonition` in devtools. */
+  html .md-typeset .admonition,
+  html .md-typeset details {
+    font-size: 1em;
+  }
+
   .md-typeset .admonition,
   .md-typeset details {
     margin-top: 0.7em;
@@ -294,6 +338,24 @@
     background-color: transparent;
     border-bottom: 0.5pt solid var(--dr-rule, #ccc);
     font-size: 1em;
+  }
+
+  /* 🔴 THE DISCLOSURE CHEVRON IS A CONTROL, AND PAPER HAS NO CONTROLS. Four of
+   * them printed on one Fire Prevention sheet, on the `???` blocks that
+   * print-flow.css correctly forces open -- so the arrow says "expand this" on a
+   * box that is already expanded and cannot be collapsed.
+   *
+   * `print.css`'s own test for its chrome-off list is *"could a reader ACT on it
+   * with a pen?"* A `mask-image` arrow that rotates on open is the purest No
+   * available, and it is the same dead-control argument §5 makes about links.
+   *
+   * ⚠️ THE FAMILY ICON STAYS, AND THE DISTINCTION IS THE POINT. `summary` picks
+   * up `.admonition-title::before` through Material's `@extend`, and that glyph is
+   * the difference between a note and a danger -- the same reason the coloured
+   * border survives. This kills `::after` only: the CONTROL goes, the MEANING
+   * stays. */
+  html .md-typeset summary::after {
+    display: none;
   }
 
   /* 🔴 THE RULE THAT NEEDS `html`. Material's `html & > :last-child` sets a 12px
@@ -357,54 +419,32 @@
   }
 
   /* -------------------------------------------------------------------------
-   * ✅ §6 -- THE FACE. CORRECTED 2026-08-19, SAME EVENING, ON MICHAEL'S CHALLENGE:
-   * *"wait - we don't dictate font via the theme vectors that we have....."*
+   * ✅ §6 -- THE FACE. THE VECTOR DICTATES IT, AND SINCE 2026-08-19 IT ARRIVES.
    *
-   * 🔴 HE IS RIGHT AND THE FIRST VERSION OF THIS SECTION WAS WRONG. It said the
-   * printed face was *"a face nobody chose."* That is false, and it is the exact
-   * defect this repo keeps logging: a claim written from a REMEMBERED reading
-   * instead of the table. Read at HEAD, `theme/canonical/typography.tsv` carries
-   * THREE font columns as its first three fields -- `font-display`, `font-body`,
-   * `font-mono` -- fully populated across all six rows:
+   * This section was a long post-mortem arguing that the font NAME was declared,
+   * applied and inherited correctly while the font FILE was never fetched. That
+   * was true when written and was made obsolete the same evening by
+   * `docrender/fonts.py` + `hooks/04c_fonts.py` (PR #147), which disables
+   * Material's unused Roboto request and fetches the families
+   * `theme/canonical/typography.tsv` already names. The long version is in that
+   * module and in the Decision Log; keeping a second copy here is how the four
+   * paragraphs it replaced went stale in under two hours.
    *
-   *     sharp-racing     Chakra Petch / Inter    / JetBrains Mono
-   *     mobile-legible   Manrope     / Manrope   / JetBrains Mono
-   *     grounded         Inter       / Inter     / JetBrains Mono
-   *     eos              Archivo     / Inter     / IBM Plex Mono
-   *     racing-archivo   Archivo     / Inter     / JetBrains Mono
-   *     papyrus          Gabarito    / Gabarito  / IBM Plex Mono
+   * 🪦 ITS OWN PREDICTION WAS WRONG ABOUT THE MECHANISM AS WELL AS THE TIMING. It
+   * said the gap would close *"in `mkdocs.yml` or an `@font-face`, never here"* --
+   * and neither was touched. A family hardcoded into the base config would have
+   * been a SECOND CLAIMANT on a fact the vector already owns, right for whichever
+   * instance somebody was looking at and silently wrong for the other five.
    *
-   * And the wiring is complete: those emit as `--dr-font-body`/`-display`/`-mono`,
-   * `base.css` maps `--md-text-font: var(--dr-font-body)`, `type.css` puts
-   * `--dr-font-display` on h1-h3, and navtree, router, data and the token audit
-   * all consume one of them. **The vector dictates the face and every consumer
-   * reads it. Nothing about that is accidental or missing.**
-   *
-   * ⭐ SO THE REAL DEFECT IS ONE STEP FURTHER OUT, AND IT IS NARROWER THAN WHAT I
-   * WROTE: the NAME is declared, applied and inherited correctly -- and the FONT
-   * FILE IS NEVER FETCHED. `mkdocs.yml` sets no `theme.font` key (verified at
-   * HEAD), so Material ships its own loader for ROBOTO, which `base.css` then
-   * overrides away -- a webfont requested on every page and used by nothing.
-   * Meanwhile 'Inter' resolves against locally installed families, usually finds
-   * nothing, and falls through the stack. `type.css` documents this precisely and
-   * has been right the whole time.
-   *
-   * ⚑ AND `system-ui` IS THE DECLARED FALLBACK, NOT AN ACCIDENT. Every one of
-   * those eighteen stacks names it in third position, deliberately authored. So
-   * the printed sheet is wearing the vector's OWN chosen fallback. "Nobody chose
-   * it" was the wrong sentence about the right symptom, and the difference
-   * matters: this is a LOADER gap, not a governance gap, and it is fixed in
-   * `mkdocs.yml` or an `@font-face`, never here.
-   *
-   * ⚠️ THE ONE THING GENUINELY ABSENT FROM THE VECTOR IS A SERIF. All six rows
-   * are sans-serif in all three columns. A printed policy conventionally wants a
-   * text serif, so that is not a print-layer override -- **it is a new canonical
+   * ⚠️ THE ONE THING GENUINELY ABSENT FROM THE VECTOR IS A SERIF. All six rows are
+   * sans-serif in all three columns. A printed policy conventionally wants a text
+   * serif, so that is not a print-layer override -- **it is a new canonical
    * typography row, which is a theme decision and Michael's call.**
    *
-   * 🚫 NO `font-family` IS SET IN THIS FILE, and that is now a stronger position
-   * than it was an hour ago. Declaring one here would override a vector that is
-   * working correctly, and put screen and paper on two different faces while the
-   * table says they should match.
+   * 🚫 NO `font-family` IS SET IN THIS FILE, and that is a stronger position than
+   * it was this morning. Declaring one here would override a vector that now works
+   * end to end, and put screen and paper on two different faces while the table
+   * says they should match.
    * --------------------------------------------------------------------- */
 
   /* -------------------------------------------------------------------------
@@ -418,6 +458,11 @@
    * 🔴 THAT IS WHY §0 STOPS AT 10pt AND §4 TRIMS RATHER THAN ZEROES. Every number
    * in this file could be smaller and the sheet would look tighter and read
    * worse.
+   *
+   * ⭐ AND IT IS WHY §4's NEW ANCHOR RULE IS A FLOOR AS WELL AS A CEILING. `1em`
+   * pins the warning to the prose in BOTH directions: the box can never again
+   * drift larger, and no future pass can quietly shrink a hazard below the text
+   * around it. A relative anchor is the only form of that promise that cannot rot.
    *
    * ⚠️ `unverified`: WCAG 2.1 SC 1.4.12 (Text Spacing) names a 1.5x line-height
    * expectation. Applicability to a FIXED print medium is genuinely unclear -- the
@@ -433,12 +478,13 @@
    * --------------------------------------------------------------------- */
 
   /* -------------------------------------------------------------------------
-   * 🔴 §8 -- THIS FILE HAS NOW INVALIDATED EVERY HAND-PLACED PAGE BREAK FOUR TIMES
+   * 🔴 §8 -- THIS FILE HAS NOW INVALIDATED EVERY HAND-PLACED PAGE BREAK FIVE TIMES
    *
    * `{.new-page}` *"is correct on the day it is typed and nobody is told when it
    * stops being correct."* Leading fitted more lines; §4's first attempt made
-   * boxes bigger; §4 working made them smaller; and §0's base size just changed
-   * how much of ANYTHING fits on a sheet.
+   * boxes bigger; §4 working made them smaller; §0's base size changed how much
+   * of ANYTHING fits on a sheet; and §4's anchor rule just changed every callout
+   * on every page again.
    *
    * ✅ DO NOT AUTHOR `{.new-page}` ACROSS THE TREE until this pass is previewed
    * and settled. The automatic rules in print-flow.css exist so that work is
