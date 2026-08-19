@@ -188,6 +188,13 @@ markdown_extensions:
 #      🚨 BUT ITS PRESENCE IS NOT OPTIONAL. Remove this line and markerlinks is
 #      never imported, so nothing claims anything and every marker link on every
 #      site renders as a broken reference. See hooks/03c_markerlinks.py.
+#   03d claims `@url:` -- an EXTERNAL link named once in `site.yml` (or in a
+#      page's own frontmatter) and referenced by name. ⭐ ITS POSITION IS FREE for
+#      the same reason 03c's and 01f's are, and 🚨 ITS PRESENCE IS NOT OPTIONAL for
+#      the same reason as well: the claim happens at import, so removing this
+#      line leaves every `@url:` on every site rendering as "unknown peer site:
+#      url" -- links.py behaving correctly, and a total mystery from the author's
+#      chair. See hooks/03d_urllinks.py and docrender/urllinks.py.
 #   00bb decides which folders WANT to open -> 00bd decides which of them still
 #      CAN -> 06b writes it onto the rendered page. The first two are the same
 #      event (on_nav) and their order is a real constraint; 06b is on_post_page
@@ -241,6 +248,7 @@ hooks:
   - hooks/03_links.py
   - hooks/03b_markers.py
   - hooks/03c_markerlinks.py
+  - hooks/03d_urllinks.py
   - hooks/04b_router.py
   - hooks/05_assets.py
   - hooks/06_pagefoot.py
