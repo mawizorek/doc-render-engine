@@ -109,6 +109,12 @@ line was read, and the group joined the walk in the SAME commit.
 It is a separate group only because of WHERE it loads (see below), not because it
 is a different kind of thing -- and `hand_written_css()` derives from all four
 groups so the audit cannot go stale the way it did in 2026-08-04.
+
+🚩 THIS DOCSTRING IS WHY THE FILE HAS NO ROOM, and the registry/publisher seam --
+**REGISTRY** (four tuples + `hand_written_css`, where every argument above lives)
+vs **PUBLISHER** (`_fingerprint`, `_stamped`, `_plan`, the events) -- is now the
+only way to add a line here. It moves the hook's import surface, so it is
+Michael's call.
 """
 
 from __future__ import annotations
@@ -137,11 +143,8 @@ _ROUTER_KEYS = ("router:", "router_code:")
 #:                  width and was found from a screenshot.
 #:   type.css       overrides Material's heading rules, so also after the base
 #:                  mapping.
-#:   foot.css       the page foot -- .pagefoot, footer chrome, the build stamp
-#:                  and its hover disclosure. Split out of base.css 2026-08-19.
-#:                  Position among the sheets is FREE (it shares no selector with
-#:                  the table layers) but it must follow base.css, which maps the
-#:                  --md-footer-* variables it consumes.
+#:   foot.css       the page foot -- .pagefoot, footer chrome, the build stamp.
+#:                  Position free; must follow base.css, which maps --md-footer-*.
 #:   data.css       the table layer, itself split out of base.css
 #:   data-list.css  overrides table rules inside a container query, so it loads
 #:                  after the rules it overrides
@@ -200,11 +203,9 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: It still loads BEFORE the instance's `site.css`, because a site keeps the
 #: final word on its own look and paper is no exception.
 #:
-#: 🪦 `print-scheme.css` IS UNREGISTERED (2026-08-19) and is a comment-only
-#: tombstone on disk. It forced hardcoded greys onto a dark reader's tokens with
-#: `!important`; theme.py now emits the theme's OWN light row inside `@media
-#: print`, so paper is vector-aware. **A file in assets/ absent from these tuples
-#: is never published and does nothing whatsoever.**
+#: 🪦 `print-scheme.css` IS UNREGISTERED (2026-08-19), a comment-only tombstone on
+#: disk: theme.py emits the paper palette inside tokens.css instead. **A file in
+#: assets/ absent from these tuples is never published and does nothing.**
 #:
 #: FIVE FILES, FIVE JOBS, and each one answers exactly one question:
 #:
