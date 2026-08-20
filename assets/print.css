@@ -49,6 +49,8 @@
  *                                                  justification, the tabbed set
  *     print-callout.css   WHAT THE BOX IS       -- the rule-and-indent, the icon
  *
+ * 🪦 `print-scheme.css` is a comment-only tombstone and is unregistered.
+ *
  * ⚠️ ONE JUDGEMENT CALL, NAMED SO IT CAN BE ARGUED WITH: the code-wrapping
  * rule STAYED here. It looks like flow -- it changes where lines end -- but it
  * exists because an over-wide line is silently CUT OFF at the paper edge, which
@@ -164,6 +166,12 @@
    * "paint a printed background" away from it. Taken anyway, because the failure
    * mode is a page flooded with ink on every sheet of a safety document, and
    * nobody has ever wanted the other thing.
+   *
+   * 🔴 AND THE LIVE IMPLEMENTATION IS NOT IN A SHEET ANY MORE. theme.py now emits
+   * the theme's LIGHT row inside `tokens.css`, selected by the row's own `mode`
+   * column rather than by slot name -- because `papyrus` is the one join whose
+   * primary is light and whose alt is dark. The retired `print-scheme.css`
+   * tombstone explains why; the values that reach the page come from theme.py.
    * --------------------------------------------------------------------- */
   body,
   .md-main,
