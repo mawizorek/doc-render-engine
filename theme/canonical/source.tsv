@@ -63,7 +63,7 @@
 # find out.
 #
 # WHY THE VENDORED FILES CARRY NO HEADER COMMENTS
-# -----------------------------------------------
+# ----------------------------------------------
 # Every other TSV in this engine opens with a comment block. These do not, and
 # that is deliberate: a comment would change their bytes and destroy the one
 # thing that proves they ARE the canonical tables. Their identity is their hash.
@@ -71,7 +71,7 @@
 # HOW TO REFRESH: replace the file wholesale from the source repo, put the new
 # blob SHA here, and re-run the build. Never edit a vendored file in place.
 #
-# ---------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # REFRESH LOG. Newest first.
 #
 # KEPT IN FULL, deliberately, now that it no longer describes the only way
@@ -81,6 +81,34 @@
 # with different content, the transposition that made the colour table clueless.
 # That is the only history of this design system's decisions the engine holds.
 #
+# 2026-08-19  THE FALLBACK WENT FOURTEEN DAYS STALE AND NOBODY NOTICED, WHICH IS
+#             THE ENTRY. colors 003fb9c -> e3819e3, 7,777 -> 8,433 B,
+#             39 -> 41 rows. TWO separate upstream changes arrived in ONE
+#             re-vendor because nothing refreshes this folder automatically and
+#             the live read made the gap invisible.
+#             (a) `link` is now authored on ALL 41 rows. It was authored on TWO
+#             when it was vendored on 08-05 (see the entry below), and the note
+#             in this table still said "blank on 37" -- true on the day it was
+#             written and false within days. THE FALLBACK'S OWN DESCRIPTION
+#             ROTTED, not just its bytes.
+#             (b) NEW ROWS `uritp` and `uritp-light`, which is the half that
+#             actually bites. `vectors.known()` reads this table to decide which
+#             theme names an instance may legally declare -- so on any build
+#             where the maw-themes checkout fails, a site declaring `uritp`
+#             resolved to `base` and rendered the nine-token stand-in. A stale
+#             fallback does not only paint old colours, IT SHRINKS THE LEGAL
+#             THEME SET.
+#             Michael's own change in the same pass: papyrus `link` #6e4b2a ->
+#             #7b2d8e and papyrus-dark #c59468 -> #d38ce8 (maw-themes PR #12).
+#             The old values were not wrong, they were in the WRONG FAMILY --
+#             the same brown as `accent` one shade deeper, so a link on
+#             parchment read as emphasis. Violet is the one unoccupied hue in
+#             both rows. Explicitly reversible; he asked for it that way.
+#             VERIFIED BY CONTENT ADDRESS rather than by inspection: the
+#             vendored blob SHA is e3819e37, IDENTICAL to upstream's, which is
+#             git proving the two files are the same bytes. That is the check to
+#             use every time this folder is refreshed -- it is free and it is
+#             the only one that cannot be fooled by a plausible-looking diff.
 # 2026-08-05  A LINK IS ITS OWN ROLE. colors 579bb57 -> 003fb9c, 24 -> 25
 #             columns: NEW `link`, authored on eos (#c495b5) and eos-light
 #             (#8a4374) and BLANK on the other 37 rows. Michael: "change the
@@ -161,9 +189,9 @@
 # 2026-08-05  4f391aa -> 27b5327  ONE CELL, a proof value. STILL 5,710 BYTES --
 #             the argument for hashing over measuring.
 # 2026-08-04  --      -> 4f391aa  Initial vendor. 19 themes x 36 columns.
-# ---------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 file	repo	path	blob_sha	bytes	verified	note
-canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	003fb9c47c05dd289286c73ce6bed1098f320832	7777	2026-08-05	39 rows x 25 columns. One row is ONE COMPLETE PALETTE and the table expresses no relationship of any kind -- no identity, no alt- band. `mode` is descriptive only. `link` is authored on 2 rows and blank on 37; blank means UNAUTHORED, and the consumer falls back to accent.
+canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	e3819e370c142d16c4566a1d5033cd7535f35331	8433	2026-08-19	41 rows x 25 columns. One row is ONE COMPLETE PALETTE and the table expresses no relationship of any kind -- no identity, no alt- band. `mode` is descriptive only. `link` is now authored on EVERY row; the 08-05 note saying "blank on 37" was true when written and false within days, so do not trust a note in this column over the file. `uritp` and `uritp-light` arrived after the 08-05 vendor -- vectors.known() reads this table, so a stale copy here also shrinks the set of theme names an instance may legally declare.
 canonical/themes.json	mawizorek/maw-themes	registry/_themes.json	7711cab143c8b22913c28e8e9fc1390c1b4173d0	9381	2026-08-05	THE JOIN, schemaVersion 4. 12 themes, FIVE pointers each: color, alt-color, typography, forms, spacing. Pairing lives here and nowhere else. A new COLOUR column moves no pointer, so this file does not change when one is added.
 canonical/typography.tsv	mawizorek/maw-themes	vectors/typography.tsv	5f6ec2dd68d30198638b6602ead9e9a57e534ec4	1629	2026-08-05	6 SHARED entities on their own slugs. Joined by pointer -- editing one moves every theme pointing at it. WARNING the three FONT columns do not render: nothing in this engine fetches a webfont. See assets/type.css.
 canonical/forms.tsv	mawizorek/maw-themes	vectors/forms.tsv	9433b6aeb08da191c3a2567edf24970cf81d945f	1322	2026-08-05	5 SHARED entities. Radii, border weight, gradient angle, shadows, elevation, motion.
