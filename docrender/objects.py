@@ -29,6 +29,15 @@ and read by nothing, so the date a reader actually saw was a line typed by hand
 at the foot of the page. Same shape as the lede, one field over, and the same
 loud migration. Also docrender/lede.py.
 
+🔴 AS OF 2026-08-19, `related:` IS THE THIRD, AND THREE IS A PATTERN RATHER THAN
+A COINCIDENCE. It had been declared optional on `_base` since the type system
+shipped, documented, and read by nothing -- Michael found it by asking whether it
+rendered. ⚑ THE COMMON CAUSE IS IN THIS FILE: `_resolve` merges `optional` into
+the spec and NOTHING EVER READS THAT LIST. It exists so a human can consult it,
+which means every key in it is a promise no code checks. The only way to know
+whether an optional field is live is to grep for a consumer, and that is a real
+structural gap rather than three separate oversights. See docrender/related.py.
+
 Runs FIRST, before visibility, deliberately: a page with a broken declaration
 is broken whether or not it happens to be hidden today.
 
@@ -66,7 +75,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from . import lede, state
+from . import lede, related, state
 from .util import duplicate_keys, slug_title, split_frontmatter, sub_outside_code
 
 VALID_STATUS = {"hidden", "unlisted", "gated", "public"}
@@ -103,7 +112,14 @@ def _read_page(path: str) -> tuple[dict, str, list]:
 
 
 def _resolve(type_name: str) -> dict:
-    """Flatten a declaration and its `extends` chain into one spec."""
+    """Flatten a declaration and its `extends` chain into one spec.
+
+    ⚠️ `optional` IS MERGED AND NEVER READ AGAIN, which is the gap named in the
+    module docstring. It is carried so a reader (and doc-index.json) can see
+    what a type offers; no code path checks it, so a key listed there is live
+    only if some module went looking for it. Three fields have now been found
+    declared-and-unread.
+    """
     decl = state.TYPES.get(type_name)
     if not decl:
         return {}
@@ -218,6 +234,9 @@ def on_files(files, config):
         # different migration with a different fix, and folding it into the
         # lede report would bury one worklist inside another.
         lede.check_revised(f.src_uri, meta, body, state.note)
+
+        # Third migration, same shape, its own bucket for the same reason.
+        related.check(f.src_uri, meta, body, state.note)
 
         meta["_type"] = type_name
         meta["_spec"] = spec
@@ -390,10 +409,10 @@ def on_page_markdown(markdown, page, config, files):
     the same rules as hand-written ones -- including reporting one as dead if a
     page it lists somehow fails to publish.
 
-    THREE fields are drawn here that no type declares, because they belong to
-    every page: `summary:` (the lede, into the slot after the H1), `keywords:`
-    (a visible line at the foot) and `revised:` (the last line of the
-    document). See docrender/lede.py.
+    FOUR fields are drawn here that no type declares, because they belong to
+    every page: `summary:` (the lede, into the slot after the H1), `related:`,
+    `keywords:` and `revised:` (the last line of the document), in that order at
+    the foot. See docrender/lede.py and docrender/related.py.
     """
     meta = state.BY_SRC.get(page.file.src_uri, {})
     spec = meta.get("_spec") or {}
@@ -434,6 +453,22 @@ def on_page_markdown(markdown, page, config, files):
     if listing:
         markdown = markdown.rstrip() + "\n\n" + listing + "\n"
 
+    # THE FOOT, IN ORDER, AND THE ORDER IS A RULING (Michael, 2026-08-19:
+    # related "should land above 'revised' line tho"). It reads as a gradient
+    # from CONTENT to METADATA:
+    #
+    #   related   places to go next        -- a reader's business
+    #   keywords  search terms             -- a searcher's business
+    #   revised   provenance               -- "the very last thing on any page"
+    #
+    # ⚠️ `related` EMITS `@id` TOKENS, so it must be written here in the markdown
+    # hook and never later: stage 03 has to still be ahead of it. See
+    # docrender/related.py for why local resolution was refused -- it would have
+    # silently dropped the edge from /doc-refs.json.
+    kin = related.render(meta.get("related"))
+    if kin:
+        markdown = markdown.rstrip() + "\n\n" + kin + "\n"
+
     words = lede.keywords(meta.get("keywords"))
     if words:
         markdown = markdown.rstrip() + "\n\n" + words + "\n"
@@ -443,9 +478,9 @@ def on_page_markdown(markdown, page, config, files):
     #
     # ⚠️ THE EDIT LINK STILL LANDS UNDER IT, and that is the ordering rather
     # than a miss. Hook 06 appends a rule and a link in on_page_content, which
-    # runs after every markdown hook, so the foot reads: keywords, revised,
-    # rule, edit link. The rule is the seam -- everything above it is the
-    # DOCUMENT, everything below it is scaffolding, and `edit_links: false`
+    # runs after every markdown hook, so the foot reads: related, keywords,
+    # revised, rule, edit link. The rule is the seam -- everything above it is
+    # the DOCUMENT, everything below it is scaffolding, and `edit_links: false`
     # removes the whole lower half without touching this line.
     stamp = lede.revised(meta.get("revised"))
     if stamp:

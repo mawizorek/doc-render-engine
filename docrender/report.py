@@ -23,6 +23,12 @@ declared in one and not the other is collected all build and dropped without a
 word -- a check that runs, finds things, and tells nobody. The warning is in both
 files; only the second address changed.
 
+⭐ AND IT HAS NOW BEEN TESTED TWICE RATHER THAN MERELY BELIEVED. `body_revised`
+(2026-08-07) and `body_related` (2026-08-19) both landed with their label in the
+same commit as their bucket. The second one is the better evidence: the two edits
+were in two different FILES by then, which is the version of this that actually
+gets forgotten.
+
 
 THE PAGE
 ========
@@ -152,6 +158,12 @@ _LABELS = {
     "body_revised": "Revision date in the wrong place -- `revised:` is drawn "
                     "at the foot now, and these pages still type it into the "
                     "body",
+    # THIRD of the same family, added 2026-08-19. Same shape, same posture, not
+    # inventory: every entry is a page listing its related pages twice, or
+    # related links the engine cannot see and cannot check for rot.
+    "body_related": "Related pages in the wrong place -- `related:` is drawn "
+                    "at the foot now, above Keywords, and these pages still "
+                    "hand-type a `## Related` block",
     "unknown_type": "Undeclared types (fell back to 'page')",
     "duplicate_id": "Duplicate ids",
     "dead_links": "Broken references (rendered as visible markers)",
