@@ -109,12 +109,6 @@ line was read, and the group joined the walk in the SAME commit.
 It is a separate group only because of WHERE it loads (see below), not because it
 is a different kind of thing -- and `hand_written_css()` derives from all four
 groups so the audit cannot go stale the way it did in 2026-08-04.
-
-🚩 THIS DOCSTRING IS WHY THE FILE HAS NO ROOM, and the registry/publisher seam --
-**REGISTRY** (four tuples + `hand_written_css`, where every argument above lives)
-vs **PUBLISHER** (`_fingerprint`, `_stamped`, `_plan`, the events) -- is now the
-only way to add a line here. It moves the hook's import surface, so it is
-Michael's call.
 """
 
 from __future__ import annotations
