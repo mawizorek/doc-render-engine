@@ -17,18 +17,25 @@
  * and a bare var() would collapse the rule to NOTHING. A hairline that silently
  * vanishes is worse than one that never moved.
  *
- * ⚠️ THREE LAYERS HAVE LEFT THIS FILE. Do not add their rules back here.
+ * ⚠️ FIVE LAYERS HAVE LEFT THIS FILE. Do not add their rules back here.
  *
  *   assets/chrome.css  the Material variable mapping, THE ARMOUR, .md-header
  *   assets/nav.css     the sidebar
  *   assets/type.css    headings, and the type vector's own notes
  *   assets/data*.css   the TSV table and its list mode
+ *   assets/foot.css    the page foot: .pagefoot, the footer, the build stamp
  *
  * Every one left because this file passed a read limit, and every one is a
  * distinct surface rather than a bag of leftover bytes. Load order for all of
  * them is set in docrender/assets.py and is NOT alphabetical -- chrome.css in
  * particular must stay after this file or every dark-mode link reverts to
  * Material's blue.
+ *
+ * ⭐ AND foot.css MAKES THE REMAINING SUBJECT LEGIBLE, which is the best argument
+ * any of these splits has produced. What is left is the Material MAPPING plus
+ * DOCUMENT elements -- the lede, the aka line, the revised line, inline markers,
+ * the spec table, a dead reference. Every one of them is something an author can
+ * write. The footer is not, and it was sitting in the middle of them.
  */
 
 [data-md-color-scheme="slate"],
@@ -87,7 +94,7 @@
  * does not appear and somebody has to come here and mean it.
  *
  * The single foot-of-page edit line is the deliberate exception, switched off
- * per site with `edit_links: false`.
+ * per site with `edit_links: false`. Its styling lives in assets/foot.css.
  * ------------------------------------------------------------------------ */
 .md-header__source,
 .md-nav__source {
@@ -354,176 +361,13 @@ span.docrender-dead {
   opacity: 0.72;
 }
 
-/* Page foot: the edit link. Quiet, at the bottom, with words rather than an
- * icon. Removed entirely per site with `edit_links: false`.
+/* 🪦 THE FOOT RULES MOVED TO `assets/foot.css` 2026-08-19. `.pagefoot*`, the
+ * `.md-footer*` chrome, `.md-copyright` suppression, `.buildstamp` and the new
+ * build disclosure all live there. Nothing was edited in the move except the
+ * `cursor: help` that had been advertising a deleted `title` attribute.
  *
- * ⚠️ THE HOVER STAYS `accent` AND IS NOT AN OVERSIGHT. This is a link, so it
- * could have moved to `link` with the rest -- but its RESTING state is
- * deliberately `ink-muted` rather than a link colour, because it is furniture
- * and must not read as part of the document. Its hover is therefore doing the
- * same job as Material's link hover: move toward the identity colour to say
- * "this is interactive". Consistent with the link rule above, not exempt from
- * it. */
-.pagefoot__rule {
-  margin-top: var(--dr-gap-lg, 2.6rem);
-  border: 0;
-  border-top: var(--dr-border-w, 1px) solid var(--dr-rule);
-}
-.pagefoot {
-  font-size: 0.78rem;
-  opacity: 0.7;
-}
-.pagefoot__edit {
-  color: var(--dr-ink-muted) !important;
-}
-.pagefoot__edit:hover {
-  color: var(--dr-accent) !important;
-}
-
-/* ---------------------------------------------------------------------------
- * FOOTER
- *
- * ⚠️ THE font-size: 0 IS NOT A TYPO. Material's generator credit is a bare text
- * node plus a link, with no class of its own to target. The only way to remove it
- * without overriding the theme template -- which we would then have to maintain
- * across upgrades -- is to zero the container's font size and restore it on the
- * child we keep.
- * ------------------------------------------------------------------------ */
-.md-footer-meta {
-  background: var(--dr-surface);
-  border-top: var(--dr-border-w, 1px) solid var(--dr-rule);
-}
-.md-footer-meta__inner {
-  padding: var(--dr-pad-cell, 0.5rem) var(--dr-pad-card, 0.8rem);
-  justify-content: flex-end;
-}
-.md-copyright {
-  width: auto;
-  margin: 0;
-  padding: 0;
-  font-size: 0;
-}
-.md-copyright a {
-  display: none;
-}
-.md-copyright__highlight {
-  padding: 0;
-  color: var(--dr-ink-muted);
-}
-
-/* Build stamp. The only signal that a deploy succeeded, so it stays legible
- * rather than being decorated into invisibility -- but it is furniture, not
- * content, so it sits quiet.
- *
- * ⭐ IT STOPPED FAKING IT (2026-08-05). This was `ink-muted` at `opacity: 0.75`,
- * which computes to LESS contrast than `text-faint` carries on its own -- so the
- * token that literally means "faintest text" was being approximated by dimming
- * the one above it. `text-faint` had no consumer anywhere; now it has the exact
- * surface it was named for, and the opacity hack is gone.
- *
- * ⚠️ `cursor: help` MOVED TO THE DISCLOSURE BELOW (2026-08-19). It was on this
- * rule to advertise a `title` attribute that no longer exists, so it was pointing
- * at nothing -- a help cursor over a line with no help is a promise the element
- * cannot keep. It now sits on the one element that does have something to say. */
-.buildstamp {
-  font-family: var(--dr-font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.02em;
-  color: var(--dr-text-faint, var(--dr-ink-muted));
-}
-
-/* ---------------------------------------------------------------------------
- * THE BUILD DISCLOSURE (2026-08-19, Michael: "hide behind a small new svg icon
- * in the footer that reveals a popup when hovered... purely for debugging")
- *
- * The foot line is now the site name plus this icon; the PR number, deploy time
- * and both SHAs live in the popup. `docrender/buildstamp.py` carries the markup
- * and the full argument for the element choices.
- *
- * 🔴 THE POPUP IS HIDDEN WITH `opacity`, NOT `display` OR `visibility`, AND THAT
- * IS AN ACCESSIBILITY DECISION RATHER THAN A STYLE ONE. Both of those remove an
- * element from the accessibility tree, which would make the build identifier
- * readable ONLY by someone who can hover -- a mouse-only fact. At zero opacity the
- * text stays in the tree and a screen reader announces it normally.
- * `pointer-events: none` stops the invisible box from eating clicks, and
- * `position: absolute` keeps it out of the layout so it costs no footer height.
- *
- * ⭐ AND THIS IS THE FIRST CONSUMER OF THE MOTION SET, WHICH THREE FILES HAVE
- * DESCRIBED AS UNUSED. `theme.py`'s docstring lists `elev-*`, the motion tokens
- * and `lift` as having NO consumer anywhere in this engine's CSS; chrome.css
- * already retired half that claim by mapping the elevation scale onto Material's
- * own shadow variables. `--dr-motion-fast`, `--dr-ease` and `--dr-elev-2` are all
- * read below, so the sentence in theme.py is now wrong about all three. ⚠️ Every
- * one carries its literal fallback: a nine-token local theme emits none of them,
- * and a bare `var()` inside `transition` is invalid at computed-value time --
- * which drops the whole property rather than just the timing.
- *
- * ⚠️ `:focus-visible` IS PAIRED WITH EVERY `:hover`, and the markup carries
- * `tabindex="0"` for it. A hover-only disclosure is unreachable by keyboard, and
- * this one holds the answer to "is the page I am looking at current" -- which is a
- * question a maintainer asks, not a reader, so the maintainer's own keyboard
- * should reach it.
- * ------------------------------------------------------------------------ */
-.buildstamp__debug {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  margin-inline-start: 0.4rem;
-  vertical-align: text-bottom;
-  cursor: help;
-  outline-color: var(--dr-accent);
-  outline-offset: 0.15rem;
-}
-
-/* Sized in `em` so it tracks the stamp's own 0.68rem rather than the root: the
- * glyph belongs to this line, not to the page. */
-.buildstamp__icon {
-  width: 1.05em;
-  height: 1.05em;
-  fill: currentColor;
-  opacity: 0.7;
-  transition: opacity var(--dr-motion-fast, 125ms) var(--dr-ease, linear);
-}
-.buildstamp__debug:hover .buildstamp__icon,
-.buildstamp__debug:focus-visible .buildstamp__icon {
-  opacity: 1;
-}
-
-/* Anchored to the RIGHT edge because the footer is `justify-content: flex-end`,
- * so a popup growing leftward stays on screen and one growing rightward does not.
- * Opens UPWARD for the same reason: there is nothing below the footer. */
-.buildstamp__pop {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 0.4rem);
-  z-index: 3;
-  width: max-content;
-  max-width: min(24rem, 70vw);
-  padding: 0.4rem 0.55rem;
-  font-size: 0.66rem;
-  line-height: 1.5;
-  letter-spacing: 0;
-  text-align: left;
-  white-space: normal;
-  color: var(--dr-ink);
-  background: var(--dr-surface-raised);
-  border: var(--dr-border-w, 1px) solid var(--dr-rule);
-  border-radius: var(--dr-radius, 3px);
-  box-shadow: var(--dr-elev-2, 0 0.2rem 0.5rem #0000001a);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--dr-motion-fast, 125ms) var(--dr-ease, linear);
-}
-.buildstamp__debug:hover .buildstamp__pop,
-.buildstamp__debug:focus-visible .buildstamp__pop {
-  opacity: 1;
-}
-
-/* The prev/next bar. Kept -- it is genuine reader navigation -- but toned down so
- * it stops competing with the page it sits under. */
-.md-footer__link {
-  opacity: 0.85;
-}
-.md-footer__title {
-  font-size: 0.86rem;
-}
+ * ⚠️ THE FOUR `--md-footer-*` MAPPINGS STAY HERE, in the scheme block at the top,
+ * and that is correct rather than a leftover: they are the Material VARIABLE
+ * MAPPING, which is this file's subject. foot.css consumes `--dr-*` tokens and
+ * writes rules; it declares no Material variables at all. *One surface, one
+ * address -- and the surface here is the mapping, not the footer.* */
