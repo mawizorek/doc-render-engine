@@ -45,17 +45,16 @@ is"*, had never once fired.
 ⭐ CONFIRMED FROM OUTPUT, NOT FROM REASONING, and that distinction is the reason
 it took a day. The suspicion came from knowing Material's footer structure,
 which is a PROXY read and this house has a scar about presenting one as a
-verification (`instances/uritp-safety/site.yml`, the `database` theme claim).
-The first two PDFs could not settle it either, because that page carried
-`hide: [footer]` and no footer could print there regardless. A third PDF --
-General Safety Responsibilities, `hide: [navigation, toc]`, footer NOT hidden --
-showed no stamp, no PR number, no SHA, no `unstamped`. That is the evidence.
+verification. The first two PDFs could not settle it either, because that page
+carried `hide: [footer]` and no footer could print there regardless. A third PDF
+-- footer NOT hidden -- showed no stamp, no PR number, no SHA, no `unstamped`.
+That is the evidence.
 
-🔴 AND THE CSS FIX WAS THE WRONG FIX. Hoisting `.buildstamp` out of the hidden
-subtree in the stylesheet would have repaired exactly one class of page and left
+🔴 AND THE CSS FIX WOULD HAVE BEEN THE WRONG FIX. Hoisting `.buildstamp` out of
+the hidden subtree in the stylesheet repairs exactly one class of page and leaves
 the hole open, because `hide: footer` is a CONTENT decision and pages already use
-it -- `uritp-safety/20-policies/11-fire.md` carries it today. ⚑ A rule that can be
-switched off by a frontmatter key it does not know about is not a guarantee.
+it. ⚑ A rule that can be switched off by a frontmatter key it does not know about
+is not a guarantee.
 
 
 =============================================================================
@@ -68,8 +67,8 @@ switched off by a frontmatter key it does not know about is not a guarantee.
     .buildstamp--corner   FIRST in flow, PRINT ONLY.   `URITP Safety · 19 Aug 2026`
     .buildstamp--foot     LAST in flow, SCREEN ONLY.   `URITP Safety` + a disclosure
 
-🔴 THE PR NUMBER IS SCREEN-ONLY, AND THE REASON IS AUDIENCE RATHER THAN TASTE.
-A screen reader of these sites is Michael or a collaborator, and `PR #157`
+🔴 THE BUILD IDENTIFIER IS SCREEN-ONLY, AND THE REASON IS AUDIENCE RATHER THAN
+TASTE. A screen reader of these sites is Michael or a collaborator, and `PR #157`
 answers *is this deploy current* for exactly that person. A printed sheet goes to
 a guest artist, a student, a binder, a wall -- and to that reader a PR number is
 unreadable internal plumbing on a safety document. ⚑ A build identifier is
@@ -85,35 +84,48 @@ same category: a reference to a system the reader cannot reach. **The rule was
 already written down and the corner stamp was the first surface to break it.**
 
 ⚠️ SO THE PRINTED SHEET NO LONGER NAMES A COMMIT AT ALL, and that is a real
-trade rather than a free win. Debugging a stale PRINTED page now means finding the
+trade rather than a free win. Debugging a stale PRINTED page means finding the
 page on screen and revealing the foot disclosure. Correct for these documents --
 the date is the provenance a reader actually needs -- but if a printed sheet ever
 has to be traced back to a specific build, THIS is the decision to revisit.
 
 
 =============================================================================
-✅ THE FOOT COPY HIDES ITS DETAIL BEHIND A DISCLOSURE (2026-08-19)
+✅ THE DISCLOSURE, AND WHAT IT IS ALLOWED TO SAY (2026-08-19)
 =============================================================================
-> Michael, with the SHA circled on a screenshot: *"hide behind a small new svg
-> icon in the footer that reveals a popup when hovered that displays that text.
-> purely for debugging - no link. just text when icon is hovered over."*
+> Michael: *"hide behind a small new svg icon in the footer that reveals a popup
+> when hovered that displays that text. purely for debugging - no link."*
 
-So the foot line is now the SITE NAME plus one icon, and the build identifier
-lives in a popup that appears on hover. `PR #159 · Deployed 19 Aug 2026, 21:58 ET
-· engine 661c17e · content 510b087` -- everything a stale-deploy question needs,
-and nothing in the reading surface until somebody asks.
+So the foot line is the SITE NAME plus one icon, and the identifier lives in a
+popup that appears on hover.
 
-⭐ THIS IS THE `title` ATTRIBUTE FINALLY BEING HONEST. Both nodes used to carry
-the same `title`, and the docstring recorded that on the corner copy it was DEAD
-WEIGHT: paper has no hover, so nobody could ever read it. **The attribute is now
-gone from both.** The foot copy has a real popup instead, and the corner copy
-stops shipping a commit SHA into printed HTML that never renders -- which this
-file already flagged as the one thing to drop if it ever mattered.
+🔴 AND THE POPUP CARRIES THE PR STRING AND NOTHING ELSE. The first version put
+the deploy timestamp, the engine SHA and the content SHA in there too, and the
+verdict was immediate: *"did you add the word 'engine' to the footer icon????
+remove that. only a pr string."*
 
-⚠️ AND ONE `title` WOULD HAVE BEEN A SECOND TOOLTIP. Leaving it on the foot copy
-while adding a CSS popup means a browser draws its own tooltip over ours after a
-delay, saying the same thing in a different box. Two renderings of one fact, which
-is the defect this repo has retired three manifests over, arriving as a UI bug.
+⚑ HE IS RIGHT AND THE REASON GENERALISES: THE POPUP ANSWERS ONE QUESTION, AND
+FOUR FACTS DO NOT ANSWER IT FASTER. "Is this the latest push" is settled by the
+PR number alone -- it either matches the last merge or it does not. The timestamp
+and both SHAs were things I could compute rather than things the question needed,
+and the give-away is that they had to be joined with separators to fit on a line.
+*A debugging readout that needs punctuation is carrying more than one fact.*
+
+⚠️ WHAT IS GENUINELY LOST, STATED RATHER THAN GLOSSED: the ENGINE ref. Content
+and engine are separate repos with separate deploys, so "the content is current
+but the engine that rendered it is three commits behind" is now invisible here.
+It is still in the build report on every build. 🚩 If that question starts getting
+asked, the answer is a SECOND disclosure on the report page rather than a longer
+string in this one -- the failure mode of a debugging readout is not being wrong,
+it is being too long to read.
+
+🪦 AND THE `title` ATTRIBUTE IS GONE FROM BOTH NODES. They used to share one, and
+this file recorded that on the corner copy it was DEAD WEIGHT: paper has no hover,
+so nobody could ever read it. Keeping it on the foot copy beside a CSS popup would
+have drawn a browser tooltip over ours after a delay, saying the same thing in a
+different box -- two renderings of one fact, which is the defect this repo has
+retired three manifests over, arriving as a UI bug. Its removal also stops
+shipping a commit SHA into printed HTML that never renders.
 
 🚫 NOT A LINK, AND NOT A `<button>`. Michael asked for no link and there is
 nothing to activate: the popup is the whole payload. A `<button>` would promise an
@@ -123,23 +135,40 @@ keyboard can reveal it via `:focus-visible` without claiming to be a control.
 
 ⚠️ THE POPUP IS HIDDEN WITH `opacity`, NOT `display: none`, AND THAT IS AN
 ACCESSIBILITY DECISION. `display: none` and `visibility: hidden` remove an element
-from the accessibility tree, so a screen reader would lose the build identifier
+from the accessibility tree, so a screen reader would lose the identifier
 entirely -- a hover-only fact is invisible to anybody not hovering. At zero opacity
 with `pointer-events: none` the text stays in the tree and is read normally, and
-it is absolutely positioned so it costs no layout. Styling is in `assets/base.css`
-beside the rest of `.buildstamp`.
+it is absolutely positioned so it costs no layout. Styling: `assets/foot.css`.
 
-🔴 THE ICON IS AN INLINE `<svg>`, NEVER AN `<img>`. An `<img>` is FETCHED even
-when hidden -- the same rule print.css states for the corner mark's future logo --
-and a one-request round trip for a 16px debugging glyph on every page of every
-site is absurd. Inline costs ~200 bytes in the HTML and no request at all.
 
-⚠️ WHICH GLYPH IS A JUDGEMENT AND MICHAEL'S NOTE WAS AMBIGUOUS. He drew a circled
-`i` on the screenshot and then wrote *"vert icon that the 'i' tho"* -- which reads
-either as *invert* the `i` or as *use something other than* the `i`. This ships a
-filled disc with the glyph KNOCKED OUT of it (`fill-rule: evenodd`), which is the
-reading both interpretations share: inverted, and not a bare letter sitting in
-text. 🚩 If the intent was a different symbol entirely it is one constant below.
+=============================================================================
+🔴 THE GLYPH SAYS BACK-END, NOT INFORMATION (2026-08-19)
+=============================================================================
+> Michael: *"I want an icon that says less 'this is info' and more 'this is a
+> back-end check-in'."*
+
+The first version was a disc with an `i` knocked out of it. ⚑ **An `i` in a circle
+is a promise about the AUDIENCE: it means "there is something here for you to
+read."** Every reader of these sites -- a student, a guest artist, somebody
+holding a printed policy -- is invited by that glyph, and the one thing behind it
+is a PR number they cannot use. The icon was advertising to the wrong person.
+
+✅ SO IT IS A CONSOLE PROMPT: a rounded square with `>` and an underscore knocked
+out. A terminal window is the least ambiguous "this is machinery" mark there is,
+and it reads as *not for you* to anybody who is not looking for it -- which is
+exactly the audience filter the `i` was failing at. Same knocked-out construction
+as before, so it still inverts against the footer rather than sitting in it.
+
+⚠️ AND THE PREVIOUS GLYPH WAS ALSO A GUESS AT AN AMBIGUOUS NOTE. Michael's
+earlier instruction was *"vert icon that the 'i' tho"*, which read either as
+INVERT the `i` or as USE SOMETHING OTHER THAN the `i`. The disc-with-`i` satisfied
+the first reading; this satisfies the second, which turns out to have been the
+intent. 🚩 One constant, so the next swap is one edit and touches no CSS.
+
+🔴 IT IS AN INLINE `<svg>`, NEVER AN `<img>`. An `<img>` is FETCHED even when
+hidden -- the same rule print.css states for the corner mark's future logo -- and a
+request for a 16px debugging glyph on every page of every site is absurd. Inline
+costs ~250 bytes of HTML and no request at all.
 
 
 =============================================================================
@@ -163,16 +192,16 @@ Any AUTHOR `display` declaration beats a UA one, so `@media print { display:
 block }` reveals it on paper and nothing reveals it on screen. ⭐ That is what
 keeps this feature from touching a single screen stylesheet. ⚠️ It also drops the
 corner copy from the accessibility tree, which is CORRECT here -- the foot copy is
-the one a screen reader should find, and it now carries the detail too.
+the one a screen reader should find, and it carries the identifier too.
 
 ⚠️ THE PRINTED LOGO IS NOT WIRED YET, AND THERE IS DELIBERATELY NO DEAD CSS FOR
-IT. `uritp-safety/90-media-logos/` holds `logo-horizontal.jpg` and
-`logo-square.jpg`, both already reachable as `@img:` targets with no engine change
--- but Michael asked for a line-art SVG, which does not exist yet. When it does,
-the image lands as a print-scoped `background-image` on `.buildstamp--corner`.
+IT. `uritp-safety/90-media-logos/` holds two JPEGs, both already reachable as
+`@img:` targets with no engine change -- but Michael asked for a line-art SVG,
+which does not exist yet. When it does, the image lands as a print-scoped
+`background-image` on `.buildstamp--corner`.
 
 ⚠️ THE LABEL IS STILL COMPUTED ONCE PER BUILD, at `on_config`, and only the emit
-is per page. The inputs are three environment variables and a clock; reading them
+is per page. The inputs are two environment variables and a clock; reading them
 per page would be waste, and worse, a build spanning midnight could stamp two
 different dates onto one site.
 
@@ -189,8 +218,8 @@ import re
 
 _PR = re.compile(r"#(\d+)")
 
-#: The disclosure glyph: a filled disc with the mark knocked OUT of it, which is
-#: what `fill-rule="evenodd"` does to the two inner subpaths. One constant, so
+#: The disclosure glyph: a console window with a prompt knocked OUT of it, which
+#: is what `fill-rule="evenodd"` does to the two inner subpaths. One constant, so
 #: swapping the symbol is one edit and no CSS changes.
 #:
 #: ⚠️ `aria-hidden` IS LOAD-BEARING. The glyph carries no information a screen
@@ -198,8 +227,9 @@ _PR = re.compile(r"#(\d+)")
 #: reads as an unnamed graphic in the middle of the footer.
 _ICON = (
     '<svg class="buildstamp__icon" viewBox="0 0 16 16" aria-hidden="true"'
-    ' focusable="false"><path fill-rule="evenodd" d="M8 0a8 8 0 100 16A8 8 0 008'
-    ' 0Zm0 3a1.2 1.2 0 110 2.4A1.2 1.2 0 018 3Zm-1.15 3.7h2.3v6.2h-2.3Z"/></svg>'
+    ' focusable="false"><path fill-rule="evenodd" d="M2 1h12a2 2 0 012 2v10a2 2'
+    ' 0 01-2 2H2a2 2 0 01-2-2V3a2 2 0 012-2Zm2.4 3.3L3.3 5.4 5.4 7.5 3.3 9.6'
+    'l1.1 1.1L7.6 7.5ZM8 10.2h4.2v1.5H8Z"/></svg>'
 )
 
 #: The two rendered elements, built once at `on_config`. See the docstring on why
@@ -211,8 +241,13 @@ _FOOT = ""
 def _label() -> str:
     """`PR #16`, or a short SHA, or an honest admission.
 
-    ⚠️ SCREEN ONLY as of 2026-08-19, and behind the disclosure as of the same
-    evening. Nothing this returns reaches paper.
+    ⚠️ SCREEN ONLY, and behind the disclosure. Nothing this returns reaches paper.
+
+    ⭐ AND IT IS NOW THE WHOLE POPUP. The timestamp and both SHAs were removed on
+    2026-08-19 (Michael: *"only a pr string"*), so this one string is the entire
+    debugging payload -- which makes the SHA and `unstamped` fallbacks below more
+    load-bearing than they were, not less: they are the only thing standing
+    between a reader and an empty popup.
     """
     subject = os.environ.get("DOCRENDER_COMMIT_SUBJECT", "").strip().splitlines()
     found = _PR.findall(subject[0]) if subject else []
@@ -232,24 +267,14 @@ def on_config(config):
     global _CORNER, _FOOT
 
     label = _label()
-    sha = os.environ.get("DOCRENDER_COMMIT_SHA", "")
 
-    # Runners are UTC. Stamp Eastern so the number means something to a human
-    # in Rochester rather than needing mental arithmetic at 4am.
+    # Runners are UTC. Stamp Eastern so the date means something to a human in
+    # Rochester rather than needing mental arithmetic at 4am.
     eastern = datetime.timezone(datetime.timedelta(hours=-4))
     when = datetime.datetime.now(datetime.timezone.utc).astimezone(eastern)
 
-    # ⭐ THE POPUP PAYLOAD. The label leads, because "is this deploy current" is
-    # the question being asked; the rest is what you need once the answer is no.
-    detail = label + " · Deployed " + when.strftime("%d %b %Y, %H:%M ET")
-    engine = os.environ.get("DOCRENDER_ENGINE_REF", "")
-    if engine:
-        detail += " · engine " + engine[:7]
-    if sha:
-        detail += " · content " + sha[:7]
-
-    # The site name travels with both, because a printed sheet leaves the system
-    # entirely and a bare date names nothing a reader can place.
+    # The site name travels with the printed copy, because a printed sheet leaves
+    # the system entirely and a bare date names nothing a reader can place.
     name = str(getattr(config, "site_name", "") or "").strip()
 
     # 🔴 PAPER GETS THE DATE AND NOT THE BUILD. See the docstring: a PR number is
@@ -258,7 +283,7 @@ def on_config(config):
     corner = (name + " · " + stamped) if name else stamped
 
     # ⚠️ NO `title` ON EITHER NODE. On the corner it was never readable (paper has
-    # no hover); on the foot it would draw a second tooltip over the popup below.
+    # no hover); on the foot it would draw a second tooltip over the popup.
     _CORNER = (
         '<p class="buildstamp buildstamp--corner" hidden>'
         + html.escape(corner) + "</p>"
@@ -272,7 +297,7 @@ def on_config(config):
         + (html.escape(name) if name else "")
         + '<span class="buildstamp__debug" tabindex="0">'
         + _ICON
-        + '<span class="buildstamp__pop">' + html.escape(detail) + "</span>"
+        + '<span class="buildstamp__pop">' + html.escape(label) + "</span>"
         + "</span></p>"
     )
 
