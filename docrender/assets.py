@@ -93,13 +93,12 @@ This repo has killed three manifests for that defect and then kept a fourth
 inside a function. One list now, derived, in the file that has to be right or
 nothing ships at all.
 
-⭐ IT HAS SILENTLY ABSORBED SIX NEW SHEETS SINCE 2026-08-16 AND RETIRED ONE, with
-no edit to tokenaudit.py in any of the seven events -- and the retirement is the
-better evidence, because a derived list is the only kind that shrinks correctly.
-🪦 FOUR PARAGRAPHS OF INDIVIDUAL PAYOFF ANECDOTES WERE TRIMMED TO THAT ONE
-SENTENCE ON 2026-08-19. **Four stories proving one rule is three stories too many,
-and the file being out of room to describe its own contents is the loudest
-possible argument for the trim.**
+⭐ IT HAS ABSORBED SIX NEW SHEETS SINCE 2026-08-16 AND RETIRED ONE, with no edit
+to tokenaudit.py in any of the seven events -- and the retirement is the better
+evidence, because a derived list is the only kind that shrinks correctly.
+🪦 FOUR PARAGRAPHS OF PAYOFF ANECDOTES WERE TRIMMED TO THAT SENTENCE ON
+2026-08-19. **Four stories proving one rule is three too many, and this file
+being out of room to describe its own contents is the argument for the trim.**
 
 🔴 AND THE WARNING IN `hand_written_css()` FIRED FOR REAL ON 2026-08-19, which is
 better evidence than any of those anecdotes were. It said "adding a fourth group
@@ -111,6 +110,15 @@ line was read, and the group joined the walk in the SAME commit.
 It is a separate group only because of WHERE it loads (see below), not because it
 is a different kind of thing -- and `hand_written_css()` derives from all four
 groups so the audit cannot go stale the way it did in 2026-08-04.
+
+🚩 AND THIS DOCSTRING IS THE REASON THE FILE HAS NO ROOM. Four writes bounced off
+the 22KB limit here on 2026-08-19, one of them a "trim" that came back LARGER
+because it replaced prose with commentary about trimming prose. The seam is real
+and is not taken: **REGISTRY** (the four tuples + `hand_written_css`, which is
+where every argument above lives) and **PUBLISHER** (`_fingerprint`, `_stamped`,
+`_plan`, `on_config`, `on_files`, `_uses_router`). What ships, and how it ships.
+It moves the hook's import surface, so it is Michael's call -- and the next asset
+added to this engine forces it.
 """
 
 from __future__ import annotations
@@ -187,23 +195,21 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: 🔴 LOADS AFTER THE GENERATED SHEETS, AND THAT IS THE ONLY REASON IT IS A
 #: SEPARATE GROUP RATHER THAN MORE ENTRIES IN `_DATA_ASSETS`.
 #:
-#: The print sheets override scheme-scoped custom properties and Material rules
-#: that `tokens.css` and `blocks.css` also write, at equal specificity -- so they
-#: win on source order or they do not win at all. Put this group in
-#: `_DATA_ASSETS` and the generated sheets land later, the overrides die
-#: silently, and paper comes out wrong with no error and no report.
+#: The print sheets override Material rules and scheme-scoped properties that
+#: `tokens.css` and `blocks.css` also write, at equal specificity -- so they win on
+#: source order or they do not win at all. Put this group in `_DATA_ASSETS` and the
+#: generated sheets land later, the overrides die silently, and paper comes out
+#: wrong with no error and no report.
 #:
 #: It still loads BEFORE the instance's `site.css`, because a site keeps the
 #: final word on its own look and paper is no exception.
 #:
-#: 🪦 THE ONE COLOUR SHEET THIS GROUP EVER HAD IS GONE (2026-08-19).
-#: `print-scheme.css` forced hardcoded greys onto a dark-mode reader's tokens with
-#: `!important`; `docrender/theme.py` now emits the theme's OWN light colour row
-#: inside `@media print` instead, so paper is vector-aware and no sheet here
-#: carries a colour. The tombstone file explains why, and it is UNREGISTERED --
-#: **a file in assets/ absent from these tuples is never published and does
-#: nothing whatsoever**, exactly as a file in hooks/ absent from mkdocs.yml does
-#: nothing. That is what made the retirement one line.
+#: 🪦 NO SHEET HERE CARRIES A COLOUR (2026-08-19). `print-scheme.css` forced
+#: hardcoded greys onto a dark reader's tokens with `!important`; theme.py now
+#: emits the theme's OWN light row inside `@media print`, so paper is
+#: vector-aware. The tombstone is UNREGISTERED -- **a file in assets/ absent from
+#: these tuples is never published and does nothing whatsoever**, which is what
+#: made the retirement one line.
 #:
 #: FIVE FILES, FIVE JOBS, and each one answers exactly one question:
 #:
@@ -289,10 +295,8 @@ def hand_written_css() -> tuple[str, ...]:
     person has to reason about whether or not this particular site links it.
 
     Generated sheets are NOT here -- they have no file on disk, and the audit
-    builds them itself. ⚠️ Neither are UNREGISTERED tombstones: `print-scheme.css`
-    is still on disk and is absent from every tuple, so it is correctly invisible
-    to the audit. A retired sheet that kept getting scanned would report rules
-    nobody ships.
+    builds them itself. ⚠️ Nor are unregistered tombstones: `print-scheme.css` is
+    on disk, absent from every tuple, and correctly invisible to the audit.
 
     ⚠️ ALL FOUR GROUPS ARE WALKED. Adding a fifth group and forgetting it here is
     precisely how the old hardcoded tuple in tokenaudit.py went stale within two
@@ -392,10 +396,10 @@ def _plan(config) -> list[tuple[str, bytes]]:
     they override Material rules and scheme-scoped properties the generated
     sheets also write, at equal specificity. See `_PRINT_ASSETS`.
 
-    ⭐ THE PAPER PALETTE IS THE EXCEPTION AND IT IS NOT IN THIS LIST AT ALL. It is
-    emitted INSIDE `tokens.css` by docrender/theme.py, after the scheme blocks it
-    corrects -- an intra-file order, which is deterministic in a way a cross-sheet
-    tie is not. That is the whole reason it moved there.
+    ⭐ THE PAPER PALETTE IS THE EXCEPTION AND IS NOT IN THAT GROUP AT ALL -- it is
+    emitted INSIDE `tokens.css` by theme.py, after the scheme block it corrects.
+    An intra-file order is deterministic in a way a cross-sheet tie is not, which
+    is the whole reason it lives there.
 
     ⚠️ AND THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the
     only thing keeping navtree.js ahead of router.js. See `_FEATURE_ASSETS`.
