@@ -13,12 +13,19 @@
  * theme's business, resolved from theme/canonical/* exactly as on screen. What
  * this file decides is what appears on paper at all and how wide it runs.
  *
- * ✅ AND AS OF 2026-08-19 THAT IS FINALLY TRUE. The line above was written on day
- * one and this file carried the print group's ONLY colour block -- sixteen hex
- * literals -- for its whole life, while the header was quoted approvingly a dozen
- * commits later. 🪦 Moved to `print-scheme.css`. **Not rot: it was never true.**
- * Keep the line: the first colour opinion that lands here again is the beginning
- * of a second theme nobody can see.
+ * 🪦 AND ON 2026-08-19 THAT LINE WAS DECLARED TRUE TWICE AND WAS FALSE BOTH
+ * TIMES. It was written on day one while this file held sixteen hex literals in a
+ * scheme block; moving that block out earned a ✅ note saying the file finally
+ * held no colour -- and **two literals were left behind on the corner stamp,
+ * `#555` and `#ccc`, in the one element that prints on every sheet.** Michael
+ * found them: *"the color you chose MUST be from our theme vector. that's the
+ * whole point."* Both are now `--dr-*` tokens.
+ *
+ * ⚑ THE GENERALISABLE PART IS THE SELF-CONGRATULATION, NOT THE HEX. A cleanup
+ * that writes "this is finally true" in the same commit is asserting a property
+ * of the WHOLE FILE from a diff of ONE BLOCK. **Grep before you claim, not after
+ * somebody prints it.** Keep the line at the top: the next colour opinion that
+ * lands here is the beginning of a second theme nobody can see.
  *
  * =========================================================================
  * ⭐ THE PRINT GROUP IS SIX FILES AS OF 2026-08-19
@@ -41,7 +48,7 @@
  *     print-space.css    HOW MUCH AIR        -- block and list margins,
  *                                              justification
  *     print-callout.css  WHAT THE BOX IS     -- the rule-and-indent, the icon
- *     print-scheme.css   WHOSE INK IT IS     -- the dark-reader override
+ *     print-scheme.css   🪦 RETIRED, comment-only, unregistered
  *
  * ⚠️ ONE JUDGEMENT CALL, NAMED SO IT CAN BE ARGUED WITH: the code-wrapping
  * rule STAYED here. It looks like flow -- it changes where lines end -- but it
@@ -59,25 +66,21 @@
  * sheets and BEFORE the instance's site.css. Both halves are load-bearing, and
  * the other print sheets inherit the same sandwich.
  *
- * AFTER tokens.css, because `print-scheme.css` re-points custom properties on
- * `[data-md-color-scheme="slate"]` -- the SAME selector tokens.css writes, at the
- * SAME specificity. Put the group earlier and the generated sheet wins on source
- * order, the overrides lose silently, and a reader in dark mode prints pale grey
- * ink on a background the browser drops. There is no error. The page just comes
- * out blank-ish. 🔴 That happened anyway on 2026-08-19 WITH the order correct,
- * which is why those declarations now carry `!important` -- see that file.
+ * AFTER tokens.css, because the sheets in this group override Material rules and
+ * scheme-scoped properties that the generated sheets also write, at equal
+ * specificity -- so they win on source order or they do not win at all.
  *
  * BEFORE site.css, because an instance keeps the final word on its own look,
  * and that rule has no exception for paper.
  *
- * ⚠️ ORDER *WITHIN* THE PRINT GROUP IS FREE: no two of the six print sheets
- * share a selector-and-property PAIR, so none can win or lose a tie against
- * another. Same distinction `_FEATURE_ASSETS` draws, where its JS order is law
- * and its CSS order is genuinely free. 🔴 WITH ONE PROVEN EXCEPTION, added the day
- * it bit: `print-space.css` §9 justifies `.md-typeset p`, which MATCHES the
- * corner buildstamp and beat this file's alignment rule on SPECIFICITY, not
- * order. **The group's order is still free; what is not free is assuming two of
- * our own files cannot collide.**
+ * ⚠️ ORDER *WITHIN* THE PRINT GROUP IS FREE: no two of the print sheets share a
+ * selector-and-property PAIR, so none can win or lose a tie against another.
+ * Same distinction `_FEATURE_ASSETS` draws, where its JS order is law and its CSS
+ * order is genuinely free. 🔴 WITH ONE PROVEN EXCEPTION, added the day it bit:
+ * `print-space.css` §9 justifies `.md-typeset p`, which MATCHES the corner
+ * buildstamp and beat this file's alignment rule on SPECIFICITY, not order.
+ * **The group's order is still free; what is not free is assuming two of our own
+ * files cannot collide.**
  *
  * =========================================================================
  * ⚠️ THE ONE THING THE PRINT GROUP CANNOT FIX, STATED RATHER THAN PAPERED OVER
@@ -96,8 +99,6 @@
  * 🚫 NOT COMPENSATED FOR ANYWHERE IN THE GROUP, deliberately. Darkening semantic
  * tokens at print time would hide the defect on the one surface that shows it
  * most clearly, and the fix belongs in the light rows of canonical/colors.tsv.
- * `print-scheme.css` re-points STRUCTURAL neutrals only, for the stated reason
- * that paper genuinely is a different surface.
  */
 
 @media print {
@@ -130,6 +131,45 @@
    * --------------------------------------------------------------------- */
   @page {
     margin: 12mm;
+  }
+
+  /* -------------------------------------------------------------------------
+   * 🔴 THE SHEET IS PAPER, NOT A SURFACE (2026-08-19)
+   *
+   * > Michael, printing a papyrus page: the whole content column came out as a
+   * > filled parchment panel with the type sitting on it.
+   *
+   * 🪦 MY REGRESSION, AND IT TOOK TWO OF MY OWN COMMITS TO BUILD. theme.py's
+   * paper block gives a reader the theme's own LIGHT row, which on `papyrus`
+   * means `bg: #f0e6d2` -- real parchment, correctly resolved, exactly what the
+   * vector declares. And the rule that used to force the ground white left this
+   * file the same evening, inside the block that moved to print-scheme.css and
+   * was then retired. **One change supplied a ground; the other removed the
+   * thing that had been suppressing it.** Neither was visible in the other's
+   * diff.
+   *
+   * ⭐ AND THE FIX IS NOT A COLOUR, WHICH IS THE WHOLE POINT. Paper already has
+   * one -- whatever stock is in the tray -- and no vector owns it. `bg`,
+   * `surface-1..3` and `field` all describe a SCREEN ground; there is no "paper"
+   * column in any row and there should never be one. So the ground is declared
+   * TRANSPARENT: the ABSENCE of a decision rather than a substitute for one, and
+   * the only answer that stays correct on cream stock, on a photocopy, and on a
+   * theme nobody has authored yet.
+   *
+   * ✅ THE VECTOR STILL SUPPLIES EVERY MARK ON THE SHEET -- ink, rules, callout
+   * borders, marker chips, the accent, the corner stamp below. What it stops
+   * supplying is the paper.
+   *
+   * ⚠️ `!important` IS DELIBERATE HERE AND IT DOES COST SOMETHING: an instance's
+   * `site.css` loads last precisely so a site keeps the final word, and this
+   * takes "paint a printed background" away from it. Taken anyway, because the
+   * failure mode is a page flooded with ink on every sheet of a safety document,
+   * and nobody has ever wanted the other thing.
+   * --------------------------------------------------------------------- */
+  body,
+  .md-main,
+  .md-content {
+    background: transparent !important;
   }
 
   /* -------------------------------------------------------------------------
@@ -188,18 +228,25 @@
    *     paper   corner shows, foot hidden
    *     screen  foot shows, corner hidden by its own `hidden` attribute
    *
+   * 🔴 AND ITS TWO COLOURS WERE THE LAST HARDCODED VALUES IN THE PRINT GROUP.
+   * `color: #555` and a `#ccc` hairline, on the one element that appears on every
+   * printed sheet of every site -- so a bespoke palette put its date line in
+   * neutral grey. Now `ink-muted` and `rule` from the vector, with a MATERIAL
+   * VARIABLE as the fallback rather than a literal: a nine-token local theme may
+   * emit neither token, and the point of a fallback is to degrade to somebody
+   * else's system rather than to a number typed here.
+   *
    * ⭐ ONE COMPUTED STRING, TWO NODES -- NOT TWO CLAIMANTS. The defect that
    * retired three manifests here is two SOURCES of one fact, which can disagree.
-   * Both placements interpolate the same label and the same detail from one
-   * `on_config` pass, so they cannot drift, and the mutually exclusive media
-   * scoping means a reader always sees exactly ONE stamp.
+   * Both placements interpolate the same label from one `on_config` pass, so they
+   * cannot drift, and the mutually exclusive media scoping means a reader always
+   * sees exactly ONE stamp.
    *
    * ⭐ AND THE CORNER COPY IS FIRST IN THE FLOW FOR A MECHANICAL REASON. An
    * element appended at the END of the content cannot be moved to the TOP of
    * sheet one by CSS -- that needs to know where the page boundary falls, which
    * is what `@page` margin boxes do and no major browser implements. First in
-   * flow IS the top of sheet one, for free. Same finding that closed the
-   * letterhead ruling: top of sheet one is cheap, bottom of sheet one is not.
+   * flow IS the top of sheet one, for free.
    *
    * ⚠️ `display: block` ON THE CORNER IS LOAD-BEARING, NOT TIDINESS. It is what
    * overrides the `hidden` attribute -- an author declaration beats the UA
@@ -227,8 +274,9 @@
     text-align: right;
     font-size: 0.7rem;
     line-height: 1.2;
-    color: #555;
-    border-bottom: 1px solid #ccc;
+    color: var(--dr-ink-muted, var(--md-default-fg-color--light));
+    border-bottom: 1px solid
+      var(--dr-rule, var(--md-default-fg-color--lightest));
     padding-bottom: 0.35rem;
   }
 
@@ -252,6 +300,11 @@
    * type and column shrink together and the right margin grows. Anybody
    * reading this because "shrinking leaves a narrow column" should change the
    * BASE FONT SIZE, not go looking for a max-width that is already gone.
+   *
+   * ⚠️ `padding: 0` IS WHY THE TYPE RUNS FLUSH TO THE EDGE OF ANY GROUND BEHIND
+   * IT, which looked like clipping in the parchment print above and was not: the
+   * page margin is `@page`'s 12mm and the column has no inset of its own. Nothing
+   * is lost. With the ground transparent there is no longer an edge to notice.
    * --------------------------------------------------------------------- */
   .md-grid,
   .md-main__inner,
@@ -281,20 +334,6 @@
   }
 
   /* -------------------------------------------------------------------------
-   * 🪦 DARK READER, LIGHT PAPER -- MOVED TO `assets/print-scheme.css` 2026-08-19.
-   *
-   * Sixteen hex literals and the whole scheme argument left, because this file's
-   * first paragraph says it holds no colour and it held the group's only colour
-   * block. That file also carries the finding that made the move worth doing:
-   * **Material wraps its entire slate scheme in `@media screen`, so the pale ink
-   * on a dark-mode print was never Material's -- it was ours.**
-   *
-   * ⚠️ THE ONE THING TO KNOW FROM HERE: those declarations now carry `!important`
-   * because a tie won on source order is the weakest guarantee in this engine, and
-   * this block lost one on 2026-08-19 with the load order provably correct.
-   * --------------------------------------------------------------------- */
-
-  /* -------------------------------------------------------------------------
    * INK THAT ACTUALLY LANDS
    *
    * `print-color-adjust: exact` on the elements whose MEANING is carried by a
@@ -313,9 +352,11 @@
    * them on that element.** Narrowing this list was the alternative and it would
    * cost the border guarantee above.
    *
-   * 🚩 THIS IS THE LIST THE CORNER STAMP'S ICON JOINS when one exists. A brand
-   * mark qualifies on the stated test, and a logo that prints as an empty box is
-   * worse than no logo.
+   * ⚠️ `body` IS DELIBERATELY NOT ON THIS LIST and never should be. The section
+   * above turns the ground transparent; adding the ground to a list whose whole
+   * job is to FORCE colour through the printer would put the two rules in a
+   * fight, and the parchment would win on a reader whose browser prints
+   * backgrounds.
    * --------------------------------------------------------------------- */
   .md-typeset .admonition,
   .md-typeset details,
