@@ -131,13 +131,13 @@ NAV_OPEN: dict = {}
 #:
 #: ⭐ A CLAIM ABOUT THE PIPELINE, NOT A CACHED RESULT, and that is the only
 #: reason a bare flag belongs in this module. Everything else here is data one
-#: stage computed for another to consume. This answers "did the stage that must
-#: precede me actually run" -- a question with no answer after the fact, because
+#: stage computed for another to consume. This answers \"did the stage that must
+#: precede me actually run\" -- a question with no answer after the fact, because
 #: a tree navstate never touched looks exactly like a tree where every folder
 #: resolved to `collapsed`.
 #:
 #: ⚠️ SET UNCONDITIONALLY, AT THE TOP OF shape(), BEFORE ANY WALKING. It means
-#: "the stage ran," never "the stage changed something": a site with no `nav:`
+#: \"the stage ran,\" never \"the stage changed something\": a site with no `nav:`
 #: anywhere still shaped its tree, and keying this off whether anything moved
 #: would report a broken hook list on every ordinary build.
 NAV_SHAPED: bool = False
@@ -150,12 +150,12 @@ NAV_SHAPED: bool = False
 #: had to be re-derived at 120,000 iterations against a brand-new salt on every
 #: single page view -- so nothing could be cached, and each navigation paid
 #: 100-200ms per held key before the body appeared. Michael watched it happen:
-#: "it's still like loading the menu each time and passing it immediately which
-#: seems like bad architecture." It was. A shared salt makes the derived
+#: \"it's still like loading the menu each time and passing it immediately which
+#: seems like bad architecture.\" It was. A shared salt makes the derived
 #: verifier reusable, so the second page costs a string comparison.
 #:
 #: ⚠️ AND IT COSTS NOTHING, WHICH IS THE PART TO CHECK BEFORE ANYBODY
-#: "HARDENS" IT BACK. A salt exists to stop ONE precomputed table being reused
+#: \"HARDENS\" IT BACK. A salt exists to stop ONE precomputed table being reused
 #: against many targets. Every page on a site ships the same set of codes, so
 #: per-page salts were defending the same secret from itself. The salt is still
 #: random per build, so a table built against yesterday's deploy is worthless.
@@ -229,6 +229,22 @@ def reset() -> None:
         # (That label now lives in report._LABELS -- it moved hours later, in the
         # split described above. The history is left as it happened.)
         "body_revised": [],
+        # THIRD member of the same family, added 2026-08-19: `related:` had been
+        # declared on `_base` since the type system shipped and read by NOTHING,
+        # exactly as `revised:` had been, so pages hand-typed a `## Related`
+        # heading instead. Now drawn at the foot, above keywords and revised.
+        #
+        # ⭐ THE TWO-EDITS WARNING FIRED FOR THE SECOND TIME AND HELD AGAIN: the
+        # label went into report._LABELS in the same commit as this line. Worth
+        # recording because the warning has now been TESTED twice rather than
+        # merely believed -- and the second time it was across two files.
+        #
+        # ⚑ AND THREE INSTANCES MAKES THE REAL CAUSE NAMEABLE: `objects._resolve`
+        # merges every type's `optional` list and NOTHING EVER READS IT. A key
+        # declared there is a promise no code checks, so "is this field live"
+        # can only be answered by grepping for a consumer. That is a structural
+        # gap rather than three separate oversights.
+        "body_related": [],
         "unknown_type": [],
         "duplicate_id": [],
         "dead_links": [],
