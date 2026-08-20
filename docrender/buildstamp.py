@@ -23,7 +23,7 @@ must not win.
 
 ⚠️ NOT A LINK (2026-08-03). It used to link to the PR. The rendered site no
 longer advertises its repository at all -- the header widget went for the same
-reason -- so the screen stamp names the PR without offering a door to it.
+reason -- so the stamp names the build without offering a door to it.
 
 
 =============================================================================
@@ -66,7 +66,7 @@ switched off by a frontmatter key it does not know about is not a guarantee.
 > safety in the date, but I definitely do not want the PR number in that!"*
 
     .buildstamp--corner   FIRST in flow, PRINT ONLY.   `URITP Safety · 19 Aug 2026`
-    .buildstamp--foot     LAST in flow, SCREEN ONLY.   `URITP Safety · PR #157`
+    .buildstamp--foot     LAST in flow, SCREEN ONLY.   `URITP Safety` + a disclosure
 
 🔴 THE PR NUMBER IS SCREEN-ONLY, AND THE REASON IS AUDIENCE RATHER THAN TASTE.
 A screen reader of these sites is Michael or a collaborator, and `PR #157`
@@ -86,25 +86,70 @@ already written down and the corner stamp was the first surface to break it.**
 
 ⚠️ SO THE PRINTED SHEET NO LONGER NAMES A COMMIT AT ALL, and that is a real
 trade rather than a free win. Debugging a stale PRINTED page now means finding the
-page on screen and reading the foot line. Correct for these documents -- the date
-is the provenance a reader actually needs, and it is what Michael asked for -- but
-if a printed sheet ever has to be traced back to a specific build, THIS is the
-decision to revisit.
+page on screen and revealing the foot disclosure. Correct for these documents --
+the date is the provenance a reader actually needs -- but if a printed sheet ever
+has to be traced back to a specific build, THIS is the decision to revisit.
 
-🔴 THE HOVER DETAIL IS DELIBERATELY UNCHANGED, AND ON THE CORNER IT IS DEAD
-WEIGHT. Both nodes keep the same `title` (deploy time, engine SHA, content SHA).
-On paper there is no hover, so the corner's copy is never readable by anybody --
-it survives because the two nodes are built from one string and splitting the
-detail as well would be a second divergence for no gain. ⚠️ It DOES mean a commit
-SHA is present in the printed page's HTML source even though it never renders. If
-that ever matters, drop the attribute from the corner only.
 
-⭐ ONE COMPUTED VALUE PER FACT, TWO PRESENTATIONS -- NOT TWO CLAIMANTS. The defect
-that retired `roster.json`, `registry.json` and `app-index.md` is two SOURCES of
-one fact, which can disagree. `_label()` and the clock are each read exactly once
-per build; the two nodes SELECT from those values rather than recomputing them.
-They cannot drift, and the mutually exclusive media scoping means a reader always
-sees exactly one stamp.
+=============================================================================
+✅ THE FOOT COPY HIDES ITS DETAIL BEHIND A DISCLOSURE (2026-08-19)
+=============================================================================
+> Michael, with the SHA circled on a screenshot: *"hide behind a small new svg
+> icon in the footer that reveals a popup when hovered that displays that text.
+> purely for debugging - no link. just text when icon is hovered over."*
+
+So the foot line is now the SITE NAME plus one icon, and the build identifier
+lives in a popup that appears on hover. `PR #159 · Deployed 19 Aug 2026, 21:58 ET
+· engine 661c17e · content 510b087` -- everything a stale-deploy question needs,
+and nothing in the reading surface until somebody asks.
+
+⭐ THIS IS THE `title` ATTRIBUTE FINALLY BEING HONEST. Both nodes used to carry
+the same `title`, and the docstring recorded that on the corner copy it was DEAD
+WEIGHT: paper has no hover, so nobody could ever read it. **The attribute is now
+gone from both.** The foot copy has a real popup instead, and the corner copy
+stops shipping a commit SHA into printed HTML that never renders -- which this
+file already flagged as the one thing to drop if it ever mattered.
+
+⚠️ AND ONE `title` WOULD HAVE BEEN A SECOND TOOLTIP. Leaving it on the foot copy
+while adding a CSS popup means a browser draws its own tooltip over ours after a
+delay, saying the same thing in a different box. Two renderings of one fact, which
+is the defect this repo has retired three manifests over, arriving as a UI bug.
+
+🚫 NOT A LINK, AND NOT A `<button>`. Michael asked for no link and there is
+nothing to activate: the popup is the whole payload. A `<button>` would promise an
+action that does not exist -- the same dead-control argument `edit_links: false`
+and the print link policy already make. It is a `<span>` with `tabindex="0"`, so a
+keyboard can reveal it via `:focus-visible` without claiming to be a control.
+
+⚠️ THE POPUP IS HIDDEN WITH `opacity`, NOT `display: none`, AND THAT IS AN
+ACCESSIBILITY DECISION. `display: none` and `visibility: hidden` remove an element
+from the accessibility tree, so a screen reader would lose the build identifier
+entirely -- a hover-only fact is invisible to anybody not hovering. At zero opacity
+with `pointer-events: none` the text stays in the tree and is read normally, and
+it is absolutely positioned so it costs no layout. Styling is in `assets/base.css`
+beside the rest of `.buildstamp`.
+
+🔴 THE ICON IS AN INLINE `<svg>`, NEVER AN `<img>`. An `<img>` is FETCHED even
+when hidden -- the same rule print.css states for the corner mark's future logo --
+and a one-request round trip for a 16px debugging glyph on every page of every
+site is absurd. Inline costs ~200 bytes in the HTML and no request at all.
+
+⚠️ WHICH GLYPH IS A JUDGEMENT AND MICHAEL'S NOTE WAS AMBIGUOUS. He drew a circled
+`i` on the screenshot and then wrote *"vert icon that the 'i' tho"* -- which reads
+either as *invert* the `i` or as *use something other than* the `i`. This ships a
+filled disc with the glyph KNOCKED OUT of it (`fill-rule: evenodd`), which is the
+reading both interpretations share: inverted, and not a bare letter sitting in
+text. 🚩 If the intent was a different symbol entirely it is one constant below.
+
+
+=============================================================================
+⭐ ONE COMPUTED VALUE PER FACT, TWO PRESENTATIONS -- NOT TWO CLAIMANTS
+=============================================================================
+The defect that retired `roster.json`, `registry.json` and `app-index.md` is two
+SOURCES of one fact, which can disagree. `_label()` and the clock are each read
+exactly once per build; the two nodes SELECT from those values rather than
+recomputing them. They cannot drift, and the mutually exclusive media scoping
+means a reader always sees exactly one stamp.
 
 ⭐ WHY THE CORNER COPY MUST BE FIRST IN THE FLOW, WHICH IS THE WHOLE MECHANISM.
 An element appended at the END of the content cannot be moved to the TOP of sheet
@@ -118,15 +163,13 @@ Any AUTHOR `display` declaration beats a UA one, so `@media print { display:
 block }` reveals it on paper and nothing reveals it on screen. ⭐ That is what
 keeps this feature from touching a single screen stylesheet. ⚠️ It also drops the
 corner copy from the accessibility tree, which is CORRECT here -- the foot copy is
-the one a screen reader should find.
+the one a screen reader should find, and it now carries the detail too.
 
-⚠️ THE ICON IS NOT WIRED YET, AND THERE IS DELIBERATELY NO DEAD CSS FOR IT.
-`uritp-safety/90-media-logos/` holds `logo-horizontal.jpg` and `logo-square.jpg`,
-both already reachable as `@img:` targets with no engine change -- but Michael
-asked for a line-art SVG, which does not exist yet. When it does, the image lands
-as a print-scoped `background-image` on `.buildstamp--corner`. 🚫 NEVER an `<img>`:
-a `display: none` image is still FETCHED, ~168KB on every page load of a site
-whose readers mostly never print.
+⚠️ THE PRINTED LOGO IS NOT WIRED YET, AND THERE IS DELIBERATELY NO DEAD CSS FOR
+IT. `uritp-safety/90-media-logos/` holds `logo-horizontal.jpg` and
+`logo-square.jpg`, both already reachable as `@img:` targets with no engine change
+-- but Michael asked for a line-art SVG, which does not exist yet. When it does,
+the image lands as a print-scoped `background-image` on `.buildstamp--corner`.
 
 ⚠️ THE LABEL IS STILL COMPUTED ONCE PER BUILD, at `on_config`, and only the emit
 is per page. The inputs are three environment variables and a clock; reading them
@@ -146,6 +189,19 @@ import re
 
 _PR = re.compile(r"#(\d+)")
 
+#: The disclosure glyph: a filled disc with the mark knocked OUT of it, which is
+#: what `fill-rule="evenodd"` does to the two inner subpaths. One constant, so
+#: swapping the symbol is one edit and no CSS changes.
+#:
+#: ⚠️ `aria-hidden` IS LOAD-BEARING. The glyph carries no information a screen
+#: reader needs -- the popup text does -- and an unlabelled inline SVG otherwise
+#: reads as an unnamed graphic in the middle of the footer.
+_ICON = (
+    '<svg class="buildstamp__icon" viewBox="0 0 16 16" aria-hidden="true"'
+    ' focusable="false"><path fill-rule="evenodd" d="M8 0a8 8 0 100 16A8 8 0 008'
+    ' 0Zm0 3a1.2 1.2 0 110 2.4A1.2 1.2 0 018 3Zm-1.15 3.7h2.3v6.2h-2.3Z"/></svg>'
+)
+
 #: The two rendered elements, built once at `on_config`. See the docstring on why
 #: they carry different text and why that is still one claimant.
 _CORNER = ""
@@ -155,7 +211,8 @@ _FOOT = ""
 def _label() -> str:
     """`PR #16`, or a short SHA, or an honest admission.
 
-    ⚠️ SCREEN ONLY as of 2026-08-19. Nothing this returns reaches paper.
+    ⚠️ SCREEN ONLY as of 2026-08-19, and behind the disclosure as of the same
+    evening. Nothing this returns reaches paper.
     """
     subject = os.environ.get("DOCRENDER_COMMIT_SUBJECT", "").strip().splitlines()
     found = _PR.findall(subject[0]) if subject else []
@@ -182,13 +239,14 @@ def on_config(config):
     eastern = datetime.timezone(datetime.timedelta(hours=-4))
     when = datetime.datetime.now(datetime.timezone.utc).astimezone(eastern)
 
-    detail = "Deployed " + when.strftime("%d %b %Y, %H:%M ET")
+    # ⭐ THE POPUP PAYLOAD. The label leads, because "is this deploy current" is
+    # the question being asked; the rest is what you need once the answer is no.
+    detail = label + " · Deployed " + when.strftime("%d %b %Y, %H:%M ET")
     engine = os.environ.get("DOCRENDER_ENGINE_REF", "")
     if engine:
         detail += " · engine " + engine[:7]
     if sha:
         detail += " · content " + sha[:7]
-    safe_detail = html.escape(detail, quote=True)
 
     # The site name travels with both, because a printed sheet leaves the system
     # entirely and a bare date names nothing a reader can place.
@@ -199,17 +257,23 @@ def on_config(config):
     stamped = when.strftime("%d %b %Y")
     corner = (name + " · " + stamped) if name else stamped
 
-    # Screen keeps the build identifier, which is the question a collaborator is
-    # actually asking when they look at it.
-    foot = (name + " · " + label) if name else label
-
+    # ⚠️ NO `title` ON EITHER NODE. On the corner it was never readable (paper has
+    # no hover); on the foot it would draw a second tooltip over the popup below.
     _CORNER = (
-        '<p class="buildstamp buildstamp--corner" title="' + safe_detail + '" hidden>'
+        '<p class="buildstamp buildstamp--corner" hidden>'
         + html.escape(corner) + "</p>"
     )
+
+    # 🚫 A `<span>` WITH `tabindex`, NOT A BUTTON: there is nothing to activate.
+    # The popup is hidden with `opacity` rather than `display`, so it stays in the
+    # accessibility tree -- see the docstring.
     _FOOT = (
-        '<p class="buildstamp buildstamp--foot" title="' + safe_detail + '">'
-        + html.escape(foot) + "</p>"
+        '<p class="buildstamp buildstamp--foot">'
+        + (html.escape(name) if name else "")
+        + '<span class="buildstamp__debug" tabindex="0">'
+        + _ICON
+        + '<span class="buildstamp__pop">' + html.escape(detail) + "</span>"
+        + "</span></p>"
     )
 
     # 🚫 Deliberately NOT set. Material renders it inside the footer region, which
