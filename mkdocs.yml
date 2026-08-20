@@ -128,6 +128,30 @@ plugins:
 # worth naming because that token has no Python behind it at all: it is one
 # `break-before: page` rule in assets/print-flow.css, reached entirely through
 # this extension. Remove the line and the class silently stops arriving.
+#
+# 🔴 AND attr_list IS NOT A TOOLTIP MECHANISM, WHICH IS WORTH WRITING DOWN
+# BECAUSE IT LOOKS LIKE ONE (2026-08-19). `[text]{title="note"}` was tried live
+# on a real page and rendered nothing: attr_list accepts `.class`, `#id` and
+# `key=value` on a span, but the SPAN ITSELF only exists where an inline pattern
+# already produced an element -- and a bare `[bracketed phrase]` is not a link,
+# so there is no element for the attributes to attach to and the whole thing
+# stays literal text. ⚠️ THE TELL IS GENERAL: attr_list DECORATES an element,
+# it never CREATES one. Every working use in this engine is attached to
+# something that was already an element -- a heading, a fenced block, an image,
+# or a span emitted by markers.py.
+
+# ⭐ THREE EXTENSIONS ADDED 2026-08-19 ON MICHAEL'S REQUEST, and each one is a
+# SYNTAX only -- no hook, no stylesheet, no engine code. That is the whole
+# reason they were cheap enough to enable in one pass: nothing in docrender/
+# emits or consumes any of them, so the blast radius is content that renders
+# differently, never a build that breaks.
+#
+# 🔴 BUT ENABLING AN INLINE SYNTAX IS RETROACTIVE ACROSS EVERY CONTENT REPO, and
+# that is the risk to check rather than the config line. Text already written
+# that happens to contain the new punctuation starts rendering as MARKUP on the
+# next build, everywhere, with nothing reporting it. Same shape as adding a row
+# to theme/markers.tsv, which that file's own header warns "retroactively claims
+# every `{.name}` already written."
 markdown_extensions:
   - admonition
   - attr_list
@@ -140,6 +164,31 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+  # `~~strikethrough~~`. ⚠️ AND SINGLE `~text~` BECOMES SUBSCRIPT, which is the
+  # part nobody asks for and the only real hazard in this group: a lone tilde in
+  # existing prose now opens a subscript that closes at the next one. Rare in
+  # this content (paths and code are inside backticks, which are protected), so
+  # it ships as-is rather than with `smart_delete` tuning that would need its own
+  # verification.
+  - pymdownx.tilde
+  # `==highlight==`. ⚠️ UNSTYLED BY US ON PURPOSE: it emits `<mark>`, which the
+  # browser paints yellow by default and Material restyles to its own accent.
+  # A `--dr-` token version would need a stylesheet, and docrender/assets.py is
+  # OVER the ~22KB read ceiling, so a new sheet cannot be registered safely
+  # until that file is split. 🔴 NOT THE SAME THING AS `[text]{.hi}` -- that is a
+  # MARKER, it lands in the build report, and it means "flagged as worth your
+  # attention." `==this==` means nothing at all and is reported nowhere. Reach
+  # for the marker when the emphasis has a REASON.
+  - pymdownx.mark
+  # `- [ ]` / `- [x]` task lists. ⚠️ RENDERS AS A CHECKBOX, NOT A CONTROL --
+  # `custom_checkbox` is deliberately absent, so these are Material's plain
+  # disabled inputs. 🚫 AND ON A SAFETY SITE THAT DISTINCTION IS NOT COSMETIC: a
+  # rendered checkbox on a published policy page looks like something a reader
+  # can complete, and nothing on a static page can record that they did. The
+  # completion record is a FORM (`!!! form`, docrender/forms.py) and the
+  # authorization is a PROGRAM. Use these for a procedure somebody follows with
+  # a pencil, never as a pretend intake.
+  - pymdownx.tasklist
 
 # ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and six chains depend on it.
 #
