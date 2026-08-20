@@ -93,13 +93,12 @@ This repo has killed three manifests for that defect and then kept a fourth
 inside a function. One list now, derived, in the file that has to be right or
 nothing ships at all.
 
-⭐ IT HAS SILENTLY ABSORBED FIVE NEW SHEETS SINCE 2026-08-16 -- navtree, then
-print-flow, print-type, print-callout and print-space -- with no edit to
-tokenaudit.py in any of them. 🪦 FOUR PARAGRAPHS OF INDIVIDUAL PAYOFF ANECDOTES
-WERE TRIMMED TO THAT ONE SENTENCE ON 2026-08-19, to buy the bytes to register the
-fifth. **Four stories proving one rule is three stories too many, and the file
-being out of room to describe its own contents is the loudest possible argument
-for the trim.** Same call as print-type.css §6, one evening apart.
+⭐ IT HAS SILENTLY ABSORBED SIX NEW SHEETS SINCE 2026-08-16 -- navtree, then
+print-flow, print-type, print-callout, print-space and print-scheme -- with no
+edit to tokenaudit.py in any of them. 🪦 FOUR PARAGRAPHS OF INDIVIDUAL PAYOFF
+ANECDOTES WERE TRIMMED TO THAT ONE SENTENCE ON 2026-08-19. **Four stories proving
+one rule is three stories too many, and the file being out of room to describe
+its own contents is the loudest possible argument for the trim.**
 
 🔴 AND THE WARNING IN `hand_written_css()` FIRED FOR REAL ON 2026-08-19, which is
 better evidence than any of those anecdotes were. It said "adding a fourth group
@@ -187,64 +186,70 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: 🔴 LOADS AFTER THE GENERATED SHEETS, AND THAT IS THE ONLY REASON IT IS A
 #: SEPARATE GROUP RATHER THAN MORE ENTRIES IN `_DATA_ASSETS`.
 #:
-#: print.css re-points custom properties on `[data-md-color-scheme="slate"]`
-#: so that a reader in dark mode gets black ink on white paper. That is the
-#: SAME selector `tokens.css` writes, at the SAME specificity -- so the winner
-#: is decided purely by source order. Put this in `_DATA_ASSETS` and the
-#: generated sheet lands later and wins, the overrides die, and a dark-mode
-#: print comes out as pale grey ink on a background the browser drops. No
-#: error, no report, just a near-blank sheet.
+#: print-scheme.css re-points custom properties on `[data-md-color-scheme=
+#: "slate"]` so that a reader in dark mode gets black ink on white paper. That is
+#: the SAME selector `tokens.css` writes, at the SAME specificity -- so the winner
+#: is decided purely by source order. Put this group in `_DATA_ASSETS` and the
+#: generated sheet lands later and wins, the overrides die, and a dark-mode print
+#: comes out as pale grey ink on a background the browser drops. No error, no
+#: report, just a near-blank sheet.
+#:
+#: 🔴 AND THAT HAPPENED ANYWAY ON 2026-08-19 WITH THIS ORDER CORRECT, which is why
+#: those declarations now carry `!important`. A tie won on source order is the
+#: weakest guarantee in this engine; the full post-mortem is in print-scheme.css.
 #:
 #: It still loads BEFORE the instance's `site.css`, because a site keeps the
 #: final word on its own look and paper is no exception.
 #:
-#: FIVE FILES, FIVE JOBS, and each one answers exactly one question:
+#: SIX FILES, SIX JOBS, and each one answers exactly one question:
 #:
 #:   print.css          WHAT THE SHEET IS   -- @page, chrome off, the column
-#:                                             unrailing, the slate->light
-#:                                             neutrals, print-color-adjust,
+#:                                             unrailing, print-color-adjust,
 #:                                             code wrapping, link policy
 #:   print-flow.css     WHERE IT BREAKS     -- break-*, orphans/widows, h1-h6,
 #:                                             tab labels, forced-open
 #:                                             <details>, thead repetition,
 #:                                             {.new-page}
+#:   print-scheme.css   WHOSE INK IT IS     -- the dark-reader override, and the
+#:                                             only colour in the group
 #:   print-type.css     HOW BIG THE TYPE IS -- the dial, the ramp, weight,
 #:                                             tracking, link decoration
 #:   print-space.css    HOW MUCH AIR IS     -- block margins, list margins,
 #:                      BETWEEN THINGS         justification's word spaces
-#:   print-callout.css  WHAT THE BOX IS     -- the callout/details box: the rule
-#:                                             and indent, the icon, the
-#:                                             font-size anchor
+#:   print-callout.css  WHAT THE BOX IS     -- the rule and indent, the icon,
+#:                                             the font-size anchor
 #:
 #: ⭐ EVERY ONE OF THESE SPLITS WAS FORCED BY THE SAME 22KB CEILING, and each seam
 #: was already written in the header of the file that split -- the measured
 #: argument lives in the header of the file that RECEIVED the rules rather than
 #: being copied here. **A FILE AT ITS SIZE LIMIT IS USUALLY A FILE WITH A SEAM IN
-#: IT; trimming prose is what you do instead of finding the seam.**
-#:
-#: ✅ AND print-space.css IS THE FIRST ONE TAKEN ON A FORECAST RATHER THAN A
-#: COLLISION (2026-08-19). print.css and print-type.css both split after a write
-#: had already bounced off the limit; print-type.css was reported to Michael at
-#: 21,703 B with 825 B of headroom and he asked for the split before anything
-#: failed. That is what the size budget in hooks/08_sizecheck.py exists to buy and
-#: had never once been spent on.
+#: IT; trimming prose is what you do instead of finding the seam.** print-space
+#: was the first split taken on a FORECAST rather than a bounced write; print-
+#: scheme was the first taken after two measured trims both came back over.
 #:
 #: ⭐ AND THE ORDER *WITHIN* THIS GROUP IS GENUINELY FREE, stated out loud on the
 #: `_FEATURE_ASSETS` precedent above so nobody later defends a position that was
-#: never load-bearing. No two of these five share a selector-and-property PAIR --
+#: never load-bearing. No two of these six share a selector-and-property PAIR --
 #: `.md-typeset h1` is written in both print-type.css and print-space.css, but one
 #: sets size and weight while the other sets margins, and a cascade fight needs
 #: both halves to match. What is load-bearing is the GROUP's position.
 #:
+#: 🔴 WITH ONE PROVEN EXCEPTION, ADDED THE DAY IT BIT: print-space.css §9 justifies
+#: `.md-typeset p`, which MATCHES the corner buildstamp and beat print.css's
+#: `text-align: right` on SPECIFICITY rather than order. Fixed by narrowing §9.
+#: **The order is still free; what is not free is assuming two of our own files
+#: cannot collide.**
+#:
 #: ⚠️ IF THAT EVER STOPS BEING TRUE, THIS COMMENT IS THE THING THAT ROTS. Three
-#: likely ways now: print-type.css growing a `margin` on a heading it already
-#: sizes (print-space.css's header names this as the most likely of the three);
-#: print-type.css or print-space.css growing a rule print.css also sets; or
-#: print-callout.css and print-flow.css both reaching for `<details>` -- flow owns
-#: whether it is OPEN, callout owns what it LOOKS LIKE.
+#: likely ways: print-type.css growing a `margin` on a heading it already sizes
+#: (print-space.css's header names this as the likeliest); print-scheme.css
+#: growing a rule print.css also sets; or print-callout.css and print-flow.css
+#: both reaching for `<details>` -- flow owns whether it is OPEN, callout owns what
+#: it LOOKS LIKE.
 _PRINT_ASSETS = (
     "print.css",
     "print-flow.css",
+    "print-scheme.css",
     "print-type.css",
     "print-space.css",
     "print-callout.css",
@@ -383,9 +388,9 @@ def _plan(config) -> list[tuple[str, bytes]]:
     equal specificity -- see docrender/blocks.py for that whole argument.
 
     ⚠️ AND THE PRINT LAYERS COME AFTER ALL THREE FOR THE SAME CLASS OF REASON.
-    print.css overrides scheme-scoped custom properties that tokens.css also
-    writes, at equal specificity, so it wins on source order or it does not win
-    at all. See `_PRINT_ASSETS`.
+    print-scheme.css overrides scheme-scoped custom properties that tokens.css
+    also writes, at equal specificity, so it wins on source order or it does not
+    win at all. See `_PRINT_ASSETS`.
 
     ⚠️ AND THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the
     only thing keeping navtree.js ahead of router.js. See `_FEATURE_ASSETS`.
