@@ -111,7 +111,8 @@ aliases: [safety, uritp-safety-docs, "URITP Safety"]
 #
 # Testing an alternative costs nothing and writes nothing to disk: the `theme`
 # input on the publish workflow overrides this for ONE build.
-# theme: database
+
+theme: uritp-safety
 
 # theme: sharp-utility
 # theme: eos
@@ -125,7 +126,7 @@ aliases: [safety, uritp-safety-docs, "URITP Safety"]
 # theme: sharp-carbon
 # theme: database
 # theme: on-track
-theme: eos
+# theme: eos
 # theme: f1-racetracks
 # theme: papyrus
 # theme: uritp
