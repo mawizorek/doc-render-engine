@@ -97,8 +97,7 @@ nothing ships at all.
 to tokenaudit.py in any of the seven events -- and the retirement is the better
 evidence, because a derived list is the only kind that shrinks correctly.
 🪦 FOUR PARAGRAPHS OF PAYOFF ANECDOTES WERE TRIMMED TO THAT SENTENCE ON
-2026-08-19. **Four stories proving one rule is three too many, and this file
-being out of room to describe its own contents is the argument for the trim.**
+2026-08-19. **Four stories proving one rule is three too many.**
 
 🔴 AND THE WARNING IN `hand_written_css()` FIRED FOR REAL ON 2026-08-19, which is
 better evidence than any of those anecdotes were. It said "adding a fourth group
@@ -111,14 +110,14 @@ It is a separate group only because of WHERE it loads (see below), not because i
 is a different kind of thing -- and `hand_written_css()` derives from all four
 groups so the audit cannot go stale the way it did in 2026-08-04.
 
-🚩 AND THIS DOCSTRING IS THE REASON THE FILE HAS NO ROOM. Four writes bounced off
-the 22KB limit here on 2026-08-19, one of them a "trim" that came back LARGER
-because it replaced prose with commentary about trimming prose. The seam is real
-and is not taken: **REGISTRY** (the four tuples + `hand_written_css`, which is
-where every argument above lives) and **PUBLISHER** (`_fingerprint`, `_stamped`,
-`_plan`, `on_config`, `on_files`, `_uses_router`). What ships, and how it ships.
-It moves the hook's import surface, so it is Michael's call -- and the next asset
-added to this engine forces it.
+🚩 AND THIS DOCSTRING IS WHY THE FILE HAS NO ROOM. SIX writes bounced off the 22KB
+limit here on 2026-08-19 and TWO of them were "trims" that came back LARGER,
+because each replaced prose with commentary about replacing prose. The seam is
+real and is not taken: **REGISTRY** (the four tuples + `hand_written_css`, where
+every argument above lives) and **PUBLISHER** (`_fingerprint`, `_stamped`,
+`_plan`, the two events, `_uses_router`). What ships, and how it ships. It moves
+the hook's import surface, so it is Michael's call -- and it is now the only
+remaining way to add a line to this file.
 """
 
 from __future__ import annotations
@@ -195,7 +194,7 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: 🔴 LOADS AFTER THE GENERATED SHEETS, AND THAT IS THE ONLY REASON IT IS A
 #: SEPARATE GROUP RATHER THAN MORE ENTRIES IN `_DATA_ASSETS`.
 #:
-#: The print sheets override Material rules and scheme-scoped properties that
+#: These sheets override Material rules and scheme-scoped properties that
 #: `tokens.css` and `blocks.css` also write, at equal specificity -- so they win on
 #: source order or they do not win at all. Put this group in `_DATA_ASSETS` and the
 #: generated sheets land later, the overrides die silently, and paper comes out
@@ -207,9 +206,8 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: 🪦 NO SHEET HERE CARRIES A COLOUR (2026-08-19). `print-scheme.css` forced
 #: hardcoded greys onto a dark reader's tokens with `!important`; theme.py now
 #: emits the theme's OWN light row inside `@media print`, so paper is
-#: vector-aware. The tombstone is UNREGISTERED -- **a file in assets/ absent from
-#: these tuples is never published and does nothing whatsoever**, which is what
-#: made the retirement one line.
+#: vector-aware. Its tombstone is UNREGISTERED -- **a file in assets/ absent from
+#: these tuples is never published and does nothing whatsoever.**
 #:
 #: FIVE FILES, FIVE JOBS, and each one answers exactly one question:
 #:
@@ -396,10 +394,9 @@ def _plan(config) -> list[tuple[str, bytes]]:
     they override Material rules and scheme-scoped properties the generated
     sheets also write, at equal specificity. See `_PRINT_ASSETS`.
 
-    ⭐ THE PAPER PALETTE IS THE EXCEPTION AND IS NOT IN THAT GROUP AT ALL -- it is
-    emitted INSIDE `tokens.css` by theme.py, after the scheme block it corrects.
-    An intra-file order is deterministic in a way a cross-sheet tie is not, which
-    is the whole reason it lives there.
+    ⭐ THE PAPER PALETTE IS THE EXCEPTION AND IS NOT IN THAT GROUP -- theme.py
+    emits it INSIDE `tokens.css`, after the scheme block it corrects. An
+    intra-file order is deterministic where a cross-sheet tie is not.
 
     ⚠️ AND THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the
     only thing keeping navtree.js ahead of router.js. See `_FEATURE_ASSETS`.
