@@ -23,6 +23,12 @@ ONCE, IN :root (the three scheme-independent vectors):
   7. canonical spacing        6 entities
   8. the BRIDGE               --dr-data-pad: var(--dr-pad-cell), and three more
 
+ONCE MORE, IN `@media print` (2026-08-19):
+
+  9. THE PAPER BLOCK          the LIGHT colour row, re-emitted onto the SLATE
+                              selector, so a dark-mode reader prints the theme's
+                              own light palette. See THE PAPER BLOCK below.
+
 ORDER IS LOAD-BEARING IN BOTH BLOCKS AND ITS FAILURE MODE IS SILENCE. Later
 declarations win at equal specificity, so the aliases and the bridge MUST come
 last -- put either anywhere else and the local value quietly survives while every
@@ -34,6 +40,62 @@ model; the bridge points a SEMANTIC token at a canonical PRIMITIVE. Every one of
 them keeps the consumer's own vocabulary and moves only where the value comes
 from -- which is why no stylesheet had to be found-and-replaced, and therefore
 why none of them could be missed.
+
+=============================================================================
+🔴 THE PAPER BLOCK -- WHY IT IS NOT `@media screen` AROUND THE SLATE BLOCK
+=============================================================================
+> Michael, 2026-08-19, on being told the fix was to copy Material: *"go, if it's
+> the right way to do it -- will it still be aware of the theme choices I've made
+> in the vectors at all then?"*
+
+✅ THAT QUESTION KILLED THE PLANNED IMPLEMENTATION, AND IT WAS RIGHT TO. Material
+wraps its ENTIRE slate scheme in `@media screen` (`palette/_scheme.scss`, commented
+*"Only use dark mode on screens"*), and the plan was to copy that here. **It does
+not transfer, and copying it would have printed a page with no colour at all.**
+
+The difference is structural. Material declares its light values UNSCOPED, so
+silencing slate on paper leaves the defaults standing. This file declares BOTH
+schemes scoped -- `[data-md-color-scheme="slate"]` and `[...="default"]` -- and
+nothing unscoped. A dark reader's body carries `slate`, so the `default` block
+never matches them. ⚑ **Silencing slate on paper would leave every `--dr-*` token
+UNDEFINED for exactly the reader the fix was for**, and `var(--dr-ink)` with no
+fallback collapses to nothing. Not a wrong colour: no colour.
+
+⭐ SO PAPER TAKES THE LIGHT ROW INSTEAD, WHICH IS THE ANSWER TO HIS ACTUAL
+QUESTION. The paper block is the theme's OWN light palette -- `database` resolves
+to `mercedes-light`, `eos` to `eos-light` -- read from the same vector, through the
+same resolver, as the light-mode screen block. Nothing is hardcoded and nothing is
+invented. **A print from dark mode now produces the same sheet as a print from
+light mode, which is the one Michael had already approved.**
+
+🪦 AND IT RETIRES `assets/print-scheme.css`, WHICH WAS MINE AND WAS WORSE. That
+sheet forced seven `--dr-*` tokens and nine Material variables to hardcoded greys
+with `!important`. It worked, and it had two costs this does not:
+
+  • IT IGNORED THE VECTOR ENTIRELY. `#ffffff` and `#111111` are not any theme's
+    values, so a bespoke palette printed as generic greys.
+  • 🔴 IT BUILT A PALETTE NOBODY AUTHORED. It replaced the NEUTRALS and left the
+    SEMANTICS dark, so a printed callout border was a dark-row colour sitting on
+    forced-white paper -- a mix that exists in no row of any table. The light row
+    is a set somebody designed as a set.
+
+⚠️ AND IT IS AN INTRA-FILE ORDER NOW, WHICH IS THE REAL GUARANTEE. The old sheet
+needed `!important` because nobody could explain why a cross-sheet tie against
+`tokens.css` had lost. This block is IN tokens.css, after the slate block, at equal
+specificity -- later-in-file wins, deterministically, with no second file involved
+and no `!important` anywhere. **The class of failure is removed rather than
+outgunned.**
+
+🚫 WHAT IT DELIBERATELY DOES NOT DO: compensate for the semantic-token defect
+`print.css` documents. On 16 of 19 canonical pairs `good`/`warn`/`bad`/`info` are
+BYTE-IDENTICAL between the dark and light rows, so those print unchanged and print
+remains the surface where that shows worst. The fix belongs in the light rows of
+`canonical/colors.tsv`, and hiding it here is what would make it permanent.
+
+⚠️ THE THREE SCHEME-INDEPENDENT VECTORS ARE UNTOUCHED BY ALL OF THIS. Typography,
+forms and spacing are emitted once in `:root` and are not scheme-scoped, so the
+face, the sizes, the tracking and the spacing on paper are already exactly what
+the vector declares. Only COLOUR ever needed a medium.
 
 =============================================================================
 🔴 THIS FUNCTION RUNS TWO OR THREE TIMES PER BUILD. DO NOT REPORT FROM IT.
@@ -54,7 +116,8 @@ choice: the bridge note, the two per-scheme theme lines and the contrast failure
 all print two or three times. They are inventory rather than alarms, so it has
 never been worth a fourth copy of the `report=False` flag markers.py and
 blocks.py both carry. If you add a NEW report here, that flag is the price --
-or better, put the report where the question is asked once.
+or better, put the report where the question is asked once. ✅ THE PAPER BLOCK
+ADDS NO REPORT, deliberately, for exactly that reason.
 
 WARNING: STILL NOT EVERYTHING GOVERNED. `elev-1/2/3`, the motion set and `lift`
 have NO consumer anywhere in this engine's CSS. Section 4 of the token audit page
@@ -76,6 +139,14 @@ _SCHEMES = (
     ("dark", '[data-md-color-scheme="slate"]'),
     ("light", '[data-md-color-scheme="default"]'),
 )
+
+#: 🔴 THE ONE SCHEME PAPER IS EVER ALLOWED TO WEAR, and the selector it has to be
+#: painted ONTO. Paper is always a light ground, so a reader in either scheme gets
+#: the light row -- `default` already does, and `slate` is corrected below.
+#: Named as constants rather than written inline so the pair cannot drift from
+#: `_SCHEMES` above without somebody noticing this comment.
+_PAPER_SCHEME = "light"
+_PAPER_SELECTOR = _SCHEMES[0][1]
 
 #: The scheme that supplies the three scheme-independent vectors. Same value
 #: vectors.PRIMARY uses to decide which slot takes a join's `alt-color`, and
@@ -130,6 +201,38 @@ def _local_color(themes: tuple[str, ...], scheme: str) -> list[tuple[str, str]]:
         value = (row.get(scheme) or "").strip()
         if token and value:
             decls.append(("--dr-" + token, value))
+    return decls
+
+
+def _scheme_decls(got: dict, scheme: str) -> list[tuple[str, str]]:
+    """Every colour declaration for one resolved scheme, in emit order.
+
+    ⭐ EXTRACTED 2026-08-19 SO THE PAPER BLOCK CANNOT DRIFT FROM THE SCREEN ONES.
+    This was inline in `build_css`, and the paper block needs byte-identical
+    construction -- local base, then the canonical row, then the aliases LAST.
+    Copying those four steps would have been a second claimant on the emit order,
+    which is the defect this repo has retired three manifests over. One function,
+    three call sites.
+
+    ⚠️ THE ORDER INSIDE HERE IS THE LOAD-BEARING PART. See the module docstring:
+    the aliases must come last or the local value quietly survives.
+    """
+    row = got["colorRow"]
+    if not row:
+        # No join, or a theme canonical has never heard of. The local nine-token
+        # table is the whole palette, and it has its own per-scheme columns.
+        return _local_color(("base", got["color"]), scheme)
+
+    # Local `base` FIRST, for one reason: it carries `dead`. The local rows for
+    # the CHOSEN theme are skipped -- emitting a value that is guaranteed to be
+    # overwritten reads, in a diff, like a decision.
+    decls = _local_color(("base",), scheme)
+    decls += _color_decls(row)
+    # LAST. See the ordering note in the module docstring.
+    decls += [
+        ("--dr-" + local, "var(--dr-" + canon + ")")
+        for local, canon in _pairs("aliases.tsv")
+    ]
     return decls
 
 
@@ -239,24 +342,7 @@ def build_css() -> str:
     ]
 
     for scheme, selector in _SCHEMES:
-        got = picked[scheme]
-        row = got["colorRow"]
-        decls: list[tuple[str, str]] = []
-
-        if row:
-            # Local `base` FIRST, for one reason: it carries `dead`. The local
-            # rows for the CHOSEN theme are skipped -- emitting a value that is
-            # guaranteed to be overwritten reads, in a diff, like a decision.
-            decls += _local_color(("base",), scheme)
-            decls += _color_decls(row)
-            # LAST. See the ordering note in the module docstring.
-            decls += [
-                ("--dr-" + local, "var(--dr-" + canon + ")")
-                for local, canon in _pairs("aliases.tsv")
-            ]
-        else:
-            decls += _local_color(("base", got["color"]), scheme)
-
+        decls = _scheme_decls(picked[scheme], scheme)
         if decls:
             lines.append(selector + " {")
             lines.extend(
@@ -269,6 +355,21 @@ def build_css() -> str:
     if shared:
         lines.append(":root {")
         lines.extend(shared)
+        lines.append("}")
+
+    # 🔴 THE PAPER BLOCK. A dark-mode reader gets the theme's own LIGHT row on
+    # paper -- same vector, same resolver, same emit order as the screen blocks.
+    # See the module docstring for why this is not `@media screen` around slate,
+    # and why it needs no `!important`: it is LATER IN THIS FILE than the block it
+    # corrects, at equal specificity, with no second sheet involved.
+    paper = _scheme_decls(picked[_PAPER_SCHEME], _PAPER_SCHEME)
+    if paper:
+        lines.append("@media print {")
+        lines.append("  " + _PAPER_SELECTOR + " {")
+        lines.extend(
+            "    " + name + ": " + value + ";" for name, value in paper
+        )
+        lines.append("  }")
         lines.append("}")
 
     for scheme, got in picked.items():
