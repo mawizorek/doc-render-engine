@@ -220,13 +220,10 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #:                                             the font-size anchor
 #:
 #: ⭐ EVERY ONE OF THESE SPLITS WAS FORCED BY THE SAME 22KB CEILING, and each seam
-#: was already written in the header of the file that split. **A FILE AT ITS SIZE
-#: LIMIT IS USUALLY A FILE WITH A SEAM IN IT; trimming prose is what you do
-#: instead of finding the seam.** 🪦 The measured argument for each split lives in
-#: the header of the file that RECEIVED the rules -- a summary here would be a
-#: second claimant on it, and one was cut from this spot on 2026-08-19 when this
-#: file came back 68 B over the read limit. *The sentence above had just finished
-#: saying not to copy them.*
+#: was already written in the header of the file that split -- which is also where
+#: the measured argument for it lives, rather than being summarised here. **A FILE
+#: AT ITS SIZE LIMIT IS USUALLY A FILE WITH A SEAM IN IT; trimming prose is what
+#: you do instead of finding the seam.**
 #:
 #: ⭐ AND THE ORDER *WITHIN* THIS GROUP IS GENUINELY FREE, stated out loud on the
 #: `_FEATURE_ASSETS` precedent above so nobody later defends a position that was
