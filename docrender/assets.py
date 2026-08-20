@@ -93,12 +93,11 @@ This repo has killed three manifests for that defect and then kept a fourth
 inside a function. One list now, derived, in the file that has to be right or
 nothing ships at all.
 
-⭐ IT HAS SILENTLY ABSORBED SIX NEW SHEETS SINCE 2026-08-16 -- navtree, then
-print-flow, print-type, print-callout, print-space and print-scheme -- with no
-edit to tokenaudit.py in any of them. 🪦 FOUR PARAGRAPHS OF INDIVIDUAL PAYOFF
-ANECDOTES WERE TRIMMED TO THAT ONE SENTENCE ON 2026-08-19. **Four stories proving
-one rule is three stories too many, and the file being out of room to describe
-its own contents is the loudest possible argument for the trim.**
+⭐ IT HAS ABSORBED SEVEN NEW SHEETS SINCE 2026-08-16 AND RETIRED ONE, with no
+edit to tokenaudit.py in any of the eight events -- and the RETIREMENT is the
+better evidence, because a derived list is the only kind that shrinks correctly.
+🪦 FOUR PARAGRAPHS OF PAYOFF ANECDOTES WERE TRIMMED TO THAT SENTENCE ON
+2026-08-19. **Four stories proving one rule is three too many.**
 
 🔴 AND THE WARNING IN `hand_written_css()` FIRED FOR REAL ON 2026-08-19, which is
 better evidence than any of those anecdotes were. It said "adding a fourth group
@@ -138,6 +137,8 @@ _ROUTER_KEYS = ("router:", "router_code:")
 #:                  width and was found from a screenshot.
 #:   type.css       overrides Material's heading rules, so also after the base
 #:                  mapping.
+#:   foot.css       the page foot -- .pagefoot, footer chrome, the build stamp.
+#:                  Position free; must follow base.css, which maps --md-footer-*.
 #:   data.css       the table layer, itself split out of base.css
 #:   data-list.css  overrides table rules inside a container query, so it loads
 #:                  after the rules it overrides
@@ -149,6 +150,7 @@ _DATA_ASSETS = (
     "chrome.css",
     "nav.css",
     "type.css",
+    "foot.css",
     "data.css",
     "data-list.css",
     "data.js",
@@ -186,22 +188,20 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: 🔴 LOADS AFTER THE GENERATED SHEETS, AND THAT IS THE ONLY REASON IT IS A
 #: SEPARATE GROUP RATHER THAN MORE ENTRIES IN `_DATA_ASSETS`.
 #:
-#: print-scheme.css re-points custom properties on `[data-md-color-scheme=
-#: "slate"]` so that a reader in dark mode gets black ink on white paper. That is
-#: the SAME selector `tokens.css` writes, at the SAME specificity -- so the winner
-#: is decided purely by source order. Put this group in `_DATA_ASSETS` and the
-#: generated sheet lands later and wins, the overrides die, and a dark-mode print
-#: comes out as pale grey ink on a background the browser drops. No error, no
-#: report, just a near-blank sheet.
-#:
-#: 🔴 AND THAT HAPPENED ANYWAY ON 2026-08-19 WITH THIS ORDER CORRECT, which is why
-#: those declarations now carry `!important`. A tie won on source order is the
-#: weakest guarantee in this engine; the full post-mortem is in print-scheme.css.
+#: These sheets override Material rules and scheme-scoped properties that
+#: `tokens.css` and `blocks.css` also write, at equal specificity -- so they win on
+#: source order or they do not win at all. Put this group in `_DATA_ASSETS` and the
+#: generated sheets land later, the overrides die silently, and paper comes out
+#: wrong with no error and no report.
 #:
 #: It still loads BEFORE the instance's `site.css`, because a site keeps the
 #: final word on its own look and paper is no exception.
 #:
-#: SIX FILES, SIX JOBS, and each one answers exactly one question:
+#: 🪦 `print-scheme.css` IS UNREGISTERED (2026-08-19), a comment-only tombstone on
+#: disk: theme.py emits the paper palette inside tokens.css instead. **A file in
+#: assets/ absent from these tuples is never published and does nothing.**
+#:
+#: FIVE FILES, FIVE JOBS, and each one answers exactly one question:
 #:
 #:   print.css          WHAT THE SHEET IS   -- @page, chrome off, the column
 #:                                             unrailing, print-color-adjust,
@@ -210,12 +210,10 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #:                                             tab labels, forced-open
 #:                                             <details>, thead repetition,
 #:                                             {.new-page}
-#:   print-scheme.css   WHOSE INK IT IS     -- the dark-reader override, and the
-#:                                             only colour in the group
 #:   print-type.css     HOW BIG THE TYPE IS -- the dial, the ramp, weight,
 #:                                             tracking, link decoration
 #:   print-space.css    HOW MUCH AIR IS     -- block margins, list margins,
-#:                      BETWEEN THINGS         justification's word spaces
+#:                      BETWEEN THINGS         justification, the tabbed set
 #:   print-callout.css  WHAT THE BOX IS     -- the rule and indent, the icon,
 #:                                             the font-size anchor
 #:
@@ -227,7 +225,7 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #:
 #: ⭐ AND THE ORDER *WITHIN* THIS GROUP IS GENUINELY FREE, stated out loud on the
 #: `_FEATURE_ASSETS` precedent above so nobody later defends a position that was
-#: never load-bearing. No two of these six share a selector-and-property PAIR --
+#: never load-bearing. No two of these five share a selector-and-property PAIR --
 #: `.md-typeset h1` is written in both print-type.css and print-space.css, but one
 #: sets size and weight while the other sets margins, and a cascade fight needs
 #: both halves to match. What is load-bearing is the GROUP's position.
@@ -238,16 +236,14 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: **The order is still free; what is not free is assuming two of our own files
 #: cannot collide.**
 #:
-#: ⚠️ IF THAT EVER STOPS BEING TRUE, THIS COMMENT IS THE THING THAT ROTS. Three
+#: ⚠️ IF THAT EVER STOPS BEING TRUE, THIS COMMENT IS THE THING THAT ROTS. Two
 #: likely ways: print-type.css growing a `margin` on a heading it already sizes
-#: (print-space.css's header names this as the likeliest); print-scheme.css
-#: growing a rule print.css also sets; or print-callout.css and print-flow.css
-#: both reaching for `<details>` -- flow owns whether it is OPEN, callout owns what
-#: it LOOKS LIKE.
+#: (print-space.css's header names this as the likeliest); or print-callout.css and
+#: print-flow.css both reaching for `<details>` -- flow owns whether it is OPEN,
+#: callout owns what it LOOKS LIKE.
 _PRINT_ASSETS = (
     "print.css",
     "print-flow.css",
-    "print-scheme.css",
     "print-type.css",
     "print-space.css",
     "print-callout.css",
@@ -289,7 +285,8 @@ def hand_written_css() -> tuple[str, ...]:
     person has to reason about whether or not this particular site links it.
 
     Generated sheets are NOT here -- they have no file on disk, and the audit
-    builds them itself.
+    builds them itself. ⚠️ Nor are UNREGISTERED tombstones: `print-scheme.css` is
+    on disk, absent from every tuple, and correctly invisible to the audit.
 
     ⚠️ ALL FOUR GROUPS ARE WALKED. Adding a fifth group and forgetting it here is
     precisely how the old hardcoded tuple in tokenaudit.py went stale within two
@@ -368,11 +365,11 @@ def _plan(config) -> list[tuple[str, bytes]]:
     """Every asset this build publishes, in load order, with its bytes.
 
     Built by both events -- `on_config` needs the URLs, `on_files` needs the
-    content -- and they must never disagree. Order: base, the chrome, nav and
-    type layers, the data-table layers (see `_DATA_ASSETS`), then the generated
-    sheets, THEN the print layers, then the flow layer, then any feature sheet,
-    then the instance sheet LAST so a site always has the final word on its own
-    look.
+    content -- and they must never disagree. Order: base, the chrome, nav, type
+    and foot layers, the data-table layers (see `_DATA_ASSETS`), then the
+    generated sheets, THEN the print layers, then the flow layer, then any
+    feature sheet, then the instance sheet LAST so a site always has the final
+    word on its own look.
 
     THE THREE GENERATED SHEETS ARE ORDERED BY WHAT THEY CONSUME:
 
@@ -385,10 +382,13 @@ def _plan(config) -> list[tuple[str, bytes]]:
     Material's own admonition flavour rules, which it does on source order at
     equal specificity -- see docrender/blocks.py for that whole argument.
 
-    ⚠️ AND THE PRINT LAYERS COME AFTER ALL THREE FOR THE SAME CLASS OF REASON.
-    print-scheme.css overrides scheme-scoped custom properties that tokens.css
-    also writes, at equal specificity, so it wins on source order or it does not
-    win at all. See `_PRINT_ASSETS`.
+    ⚠️ AND THE PRINT LAYERS COME AFTER ALL THREE FOR THE SAME CLASS OF REASON:
+    they override Material rules and scheme-scoped properties the generated
+    sheets also write, at equal specificity. See `_PRINT_ASSETS`.
+
+    ⭐ THE PAPER PALETTE IS THE EXCEPTION AND IS NOT IN THAT GROUP -- theme.py
+    emits it INSIDE `tokens.css`, after the scheme block it corrects. An
+    intra-file order is deterministic where a cross-sheet tie is not.
 
     ⚠️ AND THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the
     only thing keeping navtree.js ahead of router.js. See `_FEATURE_ASSETS`.
