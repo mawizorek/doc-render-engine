@@ -60,13 +60,13 @@ ONE (2026-08-19). `chain:` and `forms:` ARE frontmatter keys, so unlike `!!! dat
 the router's scan trick genuinely would transfer here -- which makes this the
 first asset group that was gateable and was left ungated on purpose. Two reasons,
 both honest: a second cached scan is more code and one more thing that can answer
-wrong, and `flow.css` is ~8.5KB of `.dr-flow*` rules that match nothing at all on
-a site with no chains. ⭐ AND THE CONSEQUENCE OF A WRONG ANSWER IS WORSE HERE
-THAN ANYWHERE ELSE IN THIS FILE: with `hide: footer` on program pages the flow
-strip is the ONLY navigation on the page, so a gate that answered False by
-mistake would ship an unstyled strip as a site's sole means of moving -- the
-exact failure Michael reported in words on 2026-08-19 ("all this other foot
-matter"), arrived at by a clever optimisation instead of a missing file.
+wrong, and `flow.css` is `.dr-flow*` rules that match nothing at all on a site
+with no chains. ⭐ AND THE CONSEQUENCE OF A WRONG ANSWER IS WORSE HERE THAN
+ANYWHERE ELSE IN THIS FILE: with `hide: footer` on program pages the flow strip is
+the ONLY navigation on the page, so a gate that answered False by mistake would
+ship an unstyled strip as a site's sole means of moving -- the exact failure
+Michael reported in words on 2026-08-19 ("all this other foot matter"), arrived at
+by a clever optimisation instead of a missing file.
 
 =============================================================================
 ⚠️ EVERY ASSET URL CARRIES A CONTENT FINGERPRINT
@@ -93,28 +93,22 @@ This repo has killed three manifests for that defect and then kept a fourth
 inside a function. One list now, derived, in the file that has to be right or
 nothing ships at all.
 
-⭐ AND IT PAID OFF ON 2026-08-16, WHICH IS WORTH RECORDING BECAUSE THE PAYOFF IS
-USUALLY INVISIBLE. `navtree.css` and `navtree.js` were split out of the router
-pair that day and added to `_FEATURE_ASSETS`; the audit picked up the new sheet
-with no edit anywhere. The 08-04 version of this repo would have under-reported
-for exactly as long as nobody looked.
+⭐ IT HAS SILENTLY ABSORBED FIVE NEW SHEETS SINCE 2026-08-16 -- navtree, then
+print-flow, print-type, print-callout and print-space -- with no edit to
+tokenaudit.py in any of them. 🪦 FOUR PARAGRAPHS OF INDIVIDUAL PAYOFF ANECDOTES
+WERE TRIMMED TO THAT ONE SENTENCE ON 2026-08-19, to buy the bytes to register the
+fifth. **Four stories proving one rule is three stories too many, and the file
+being out of room to describe its own contents is the loudest possible argument
+for the trim.** Same call as print-type.css §6, one evening apart.
 
-⭐ AND THREE MORE TIMES ON 2026-08-19, WHICH MAKES IT A PATTERN RATHER THAN AN
-ANECDOTE. `print-flow.css` split out of `print.css`, `print-type.css` arrived
-beside it hours later, and `print-callout.css` split out of THAT the same night.
-All three entered the audit's scan with no second edit. Three days, four
-additions, zero staleness -- exactly the cost the old hardcoded tuple charged.
-
-🔴 AND ON 2026-08-19 THE WARNING BELOW FIRED FOR REAL, WHICH IS BETTER EVIDENCE
-THAN ANY OF THE FOUR ABOVE. `_FLOW_ASSETS` is the FOURTH group, and the
-function's own note -- "adding a fourth group and forgetting it here is
-precisely how the old hardcoded tuple went stale" -- was written before any
-fourth group existed. It was read, and the group was added to the walk in the
-SAME commit. A warning aimed at a hypothetical turned out to be aimed at
-something real, four days later.
+🔴 AND THE WARNING IN `hand_written_css()` FIRED FOR REAL ON 2026-08-19, which is
+better evidence than any of those anecdotes were. It said "adding a fourth group
+and forgetting it here is precisely how the old hardcoded tuple went stale" --
+written before any fourth group existed. `_FLOW_ASSETS` became the fourth, the
+line was read, and the group joined the walk in the SAME commit.
 
 ⚠️ THAT IS ALSO WHY `_PRINT_ASSETS` IS A CONSTANT AND NOT A LITERAL IN `_plan()`.
-It is a third group only because of WHERE it loads (see below), not because it
+It is a separate group only because of WHERE it loads (see below), not because it
 is a different kind of thing -- and `hand_written_css()` derives from all four
 groups so the audit cannot go stale the way it did in 2026-08-04.
 """
@@ -204,46 +198,55 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: It still loads BEFORE the instance's `site.css`, because a site keeps the
 #: final word on its own look and paper is no exception.
 #:
-#: FOUR FILES, FOUR JOBS, and each one answers exactly one question:
+#: FIVE FILES, FIVE JOBS, and each one answers exactly one question:
 #:
-#:   print.css          WHAT THE SHEET IS  -- @page, chrome off, the column
-#:                                            unrailing, the slate->light
-#:                                            neutrals, print-color-adjust,
-#:                                            code wrapping, link policy
-#:   print-flow.css     WHERE IT BREAKS    -- break-*, orphans/widows, h1-h6,
-#:                                            tab labels, forced-open
-#:                                            <details>, thead repetition,
-#:                                            {.new-page}
-#:   print-type.css     HOW IT IS SET      -- leading, block and list spacing
-#:   print-callout.css  WHAT THE BOX IS    -- the callout/details box: metrics,
-#:                                            the de-tinted title wash, the
-#:                                            dropped chevron, the font-size
-#:                                            anchor
+#:   print.css          WHAT THE SHEET IS   -- @page, chrome off, the column
+#:                                             unrailing, the slate->light
+#:                                             neutrals, print-color-adjust,
+#:                                             code wrapping, link policy
+#:   print-flow.css     WHERE IT BREAKS     -- break-*, orphans/widows, h1-h6,
+#:                                             tab labels, forced-open
+#:                                             <details>, thead repetition,
+#:                                             {.new-page}
+#:   print-type.css     HOW BIG THE TYPE IS -- the dial, the ramp, weight,
+#:                                             tracking, link decoration
+#:   print-space.css    HOW MUCH AIR IS     -- block margins, list margins,
+#:                      BETWEEN THINGS         justification's word spaces
+#:   print-callout.css  WHAT THE BOX IS     -- the callout/details box: the rule
+#:                                             and indent, the icon, the
+#:                                             font-size anchor
 #:
-#: EVERY ONE OF THESE SPLITS WAS FORCED BY THE SAME 22KB CEILING, and each seam
-#: was already written in the header of the file that split. print.css hit
-#: 22,844 B; print-type.css hit 24,466 B carrying the callout anchor, and was
-#: still 23,447 B after its §6 post-mortem was cut to a pointer. ⭐ A FILE AT ITS
-#: SIZE LIMIT IS USUALLY A FILE WITH A SEAM IN IT -- trimming prose is what you
-#: do instead of finding the seam. The measured argument lives in
-#: print-callout.css's own header rather than being copied here.
+#: ⭐ EVERY ONE OF THESE SPLITS WAS FORCED BY THE SAME 22KB CEILING, and each seam
+#: was already written in the header of the file that split -- the measured
+#: argument lives in the header of the file that RECEIVED the rules rather than
+#: being copied here. **A FILE AT ITS SIZE LIMIT IS USUALLY A FILE WITH A SEAM IN
+#: IT; trimming prose is what you do instead of finding the seam.**
+#:
+#: ✅ AND print-space.css IS THE FIRST ONE TAKEN ON A FORECAST RATHER THAN A
+#: COLLISION (2026-08-19). print.css and print-type.css both split after a write
+#: had already bounced off the limit; print-type.css was reported to Michael at
+#: 21,703 B with 825 B of headroom and he asked for the split before anything
+#: failed. That is what the size budget in hooks/08_sizecheck.py exists to buy and
+#: had never once been spent on.
 #:
 #: ⭐ AND THE ORDER *WITHIN* THIS GROUP IS GENUINELY FREE, stated out loud on the
 #: `_FEATURE_ASSETS` precedent above so nobody later defends a position that was
-#: never load-bearing. No two of these four share a selector-and-property pair,
-#: so none can win or lose a tie against another. What is load-bearing is the
-#: GROUP's position, and all four inherit it.
+#: never load-bearing. No two of these five share a selector-and-property PAIR --
+#: `.md-typeset h1` is written in both print-type.css and print-space.css, but one
+#: sets size and weight while the other sets margins, and a cascade fight needs
+#: both halves to match. What is load-bearing is the GROUP's position.
 #:
-#: ⚠️ IF THAT EVER STOPS BEING TRUE, THIS COMMENT IS THE THING THAT ROTS. Two
-#: likely ways now rather than one: print-type.css growing a rule print.css also
-#: sets (it sets `line-height` and margins today and print.css sets neither), or
-#: print-callout.css and print-flow.css both reaching for `<details>` -- flow
-#: owns whether it is OPEN, callout owns what it LOOKS LIKE, and that boundary is
-#: the one to keep watching.
+#: ⚠️ IF THAT EVER STOPS BEING TRUE, THIS COMMENT IS THE THING THAT ROTS. Three
+#: likely ways now: print-type.css growing a `margin` on a heading it already
+#: sizes (print-space.css's header names this as the most likely of the three);
+#: print-type.css or print-space.css growing a rule print.css also sets; or
+#: print-callout.css and print-flow.css both reaching for `<details>` -- flow owns
+#: whether it is OPEN, callout owns what it LOOKS LIKE.
 _PRINT_ASSETS = (
     "print.css",
     "print-flow.css",
     "print-type.css",
+    "print-space.css",
     "print-callout.css",
 )
 
@@ -255,14 +258,12 @@ _PRINT_ASSETS = (
 #: set. Every selector in `flow.css` is a `.dr-flow*` / `.dr-form*` class that no
 #: other sheet in this engine mentions, so it cannot win or lose a tie against
 #: anything. It CONSUMES `--dr-*` tokens rather than defining them, and custom
-#: property resolution does not depend on which sheet was parsed first -- only
-#: the cascade for one property on one selector does, and there is no overlap.
+#: property resolution does not depend on which sheet was parsed first.
 #:
 #: ⚠️ IT SITS AFTER THE PRINT GROUP BECAUSE IT CARRIES ITS OWN `@media print`
 #: BLOCK, and reading it next to the other print rules is easier than hunting it.
 #: That is legibility, not a load-bearing order. It stays BEFORE the instance's
-#: `site.css` for the reason every group does: a site keeps the final word on its
-#: own look.
+#: `site.css` for the reason every group does: a site keeps the final word.
 #:
 #: 🔴 EVERY TOKEN IN THIS SHEET IS USED WITH A MATERIAL VARIABLE AS ITS FALLBACK,
 #: which is not decoration. Tokens are generated per site from
@@ -289,27 +290,21 @@ def hand_written_css() -> tuple[str, ...]:
 
     ⚠️ ALL FOUR GROUPS ARE WALKED. Adding a fifth group and forgetting it here is
     precisely how the old hardcoded tuple in tokenaudit.py went stale within two
-    hours.
+    hours. 🔴 That warning was aimed at a hypothetical fourth group, a fourth
+    group arrived on 2026-08-19, and it joined this walk in the same commit
+    because this line was read first -- so the count in that sentence is the one
+    part of this function that can rot.
 
-    🔴 THAT WARNING WAS AIMED AT A HYPOTHETICAL FOURTH GROUP AND A FOURTH GROUP
-    ARRIVED ON 2026-08-19. `_FLOW_ASSETS` was added to this walk in the same
-    commit that created it, because this line was read first. Recorded because a
-    guardrail that fires is worth more evidence than three that were never
-    tested -- and the count in the sentence above had to move with it, which is
-    the one part of this function that can rot.
+    ⭐ AND THE `.css` FILTER IS WHAT MAKES A SPLIT FREE. Files join these tuples in
+    mixed pairs -- navtree contributed one sheet and one script -- and the sheet is
+    picked up here while the script is correctly ignored, with no edit. That is the
+    whole reason this is a function and not a fifth tuple.
 
-    ⭐ AND THE `.css` FILTER IS WHAT MADE THE 2026-08-16 SPLIT FREE. Two files
-    joined `_FEATURE_ASSETS` that day, one sheet and one script; the sheet was
-    picked up here and the script was correctly ignored, with no edit. That is
-    the whole reason this is a function and not a fourth tuple. All three
-    2026-08-19 print additions rode the same mechanism.
-
-    ⚠️ AND THE PRINT SHEETS WILL SHOW UP IN THE TOKEN AUDIT LOUDLY, which is
-    correct and worth expecting rather than discovering: `line-height`,
-    `margin`, `padding` and `font-size` are all in tokenaudit's `_METRIC_PROPS`,
-    so every value print-type.css and print-callout.css set is a new row in the
-    metrics section. ⚠️ `flow.css` will do the same and more -- it sets padding,
-    margin, border-radius and font-size throughout.
+    ⚠️ AND THE PRINT SHEETS SHOW UP IN THE TOKEN AUDIT LOUDLY, which is correct and
+    worth expecting rather than discovering: `line-height`, `margin`, `padding`
+    and `font-size` are all in tokenaudit's `_METRIC_PROPS`, so every value
+    print-type.css, print-space.css and print-callout.css set is a new row in the
+    metrics section. `flow.css` does the same and more.
     """
     return tuple(
         name
