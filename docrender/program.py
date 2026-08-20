@@ -22,32 +22,26 @@ strip is ADDITIVE: a page in three programs renders three strips and nothing
 overlaps, because no strip owns anything another one wants.
 
 =============================================================================
-⭐ AND AS OF 2026-08-19 IT IS THE ONLY FOOTER, WHICH CHANGED ITS JOB
+⭐ AND IT IS THE ONLY FOOTER, WHICH CHANGED ITS JOB
 =============================================================================
 It was designed as a SECOND footer beside Material's prev/next. Michael read the
 result and rejected it in exactly the right words: *"all this other foot matter"*
 and *"is that what I'm supposed to click next? It's not actually appearing in the
 main footer; it's in this other separate footer you created."*
 
-The fix he chose was better than the one offered. 🔴 KILL THE DEFAULT FOOTER AND
-LET THE STRIP BE IT (`hide: footer` in a page's frontmatter). It needed no code
-at all -- the strip is appended in `on_page_content`, so it survives a hidden
-footer -- and ⭐ IT DISSOLVES THE ONE-SLOT PROBLEM ENTIRELY: if strips are the
-only navigation then nothing is competing, so two programs sharing a page both
-navigate correctly and neither loses its buttons to alphabetical order.
+The fix he chose was better than the one offered: 🔴 KILL THE DEFAULT FOOTER AND
+LET THE STRIP BE IT (`hide: footer`). It needed no code -- the strip is appended
+in `on_page_content`, so it survives a hidden footer -- and ⭐ IT DISSOLVES THE
+ONE-SLOT PROBLEM: if strips are the only navigation then nothing is competing, so
+two programs sharing a page both navigate correctly.
 
 ⚠️ THE COST, AND IT IS A REAL TRAP: `hide: footer` MUST BE PER-PAGE ON CHAIN
 MEMBERS ONLY. A page in no flow with its footer hidden has ZERO navigation, and
-nothing reports it. Dropping a page from a chain later removes its strip and
-leaves it stranded on an already-hidden footer.
+nothing reports it.
 
 =============================================================================
 ⭐ THE STRIP'S JOB IS ORIENTATION, NOT NAVIGATION
 =============================================================================
-From Michael's own question -- *"I don't even know how this sort of thing would
-realistically feel from a user perspective"* -- which was the right thing to be
-suspicious of.
-
 A reader never browses to a policy. They are HANDED a program, land on it, and
 walk pages that live in another folder and belong to nobody. The pages are
 BORROWED. So a bare `← Housekeeping | Fire →` would say what the sidebar would
@@ -56,90 +50,84 @@ say and leave a reader three pages deep not knowing which program they are in.
     General Safety for All · step 4 of 9
     ← Proper Attire            Emergency Contacts →
 
-The PROGRAM NAME is the payload; the arrows are the instruction. flow.css makes
-Next the only filled control, because when two arrows carry identical weight
-neither reads as the instruction.
+The PROGRAM NAME is the payload; the arrows are the instruction.
 
 =============================================================================
 ⭐ THE START STRIP -- THE HUB IS NEVER A MEMBER OF ITS OWN CHAIN
 =============================================================================
-A hole in the original design, found by Michael: *"how to get the starting page
-to actually navigate to the first page in the chain - right now it doesn't have
-any real published pointer."*
+Found by Michael: *"how to get the starting page to actually navigate to the
+first page in the chain - right now it doesn't have any real published pointer."*
 
-He was right, and the cause is structural. `_flows_for` matches a page's `id:`
-against chain MEMBERS, and a program declares its list without being in it. So a
-program page could never render a strip. Its only pointer was
-`nav.py`'s `hub.next_page = resolved[0]` -- IN THE DEFAULT FOOTER, the element
-the plan above hides. Strip-as-only-footer had a hole exactly at the entrance.
-
-So a page that DECLARES a chain gets a `--start` variant. 🚫 And the hand-typed
-`!!! note "Start Here"` callout it replaces is now deletable rather than
-load-bearing -- that callout drifts silently the moment the chain is reordered,
-which is the same defect `chain:` was built to end.
+Structural: `_flows_for` matched a page's `id:` against chain MEMBERS, and a
+program declares its list without being in it. Its only pointer was `nav.py`'s
+`hub.next_page` -- IN THE DEFAULT FOOTER, the element `hide: footer` removes. So
+a page that DECLARES a chain gets a `--start` variant.
 
 =============================================================================
-⭐ AND THE END OF A FLOW IS A LINK NOW, NOT A FULL STOP
+🔴 WHERE A LINK LANDS YOU: THE TOP OF THE PAGE (FIXED 2026-08-19, SAME NIGHT)
 =============================================================================
-It shipped as dead text ("end of this program"), which is worst exactly where it
-matters most: with the footer hidden, the last step is the ONE page with nowhere
-to go, and it is where somebody needs the completion form.
+Michael: *"each time you hit next in for the workflow, you're at the bottom of
+the next page - can you put us back to the top of each nexted page?"*
 
-So the last step's Next points back at the program, and -- if the program
-declares a `forms:` slot -- at the FRAGMENT of that form's disclosure, which
-opens a collapsed form on arrival with no script. See forms.py `collapsed:`.
-⚠️ The id is spelled by `forms.slot_anchor()` and never by this file: a link and
-its target computed in two places is a Next button that lands on nothing, and a
-fragment matching no element is not an error anywhere.
+MY BUG, AND IT WAS AN HOUR OLD. The previous version pointed every strip link at
+`#flow-<program id>` -- the id ON THE STRIP -- so the browser scrolled to it, and
+the strip is at the BOTTOM of the page. Walking a safety program dumped the
+reader past the whole policy every time.
 
-=============================================================================
-🔴 THE ACTIVE FLOW IS CARRIED IN THE FRAGMENT (2026-08-19, SAME DAY)
-=============================================================================
-Michael, on the shipped version: *"when entering the same page from different
-workflows, the app isn't 'aware' and puts the second (now active) program inside
-the 'also part of' section instead."*
+⚑ THE LESSON IS ABOUT ROLES, NOT ABOUT SCROLLING. A fragment does TWO jobs at
+once: it is the STATE CARRIER (which flow am I in) and it is the SCROLL TARGET.
+I chose the anchor for the first job and never asked what the second one would
+do. A mechanism serving two purposes must be checked against BOTH, and the one
+you did not design for is the one the reader meets first.
 
-Exactly right, and it was the last real gap. Strip ORDER is baked at build time
-and "which flow am I in" is per-request, so the first strip was whichever program
-sorted first -- and a reader walking MEWP through a shared policy found MEWP
-filed under "Also part of" while somebody else's program sat on top.
+⭐ SO THE TARGET MOVED TO THE TOP AND THE STATE STAYED. Each page in a flow gets
+a zero-height marker at the very top:
 
-⭐ THE FIX IS THE MECHANISM THE COLLAPSED FORM ALREADY PROVED. Every strip link
-carries `#flow-<program id>`, so arriving from a program targets THAT program's
-strip, and two things follow from the HTML spec with no code:
+    <span class="dr-at" id="at-flow-program-general-safety"></span>
 
-  1. a fragment pointing INSIDE a closed `<details>` OPENS it, so a flow parked
-     in the disclosure is expanded on arrival rather than buried
-  2. `:target` matches it, so flow.css hoists it with `order: -1` and inverts its
-     step chip
+Links point THERE. The reader lands at the top; the fragment still names the
+flow, so the promotion still works.
 
-🚫 AND THE `?flow=` QUERY PARAM IS DELETED. It shipped hours earlier and NOTHING
-EVER READ IT. A URL parameter no code consumes is precisely the dead-key defect
-this engine keeps paying for -- `sort:` in eleven content files, the inert
-`palette:`, `revised:` declared-but-unread, `aliases:` whose only consumer was
-imaginary for two days. ⚑ Worse than a dead frontmatter key, in fact: a param is
-visible in the address bar, so it LOOKS like state to the person reading the URL.
-The fragment does the work; the param was the decoration.
+🔴 AND THIS IS WHERE PURE CSS RUNS OUT, WHICH IS WORTH STATING PLAINLY. A
+generic rule cannot say "the strip whose id matches the targeted marker" --
+selectors cannot compare two values. So `_promo_css()` emits TWO SHORT RULES PER
+FLOW, per page, naming both ids. That breaks a rule this file set for itself
+tonight (no inline style; every stylesheet goes through `assets.py` so
+`hand_written_css()` stays the single source for the token audit) and it is
+broken DELIBERATELY, on three grounds:
 
-⚠️ NO JAVASCRIPT, and the reason is not only purity. A script would flap the
-footer on every page load, and `docrender/assets.py` crossed the 22KB hard read
-ceiling on 2026-08-19 (22,436 B), so registering a new asset now means rewriting
-a file that cannot be read whole -- the clobber this repo has already paid for
-once in `util.py`. Being unable to take the bad option is not the same as
-choosing the good one; this is the good one.
+  1. it is per-PAGE DATA, not a stylesheet -- the ids are facts about this page,
+     and `flow.css` still owns every look decision
+  2. `assets.py` is 22,333 B, at the engine's ~22KB read ceiling, so adding an
+     asset means rewriting a file that cannot be read whole (the `util.py`
+     clobber)
+  3. it is ~120 bytes on pages that are in a flow, and nothing at all elsewhere
 
-⚠️ A BARE URL STILL PROMOTES NOTHING, deliberately. Somebody who bookmarked
-Housekeeping or arrived from the sidebar is in NO flow, and guessing one tells a
-reader they are in MEWP training when they are not. No fragment = every flow
-shown, none claimed.
+⚠️ `display: contents` ON THE DISCLOSURE IS THE EXOTIC PART, AND IT IS THE ONE
+THING HERE MOST LIKELY TO SURPRISE SOMEBODY. A closed `<details>` hides its
+children, and CSS cannot open one. When the targeted strip is INSIDE the
+disclosure, the rule makes that `<details>` `display: contents` so its children
+join the flex layout and become visible -- then `order: -1` hoists the targeted
+strip above the rest. ⚠️ Its `<summary>` becomes a loose line of text when this
+fires, which is why `flow.css` needs no extra rule for it: the summary reads as
+a label, not a control, and the disclosure is moot once its contents are shown.
+✅ DEGRADES HONESTLY: if a browser ignores it, the reader lands at the top of the
+correct page with the correct chain and one click to open the disclosure. Same
+degradation shape as the collapsed form -- one extra click, never a dead end.
+
+🚫 STILL NO JAVASCRIPT. A script would flap the footer on every page load, and
+the scroll fix does not need one.
+
+⚠️ A BARE URL STILL PROMOTES NOTHING, deliberately. Somebody who bookmarked a
+policy is in NO flow, and guessing tells a reader they are in MEWP training when
+they are not.
 
 =============================================================================
 ⚠️ THE CAP
 =============================================================================
-Michael asked for only the ACTIVE workflow visible, the rest behind an icon.
 First flow open, the rest inside a `<details>` -- which collapses with no
 stylesheet and no script, and prints open because print-flow.css already forces
-that. The `:target` rules above are what make "active" true rather than
+that. The promotion rules above are what make "active" true rather than
 "whichever sorted first".
 """
 
@@ -176,15 +164,23 @@ def _src(page) -> str:
     return getattr(getattr(page, "file", None), "src_uri", "")
 
 
-def _anchor(flow_id: str) -> str:
-    """The strip id, and the fragment every link in that flow points at.
-
-    ⚠️ ONE FUNCTION SPELLS IT, exactly as `forms.slot_anchor` owns the form's id
-    and for the same reason: a fragment that matches no element is not an error
-    in any browser or any build, so a link and its target computed in two places
-    fails silently and forever.
-    """
+def _strip_id(flow_id: str) -> str:
+    """The id ON THE STRIP, at the foot of the page."""
     return "flow-" + str(flow_id) if flow_id else ""
+
+
+def _at_id(flow_id: str) -> str:
+    """The id every LINK points at: a marker at the TOP of the page.
+
+    ⚠️ TWO IDS PER FLOW, AND THE SPLIT IS THE WHOLE FIX. One is where the reader
+    ARRIVES (top), one is what gets PROMOTED (the strip, bottom). They were the
+    same id for an hour and that is why Next dropped people at the foot of every
+    policy. Both are spelled here and nowhere else, exactly as
+    `forms.slot_anchor` owns the form's id -- a fragment matching no element is
+    not an error anywhere, so a link and its target computed in two places fails
+    silently and forever.
+    """
+    return "at-flow-" + str(flow_id) if flow_id else ""
 
 
 def _link(cls, page, here, frag, label, arrow_before=False) -> str:
@@ -212,30 +208,30 @@ def _where(flow_name, hub, here, frag, detail) -> str:
 
 
 def _open_tag(flow_id, name, extra="") -> str:
-    """The `<nav>`, carrying the id `:target` needs and a machine-readable slug.
+    """The `<nav>`, carrying the strip id and a machine-readable slug.
 
     ⚠️ `data-dr-flow` IS NOT READ BY ANYTHING IN THIS ENGINE and is emitted
-    anyway, which is the sort of thing this repo normally refuses. It is kept on
-    one condition, stated here so it can be revoked: an id is a NAVIGATION target
-    and gets mangled to stay URL-safe, so it is the wrong thing for an instance's
-    `theme.css` to hook when it wants to paint one program differently. The
-    attribute carries the slug verbatim. If no site ever styles on it, delete it.
+    anyway, which is the sort of thing this repo normally refuses. Kept on one
+    condition, stated so it can be revoked: an id is a NAVIGATION target and gets
+    mangled to stay URL-safe, so it is the wrong thing for an instance's
+    `theme.css` to hook when it wants to paint one program differently. If no
+    site ever styles on it, delete it.
     """
     bits = ['<nav class="dr-flow' + (" " + extra if extra else "") + '"']
     if flow_id:
-        bits.append(' id="' + _esc(_anchor(flow_id)) + '"')
+        bits.append(' id="' + _esc(_strip_id(flow_id)) + '"')
         bits.append(' data-dr-flow="' + _esc(flow_id) + '"')
     bits.append(' aria-label="' + _esc(name) + ' \u00b7 reading order">')
     return "".join(bits)
 
 
 def _flow_meta(flow_src, by_src):
-    """(hub page, display name, fragment) for a chain's declaring page."""
+    """(hub page, display name, flow id, link fragment) for a chain's page."""
     hub = by_src.get(flow_src)
     flow_id = str(_meta(flow_src).get("id") or "").strip()
     name = _title(flow_src, hub) if hub is not None else flow_src
-    anchor = _anchor(flow_id)
-    return hub, name, flow_id, ("#" + anchor if anchor else "")
+    at = _at_id(flow_id)
+    return hub, name, flow_id, ("#" + at if at else "")
 
 
 def _member_strip(flow_src, ids, at, page, by_id, by_src) -> str:
@@ -243,8 +239,7 @@ def _member_strip(flow_src, ids, at, page, by_id, by_src) -> str:
 
     ⚠️ `at` IS THE POSITION IN THE DECLARED LIST, and the printed total is the
     length of the RESOLVED list, so a chain naming a page that does not exist
-    reports "step 4 of 8" rather than claiming a step that was skipped. The two
-    numbers come from different lists on purpose.
+    reports "step 4 of 8" rather than claiming a step that was skipped.
     """
     here = _url(page)
     hub, name, flow_id, frag = _flow_meta(flow_src, by_src)
@@ -271,12 +266,13 @@ def _member_strip(flow_src, ids, at, page, by_id, by_src) -> str:
             _link("dr-flow__next", nxt, here, frag, _title(_src(nxt), nxt))
         )
     elif hub is not None:
-        # THE END IS A LINK, AND IT AIMS AT THE FORM. See the docstring.
+        # THE END IS A LINK, AND IT AIMS AT THE FORM.
         #
-        # ⚠️ THE FORM FRAGMENT REPLACES THE FLOW FRAGMENT rather than joining it:
-        # a URL has ONE fragment. The form is the right target here because this
-        # is the last step -- there is no next page to orient, and the whole
-        # point of arriving at the hub from the end is to submit.
+        # ⚠️ THIS IS THE ONE LINK THAT DELIBERATELY DOES NOT GO TO THE TOP. A URL
+        # has one fragment, and here the destination IS the form: the reader has
+        # finished reading and the only thing left is to submit. Landing on the
+        # form is the point rather than a side effect -- which is exactly the
+        # check that was never applied to the other links.
         slot = forms.first_slot(_meta(flow_src))
         target = relative_url(_url(hub), here)
         target += ("#" + forms.slot_anchor(slot)) if slot else frag
@@ -296,11 +292,10 @@ def _member_strip(flow_src, ids, at, page, by_id, by_src) -> str:
 
 
 def _start_strip(flow_src, ids, page, by_id) -> str:
-    """The strip on a page that DECLARES a chain. See the docstring.
+    """The strip on a page that DECLARES a chain.
 
     Returns "" when nothing in the chain resolved -- a Start button pointing
-    nowhere is worse than no button, and nav.py has already reported that case
-    by name.
+    nowhere is worse than no button, and nav.py has already reported that case.
     """
     live = [pid for pid in ids if pid in by_id]
     if not live:
@@ -309,8 +304,8 @@ def _start_strip(flow_src, ids, page, by_id) -> str:
     here = _url(page)
     name = _title(flow_src, page)
     flow_id = str(_meta(flow_src).get("id") or "").strip()
-    anchor = _anchor(flow_id)
-    frag = "#" + anchor if anchor else ""
+    at = _at_id(flow_id)
+    frag = "#" + at if at else ""
     first = by_id[live[0]]
 
     return (
@@ -325,25 +320,68 @@ def _start_strip(flow_src, ids, page, by_id) -> str:
     )
 
 
-def _strips(page, files) -> str:
+def _promo_css(flow_ids) -> str:
+    """Per-page rules tying the TOP marker to the strip it promotes.
+
+    See the module docstring for why this is generated per page rather than
+    living in `assets/flow.css`: a selector cannot compare a targeted element's
+    id to another element's id, so the two ids have to be named literally.
+
+    Two rules per flow:
+      1. hoist the strip above its siblings
+      2. make the disclosure transparent, so a strip parked inside it is visible
+         at all (a closed `<details>` hides its children and CSS cannot open one)
+
+    ⚠️ `~` REQUIRES THE MARKER AND `.dr-flows` TO BE SIBLINGS, which they are:
+    both are inserted by `on_page_content` into the same container, the marker
+    first and the strips last. If either ever moves into a wrapper, these rules
+    stop matching -- silently, because a selector that matches nothing is not an
+    error. That is the trade for not shipping a script.
+    """
+    out = []
+    for flow_id in flow_ids:
+        at = _at_id(flow_id)
+        strip = _strip_id(flow_id)
+        if not at or not strip:
+            continue
+        out.append(
+            "#" + at + ":target ~ .dr-flows #" + strip
+            + "{order:-1;margin-top:0;padding-top:0;border-top:0}"
+            "#" + at + ":target ~ .dr-flows .dr-flows__others:has(#" + strip
+            + "){display:contents}"
+        )
+    if not out:
+        return ""
+    return "<style>" + "".join(out) + "</style>"
+
+
+def _strips(page, files):
+    """(markers + promo css, strips html) for this page, or ("", "")."""
     src = _src(page)
     if not src:
-        return ""
+        return "", ""
 
     chains = nav.declared(report=False)
     if not chains:
-        return ""
+        return "", ""
 
     by_id, by_src = nav._built(files)
     pid = str(_meta(src).get("id") or "").strip()
     rendered = []
+    flow_ids = []
 
-    # The page's OWN chain first, if it has one: on a program page the entrance
-    # outranks any flow that page happens also to be a step in.
+    def note(flow_src):
+        fid = str(_meta(flow_src).get("id") or "").strip()
+        if fid:
+            flow_ids.append(fid)
+
+    # The page's OWN chain first: on a program page the entrance outranks any
+    # flow that page happens also to be a step in.
     if src in chains:
         start = _start_strip(src, chains[src], page, by_id)
         if start:
             rendered.append(start)
+            note(src)
 
     if pid:
         for flow_src in sorted(chains):
@@ -356,29 +394,48 @@ def _strips(page, files) -> str:
                         flow_src, ids, ids.index(pid), page, by_id, by_src
                     )
                 )
+                note(flow_src)
 
     if not rendered:
-        return ""
+        return "", ""
+
+    # THE ARRIVAL MARKERS, at the very top of the page. Zero height, no text, and
+    # one per flow this page belongs to.
+    head = "".join(
+        '<span class="dr-at" id="' + _esc(_at_id(f)) + '"></span>'
+        for f in flow_ids
+        if _at_id(f)
+    )
+    head += _promo_css(flow_ids)
+
     if len(rendered) == 1:
-        return '<div class="dr-flows">' + rendered[0] + "</div>"
+        return head, '<div class="dr-flows">' + rendered[0] + "</div>"
 
     # ⚠️ THE FIRST STRIP IS THE BUILD-TIME DEFAULT, NOT "THE ACTIVE ONE". Which
-    # flow is active is decided in the browser by the fragment (see the
-    # docstring); this order is only what a reader with no fragment sees.
+    # flow is active is decided in the browser by the fragment; this order is
+    # only what a reader with no fragment sees.
     others = len(rendered) - 1
-    return (
+    body = (
         '<div class="dr-flows dr-flows--many">' + rendered[0]
         + '<details class="dr-flows__others"><summary>Also part of '
         + str(others) + " other program" + ("" if others == 1 else "s")
         + "</summary>" + "".join(rendered[1:]) + "</details></div>"
     )
+    return head, body
 
 
 def on_page_content(html, page, config, files):
-    """Append this page's flow strips.
+    """Markers at the top, flow strips at the foot.
 
     Runs BEFORE hook 06 so the strips sit above the edit line rather than under
     it -- a reader's next step outranks a maintainer's.
+
+    ⚠️ THE MARKER MUST BE FIRST IN THE RETURNED STRING and the strips last: the
+    promotion rules use a sibling combinator, so their ORDER in the document is
+    load-bearing. Prepending to `html` rather than wrapping it is what keeps them
+    siblings.
     """
-    strips = _strips(page, files)
-    return html + strips if strips else html
+    head, strips = _strips(page, files)
+    if not strips:
+        return html
+    return head + html + strips
