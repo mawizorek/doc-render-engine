@@ -25,9 +25,8 @@ ONCE, IN :root (the three scheme-independent vectors):
 
 ONCE MORE, IN `@media print` (2026-08-19):
 
-  9. THE PAPER BLOCK          the LIGHT colour row, re-emitted onto the SLATE
-                              selector, so a dark-mode reader prints the theme's
-                              own light palette. See THE PAPER BLOCK below.
+  9. THE PAPER BLOCK          whichever resolved row declares `mode: light`,
+                              emitted onto BOTH scheme selectors. See below.
 
 ORDER IS LOAD-BEARING IN BOTH BLOCKS AND ITS FAILURE MODE IS SILENCE. Later
 declarations win at equal specificity, so the aliases and the bridge MUST come
@@ -42,55 +41,89 @@ from -- which is why no stylesheet had to be found-and-replaced, and therefore
 why none of them could be missed.
 
 =============================================================================
-🔴 THE PAPER BLOCK -- WHY IT IS NOT `@media screen` AROUND THE SLATE BLOCK
+🔴 THE PAPER BLOCK -- IT ASKS THE `mode` COLUMN, NOT THE SLOT NAME
 =============================================================================
-> Michael, 2026-08-19, on being told the fix was to copy Material: *"go, if it's
-> the right way to do it -- will it still be aware of the theme choices I've made
-> in the vectors at all then?"*
+> Michael, 2026-08-19, on a print that came out cream on white: *"mercedes-light?
+> i'm rendering in papyrus rn???"*
 
-✅ THAT QUESTION KILLED THE PLANNED IMPLEMENTATION, AND IT WAS RIGHT TO. Material
-wraps its ENTIRE slate scheme in `@media screen` (`palette/_scheme.scss`, commented
-*"Only use dark mode on screens"*), and the plan was to copy that here. **It does
-not transfer, and copying it would have printed a page with no colour at all.**
+🪦 **THAT IS A BUG I SHIPPED AN HOUR EARLIER, AND THE FIRST VERSION OF THIS BLOCK
+CAUSED IT.** It asked for `picked["light"]` -- and "light" is a SLOT NAME, not a
+mode. `vectors.PRIMARY` is `dark`, so the primary slot takes a join's `color` and
+the other slot takes its `alt-color`.
+
+⚠️ AND EXACTLY ONE JOIN IN THE REGISTRY RUNS THE OTHER WAY:
+
+    papyrus     color: papyrus (LIGHT)     alt-color: papyrus-dark
+    everything   color: <dark>              alt-color: <light>
+    else
+
+So on `papyrus` the "light" slot holds **papyrus-dark**, whose `text` is
+`#f0e6d2` -- cream. Paper asked for the light SLOT, got a dark ROW, and printed
+cream ink on white with the background dropped. 🔴 **Both schemes then printed
+identically and both were wrong, which is strictly worse than the asymmetry it
+replaced: a wrong answer that agrees with itself looks like a working fix.**
+
+⭐ AND THE REGISTRY HAD ALREADY WRITTEN BOTH HALVES DOWN. `themes.json` says of
+papyrus: *"this is the one join whose PRIMARY is light and whose alt is dark --
+proof the pair carries no assumption about which way round it goes."* Its rules
+block says of the column that answers this: *`mode` "is descriptive, and it exists
+so a consumer can warn when a dark palette lands in a light slot."*
+**The one column that answers the question, and the first version never read it.**
+⚑ *A constant named `_PAPER_SCHEME = "light"` reads as a fact about colour and is
+actually a fact about SLOT ORDER. Naming a thing after what you want it to mean is
+how a wrong read survives review.*
+
+✅ SO THE ROW IS SELECTED BY ITS OWN `mode` CELL, and the slot it happened to
+occupy is now irrelevant. `_paper_row()` walks the resolved schemes and takes the
+first whose row declares `mode: light`. On papyrus that is the PRIMARY slot; on
+eos, database and every other join it is the alt slot. **Neither the caller nor
+this file needs to know which, which is the entire point.**
+
+✅ AND IT IS EMITTED ONTO BOTH SCHEME SELECTORS. The first version painted only
+`slate`, on the assumption that a light-mode reader was already correct -- true for
+fifteen joins and FALSE for papyrus, where the light-mode reader is the one
+wearing the dark row. Emitting to both costs one duplicated block in a
+print-only sheet and removes the entire class of question.
+
+🚫 AND IT REPORTS RATHER THAN GUESSING WHEN NO ROW SAYS `light`. A join is free to
+pair two darks -- `themes.json` states that explicitly -- and for such a theme
+there IS no light palette to print. The old code would have silently emitted a
+dark one. This names the theme and emits nothing, leaving Material's own light
+defaults to carry the page. ⚑ *An honest gap beats a confident wrong colour, and
+this is the third time tonight that distinction has been the difference.*
+
+⚠️ `mode` IS IN `vectors.META`, so it is metadata rather than a token and is never
+emitted as a custom property. Reading it here is exactly what that column was kept
+for after it stopped resolving anything.
+
+=============================================================================
+⭐ WHY NOT `@media screen` AROUND THE SLATE BLOCK, WHICH IS WHAT MATERIAL DOES
+=============================================================================
+Material wraps its ENTIRE slate scheme in `@media screen` (`palette/_scheme.scss`,
+commented *"Only use dark mode on screens"*). Copying that here would print a page
+with NO COLOUR AT ALL.
 
 The difference is structural. Material declares its light values UNSCOPED, so
 silencing slate on paper leaves the defaults standing. This file declares BOTH
-schemes scoped -- `[data-md-color-scheme="slate"]` and `[...="default"]` -- and
-nothing unscoped. A dark reader's body carries `slate`, so the `default` block
-never matches them. ⚑ **Silencing slate on paper would leave every `--dr-*` token
-UNDEFINED for exactly the reader the fix was for**, and `var(--dr-ink)` with no
+schemes scoped -- and nothing unscoped. ⚑ **Silencing a scheme on paper would leave
+every `--dr-*` token UNDEFINED for the readers in it**, and `var(--dr-ink)` with no
 fallback collapses to nothing. Not a wrong colour: no colour.
 
-⭐ SO PAPER TAKES THE LIGHT ROW INSTEAD, WHICH IS THE ANSWER TO HIS ACTUAL
-QUESTION. The paper block is the theme's OWN light palette -- `database` resolves
-to `mercedes-light`, `eos` to `eos-light` -- read from the same vector, through the
-same resolver, as the light-mode screen block. Nothing is hardcoded and nothing is
-invented. **A print from dark mode now produces the same sheet as a print from
-light mode, which is the one Michael had already approved.**
+🪦 AND IT RETIRED `assets/print-scheme.css`, WHICH WAS WORSE THAN BOTH. That sheet
+forced sixteen hardcoded greys with `!important`: it ignored the vector entirely,
+and it replaced the NEUTRALS while leaving the SEMANTICS dark -- a mix that exists
+in no row of any table. The light row is a set somebody designed as a set.
 
-🪦 AND IT RETIRES `assets/print-scheme.css`, WHICH WAS MINE AND WAS WORSE. That
-sheet forced seven `--dr-*` tokens and nine Material variables to hardcoded greys
-with `!important`. It worked, and it had two costs this does not:
-
-  • IT IGNORED THE VECTOR ENTIRELY. `#ffffff` and `#111111` are not any theme's
-    values, so a bespoke palette printed as generic greys.
-  • 🔴 IT BUILT A PALETTE NOBODY AUTHORED. It replaced the NEUTRALS and left the
-    SEMANTICS dark, so a printed callout border was a dark-row colour sitting on
-    forced-white paper -- a mix that exists in no row of any table. The light row
-    is a set somebody designed as a set.
-
-⚠️ AND IT IS AN INTRA-FILE ORDER NOW, WHICH IS THE REAL GUARANTEE. The old sheet
-needed `!important` because nobody could explain why a cross-sheet tie against
-`tokens.css` had lost. This block is IN tokens.css, after the slate block, at equal
-specificity -- later-in-file wins, deterministically, with no second file involved
-and no `!important` anywhere. **The class of failure is removed rather than
-outgunned.**
+✅ AND THIS NEEDS NO `!important`, WHICH IS THE REAL GUARANTEE. The old sheet needed
+it because nobody could explain why a cross-sheet tie against `tokens.css` had
+lost. This block is IN tokens.css, after the blocks it corrects, at equal
+specificity -- later-in-file wins, deterministically, with no second file involved.
 
 🚫 WHAT IT DELIBERATELY DOES NOT DO: compensate for the semantic-token defect
 `print.css` documents. On 16 of 19 canonical pairs `good`/`warn`/`bad`/`info` are
 BYTE-IDENTICAL between the dark and light rows, so those print unchanged and print
 remains the surface where that shows worst. The fix belongs in the light rows of
-`canonical/colors.tsv`, and hiding it here is what would make it permanent.
+`canonical/colors.tsv`.
 
 ⚠️ THE THREE SCHEME-INDEPENDENT VECTORS ARE UNTOUCHED BY ALL OF THIS. Typography,
 forms and spacing are emitted once in `:root` and are not scheme-scoped, so the
@@ -115,9 +148,9 @@ fallback warning -- the single most important line the report can carry.
 choice: the bridge note, the two per-scheme theme lines and the contrast failures
 all print two or three times. They are inventory rather than alarms, so it has
 never been worth a fourth copy of the `report=False` flag markers.py and
-blocks.py both carry. If you add a NEW report here, that flag is the price --
-or better, put the report where the question is asked once. ✅ THE PAPER BLOCK
-ADDS NO REPORT, deliberately, for exactly that reason.
+blocks.py both carry. ⚠️ THE PAPER BLOCK'S "no light row" NOTE JOINS THEM AND WILL
+ALSO REPEAT -- accepted knowingly, because it fires only on a two-dark theme and a
+repeated warning is better than a fourth flag.
 
 WARNING: STILL NOT EVERYTHING GOVERNED. `elev-1/2/3`, the motion set and `lift`
 have NO consumer anywhere in this engine's CSS. Section 4 of the token audit page
@@ -140,13 +173,11 @@ _SCHEMES = (
     ("light", '[data-md-color-scheme="default"]'),
 )
 
-#: 🔴 THE ONE SCHEME PAPER IS EVER ALLOWED TO WEAR, and the selector it has to be
-#: painted ONTO. Paper is always a light ground, so a reader in either scheme gets
-#: the light row -- `default` already does, and `slate` is corrected below.
-#: Named as constants rather than written inline so the pair cannot drift from
-#: `_SCHEMES` above without somebody noticing this comment.
-_PAPER_SCHEME = "light"
-_PAPER_SELECTOR = _SCHEMES[0][1]
+#: 🔴 THE `mode` CELL PAPER LOOKS FOR. Paper is always a light ground, so it wants
+#: the row that DECLARES itself light -- never the slot that happens to be called
+#: light. See the paper-block section in the module docstring for the papyrus bug
+#: that made this a constant instead of a slot lookup.
+_PAPER_MODE = "light"
 
 #: The scheme that supplies the three scheme-independent vectors. Same value
 #: vectors.PRIMARY uses to decide which slot takes a join's `alt-color`, and
@@ -211,11 +242,12 @@ def _scheme_decls(got: dict, scheme: str) -> list[tuple[str, str]]:
     This was inline in `build_css`, and the paper block needs byte-identical
     construction -- local base, then the canonical row, then the aliases LAST.
     Copying those four steps would have been a second claimant on the emit order,
-    which is the defect this repo has retired three manifests over. One function,
-    three call sites.
+    which is the defect this repo has retired three manifests over.
 
-    ⚠️ THE ORDER INSIDE HERE IS THE LOAD-BEARING PART. See the module docstring:
-    the aliases must come last or the local value quietly survives.
+    ⚠️ `scheme` IS ONLY USED TO PICK A COLUMN OUT OF THE LOCAL NINE-TOKEN TABLE,
+    which has literal `dark` and `light` columns. It does NOT choose the canonical
+    row -- `got` already carries that. Worth stating because conflating the two is
+    precisely the papyrus bug: a slot name is not a mode.
     """
     row = got["colorRow"]
     if not row:
@@ -234,6 +266,35 @@ def _scheme_decls(got: dict, scheme: str) -> list[tuple[str, str]]:
         for local, canon in _pairs("aliases.tsv")
     ]
     return decls
+
+
+def _paper_row(picked: dict) -> tuple[dict, str] | None:
+    """The resolved scheme whose colour row DECLARES `mode: light`, or None.
+
+    🔴 THIS FUNCTION IS THE WHOLE PAPYRUS FIX. The caller used to ask for the slot
+    named "light", which is slot ORDER and not colour. `papyrus` pairs a light
+    PRIMARY with a dark alt, so that lookup handed paper a cream palette. Read the
+    `mode` cell and the slot stops mattering.
+
+    Returns the (resolved, scheme_key) pair rather than just the row, because
+    `_scheme_decls` needs the scheme key to index the local nine-token table's
+    `dark`/`light` columns.
+
+    ⚠️ DETERMINISTIC ORDER: `_SCHEMES` is walked, so a theme that somehow declares
+    TWO light rows takes the primary one. That is not a real case today and the
+    tie is broken openly rather than by dict ordering.
+
+    🚫 RETURNS None RATHER THAN A FALLBACK when no row says light. A join may
+    legally pair two darks (`themes.json`: *"two darks, two lights,
+    normal-and-party"*), and for such a theme there is no light palette to print.
+    Guessing one is what the caller used to do.
+    """
+    for scheme, _sel in _SCHEMES:
+        got = picked.get(scheme) or {}
+        row = got.get("colorRow")
+        if row and (row.get("mode") or "").strip().lower() == _PAPER_MODE:
+            return got, scheme
+    return None
 
 
 def _entity_decls(file: str, slug: str) -> tuple[list[str], set[str]]:
@@ -357,20 +418,31 @@ def build_css() -> str:
         lines.extend(shared)
         lines.append("}")
 
-    # 🔴 THE PAPER BLOCK. A dark-mode reader gets the theme's own LIGHT row on
-    # paper -- same vector, same resolver, same emit order as the screen blocks.
-    # See the module docstring for why this is not `@media screen` around slate,
-    # and why it needs no `!important`: it is LATER IN THIS FILE than the block it
-    # corrects, at equal specificity, with no second sheet involved.
-    paper = _scheme_decls(picked[_PAPER_SCHEME], _PAPER_SCHEME)
-    if paper:
-        lines.append("@media print {")
-        lines.append("  " + _PAPER_SELECTOR + " {")
-        lines.extend(
-            "    " + name + ": " + value + ";" for name, value in paper
+    # 🔴 THE PAPER BLOCK. Whichever row DECLARES itself light, painted onto BOTH
+    # scheme selectors so it cannot matter which slot a join put it in. See the
+    # module docstring for the papyrus bug this shape exists to prevent, and for
+    # why this is not `@media screen` around a scheme block.
+    found = _paper_row(picked)
+    if found is None:
+        state.note(
+            "notes",
+            "paper: no colour row in this theme declares `mode: light`, so the "
+            "print sheet re-points NOTHING and paper renders Material's own "
+            "light defaults. Expected for a theme pairing two dark palettes; "
+            "add a light row to the join if a printed page matters here.",
         )
-        lines.append("  }")
-        lines.append("}")
+    else:
+        got, paper_scheme = found
+        paper = _scheme_decls(got, paper_scheme)
+        if paper:
+            lines.append("@media print {")
+            for _scheme, selector in _SCHEMES:
+                lines.append("  " + selector + " {")
+                lines.extend(
+                    "    " + name + ": " + value + ";" for name, value in paper
+                )
+                lines.append("  }")
+            lines.append("}")
 
     for scheme, got in picked.items():
         if not got["colorRow"]:
