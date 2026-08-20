@@ -93,11 +93,11 @@ This repo has killed three manifests for that defect and then kept a fourth
 inside a function. One list now, derived, in the file that has to be right or
 nothing ships at all.
 
-⭐ IT HAS ABSORBED SIX NEW SHEETS SINCE 2026-08-16 AND RETIRED ONE, with no edit
-to tokenaudit.py in any of the seven events -- and the retirement is the better
-evidence, because a derived list is the only kind that shrinks correctly.
-🪦 FOUR PARAGRAPHS OF PAYOFF ANECDOTES WERE TRIMMED TO THAT SENTENCE ON
-2026-08-19. **Four stories proving one rule is three too many.**
+⭐ IT HAS SILENTLY ABSORBED SIX NEW SHEETS SINCE 2026-08-16 -- navtree, then
+print-flow, print-type, print-callout, print-space and print-scheme -- with no
+edit to tokenaudit.py in any of them. 🪦 FOUR PARAGRAPHS OF PAYOFF ANECDOTES WERE
+TRIMMED TO THAT SENTENCE ON 2026-08-19. **Four stories proving one rule is three
+too many.**
 
 🔴 AND THE WARNING IN `hand_written_css()` FIRED FOR REAL ON 2026-08-19, which is
 better evidence than any of those anecdotes were. It said "adding a fourth group
@@ -110,14 +110,14 @@ It is a separate group only because of WHERE it loads (see below), not because i
 is a different kind of thing -- and `hand_written_css()` derives from all four
 groups so the audit cannot go stale the way it did in 2026-08-04.
 
-🚩 AND THIS DOCSTRING IS WHY THE FILE HAS NO ROOM. SIX writes bounced off the 22KB
-limit here on 2026-08-19 and TWO of them were "trims" that came back LARGER,
-because each replaced prose with commentary about replacing prose. The seam is
-real and is not taken: **REGISTRY** (the four tuples + `hand_written_css`, where
-every argument above lives) and **PUBLISHER** (`_fingerprint`, `_stamped`,
-`_plan`, the two events, `_uses_router`). What ships, and how it ships. It moves
-the hook's import surface, so it is Michael's call -- and it is now the only
-remaining way to add a line to this file.
+🚩 AND THIS DOCSTRING IS WHY THE FILE HAS NO ROOM. Six writes bounced off the 22KB
+limit here on 2026-08-19; TWO were "trims" that came back LARGER, each having
+replaced prose with commentary about replacing prose. The seam: **REGISTRY** (the
+four tuples + `hand_written_css`, where every argument above lives) and
+**PUBLISHER** (`_fingerprint`, `_stamped`, `_plan`, the two events,
+`_uses_router`). What ships, and how it ships. It moves the hook's import
+surface, so it is Michael's call -- and it is the only remaining way to add a
+line here.
 """
 
 from __future__ import annotations
@@ -203,13 +203,7 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: It still loads BEFORE the instance's `site.css`, because a site keeps the
 #: final word on its own look and paper is no exception.
 #:
-#: 🪦 NO SHEET HERE CARRIES A COLOUR (2026-08-19). `print-scheme.css` forced
-#: hardcoded greys onto a dark reader's tokens with `!important`; theme.py now
-#: emits the theme's OWN light row inside `@media print`, so paper is
-#: vector-aware. Its tombstone is UNREGISTERED -- **a file in assets/ absent from
-#: these tuples is never published and does nothing whatsoever.**
-#:
-#: FIVE FILES, FIVE JOBS, and each one answers exactly one question:
+#: SIX ENTRIES, FIVE JOBS, and each one answers exactly one question:
 #:
 #:   print.css          WHAT THE SHEET IS   -- @page, chrome off, the column
 #:                                             unrailing, print-color-adjust,
@@ -218,6 +212,20 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #:                                             tab labels, forced-open
 #:                                             <details>, thead repetition,
 #:                                             {.new-page}
+#:   print-scheme.css   🪦 NOTHING. RETIRED 2026-08-19, SAME DAY IT WAS BORN. It
+#:                                             forced hardcoded greys onto a dark
+#:                                             reader's tokens; theme.py now emits
+#:                                             the theme's OWN light row inside
+#:                                             `@media print`, so paper is
+#:                                             vector-aware. ✅ The file is now
+#:                                             COMMENT-ONLY, so leaving it
+#:                                             registered publishes an inert 1.9KB
+#:                                             sheet and changes nothing -- which
+#:                                             is why the fix did not have to wait
+#:                                             for room in this file. ⚠️ Dropping
+#:                                             the line is a tidy-up the
+#:                                             registry/publisher split unblocks.
+#:                                             🚫 NEVER re-add rules there.
 #:   print-type.css     HOW BIG THE TYPE IS -- the dial, the ramp, weight,
 #:                                             tracking, link decoration
 #:   print-space.css    HOW MUCH AIR IS     -- block margins, list margins,
@@ -233,7 +241,7 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #:
 #: ⭐ AND THE ORDER *WITHIN* THIS GROUP IS GENUINELY FREE, stated out loud on the
 #: `_FEATURE_ASSETS` precedent above so nobody later defends a position that was
-#: never load-bearing. No two of these five share a selector-and-property PAIR --
+#: never load-bearing. No two of these share a selector-and-property PAIR --
 #: `.md-typeset h1` is written in both print-type.css and print-space.css, but one
 #: sets size and weight while the other sets margins, and a cascade fight needs
 #: both halves to match. What is load-bearing is the GROUP's position.
@@ -252,6 +260,7 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 _PRINT_ASSETS = (
     "print.css",
     "print-flow.css",
+    "print-scheme.css",
     "print-type.css",
     "print-space.css",
     "print-callout.css",
@@ -293,8 +302,7 @@ def hand_written_css() -> tuple[str, ...]:
     person has to reason about whether or not this particular site links it.
 
     Generated sheets are NOT here -- they have no file on disk, and the audit
-    builds them itself. ⚠️ Nor are unregistered tombstones: `print-scheme.css` is
-    on disk, absent from every tuple, and correctly invisible to the audit.
+    builds them itself.
 
     ⚠️ ALL FOUR GROUPS ARE WALKED. Adding a fifth group and forgetting it here is
     precisely how the old hardcoded tuple in tokenaudit.py went stale within two
