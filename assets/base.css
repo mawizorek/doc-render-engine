@@ -419,13 +419,104 @@ span.docrender-dead {
  * which computes to LESS contrast than `text-faint` carries on its own -- so the
  * token that literally means "faintest text" was being approximated by dimming
  * the one above it. `text-faint` had no consumer anywhere; now it has the exact
- * surface it was named for, and the opacity hack is gone. */
+ * surface it was named for, and the opacity hack is gone.
+ *
+ * ⚠️ `cursor: help` MOVED TO THE DISCLOSURE BELOW (2026-08-19). It was on this
+ * rule to advertise a `title` attribute that no longer exists, so it was pointing
+ * at nothing -- a help cursor over a line with no help is a promise the element
+ * cannot keep. It now sits on the one element that does have something to say. */
 .buildstamp {
   font-family: var(--dr-font-mono);
   font-size: 0.68rem;
   letter-spacing: 0.02em;
   color: var(--dr-text-faint, var(--dr-ink-muted));
+}
+
+/* ---------------------------------------------------------------------------
+ * THE BUILD DISCLOSURE (2026-08-19, Michael: "hide behind a small new svg icon
+ * in the footer that reveals a popup when hovered... purely for debugging")
+ *
+ * The foot line is now the site name plus this icon; the PR number, deploy time
+ * and both SHAs live in the popup. `docrender/buildstamp.py` carries the markup
+ * and the full argument for the element choices.
+ *
+ * 🔴 THE POPUP IS HIDDEN WITH `opacity`, NOT `display` OR `visibility`, AND THAT
+ * IS AN ACCESSIBILITY DECISION RATHER THAN A STYLE ONE. Both of those remove an
+ * element from the accessibility tree, which would make the build identifier
+ * readable ONLY by someone who can hover -- a mouse-only fact. At zero opacity the
+ * text stays in the tree and a screen reader announces it normally.
+ * `pointer-events: none` stops the invisible box from eating clicks, and
+ * `position: absolute` keeps it out of the layout so it costs no footer height.
+ *
+ * ⭐ AND THIS IS THE FIRST CONSUMER OF THE MOTION SET, WHICH THREE FILES HAVE
+ * DESCRIBED AS UNUSED. `theme.py`'s docstring lists `elev-*`, the motion tokens
+ * and `lift` as having NO consumer anywhere in this engine's CSS; chrome.css
+ * already retired half that claim by mapping the elevation scale onto Material's
+ * own shadow variables. `--dr-motion-fast`, `--dr-ease` and `--dr-elev-2` are all
+ * read below, so the sentence in theme.py is now wrong about all three. ⚠️ Every
+ * one carries its literal fallback: a nine-token local theme emits none of them,
+ * and a bare `var()` inside `transition` is invalid at computed-value time --
+ * which drops the whole property rather than just the timing.
+ *
+ * ⚠️ `:focus-visible` IS PAIRED WITH EVERY `:hover`, and the markup carries
+ * `tabindex="0"` for it. A hover-only disclosure is unreachable by keyboard, and
+ * this one holds the answer to "is the page I am looking at current" -- which is a
+ * question a maintainer asks, not a reader, so the maintainer's own keyboard
+ * should reach it.
+ * ------------------------------------------------------------------------ */
+.buildstamp__debug {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: 0.4rem;
+  vertical-align: text-bottom;
   cursor: help;
+  outline-color: var(--dr-accent);
+  outline-offset: 0.15rem;
+}
+
+/* Sized in `em` so it tracks the stamp's own 0.68rem rather than the root: the
+ * glyph belongs to this line, not to the page. */
+.buildstamp__icon {
+  width: 1.05em;
+  height: 1.05em;
+  fill: currentColor;
+  opacity: 0.7;
+  transition: opacity var(--dr-motion-fast, 125ms) var(--dr-ease, linear);
+}
+.buildstamp__debug:hover .buildstamp__icon,
+.buildstamp__debug:focus-visible .buildstamp__icon {
+  opacity: 1;
+}
+
+/* Anchored to the RIGHT edge because the footer is `justify-content: flex-end`,
+ * so a popup growing leftward stays on screen and one growing rightward does not.
+ * Opens UPWARD for the same reason: there is nothing below the footer. */
+.buildstamp__pop {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  z-index: 3;
+  width: max-content;
+  max-width: min(24rem, 70vw);
+  padding: 0.4rem 0.55rem;
+  font-size: 0.66rem;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-align: left;
+  white-space: normal;
+  color: var(--dr-ink);
+  background: var(--dr-surface-raised);
+  border: var(--dr-border-w, 1px) solid var(--dr-rule);
+  border-radius: var(--dr-radius, 3px);
+  box-shadow: var(--dr-elev-2, 0 0.2rem 0.5rem #0000001a);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dr-motion-fast, 125ms) var(--dr-ease, linear);
+}
+.buildstamp__debug:hover .buildstamp__pop,
+.buildstamp__debug:focus-visible .buildstamp__pop {
+  opacity: 1;
 }
 
 /* The prev/next bar. Kept -- it is genuine reader navigation -- but toned down so
