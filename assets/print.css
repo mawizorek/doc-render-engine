@@ -13,22 +13,20 @@
  * theme's business, resolved from theme/canonical/* exactly as on screen. What
  * this file decides is what appears on paper at all and how wide it runs.
  *
- * 🪦 AND ON 2026-08-19 THAT LINE WAS DECLARED TRUE TWICE AND WAS FALSE BOTH
- * TIMES. It was written on day one while this file held sixteen hex literals in a
- * scheme block; moving that block out earned a ✅ note saying the file finally
- * held no colour -- and **two literals were left behind on the corner stamp,
- * `#555` and `#ccc`, in the one element that prints on every sheet.** Michael
- * found them: *"the color you chose MUST be from our theme vector. that's the
- * whole point."* Both are now `--dr-*` tokens.
+ * 🪦 AND ON 2026-08-19 THAT LINE WAS DECLARED TRUE AND WAS FALSE. Moving the
+ * scheme block out of this file earned a ✅ note saying it finally held no colour
+ * -- and **two literals were left behind on the corner stamp, `#555` and `#ccc`,
+ * in the one element that prints on every sheet of every site.** Michael found
+ * them: *"the color you chose MUST be from our theme vector. that's the whole
+ * point."* Both are `--dr-*` tokens now.
  *
  * ⚑ THE GENERALISABLE PART IS THE SELF-CONGRATULATION, NOT THE HEX. A cleanup
  * that writes "this is finally true" in the same commit is asserting a property
  * of the WHOLE FILE from a diff of ONE BLOCK. **Grep before you claim, not after
- * somebody prints it.** Keep the line at the top: the next colour opinion that
- * lands here is the beginning of a second theme nobody can see.
+ * somebody prints it.**
  *
  * =========================================================================
- * ⭐ THE PRINT GROUP IS SIX FILES AS OF 2026-08-19
+ * ⭐ THE PRINT GROUP IS FIVE LIVE FILES AS OF 2026-08-19
  * =========================================================================
  * This file was 22,844 B against a ~22 KB ceiling: the point where a file stops
  * coming back whole from one read and therefore stops being safely editable.
@@ -38,7 +36,7 @@
  * THE SEAM WAS ALREADY WRITTEN IN THIS HEADER. It used to describe its subject
  * as "what appears on paper at all, how wide it runs, and where the page is
  * allowed to break" -- two jobs, with the `and` doing the work of a chapter
- * break. Now six files, each answering one question:
+ * break. Now five, each answering one question:
  *
  *     print.css          WHAT THE SHEET IS   -- this file
  *     print-flow.css     WHERE IT BREAKS     -- break-*, orphans/widows,
@@ -46,9 +44,10 @@
  *                                              repetition, {.new-page}
  *     print-type.css     HOW BIG THE TYPE IS -- the dial, the ramp, weight
  *     print-space.css    HOW MUCH AIR        -- block and list margins,
- *                                              justification
+ *                                              justification, the tabbed set
  *     print-callout.css  WHAT THE BOX IS     -- the rule-and-indent, the icon
- *     print-scheme.css   🪦 RETIRED, comment-only, unregistered
+ *
+ * 🪦 `print-scheme.css` is a comment-only tombstone and is unregistered.
  *
  * ⚠️ ONE JUDGEMENT CALL, NAMED SO IT CAN BE ARGUED WITH: the code-wrapping
  * rule STAYED here. It looks like flow -- it changes where lines end -- but it
@@ -160,11 +159,11 @@
    * borders, marker chips, the accent, the corner stamp below. What it stops
    * supplying is the paper.
    *
-   * ⚠️ `!important` IS DELIBERATE HERE AND IT DOES COST SOMETHING: an instance's
-   * `site.css` loads last precisely so a site keeps the final word, and this
-   * takes "paint a printed background" away from it. Taken anyway, because the
-   * failure mode is a page flooded with ink on every sheet of a safety document,
-   * and nobody has ever wanted the other thing.
+   * ⚠️ `!important` IS DELIBERATE AND IT DOES COST SOMETHING: an instance's
+   * `site.css` loads last precisely so a site keeps the final word, and this takes
+   * "paint a printed background" away from it. Taken anyway, because the failure
+   * mode is a page flooded with ink on every sheet of a safety document, and
+   * nobody has ever wanted the other thing.
    * --------------------------------------------------------------------- */
   body,
   .md-main,
@@ -212,6 +211,14 @@
    * a piece of paper is how old it is, so the stamp is the cheapest possible
    * provenance and it costs one line.
    *
+   * 🪦 TWO PARAGRAPHS LEFT THIS COMMENT ON 2026-08-19 -- why the corner copy is
+   * FIRST IN THE FLOW, and why two nodes are one claimant rather than two. Both
+   * were reproduced almost word for word in `docrender/buildstamp.py`, which is
+   * where the markup is built and therefore where they belong. **A second copy of
+   * an argument is the defect this repo has retired three manifests over, and it
+   * was sitting in the file that says so.** Cut when this file came back 478 B
+   * over the read limit: the budget found a duplication that six readings had not.
+   *
    * 🔴 IT NEVER PRINTED, FOR MONTHS, AND THIS FILE IS WHERE THE BUG LIVED.
    * `buildstamp.py` used to hand its markup to `config.copyright`, which
    * Material renders inside `.md-footer-meta` -- which is in the chrome-off list
@@ -219,11 +226,6 @@
    * the whole subtree from the box tree, and a descendant cannot opt back in:
    * not a specificity contest, there is no box left to style. So a rule sat
    * here looking like a working exception and had never once fired.
-   *
-   * ✅ TWO PLACEMENTS SINCE 2026-08-19, EACH VISIBLE IN EXACTLY ONE MEDIUM.
-   * `buildstamp.py` now wraps the page body: a `--corner` copy FIRST in the
-   * flow and a `--foot` copy LAST. Michael's ruling: *"on print you get a small
-   * icon in the top right header with the date... corner mark print only."*
    *
    *     paper   corner shows, foot hidden
    *     screen  foot shows, corner hidden by its own `hidden` attribute
@@ -236,22 +238,10 @@
    * emit neither token, and the point of a fallback is to degrade to somebody
    * else's system rather than to a number typed here.
    *
-   * ⭐ ONE COMPUTED STRING, TWO NODES -- NOT TWO CLAIMANTS. The defect that
-   * retired three manifests here is two SOURCES of one fact, which can disagree.
-   * Both placements interpolate the same label from one `on_config` pass, so they
-   * cannot drift, and the mutually exclusive media scoping means a reader always
-   * sees exactly ONE stamp.
-   *
-   * ⭐ AND THE CORNER COPY IS FIRST IN THE FLOW FOR A MECHANICAL REASON. An
-   * element appended at the END of the content cannot be moved to the TOP of
-   * sheet one by CSS -- that needs to know where the page boundary falls, which
-   * is what `@page` margin boxes do and no major browser implements. First in
-   * flow IS the top of sheet one, for free.
-   *
-   * ⚠️ `display: block` ON THE CORNER IS LOAD-BEARING, NOT TIDINESS. It is what
-   * overrides the `hidden` attribute -- an author declaration beats the UA
-   * stylesheet's `[hidden] { display: none }`. Delete it and the mark vanishes
-   * from paper with nothing reporting it.
+   * ⚠️ `display: block` IS LOAD-BEARING, NOT TIDINESS. It is what overrides the
+   * `hidden` attribute -- an author declaration beats the UA stylesheet's
+   * `[hidden] { display: none }`. Delete it and the mark vanishes from paper with
+   * nothing reporting it.
    *
    * 🔴 AND `text-align: right` LOST ON 2026-08-19 WITHOUT THIS FILE BEING EDITED.
    * `print-space.css` §9 shipped `text-align: justify` on `.md-typeset p`; the
@@ -259,14 +249,13 @@
    * below -- source order never consulted. A justified single line renders
    * flush-left, so the symptom read as "the stamp moved" and pointed at the wrong
    * file. ✅ Fixed by narrowing §9 to exclude `.buildstamp`, so this stays the
-   * SINGLE claimant on where the stamp sits rather than the second armoured one.
+   * SINGLE claimant on where the stamp sits.
    *
    * 🚩 THE ICON GOES HERE, as a print-scoped `background-image` on this rule,
    * once a line-art SVG exists. 🚫 NEVER an `<img>`: a `display: none` image is
-   * still FETCHED, which is ~168KB on every page load of a site whose readers
-   * mostly never print. It will also need `print-color-adjust: exact` on the
-   * narrow list further down -- a brand mark's meaning IS carried by colour, and
-   * a logo that prints as an empty box is worse than no logo.
+   * still FETCHED, ~168KB on every page load of a site whose readers mostly never
+   * print. It will also need `print-color-adjust: exact` on the narrow list
+   * further down -- a brand mark's meaning IS carried by colour.
    * --------------------------------------------------------------------- */
   .buildstamp--corner {
     display: block;
