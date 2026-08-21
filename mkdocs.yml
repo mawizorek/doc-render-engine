@@ -267,6 +267,27 @@ markdown_extensions:
 #      line leaves every `@url:` on every site rendering as "unknown peer site:
 #      url" -- links.py behaving correctly, and a total mystery from the author's
 #      chair. See hooks/03d_urllinks.py and docrender/urllinks.py.
+#   03e renders `!!! qr "name"` -- a STATIC QR code, built at publish time from an
+#      address in the same `links:` registry 03d reads (2026-08-21, BUILD 6 step
+#      2). ⭐ ITS POSITION IS FREE, and for a DIFFERENT reason from 03c's and
+#      03d's, which is worth stating because the three look alike in this list:
+#      those two are free because they only CLAIM a namespace at import, whereas
+#      this stage does its own matching in its own `on_page_markdown` and claims
+#      nothing at all. `!!! qr` is a block directive on the `!!! form` precedent,
+#      not a reference -- so the "nothing claims the namespace" failure above
+#      cannot happen here. Its output is raw HTML containing no `@` reference and
+#      no marker syntax, so no earlier stage had anything to resolve inside it
+#      and no later stage has anything to find.
+#      🚨 ITS PRESENCE IS STILL NOT OPTIONAL, for a third reason again: remove
+#      this line and every `!!! qr` on every site renders as an ordinary grey
+#      admonition titled "qr" -- with the link NAME as its visible heading -- and
+#      nothing reports it. Same symptom shape as an unregistered 05b.
+#      🔴 AND ITS `on_post_build` HALF IS WHAT PRODUCES THE ARTIFACT. It writes
+#      the PNG a download link points at, and it must stay AHEAD OF 08, which is
+#      the build report's last writer, so a failed write is still counted. A
+#      shim that imported only two of its three events would ship pages whose
+#      download links all 404 while every page looked perfect. See
+#      hooks/03e_qr.py, which names all three explicitly and says why.
 #   04c FETCHES the font families theme/canonical/typography.tsv already names
 #      (2026-08-19). ⭐ ITS POSITION IS FREE IN THE ONE WAY THAT USUALLY MATTERS
 #      HERE AND PINNED IN A DIFFERENT ONE. It shares no selector with any sheet
@@ -332,6 +353,9 @@ markdown_extensions:
 #      block directives and neither can see the other's, which is fine and is
 #      the reason the claim is written as "directives it does not own" rather
 #      than "no directives at all."
+#      ⚠️ AND IT NARROWED AGAIN ON 2026-08-21: 03e owns `!!! qr`. THREE stages
+#      now consume block directives, each exclusively, and the claim holds
+#      unchanged -- which is the point of having written it that way.
 #
 #   09 runs last, because it describes the finished site
 # Renumbering without reading hooks/README.md will break something silently.
@@ -342,6 +366,13 @@ markdown_extensions:
 # harmless only by accident: docrender/assets.py calls `theme.build_css()`
 # itself, so the tokens are generated regardless and the dead shim was never
 # missed. Adding a stage is TWO edits, the file and this line.
+#
+# 🔴 AND THAT WARNING HAS A PROVEN SIBLING ONE LAYER DOWN, FOUND 2026-08-21:
+# `assets/print-chrome.css` was on disk and absent from `_PRINT_ASSETS` in
+# docrender/assets.py, so the sheet that suppresses the nav drawer, the table of
+# contents and the header ON PAPER was never published and did nothing. Same
+# defect, different list. **A registration list is the thing to check first when
+# a feature is present in the tree and absent from the output.**
 #
 # ⚠️ AND REMOVING ONE IS TWO EDITS IN THE OTHER ORDER: unregister here FIRST,
 # then delete the file. A listed file that no longer exists raises ImportError
@@ -366,6 +397,7 @@ hooks:
   - hooks/03b_markers.py
   - hooks/03c_markerlinks.py
   - hooks/03d_urllinks.py
+  - hooks/03e_qr.py
   - hooks/04b_router.py
   - hooks/04c_fonts.py
   - hooks/05_assets.py
