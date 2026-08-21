@@ -1,6 +1,6 @@
 # doc-render-engine — next build spec
 
-⚠️ **FOUR INDEPENDENT BUILDS ARE INDEXED HERE.** None depends on another except where noted. 1 and 2 live in this file because neither was big enough for its own document; **3 and 4 live in their own files, and that is the convention now** — see the size note below.
+⚠️ **SIX INDEPENDENT BUILDS ARE INDEXED HERE.** None depends on another except where noted. 1 and 2 live in this file because neither was big enough for its own document; **3 through 6 live in their own files, and that is the convention now** — see the size note below.
 
 | | Build | Scoped | State | Where |
 |---|---|---|---|---|
@@ -8,12 +8,20 @@
 | **2** | **The build report has no reader** — annotations, digest, `report.py` | 2026-08-06 | ⚠️ SCOPED, NOT GREENLIT | below |
 | **3** | **A scoped theme, and the report page that needs it** | 2026-08-07 | ⚠️ SCOPED, NOT GREENLIT | [`specs/scoped-theme.md`](specs/scoped-theme.md) |
 | **4** | **The `draft` status, and the watermark it drives** | 2026-08-16 | ⚠️ SCOPED, NOT GREENLIT | [`specs/draft-watermark.md`](specs/draft-watermark.md) |
+| **5** | **The print layer SPLIT, print typography, and a printed IDENTITY** | 2026-08-19 | ⚠️ SCOPED — ⭐ **THE SPLIT HAS PARTLY SHIPPED**, see below | [`specs/print-identity.md`](specs/print-identity.md) |
+| **6** | **Static QR codes, resolved through the `links:` registry** | 2026-08-21 | ⚠️ SCOPED, NOT GREENLIT | [`specs/qr-codes.md`](specs/qr-codes.md) |
 
-🔴 **THIS FILE WAS 22,660 B BEFORE BUILD 3 WAS ADDED — PAST THE 22KB CEILING IT DOCUMENTS OTHER FILES AGAINST.** A file that cannot be read whole cannot be safely edited, and this one holds the plans. BUILDS 3 AND 4 went to `specs/` for that reason. **Builds 1 and 2 should follow them, leaving this as an index**; that is a real edit somebody has to make and it is not part of any current build.
+🔴 **ROWS 5 AND 6 WERE ADDED 2026-08-21, AND ROW 5's ABSENCE IS THE FINDING.** This header read *"FOUR INDEPENDENT BUILDS"* while `specs/print-identity.md` had called itself **BUILD 5** since 2026-08-19 and said *"Indexed from next-build-spec.md"* — a two-day-old spec that no index knew about. ⚠️ **A hand-maintained count above a hand-maintained table is the same defect this repo has retired three manifests over**, and it went stale the first time a file was added without touching the row above it. The count is kept rather than removed only because there is nowhere here to derive it from; **if it is wrong again, delete it rather than refresh it.**
 
-⚠️ **BUILD 3 DEPENDS ON BUILD 2 — the only dependency in the table.** Its report page is a second caller of the renderer BUILD 2 Piece C extracts into `report.py`. Building 3 first means writing that renderer twice. **BUILD 4 depends on nothing.**
+⚠️ **AND BUILD 5's OWN FILE TABLE IS NOW PARTLY STALE, WHICH IS WORSE THAN THE MISSING ROW.** It lists `print-flow.css` and `print-type.css` as **NEW**, but `docrender/assets.py`'s `_PRINT_ASSETS` at HEAD registers **five** print sheets: `print.css`, `print-flow.css`, `print-type.css`, `print-space.css`, `print-callout.css`. **So the split shipped, with a different seam than the spec proposed** — `print-space.css` and `print-callout.css` exist and were never specced, and the specced `print-identity.css` does **not** exist, so the letterhead never landed. 🔴 **Read `assets.py` for what exists; never that spec's file table.**
 
-Decision history for all four: the **doc-render-engine (repo) — Decision Log** subpage in ClickUp.
+🔴 **THIS FILE WAS 22,660 B BEFORE BUILD 3 WAS ADDED — PAST THE 22KB CEILING IT DOCUMENTS OTHER FILES AGAINST.** A file that cannot be read whole cannot be safely edited, and this one holds the plans. BUILDS 3, 4, 5 AND 6 went to `specs/` for that reason. **Builds 1 and 2 should follow them, leaving this as an index**; that is a real edit somebody has to make and it is not part of any current build.
+
+⚠️ **BUILD 3 DEPENDS ON BUILD 2 — the only hard dependency in the table.** Its report page is a second caller of the renderer BUILD 2 Piece C extracts into `report.py`. Building 3 first means writing that renderer twice. **BUILD 4 depends on nothing.**
+
+⚠️ **THREE SOFT COUPLINGS, none of them blocking, all of them real.** BUILD 4 §4 names `assets/print.css` as the home of the print DRAFT stamp and **BUILD 5's split moved that target** — whichever lands first fixes the other's pointer in the same PR. BUILD 6 §5 ruling 6 adds a report bucket that lands in `sizecheck.py` **or** in `report.py` depending on whether BUILD 2 shipped first. And BUILD 5's leading change, BUILD 5's letterhead and BUILD 6's QR block are **three claimants on the vertical space of printed sheet one** — whichever lands last re-previews the others.
+
+Decision history for all six: the **doc-render-engine (repo) — Decision Log** subpage in ClickUp.
 
 ---
 
@@ -137,7 +145,7 @@ This is how *"I could feed it actual Markdown"* gets answered without a second i
 
 🔴 **Both new files go in their own modules. Do not append to `markers.py` or `datatable.py`** — the Prism spec already carries that instruction.
 
-⚠️ **THIS TABLE'S OWN NUMBERS HAD ROTTED IN 48 HOURS, and the drift changed an instruction rather than just a figure.** `markers.py` was recorded here as 16,241 B and is **18,534** — so the note moved from *"near the ceiling"* to *past the warn line*. `mkdocs.yml` was 5,580 B and is **7,685**. The 08-04 note about `prism/next-build-spec.md` quoting `datatable.py` at 16,410 B stands and is now doubly stale: HEAD was 14,885 on 08-04 and is **16,566** today after PR #103. **A size written into prose is wrong within two days, every time, in this repo. Measure at the moment you act, never quote this table.**
+⚠️ **THIS TABLE'S OWN NUMBERS HAD ROTTED IN 48 HOURS, and the drift changed an instruction rather than just a figure.** `markers.py` was recorded here as 16,241 B and is **18,534** — so the note moved from *"near the ceiling"* to *past the warn line*. `mkdocs.yml` was 5,580 B and is **7,685**. 🔴 **AND IT ROTTED AGAIN: `mkdocs.yml` is 13,632 B at HEAD 2026-08-21, a 77% drift off the number in the row above.** The 08-04 note about `prism/next-build-spec.md` quoting `datatable.py` at 16,410 B stands and is now doubly stale: HEAD was 14,885 on 08-04 and is **16,566** today after PR #103. **A size written into prose is wrong within two days, every time, in this repo. Measure at the moment you act, never quote this table.**
 
 ---
 
@@ -156,7 +164,7 @@ This is how *"I could feed it actual Markdown"* gets answered without a second i
 
 ⚠️ **SCOPED, NOT GREENLIT.** 2026-08-06.
 
-⚠️ **AND IT NOW HAS A DOWNSTREAM CONSUMER (2026-08-07).** BUILD 3's report PAGE is a second caller of the renderer Piece C extracts. That does not change any decision below; it raises Piece C's priority from tidiness to a dependency.
+⚠️ **AND IT NOW HAS TWO DOWNSTREAM CONSUMERS.** BUILD 3's report PAGE is a second caller of the renderer Piece C extracts (2026-08-07). **BUILD 6's QR inventory bucket is a third** (2026-08-21) — and it lands in `sizecheck.py` if it ships first, or in `report.py` if this build does. Neither changes any decision below; together they raise Piece C's priority from tidiness to a dependency.
 
 > Michael, 2026-08-06, after a session that fixed three defects in a row: *"spec the build-report digest."*
 
@@ -214,7 +222,7 @@ GitHub renders workflow-command annotations at the top of the run page and inlin
 ::warning title=docrender broken references::4 findings in dead_links -- see the build report
 ```
 
-- **Non-inventory buckets only.** `markers`, `routers`, `nav_default` and `aliases` fire on every build by design; annotating them trains everyone to ignore annotations, which rebuilds the exact failure being fixed.
+- **Non-inventory buckets only.** `markers`, `routers`, `nav_default` and `aliases` fire on every build by design; annotating them trains everyone to ignore annotations, which rebuilds the exact failure being fixed. ⚠️ **BUILD 6's `qr` bucket is inventory and is therefore NOT annotated** — same rule, and its spec cites this line for the reason.
 - **One annotation per BUCKET, never per entry.** The `markers` bucket alone carries roughly twenty entries on the courses sheet.
 - ⚠️ **GitHub caps annotations at 10 per step.** Bucket-level keeps us at or under eleven by construction. Per-entry does not, **and the overflow is dropped silently** — a truncation nobody is told about, which is this repo's least favourite shape.
 - 🚫 **Does not change the exit code.** The leak scan stays the only hard failure. Ruling 3 asks whether that should ever change.
@@ -227,7 +235,7 @@ Append the report to `GITHUB_STEP_SUMMARY` beside docindex's publish preview.
 
 ⚠️ **APPEND ORDER IS HOOK ORDER, AND IT IS INVISIBLE.** Both writers open the file in append mode. sizecheck is hook 08 and docindex is 09, so the naive implementation puts findings ABOVE the publish preview. **Recommend findings BELOW the preview** — the preview answers *what am I about to ship*, which is the headline, and Piece A carries urgency independently of where the section sits. That requires the digest to run after hook 09. **Ruling 2.**
 
-⚠️ **`dry_run` is the case that matters most.** docindex's docstring: *"In `dry_run` mode nothing deploys and this report is the entire output."* A preview showing what changes but not what broke is half a preview.
+⚠️ **`dry_run` is the case that matters most.** docindex's docstring: *"In `dry_run` mode nothing deploys and this report is the entire output."* A preview showing what changes but not what broke is half a preview. ⚠️ **BUILD 6 leans on this hard**: a QR payload read off a preview build is the one artifact that cannot be re-published once printed.
 
 ### PIECE C — split the report into `docrender/report.py`
 
@@ -261,9 +269,9 @@ The report was never a size-budget concern; it lives there because both run last
 |---|---|---|
 | **NEW** `docrender/report.py` | — | ~6-7 KB. `_LABELS` + one markdown renderer + the annotation emitter. |
 | `docrender/sizecheck.py` | 14,859 B | **−4 to −5 KB.** Loses job 3, `_LABELS`, `_INVENTORY` and the print loop; docstring drops to two jobs. |
-| `docrender/state.py` | 13,271 B | **untouched.** `REPORT` and `note()` do not move. |
+| `docrender/state.py` | 13,271 B | **untouched.** `REPORT` and `note()` do not move. ⚠️ **15,918 B at HEAD 2026-08-21** — the row above is the scar this file keeps documenting. |
 | `docrender/docindex.py` | 13,199 B | **untouched** under ruling 2. |
-| `mkdocs.yml` | 7,685 B | one hook registration. |
+| `mkdocs.yml` | 7,685 B | one hook registration. ⚠️ **13,632 B at HEAD 2026-08-21.** |
 
 ⚠️ **Net effect on the budget is NEGATIVE**, which is worth stating because a new module usually is not.
 
@@ -285,7 +293,7 @@ The report was never a size-budget concern; it lives there because both run last
 
 One-line summary: a build report that renders as a generated PAGE on the site, wearing the `utility` theme rather than the site's own — which requires a theme that can apply to part of a site, which this engine has never had.
 
-🔴 **Its §1 is a blocking ruling on what "UTILITY" meant** (the theme, or the `01-utility/` folder), and the answer decides whether half the build exists at all. ⚠️ **Its §4c is the finding worth reading even if the build never happens:** a scoped selector silently kills `print.css` on the pages it scopes, because that sheet wins on source order at equal specificity and a two-attribute scope outranks it.
+🔴 **Its §1 is a blocking ruling on what "UTILITY" meant** (the theme, or the `01-utility/` folder), and the answer decides whether half the build exists at all. ⚠️ **Its §4c is the finding worth reading even if the build never happens:** a scoped selector silently kills `print.css` on the pages it scopes, because that sheet wins on source order at equal specificity and a two-attribute scope outranks it. 🔴 **AND BUILD 5 SPLIT `print.css` INTO FIVE SHEETS, so that finding now applies to five files and a scope could kill one and spare the others** — a page that paginates correctly but prints in web leading, or one that keeps its margins and loses its callout rules.
 
 ---
 
@@ -295,4 +303,28 @@ One-line summary: a build report that renders as a generated PAGE on the site, w
 
 One-line summary: make `draft` a first-class page status, and let a **status → treatment map** (only `draft` populated) paint a fixed 45° **DRAFT** watermark over the scroll viewport on screen. Print adds DRAFT **manually** in the existing print flow — the same path that strips "edit on git" and forces a white background — rather than inheriting the screen rule.
 
-🔴 **Its §0 is a blocking read that must happen first:** what does the engine do with `status: draft` TODAY? If an unrecognized status falls through to *publish*, the whole `safety/` tree (all `draft`) may be live right now, which turns this from a feature into a fix. ⚠️ **It touches `print.css`, which BUILD 3 §4c flags as fragile under scoping** — if both land, the draft print rule and the scoped-theme selector interact.
+🔴 **Its §0 is a blocking read that must happen first:** what does the engine do with `status: draft` TODAY? ⭐ **PARTLY ANSWERED 2026-08-21, and the answer is reassuring:** `docrender/visibility.py` builds a page only `if status in ("unlisted", "public")`, so an unrecognised status means **NOT BUILT and a 404** — it does not fall through to publish. So `draft` is a feature to add, not a leak to fix. ⚠️ **Its §4 names `assets/print.css` as the home of the print DRAFT stamp and BUILD 5 MOVED THAT TARGET** — whichever of the two lands first corrects the other's pointer in the same PR.
+
+---
+
+# BUILD 5 — the print layer SPLIT, print typography, and a printed IDENTITY
+
+⚠️ **SCOPED — and ⭐ PARTLY SHIPPED.** 2026-08-19. **The spec is [`specs/print-identity.md`](specs/print-identity.md)** — not reproduced here, same reason as BUILD 3.
+
+One-line summary: split `assets/print.css` at a real seam, **re-typeset the paper** (leading first, unitless never `em`), and put a small declared **logo at the head of sheet one**, resolved by NAME through the existing images index.
+
+🔴 **READ `assets.py` FOR WHAT ACTUALLY EXISTS, NOT THAT SPEC'S FILE TABLE.** `_PRINT_ASSETS` at HEAD registers five sheets — `print.css`, `print-flow.css`, `print-type.css`, `print-space.css`, `print-callout.css` — so **the split shipped with a different seam than was specced**: `print-space.css` and `print-callout.css` were never in the plan, and the planned `print-identity.css` does not exist, **so the letterhead is the part still outstanding.**
+
+⚠️ **Its §5 is a one-preview verification nobody has done:** the build stamp may not be printing at all, because `print.css` hides `.md-footer-meta` and `display: none` on an ancestor cannot be opted back out of by a descendant. The letterhead's whole two-marks design assumes that foot mark exists.
+
+---
+
+# BUILD 6 — static QR codes, resolved through the `links:` registry
+
+⚠️ **SCOPED, NOT GREENLIT.** 2026-08-21. **The spec is [`specs/qr-codes.md`](specs/qr-codes.md)** — not reproduced here, same reason as BUILD 3.
+
+One-line summary: a build-time QR code generated from a NAME in the existing `links:` registry (or from a page `id:`), emitted as **inline SVG**, with the payload and full encoder recipe printed in the build report so a human can verify a code **before** it goes to print.
+
+🔴 **Its §1 is the finding worth reading even if the build never happens:** `.github/workflows/publish-default.yml` overrides `base_url` **per publishing path**, and its own comment already warns that a wrong value *"poisons doc-index.json."* **A poisoned `doc-index.json` is repaired by the next publish; a poisoned QR is repaired by reprinting.** Same root cause, categorically different blast radius, and the existing warning was written with only the recoverable case in mind.
+
+⭐ **Its §2 is why it costs nothing structurally:** `urllinks.py` reads `links:` straight off `state.INSTANCE`, so the registry needs no per-key handling — which keeps this build entirely out of `docrender/instance.py`, **23,047 B and already past the ceiling with BUILD 5's `print:` block queued behind it.**
