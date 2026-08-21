@@ -29,6 +29,12 @@
 #                          (`order:`) plus instance config instead. Dropping
 #                          this dependency is what made a pure content repo
 #                          possible at all.
+#   Pillow              -- segno writes PNG natively (verified against its API
+#                          docs 2026-08-21: the Pillow page is an OPTIONAL
+#                          extra for artistic codes, not a requirement of
+#                          `QRCode.save`). docrender/qr.py must never reach for
+#                          an imaging library; if a change here seems to need
+#                          one, that change is wrong.
 
 mkdocs>=1.6,<2
 mkdocs-material>=9.7,<10
@@ -38,3 +44,19 @@ PyYAML>=6
 # not implemented, on the rule that a dependency for a feature that does not
 # exist is a lie in the lockfile. Routers exist, so it is back.
 cryptography>=42
+
+# The QR encoder for docrender/qr.py (BUILD 6, specs/qr-codes.md). Pure Python,
+# ZERO dependencies of its own, BSD -- which is the only reason a new dependency
+# is defensible in a file that argues this hard about them. It adds no transitive
+# surface at all, so the failure this file's header records cannot repeat here.
+#
+# 🔴 THE UPPER BOUND IS NOT ROUTINE CAUTION. A major bump may LEGALLY change our
+# output: serialization defaults and mask tie-breaking are library choices, not
+# things ISO/IEC 18004 fixes, and this feature's whole contract is that the same
+# payload produces the same image on every build. A QR whose matrix changes under
+# it is a QR somebody has already printed.
+#
+# ⚠️ AND THE FLOOR IS THE VERIFIED ONE. `boost_error` (default True, which
+# docrender/qr.py must override) and `make_qr` are both confirmed present in the
+# 1.6 API. Do not lower it on the assumption an older release has them.
+segno>=1.6,<2
