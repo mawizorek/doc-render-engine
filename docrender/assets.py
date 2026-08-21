@@ -105,6 +105,12 @@ and forgetting it here is precisely how the old hardcoded tuple went stale" --
 written before any fourth group existed. `_FLOW_ASSETS` became the fourth, the
 line was read, and the group joined the walk in the SAME commit.
 
+🔴 AND ON 2026-08-21 THE SAME DEFECT WAS FOUND ONE LAYER DOWN, WHERE NO WARNING
+WAS WATCHING. `hand_written_css()` guards against a forgotten GROUP. Nothing
+guarded against a forgotten FILE INSIDE a group -- and `print-chrome.css` had
+been on disk, absent from `_PRINT_ASSETS`, unpublished and unaudited since the
+six-way print split. See the tuple's own header for the full account.
+
 ⚠️ THAT IS ALSO WHY `_PRINT_ASSETS` IS A CONSTANT AND NOT A LITERAL IN `_plan()`.
 It is a separate group only because of WHERE it loads (see below), not because it
 is a different kind of thing -- and `hand_written_css()` derives from all four
@@ -201,11 +207,44 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: disk: theme.py emits the paper palette inside tokens.css instead. **A file in
 #: assets/ absent from these tuples is never published and does nothing.**
 #:
-#: FIVE FILES, FIVE JOBS, and each one answers exactly one question:
+#: =========================================================================
+#: 🔴 THAT SENTENCE CAME TRUE BY ACCIDENT AND COST EVERY PRINTED PAGE (2026-08-21)
+#: =========================================================================
+#: `print-chrome.css` -- 9,672 B, the chrome-off list and the corner stamp -- was
+#: on disk and ABSENT FROM THIS TUPLE. So it was never published and did nothing,
+#: and the nav drawer, the table of contents and the site header have been
+#: printing on every sheet of every site since the split: the exact defect
+#: print.css's opening paragraph was written to fix, reintroduced by an omission
+#: rather than by a rule.
 #:
-#:   print.css          WHAT THE SHEET IS   -- @page, chrome off, the column
-#:                                             unrailing, print-color-adjust,
-#:                                             code wrapping, link policy
+#: ⭐ THE TELL WAS SITTING IN TWO FILES THAT DISAGREED IN PROSE. print.css's header
+#: said "THE PRINT GROUP IS SIX FILES AS OF 2026-08-19" and listed print-chrome.css
+#: among them; this tuple held five and said so. Neither number was derived from
+#: anything, so both were free to be wrong, and only one of them was.
+#:
+#: 🔴 AND THE TOMBSTONE NOTE ABOVE IS WHAT MADE IT INVISIBLE: one file in assets/
+#: is unregistered ON PURPOSE and one was unregistered BY ACCIDENT, and from this
+#: tuple they are indistinguishable. A deliberate absence and a mistake look
+#: identical in a list of what IS present.
+#:
+#: ⚠️ `hand_written_css()` COMPOUNDED IT RATHER THAN CATCHING IT. The token audit
+#: derives its scan list from these tuples, so an unregistered sheet is invisible
+#: to the audit as well -- no rule in print-chrome.css had ever been checked. The
+#: derived list was doing its job perfectly and could not see the hole, because it
+#: guards against a forgotten GROUP and this was a forgotten FILE.
+#:
+#: ⚠️ SO THE REMAINING GAP IS NAMED RATHER THAN LEFT: nothing compares assets/*.css
+#: ON DISK against these tuples. A build that reported "on disk, unregistered:
+#: print-scheme.css, print-chrome.css" would have made this obvious on day one --
+#: and the tombstone would be one expected line rather than cover for a real one.
+#:
+#: SIX FILES, SIX JOBS, and each one answers exactly one question:
+#:
+#:   print.css          HOW WIDE IT RUNS    -- @page, the column unrailing,
+#:                                             print-color-adjust, code wrapping,
+#:                                             the transparent ground
+#:   print-chrome.css   WHAT APPEARS AT ALL -- the chrome-off list and the corner
+#:                                             stamp
 #:   print-flow.css     WHERE IT BREAKS     -- break-*, orphans/widows, h1-h6,
 #:                                             tab labels, forced-open
 #:                                             <details>, thead repetition,
@@ -217,6 +256,13 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #:   print-callout.css  WHAT THE BOX IS     -- the rule and indent, the icon,
 #:                                             the font-size anchor
 #:
+#: ⚠️ THE JOB LINES ABOVE ARE ALSO CORRECTED. This table credited print.css with
+#: "chrome off" AFTER that list had moved to print-chrome.css, and with a "link
+#: policy" it does not contain -- print.css has no link rule at all, deliberately,
+#: because base.css declares link decoration unscoped to any medium and it reaches
+#: paper on its own (that file's dead-reference block is an argument for NOT
+#: writing one here). A summary of somebody else's file is a second claimant.
+#:
 #: ⭐ EVERY ONE OF THESE SPLITS WAS FORCED BY THE SAME 22KB CEILING, and each seam
 #: was already written in the header of the file that split -- which is also where
 #: the measured argument for it lives, rather than being summarised here. **A FILE
@@ -225,7 +271,7 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #:
 #: ⭐ AND THE ORDER *WITHIN* THIS GROUP IS GENUINELY FREE, stated out loud on the
 #: `_FEATURE_ASSETS` precedent above so nobody later defends a position that was
-#: never load-bearing. No two of these five share a selector-and-property PAIR --
+#: never load-bearing. No two of these six share a selector-and-property PAIR --
 #: `.md-typeset h1` is written in both print-type.css and print-space.css, but one
 #: sets size and weight while the other sets margins, and a cascade fight needs
 #: both halves to match. What is load-bearing is the GROUP's position.
@@ -234,7 +280,9 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: `.md-typeset p`, which MATCHES the corner buildstamp and beat print.css's
 #: `text-align: right` on SPECIFICITY rather than order. Fixed by narrowing §9.
 #: **The order is still free; what is not free is assuming two of our own files
-#: cannot collide.**
+#: cannot collide.** ⚠️ AND THAT EXCEPTION IS NOW LIVE FOR THE FIRST TIME: the
+#: corner stamp it collides with has never actually been published until this
+#: commit, so the narrowing has never been exercised on paper. Re-preview it.
 #:
 #: ⚠️ IF THAT EVER STOPS BEING TRUE, THIS COMMENT IS THE THING THAT ROTS. Two
 #: likely ways: print-type.css growing a `margin` on a heading it already sizes
@@ -243,6 +291,7 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: callout owns what it LOOKS LIKE.
 _PRINT_ASSETS = (
     "print.css",
+    "print-chrome.css",
     "print-flow.css",
     "print-type.css",
     "print-space.css",
@@ -288,6 +337,15 @@ def hand_written_css() -> tuple[str, ...]:
     builds them itself. ⚠️ Nor are UNREGISTERED tombstones: `print-scheme.css` is
     on disk, absent from every tuple, and correctly invisible to the audit.
 
+    🔴 AND THAT LAST SENTENCE IS THE ONE THAT HID A REAL BUG FOR TWO DAYS. It is
+    still true, and it is not the whole truth: an unregistered file is invisible
+    here whether the omission was DELIBERATE or a MISTAKE. `print-chrome.css` was
+    the mistake (registered 2026-08-21), and this function could not tell the
+    difference because it only ever reads what IS in the tuples. **A derived list
+    guards against a forgotten GROUP; nothing guarded against a forgotten FILE.**
+    See `_PRINT_ASSETS` for the account and for the disk-vs-tuple check that
+    would have caught it.
+
     ⚠️ ALL FOUR GROUPS ARE WALKED. Adding a fifth group and forgetting it here is
     precisely how the old hardcoded tuple in tokenaudit.py went stale within two
     hours. 🔴 That warning was aimed at a hypothetical fourth group, a fourth
@@ -304,7 +362,9 @@ def hand_written_css() -> tuple[str, ...]:
     worth expecting rather than discovering: `line-height`, `margin`, `padding`
     and `font-size` are all in tokenaudit's `_METRIC_PROPS`, so every value
     print-type.css, print-space.css and print-callout.css set is a new row in the
-    metrics section. `flow.css` does the same and more.
+    metrics section. `flow.css` does the same and more. ⚠️ EXPECT A JUMP ON THE
+    NEXT BUILD: print-chrome.css joins the scan for the first time, so its rules
+    appear as new audit rows that have simply never been counted before.
     """
     return tuple(
         name
@@ -396,6 +456,11 @@ def _plan(config) -> list[tuple[str, bytes]]:
     ⭐ THE FLOW LAYER'S POSITION IS FREE and is documented as such on
     `_FLOW_ASSETS` -- it shares no selector with anything. Do not infer a rule
     from where it sits.
+
+    ⚠️ AND `_read` RETURNING None IS WHY A MISSING FILE IS SILENT HERE. That is
+    the correct behaviour for a sheet somebody deleted on purpose, and it is also
+    why an UNREGISTERED sheet was undetectable: this loop can only skip what it
+    was asked for. See `_PRINT_ASSETS` (2026-08-21).
     """
     plan: list[tuple[str, bytes]] = []
 
