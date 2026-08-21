@@ -40,6 +40,15 @@ is twenty edits and forty reprints.
 config key and never touches `docrender/instance.py` -- a file already past the
 read ceiling with a `print:` block queued behind it.
 
+⚠️ IT CALLS THREE PRIVATE HELPERS OUT OF `urllinks` (`_entry`, `_page_links`,
+`_site_links`, `_bad_scheme`) AND THAT IS A DELIBERATE COUPLING, not laziness.
+Re-implementing the two-spellings entry parser or the scheme allow-list here
+would be a SECOND CLAIMANT on one truth -- the defect this repo has retired three
+manifests over. 🔴 The consequence is real and belongs in this docstring rather
+than in a surprise: renaming any of them breaks this module, so they are now
+interface. If that becomes uncomfortable, promote them in `urllinks` -- do not
+copy them here.
+
 =============================================================================
 🔴 DETERMINISM IS CONSTRUCTED HERE, NOT INHERITED FROM THE LIBRARY
 =============================================================================
@@ -168,9 +177,9 @@ _QR = re.compile(r'(?m)^[ \t]*!!![ \t]+qr[ \t]+"([^"\n]+)"(?P<opts>[^\n]*)$')
 _OPT = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(\S+)")
 
 #: Exactly two keys are legal, so anything else is an ERROR rather than a
-#: judgement call. Both are declared here and REFUSED in `_html` until spec §4d
-#: is built -- recognised-but-unbuilt is a different report line from mistyped,
-#: and telling them apart is the whole reason this tuple exists this early.
+#: judgement call. Both are declared here and REFUSED in `_html_for` until spec
+#: §4d is built -- recognised-but-unbuilt is a different report line from
+#: mistyped, and telling them apart is the whole reason this tuple exists early.
 _KEYS = ("display", "print")
 
 #: 🔴 ONE ENGINE CONSTANT, NOT CONFIG AND NOT A LINE OPTION. Michael's ruling was
@@ -224,6 +233,10 @@ def _dead(label: str, reason: str) -> str:
     )
 
 
+def _slug(name: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_-]+", "-", name).strip("-").lower() or "code"
+
+
 def _options(raw: str, src: str, name: str) -> dict:
     """Parse the trailing `key=value` pairs, reporting anything unknown.
 
@@ -257,13 +270,18 @@ def _options(raw: str, src: str, name: str) -> dict:
     return found
 
 
-def _payload(name: str, src: str):
+def _payload(name: str, src: str, page):
     """The absolute URL this code will encode, or None to decline.
 
     Reads the `links:` registry through `urllinks`, page block first, then
     `site.yml` -- the same ladder and the same precedence a `@url:` reference
     already walks, because two resolution orders for one registry is how they
     drift.
+
+    ⚠️ `_page_links` TAKES THE PAGE OBJECT, NOT `src`, which is why `page` is
+    threaded down here rather than the path alone. It reads `state.BY_SRC`
+    internally; calling it is what keeps this module from becoming a second
+    reader of the `links:` key.
 
     🚫 A LEADING `@` IS AN IN-SITE PAGE ID AND IS REFUSED IN STEP 2, LOUDLY. It is
     the half that has to construct `base_url`, and the publishing path can
@@ -283,7 +301,7 @@ def _payload(name: str, src: str):
         )
         return None
 
-    entry = urllinks._entry(urllinks._page_links_for(src), name)
+    entry = urllinks._entry(urllinks._page_links(page), name)
     where = "page"
     if entry is None:
         entry = urllinks._entry(urllinks._site_links(), name)
@@ -314,7 +332,14 @@ def _payload(name: str, src: str):
 
 
 def _png(payload: str) -> bytes:
-    """The pinned encoder recipe. Every argument is load-bearing; see docstring."""
+    """The pinned encoder recipe. Every argument is load-bearing; see docstring.
+
+    ⚠️ `segno` IS IMPORTED HERE, NOT AT MODULE LEVEL, AND THAT IS A CHOICE. A
+    top-level import would make a missing dependency an ImportError at hook load,
+    which takes the WHOLE BUILD down -- the shape that killed all four sites on
+    2026-08-05. Imported inside the call, a missing library degrades to one
+    reported, declined code on the one page that asked for it.
+    """
     import io
 
     import segno
@@ -327,13 +352,14 @@ def _png(payload: str) -> bytes:
         boost_error=False,
     )
     buffer = io.BytesIO()
-    code.save(buffer, kind="png", scale=_SCALE, border=_BORDER, dark="black",
-              light="white")
+    code.save(
+        buffer, kind="png", scale=_SCALE, border=_BORDER, dark="black", light="white"
+    )
     return buffer.getvalue()
 
 
 def _html_for(src: str, name: str, opts: dict, page) -> str:
-    payload = _payload(name, src)
+    payload = _payload(name, src, page)
     if payload is None:
         return _dead("QR Code", "qr: " + name)
 
@@ -355,8 +381,9 @@ def _html_for(src: str, name: str, opts: dict, page) -> str:
     try:
         raw = _png(payload)
     except Exception as exc:
-        # A payload too large, or a segno version that no longer accepts one of
-        # the pinned arguments. Reported and declined -- never a partial image.
+        # A payload too large, a missing `segno`, or a version that no longer
+        # accepts one of the pinned arguments. Reported and declined -- never a
+        # partial image, and never a build failure.
         state.note(
             "missing_required",
             src + ': `!!! qr "' + name + '"` could not be encoded (' + str(exc)
@@ -380,10 +407,6 @@ def _html_for(src: str, name: str, opts: dict, page) -> str:
         + '" download="qr-' + html.escape(_slug(name), quote=True)
         + '.png">QR Code</a></p>'
     )
-
-
-def _slug(name: str) -> str:
-    return re.sub(r"[^A-Za-z0-9_-]+", "-", name).strip("-").lower() or "code"
 
 
 def on_config(config):
@@ -426,18 +449,23 @@ def on_post_build(config):
     if not PENDING:
         return
 
-    root = Path(str(config["site_dir"])) / _DIR
+    site = Path(str(config["site_dir"]))
     try:
-        root.mkdir(parents=True, exist_ok=True)
+        (site / _DIR).mkdir(parents=True, exist_ok=True)
     except OSError as exc:
-        state.note("missing_required", "qr: could not create " + str(root)
-                   + " (" + str(exc) + "). No QR download will resolve.")
+        state.note(
+            "missing_required",
+            "qr: could not create " + str(site / _DIR) + " (" + str(exc)
+            + "). No QR download will resolve.",
+        )
         return
 
     for target, raw in sorted(PENDING.items()):
-        path = Path(str(config["site_dir"])) / target
         try:
-            path.write_bytes(raw)
+            (site / target).write_bytes(raw)
         except OSError as exc:
-            state.note("missing_required", "qr: could not write " + target
-                       + " (" + str(exc) + "). That download will 404.")
+            state.note(
+                "missing_required",
+                "qr: could not write " + target + " (" + str(exc)
+                + "). That download will 404.",
+            )
