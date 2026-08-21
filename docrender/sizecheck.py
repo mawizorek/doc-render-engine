@@ -53,6 +53,51 @@ THREE JOBS, all of which want to run last.
    `rules.no-customers-no-sites`, and note the sibling shape -- v1 of this check
    died of treating prose as code, and JSON is the one place it still does.
 
+   =========================================================================
+   🔴 theme/canonical/ IS NOT SCANNED AT ALL (2026-08-21). See _LEAK_SKIP.
+   =========================================================================
+   That folder is a VENDORED MIRROR of `mawizorek/maw-themes`, and skipping it
+   is the SIBLING of the instances/ rule below rather than an exception to it.
+   The same bytes are already unscanned every single build: the live checkout
+   lands at DOCRENDER_CANONICAL, OUTSIDE ENGINE_ROOT, and this walk never sees
+   it. Scanning the fallback and not the original gave one file two verdicts
+   decided purely by which directory it sat in -- and the copy that FAILED the
+   build was the copy the build did not render.
+
+   The engine is also forbidden from editing its way out. These files carry no
+   header comments on purpose, because their identity IS their hash, and
+   source.tsv states the rule directly: never edit a vendored file in place. A
+   scan whose only available remedy is prohibited is not a check, it is a wall.
+
+   IT COST URITP TWO DAYS OF PUBLISHING, SILENTLY, AND THAT IS THE ENTRY.
+   maw-themes gained colour rows `uritp` and `uritp-light` (source.tsv refresh
+   log, 2026-08-19). The re-vendor that pulled them in -- done to close the
+   stale-fallback gap, and correct on its own terms -- wrote the literal string
+   `uritp` into theme/canonical/colors.tsv and into the `note` cell of
+   source.tsv describing it. From that commit every uritp build exited 1 here,
+   the site froze on its last good render, and NO OTHER INSTANCE WAS AFFECTED,
+   because no other instance's slug is also a palette name. The failure is
+   invisible from the site: content keeps committing, the log keeps saying the
+   same thing, and nothing downstream reports that it stopped arriving.
+
+   ⚠️ A TSV HAS NO CODE. This is the JSON hole one file type over. The
+   comment-vs-literal distinction needs a language that HAS both; a data table
+   has only cells. Stripping `#` lines from a .tsv looks like that distinction
+   and is not it -- what survives is not "the actual code", it is every value in
+   the table.
+
+   🚫 THE FIX THAT WAS REFUSED: `leak_tokens: []` in uritp's site.yml. The hook
+   exists, and it would have gone green in one line. It would also have retired
+   the portability check on the largest consumer of this engine in order to work
+   around a colour name -- v1's death repeated with the sides swapped. An engine
+   that cannot be checked against its biggest site is not being checked.
+
+   ⚠️ STILL OPEN, UPSTREAM, AND DELIBERATELY NOT FIXED HERE: `uritp` names both
+   a themes.json join and a colors.tsv entity, which this build reports on every
+   run ("Reading it as the JOIN. Rename one upstream"). Renaming either is a
+   maw-themes decision with a site.yml consequence, because an instance declares
+   its theme by that name. It does not get made by a scan.
+
    ⚠️ Known and accepted hole: a site name hidden in a NON-literal expression
    walks straight through. Not worth defending against. This catches the honest
    mistake of typing a site into the engine, not somebody smuggling one in.
@@ -119,6 +164,17 @@ _ENGINE_SOURCE = (
     ("assets", (".css", ".js")),
 )
 
+#: WHAT THE LEAK SCAN WALKS PAST. Repo-root-relative, posix, prefix match on a
+#: whole path segment. Everything here must be a tree the engine MIRRORS rather
+#: than AUTHORS -- see the 🔴 theme/canonical/ block in this module's docstring
+#: for the full argument and the two-day URITP outage that produced it.
+#:
+#: 🚫 NOT A GENERAL-PURPOSE EXEMPTION LIST. The test for admission is not "this
+#: path is noisy", it is "the engine cannot legally edit this file, and its live
+#: twin is already unscanned." Anything the engine actually authors stays in
+#: scope, including every other .tsv in theme/.
+_LEAK_SKIP = ("theme/canonical",)
+
 
 def _scan_sizes() -> None:
     content = Path(os.environ.get("DOCRENDER_CONTENT", "content"))
@@ -172,6 +228,14 @@ def _code_only(path: Path) -> str:
     loosening the scan: theme/canonical/themes.json carries
     `rules.no-customers-no-sites` for exactly this.
 
+    🔴 AND THE .tsv BRANCH IS THE SAME HOLE WEARING A DISGUISE (2026-08-21).
+    Stripping `#` lines from a data table does not leave "the actual code"
+    behind, because a table has no code -- it leaves every cell. The branch is
+    still worth keeping for the tables the engine AUTHORS, where a header
+    comment is genuinely the prose half. It is NOT sufficient for a table the
+    engine merely mirrors, which is why theme/canonical/ is now skipped by
+    _LEAK_SKIP before it ever reaches this function.
+
     ⚠️ An unparseable Python file also returns raw, deliberately (see below).
     Two different reasons, one behaviour, and neither is a silent skip.
     """
@@ -215,6 +279,16 @@ def _leak_tokens() -> list[str]:
     return [c for c in candidates if len(c) > 2]
 
 
+def _is_mirrored(rel: Path) -> bool:
+    """True for a path inside a tree the engine mirrors rather than authors.
+
+    Prefix match on WHOLE SEGMENTS, never on characters: a sibling folder named
+    `theme/canonical-notes/` is ours and must stay in scope.
+    """
+    posix = rel.as_posix()
+    return any(posix == skip or posix.startswith(skip + "/") for skip in _LEAK_SKIP)
+
+
 def _scan_leaks() -> bool:
     tokens = _leak_tokens()
     if not tokens:
@@ -235,6 +309,12 @@ def _scan_leaks() -> bool:
         for path in root.rglob("*"):
             if not path.is_file() or path.suffix not in _SCAN_SUFFIXES:
                 continue
+            rel = path.relative_to(state.ENGINE_ROOT)
+            # A MIRRORED TREE IS OUT OF SCOPE, and the skip is announced rather
+            # than silent -- an unreported skip is how a check rots into a
+            # decoration. See _LEAK_SKIP.
+            if _is_mirrored(rel):
+                continue
             code = _code_only(path)
             if not code:
                 continue
@@ -243,11 +323,19 @@ def _scan_leaks() -> bool:
                     leaked = True
                     state.note(
                         "leaks",
-                        str(path.relative_to(state.ENGINE_ROOT))
+                        str(rel)
                         + " depends on '" + tok + "' in CODE (not a comment). "
                         + "The engine must not know which site it renders. "
                         + "Move it to instances/" + slug + "/site.yml.",
                     )
+
+    state.note(
+        "notes",
+        "leak scan: " + str(len(tokens)) + " token(s) scanned, skipping "
+        + ", ".join(_LEAK_SKIP) + " (vendored mirror, read live from its own "
+        "repo and never scanned there either). The portability seam is "
+        "verified for everything this engine AUTHORS.",
+    )
     return leaked
 
 
