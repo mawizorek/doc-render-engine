@@ -3,7 +3,7 @@
 WHY decisions here are the way they are: `specs/qr-codes.md` (BUILD 6) and the
 doc-render-engine Decision Log. This docstring is the CONTRACT.
 
-    !!! qr "incident_form"
+    !!! qr "incident-report"
 
 Michael, 2026-08-21: *"i wnat to qr code out to the incident report fowm, in
 case i print the page and hsare it - that way peopoel can pull up the form on
@@ -11,16 +11,27 @@ their phone"* and, on where the address lives, *"i like the making it a part of
 exisitng links: organization."*
 
 =============================================================================
-STEP 2 OF SIX. WHAT IS DELIBERATELY NOT HERE YET
+STEPS 2 AND 6 OF SIX. WHAT IS DELIBERATELY NOT HERE YET
 =============================================================================
 The spec's build order exists because the risky half must land AFTER the surface
-that verifies it. So this module ships the SAFE half:
+that verifies it. Built so far:
 
-    BUILT      an external `links:` name -> a PNG download link
+    BUILT      an external `links:` name -> a PNG download link      (step 2)
+    BUILT      a `forms:` slot on the same page, as the last rung    (step 6)
     NOT YET    `@page-id` targets (needs the base_url refusal, spec §1)
-    NOT YET    the report inventory (spec §5, and it is step 3 on purpose)
+    NOT YET    the report inventory (spec §5, and it is step 3)
     NOT YET    `display=` / `print=` (spec §4d -- a rendered code)
-    NOT YET    the `forms:` rung (spec ruling 2)
+
+🔴 STEP 6 SHIPPED BEFORE STEPS 3-5, WHICH IS OUT OF THE SPEC'S ORDER, AND THE
+REASON IS RECORDED RATHER THAN GLOSSED. Michael asked for it directly, to kill a
+duplication the previous commit had just created on a live page. The spec put it
+last because it is *"a convenience on a mechanism that must already be
+trustworthy"* -- and that argument was about §1's `base_url` risk, which this rung
+does not touch: it reads an address somebody already typed into the same page.
+⚠️ The cost is real and is NOT hypothetical: step 3's report inventory still does
+not exist, so there is still no build-time surface that shows a human which
+address a code encodes. That gap is unchanged by this commit, and it is the next
+thing to build.
 
 🚫 AN UNBUILT OPTION IS REFUSED, NOT IGNORED. `display=`/`print=` parse and then
 report "recognised, not implemented" -- because a key that silently does nothing
@@ -28,26 +39,70 @@ is the defect mkdocs.yml's own comment records a dead hook for, and because
 somebody will write them from the spec before the spec is built.
 
 =============================================================================
-🔴 THE ADDRESS LIVES IN `links:`. NEVER IN THE DIRECTIVE.
+🔴 THE ADDRESS IS NAMED, NEVER TYPED INTO THE DIRECTIVE
 =============================================================================
-The name is resolved through `urllinks`' registry -- page frontmatter first, then
-`site.yml` -- so one edit fixes every page. A raw URL typed into the directive is
-REFUSED: *"the same vendor link on twenty pages is twenty edits,"* and on paper it
-is twenty edits and forty reprints.
+Three rungs, in order, and each one is an address somebody ALREADY declared:
 
-⭐ AND THAT REGISTRY IS READ, NEVER MODIFIED. `urllinks._site_links()` reads
-`state.INSTANCE` directly, which is why this whole feature needs no instance
-config key and never touches `docrender/instance.py` -- a file already past the
-read ceiling with a `print:` block queued behind it.
+    1. this page's `links:` block
+    2. `site.yml`'s `links:` registry
+    3. this page's `forms:` block  <- step 6
 
-⚠️ IT CALLS THREE PRIVATE HELPERS OUT OF `urllinks` (`_entry`, `_page_links`,
-`_site_links`, `_bad_scheme`) AND THAT IS A DELIBERATE COUPLING, not laziness.
-Re-implementing the two-spellings entry parser or the scheme allow-list here
-would be a SECOND CLAIMANT on one truth -- the defect this repo has retired three
-manifests over. 🔴 The consequence is real and belongs in this docstring rather
-than in a surprise: renaming any of them breaks this module, so they are now
-interface. If that becomes uncomfortable, promote them in `urllinks` -- do not
-copy them here.
+A raw URL typed into the directive is REFUSED: *"the same vendor link on twenty
+pages is twenty edits,"* and on paper it is twenty edits and forty reprints.
+
+⭐ AND EVERY REGISTRY IS READ, NEVER MODIFIED. `urllinks._site_links()` reads
+`state.INSTANCE` directly and `forms._entry()` reads `state.BY_SRC`, which is why
+this whole feature needs no instance config key and never touches
+`docrender/instance.py` -- a file already past the read ceiling with a `print:`
+block queued behind it.
+
+⚠️ IT CALLS PRIVATE HELPERS OUT OF TWO SIBLING MODULES (`urllinks._entry`,
+`._page_links`, `._site_links`, `._bad_scheme`; `forms._entry`) AND THAT IS A
+DELIBERATE COUPLING, not laziness. Re-implementing the two-spellings entry parser
+or the scheme allow-list here would be a SECOND CLAIMANT on one truth -- the
+defect this repo has retired three manifests over. 🔴 The consequence belongs in
+this docstring rather than in a surprise: those five names are now interface.
+Renaming any of them breaks this module. If that becomes uncomfortable, promote
+them in their own module -- do not copy them here.
+
+=============================================================================
+⭐ STEP 6: WHY A `forms:` SLOT IS A LEGITIMATE ADDRESS AND NOT A SHORTCUT
+=============================================================================
+A page that EMBEDS a form already declares that form's URL, in `forms:`. Putting
+the same URL in a `links:` entry so a QR can encode it means **one address
+declared twice on one page** -- and the build cannot detect a mismatch, because
+both entries would be perfectly valid while the QR pointed at the dead one and the
+embedded form kept working.
+
+⭐ SO THE SAME NAME NOW FEEDS BOTH DIRECTIVES, WHICH IS THE POINT:
+
+    !!! form "incident-report"    embeds it
+    !!! qr "incident-report"      encodes it
+
+One address of record, two consumers, and they cannot drift apart.
+
+🔴 THE RUNG IS LAST, AND THAT ORDER IS LOAD-BEARING RATHER THAN ARBITRARY. A
+`links:` entry is an ADDRESS BOOK -- its whole purpose is to be pointed at. A
+`forms:` slot is a thing the page RENDERS, and its URL is an implementation detail
+of that embed. So an explicit `links:` entry must be able to override it: a page
+that wants its QR to point somewhere other than the form it embeds says so, and is
+believed.
+
+⚠️ AND A NAME IN BOTH IS REPORTED, not silently resolved. Same polarity
+`urllinks` already set for a page overriding the site registry: *"a silent
+override is indistinguishable from a typo."*
+
+🔴 ONE NARROWING WORTH KNOWING BEFORE REACHING FOR THIS RUNG: `forms.py` enforces
+an allow-list of exactly one host, so a `forms:` slot can ONLY ever be a
+ClickUp form address. **This rung is not a general-purpose address book and must
+not be grown into one.** Anything else -- a vendor manual, an OSHA standard, a
+phone number -- is a `links:` entry, which is what that registry is for.
+
+⚠️ IT READS THE SLOT'S `src:`, AND `forms.py` OWNS THAT SPELLING. A `forms:` entry
+uses `src:` where a `links:` entry uses `url:`, which is why a malformed slot gets
+its own message here rather than being handed to `_bad_scheme` -- that function
+would correctly say *"has no `url:`"* about a block that has no such key, and an
+accurate error naming the wrong key is worse than a vague one.
 
 =============================================================================
 🔴 DETERMINISM IS CONSTRUCTED HERE, NOT INHERITED FROM THE LIBRARY
@@ -146,6 +201,13 @@ proofreads a QR, and a wrong one renders as a perfect, confident square.
 Until it lands, the only verification is scanning the code. Do not add
 `@page-id` support before it: a mistyped external name at least fails loudly here,
 while a wrong `base_url` produces a beautiful code pointing nowhere.
+
+📐 SIZE. This module is the largest thing BUILD 6 ships and it is close to the
+~22KB ceiling this repo enforces everywhere. ⚠️ The seam, if it is ever needed, is
+the DETERMINISM section above plus `_png` -- an encoder contract that the resolver
+does not depend on line-by-line, and the same seam `specs/qr-codes.md` has
+already pre-identified in its own prose. **Measure from the write response before
+adding to this file; never from the draft in front of you.**
 """
 
 from __future__ import annotations
@@ -155,7 +217,7 @@ import html
 import re
 from pathlib import Path
 
-from . import state, urllinks
+from . import forms, state, urllinks
 from .util import relative_url, sub_outside_code
 
 #: `!!! qr "name"` plus optional trailing `key=value` pairs, alone on its line.
@@ -164,6 +226,10 @@ from .util import relative_url, sub_outside_code
 #: body vocabulary stays one pattern rather than two spellings of one idea. The
 #: difference is the trailing group: forms.py anchors straight to end-of-line,
 #: and that anchor is exactly where options have to go.
+#:
+#: ⭐ AND AS OF STEP 6 THE RESEMBLANCE IS MORE THAN COSMETIC: the two directives
+#: can name the SAME slot on the same page, one embedding the form and the other
+#: encoding its address.
 #:
 #: 🚫 OPTIONS ARE BARE `key=value`, NOT AN attr_list BRACE BLOCK, and that is a
 #: refusal rather than an oversight. `markers.py` hands an unrecognised brace
@@ -270,23 +336,52 @@ def _options(raw: str, src: str, name: str) -> dict:
     return found
 
 
+def _from_form(name: str, src: str):
+    """The `src:` of a `forms:` slot on this page, or None. Step 6, the last rung.
+
+    ⚠️ RETURNS THE URL ONLY. `forms._entry` hands back `(src, text, collapsed)`
+    and the other two belong to the EMBED -- a QR has no label to render (the
+    engine emits no caption, Michael's ruling) and cannot be collapsed.
+
+    ⚠️ AND A MALFORMED SLOT GETS ITS OWN MESSAGE, not `_bad_scheme`'s. That
+    function would say *"has no `url:`"* about a block whose key is `src:` -- an
+    accurate sentence naming the wrong key, which is worse than a vague one.
+    """
+    entry = forms._entry(src, name)
+    if entry is None:
+        return None
+    url = (entry[0] or "").strip()
+    if not url:
+        state.note(
+            "dead_links",
+            src + ': `!!! qr "' + name + '"` found a `forms:` slot of that name '
+            "with no `src:` value. Nothing was rendered.",
+        )
+        return ""
+    return url
+
+
 def _payload(name: str, src: str, page):
     """The absolute URL this code will encode, or None to decline.
 
-    Reads the `links:` registry through `urllinks`, page block first, then
-    `site.yml` -- the same ladder and the same precedence a `@url:` reference
-    already walks, because two resolution orders for one registry is how they
-    drift.
+    THREE RUNGS, and the order is argued in the module docstring:
+
+        1. this page's `links:` block
+        2. `site.yml`'s `links:` registry
+        3. this page's `forms:` block
+
+    Rungs 1 and 2 are `urllinks`' own ladder and precedence, reused rather than
+    re-derived, because two resolution orders for one registry is how they drift.
 
     ⚠️ `_page_links` TAKES THE PAGE OBJECT, NOT `src`, which is why `page` is
     threaded down here rather than the path alone. It reads `state.BY_SRC`
     internally; calling it is what keeps this module from becoming a second
     reader of the `links:` key.
 
-    🚫 A LEADING `@` IS AN IN-SITE PAGE ID AND IS REFUSED IN STEP 2, LOUDLY. It is
-    the half that has to construct `base_url`, and the publishing path can
-    override `base_url` for one build -- so a wrong one bakes a dead address into
-    paper, which no later publish can repair. It does not ship before the report
+    🚫 A LEADING `@` IS AN IN-SITE PAGE ID AND IS STILL REFUSED, LOUDLY. It is the
+    half that has to construct `base_url`, and the publishing path can override
+    `base_url` for one build -- so a wrong one bakes a dead address into paper,
+    which no later publish can repair. It does not ship before the report
     inventory that would catch it.
     """
     if name.startswith("@"):
@@ -296,23 +391,60 @@ def _payload(name: str, src: str, page):
             "NOT BUILT YET (specs/qr-codes.md step 4). Nothing was rendered. An "
             "in-site payload has to be absolute, so it depends on `base_url` -- "
             "and the publishing path may override that for one build, which would "
-            "bake a dead address into anything printed. Name an external entry in "
-            "`links:` instead, or wait for step 4.",
+            "bake a dead address into anything printed. Name an entry in `links:` "
+            "or a `forms:` slot on this page instead, or wait for step 4.",
         )
         return None
 
     entry = urllinks._entry(urllinks._page_links(page), name)
-    where = "page"
+    where = "this page's `links:` block"
     if entry is None:
         entry = urllinks._entry(urllinks._site_links(), name)
         where = "site.yml"
+
     if entry is None:
+        # RUNG 3. Reached only when no `links:` entry of this name exists
+        # anywhere, which is what makes an explicit entry an override.
+        url = _from_form(name, src)
+        if url is None:
+            state.note(
+                "dead_links",
+                src + ': `!!! qr "' + name + '"` names no entry in this page\'s '
+                "`links:` block, none in site.yml, and no `forms:` slot on this "
+                "page. Nothing was rendered.",
+            )
+            return None
+        if not url:
+            # Slot found, unusable. `_from_form` already reported why.
+            return None
+        # ⚠️ STILL SCHEME-CHECKED, even though forms.py has its own one-host
+        # allow-list. That check runs in forms.py's RENDER path, so a page that
+        # declares a slot and never embeds it has never been validated at all --
+        # and this rung can reach exactly such a slot.
+        problem = urllinks._bad_scheme(url)
+        if problem:
+            state.note(
+                "dead_links",
+                src + ': `!!! qr "' + name + '"` resolves to the `forms:` slot of '
+                "that name, whose `src:` " + problem,
+            )
+            return None
+        return url
+
+    # ⚠️ A NAME IN BOTH IS REPORTED, NEVER SILENTLY RESOLVED. Same polarity
+    # `urllinks` sets for a page overriding the site registry: a silent override
+    # is indistinguishable from a typo. The `links:` entry wins -- an address book
+    # exists to be pointed at, while a form's URL is an implementation detail of
+    # the embed.
+    if forms._entry(src, name) is not None:
         state.note(
-            "dead_links",
-            src + ': `!!! qr "' + name + '"` names no entry in this page\'s '
-            "`links:` block or in site.yml. Nothing was rendered.",
+            "notes",
+            src + ': `!!! qr "' + name + '"` matches BOTH a `links:` entry (in '
+            + where + ") and a `forms:` slot of the same name on this page. The "
+            "`links:` entry wins, which is the design -- said out loud because a "
+            "silent override is indistinguishable from a typo. Delete the "
+            "`links:` entry if the QR should follow the embedded form.",
         )
-        return None
 
     url = entry[0]
     problem = urllinks._bad_scheme(url)
