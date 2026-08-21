@@ -1,22 +1,20 @@
 """The `!!! qr "name"` directive -- a STATIC QR code built at publish time.
 
-    !!! form "incident-report"    embeds the form
-    !!! qr "incident-report"      encodes its address
+    !!! qr "incident-report"                      a PNG download link
+    !!! qr "incident-report" display=true         the code, on screen
+    !!! qr "incident-report" print=true           the code, on paper
+    !!! qr "incident-report" display=true print=true    both
 
 🔴 THE ARGUMENT FOR EVERY DECISION HERE LIVES IN `specs/qr-codes.md` (BUILD 6),
 AND THIS DOCSTRING DELIBERATELY DOES NOT REPEAT IT. It held a summary of that
 spec until 2026-08-21 and the file reached 28,490 B against a ~22 KB ceiling --
 not because it had a seam, but because it was a SECOND CLAIMANT on a document
-that already existed. That is this repo's most-retired defect wearing a docstring,
-and trimming it was the fix rather than splitting the module.
+that already existed. That is this repo's most-retired defect wearing a docstring.
 
-⚠️ WHAT STAYS HERE IS ONLY WHAT AN EDITOR OF *THIS FILE* CANNOT SAFELY NOT KNOW:
-the reason each encoder argument is pinned (they are three lines from the call),
-the reason the write happens where it does, and what this module borrows.
+⚠️ WHAT STAYS HERE IS ONLY WHAT AN EDITOR OF *THIS FILE* CANNOT SAFELY NOT KNOW.
 
-STATE: steps 2 and 6 built (a `links:` name; a `forms:` slot on the same page).
-NOT BUILT: `@page-id` (step 4), the report inventory (step 3), `display=`/`print=`
-(step 5). 🚫 An unbuilt option is REFUSED with its own report line, never ignored.
+STATE: steps 2, 5 and 6 built. NOT BUILT: `@page-id` (step 4) and the report
+inventory (step 3) -- and step 3 is the one that matters, see the LIMIT below.
 
 =============================================================================
 🔴 EVERY ENCODER ARGUMENT IS PINNED, AND NONE OF THEM IS SEGNO'S DEFAULT
@@ -38,11 +36,31 @@ So determinism is constructed, and each pin has a failure it prevents:
                      case-sensitive. Pinned so an all-caps payload cannot switch
                      modes and change the matrix.
   encoding="utf-8"   otherwise chosen FROM THE PAYLOAD (8859-1, else UTF-8).
-  border=4           the quiet zone is PART OF THE SYMBOL. Baked in, where no
-                     stylesheet can crop it. Crop it and the code stops scanning.
+  border=4           the quiet zone is PART OF THE SYMBOL. Baked into the image
+                     and into the SVG viewBox, where no stylesheet can crop it.
+                     Crop it and the code stops scanning.
 
 ⚠️ A MAJOR SEGNO BUMP MAY LEGALLY CHANGE THIS OUTPUT. Hence the upper bound in
 `requirements.txt`.
+
+=============================================================================
+⭐ TWO OUTPUT SHAPES, AND THE FORMAT SPLIT IS DELIBERATE (step 5)
+=============================================================================
+  RENDERED  inline SVG. Vector survives print; an inline SVG's modules are paths
+            in the document's own box tree, not an external resource a print
+            pipeline can drop (specs/print-identity.md §4d warns browsers "can
+            flatten images at print").
+  DOWNLOAD  a real PNG file. Destined for a poster, a slide, an email -- where
+            consumer tools handle PNG reliably and SVG badly.
+
+🔴 `svg_inline()`, NOT `svg_data_uri()` OR `save(kind="svg")`. It is segno's own
+HTML5-embeddable form: no XML declaration, no namespace attribute. The other two
+emit a standalone document, which is invalid inline and renders as nothing.
+
+🔴 `omitsize=True` GIVES A `viewBox` AND NO `width`/`height`, WHICH IS WHAT LETS
+CSS SIZE IT IN `mm`. A pixel size baked into the markup is a fiction at print
+resolution, and `mm` is the one place a physical unit is correct rather than
+trapped -- the sheet is a physical object.
 
 =============================================================================
 ⭐ THE PNG IS WRITTEN AT `on_post_build`, AND THE TIMING IS THE WHOLE DESIGN
@@ -58,9 +76,9 @@ exists. Consequences, all of them the point: nothing enters `images.INDEX` (whic
 refuses duplicate stems and would break a real image's reference); no stray `!`;
 and identical inputs give an identical path, so a rebuild produces no diff.
 
-⚠️ These files do NOT carry `assets.py`'s content fingerprint -- the hash IS the
-filename. 🚫 Do not "fix" that by routing them through `_stamped()`; it puts them
-back into the `on_files` timing problem above.
+⚠️ A RENDERED CODE WRITES NO FILE AT ALL -- the SVG is inline. So `PENDING` is
+only ever filled by the download shape, and a page of `display=true` codes
+produces an empty `qr/` directory. That is correct, not a bug to "fix".
 
 =============================================================================
 ⚠️ WHAT THIS MODULE BORROWS, AND THE PRICE
@@ -75,8 +93,13 @@ module -- do not copy them here.
 🔴 AND THE LIMIT, WHICH IS WORSE HERE THAN ANYWHERE ELSE IN THE ENGINE: an
 external URL is not verifiable at build time (`urllinks` says so first), and a QR
 makes that unverifiable thing UNREADABLE BY A HUMAN TOO. Nobody proofreads a QR;
-a wrong one renders as a perfect, confident square. The report inventory (step 3)
-is the answer and does not exist yet.
+a wrong one renders as a perfect, confident square.
+
+🔴 STEP 5 MAKES THAT LIMIT WORSE, AND IT IS THE HONEST COST OF THIS COMMIT: a
+`print=true`-only code IS INVISIBLE ON SCREEN, so "it failed to resolve" and "it
+resolved and is correctly hidden" are the same blank space to its author. The
+report inventory (step 3) is the only surface that can tell those apart and it
+still does not exist. Until it does, VERIFY A PRINT-ONLY CODE IN PRINT PREVIEW.
 """
 
 from __future__ import annotations
@@ -107,9 +130,8 @@ _QR = re.compile(r'(?m)^[ \t]*!!![ \t]+qr[ \t]+"([^"\n]+)"(?P<opts>[^\n]*)$')
 _OPT = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(\S+)")
 
 #: Exactly two keys are legal, so anything else is an ERROR rather than a
-#: judgement call. Both are REFUSED in `_html_for` until step 5 -- and
-#: recognised-but-unbuilt is a different report line from mistyped, which is the
-#: whole reason this tuple exists before the feature does.
+#: judgement call -- and with only two, an unknown key is never a judgement call
+#: either.
 _KEYS = ("display", "print")
 
 #: 🔴 ONE ENGINE CONSTANT, NOT CONFIG AND NOT A LINE OPTION (Michael: "globally
@@ -127,16 +149,16 @@ _KEYS = ("display", "print")
 #: defect, not a styling one.
 _ECC = "Q"
 
-#: Pixels per module in the downloaded PNG. ⚠️ It decides whether the download is
-#: usable at poster scale, which is the one property a person notices -- and it is
-#: part of the determinism contract, since a change moves the bytes, the hash and
-#: therefore the filename.
+#: Pixels per module in the DOWNLOADED PNG only -- the inline SVG is sized by CSS
+#: in `mm`. ⚠️ It decides whether the download is usable at poster scale, which is
+#: the one property a person notices -- and it is part of the determinism
+#: contract, since a change moves the bytes, the hash and therefore the filename.
 _SCALE = 8
 
 #: The quiet zone, in modules. Part of the symbol. See the docstring.
 _BORDER = 4
 
-#: Where the images land in the built site. 🚫 NOT `assets/`, which is
+#: Where the DOWNLOAD images land in the built site. 🚫 NOT `assets/`, which is
 #: `assets.py`'s planned-and-fingerprinted namespace and would invite somebody to
 #: route these through `_stamped()`.
 _DIR = "qr"
@@ -167,9 +189,14 @@ def _slug(name: str) -> str:
 def _options(raw: str, src: str, name: str) -> dict:
     """Parse the trailing `key=value` pairs, reporting anything unknown.
 
-    ⚠️ AN UNKNOWN KEY IS REPORTED, NEVER IGNORED. A mistyped `dispay=true` would
-    otherwise fall through to the default and emit a download link where a
-    rendered code was wanted: wrong output, no signal.
+    ⚠️ AN UNKNOWN KEY IS REPORTED, NEVER IGNORED. A mistyped `dispay=true` falls
+    through to the download default and emits a link where a rendered code was
+    wanted: wrong output, and without this line, no signal.
+
+    ⚠️ `false` IS RECORDED, NOT DROPPED. `_shape` has to tell "absent" from
+    "present and false" -- absent means the download default, while an explicit
+    all-false directive is a refusal. Storing only the true ones would collapse
+    those two into one.
     """
     tail = (raw or "").strip()
     if not tail:
@@ -195,6 +222,36 @@ def _options(raw: str, src: str, name: str) -> dict:
             + "`key=value` option: '" + leftover + "'. Ignored.",
         )
     return found
+
+
+def _shape(opts: dict, src: str, name: str):
+    """What this directive renders: "download", a set of media, or None to refuse.
+
+    THE RULE IS MICHAEL'S, VERBATIM: *"display = and print = are both optional and
+    the only thing that declares where those qr codes appear... if either is
+    provided, then nothing besides the rectangle prints."* So PRESENCE, not truth,
+    switches off the download.
+
+    🚫 AN ALL-FALSE DIRECTIVE IS REFUSED LOUDLY. `print=false` is *provided*, so it
+    suppresses the download link, and then declines to print -- a declared QR that
+    appears in no medium at all. A no-op that looks like a declaration is the
+    defect mkdocs.yml's own comment records a dead hook for, so it reports and
+    renders the dead span instead of nothing.
+    """
+    if not any(key in opts for key in _KEYS):
+        return "download"
+
+    media = {key for key in _KEYS if opts.get(key)}
+    if not media:
+        state.note(
+            "missing_required",
+            src + ': `!!! qr "' + name + '"` declares every medium false, so it '
+            "would appear nowhere: providing `display=` or `print=` at all "
+            "suppresses the download link, and both are false here. Remove the "
+            "options for a download link, or set one to true.",
+        )
+        return None
+    return media
 
 
 def _from_form(name: str, src: str):
@@ -329,25 +386,32 @@ def _payload(name: str, src: str, page):
     return url
 
 
-def _png(payload: str) -> bytes:
-    """The pinned encoder recipe. Every argument is load-bearing; see the docstring.
+def _code(payload: str):
+    """The pinned encoder. Every argument is load-bearing; see the docstring.
 
     ⚠️ `segno` IS IMPORTED HERE, NOT AT MODULE LEVEL. A top-level import makes a
     missing dependency an ImportError at hook load, which takes the WHOLE BUILD
     down -- the shape that killed all four sites on 2026-08-05. Inside the call it
     degrades to one reported, declined code.
-    """
-    import io
 
+    ⭐ ONE ENCODE, TWO SERIALISATIONS. A `QRCode` is format-independent, so the
+    SVG and the PNG of one payload come from the SAME matrix by construction --
+    which is stronger than two calls that merely use the same arguments.
+    """
     import segno
 
-    code = segno.make_qr(
+    return segno.make_qr(
         payload,
         error=_ECC,
         mode="byte",
         encoding="utf-8",
         boost_error=False,
     )
+
+
+def _png(code) -> bytes:
+    import io
+
     buffer = io.BytesIO()
     code.save(
         buffer, kind="png", scale=_SCALE, border=_BORDER, dark="black", light="white"
@@ -355,38 +419,33 @@ def _png(payload: str) -> bytes:
     return buffer.getvalue()
 
 
-def _html_for(src: str, name: str, opts: dict, page) -> str:
-    payload = _payload(name, src, page)
-    if payload is None:
-        return _dead("QR Code", "qr: " + name)
+def _svg(code, payload: str) -> str:
+    """The inline SVG. See the docstring for why it is `svg_inline` + `omitsize`.
 
-    for key in _KEYS:
-        if key in opts:
-            # 🚫 RECOGNISED, NOT IMPLEMENTED -- a distinct report line from a
-            # mistyped key. Somebody will write these straight out of the spec
-            # before the spec is built, and silently emitting a download link for a
-            # line that asked for a rendered code is wrong output with no signal.
-            state.note(
-                "missing_required",
-                src + ': `!!! qr "' + name + '" ' + key + "=...` is a recognised "
-                "option that is NOT BUILT YET (specs/qr-codes.md step 5). A "
-                "download link was rendered instead of a QR image. Remove the "
-                "option to silence this.",
-            )
+    ⚠️ `title=` IS THE ACCESSIBLE NAME AND IT CARRIES THE PAYLOAD. A bare square
+    with no visible text is silence to a screen reader, and on a safety page that
+    is a compliance surface rather than a nicety. 🚫 It is NOT a caption -- the
+    engine emits no caption, by ruling; an SVG `<title>` is invisible in both
+    media, which is exactly why it is the right place for this.
 
-    try:
-        raw = _png(payload)
-    except Exception as exc:
-        # Payload too large, `segno` missing, or a version that no longer accepts
-        # one of the pinned arguments. Reported and declined -- never a partial
-        # image, never a build failure.
-        state.note(
-            "missing_required",
-            src + ': `!!! qr "' + name + '"` could not be encoded (' + str(exc)
-            + "). Nothing was rendered.",
-        )
-        return _dead("QR Code", "qr could not be encoded: " + name)
+    🚫 COLOURS ARE LITERAL, NEVER `--dr-*` TOKENS. Scanners need luminance
+    contrast; 16 of 19 canonical palettes carry semantic colours authored against
+    a dark ground straight into their light row, and a themed QR would inherit
+    that on the one surface that cannot be re-published.
+    """
+    return code.svg_inline(
+        omitsize=True,
+        border=_BORDER,
+        dark="#000",
+        light="#fff",
+        svgclass="dr-qr__svg",
+        lineclass="dr-qr__modules",
+        title=payload,
+    )
 
+
+def _download(payload: str, name: str, code, page) -> str:
+    raw = _png(code)
     digest = hashlib.sha256(
         ("|".join([payload, _ECC, "byte", "utf-8", str(_SCALE), str(_BORDER)]))
         .encode("utf-8")
@@ -405,6 +464,46 @@ def _html_for(src: str, name: str, opts: dict, page) -> str:
     )
 
 
+def _html_for(src: str, name: str, opts: dict, page) -> str:
+    shape = _shape(opts, src, name)
+    if shape is None:
+        return _dead("QR Code", "qr declares no medium: " + name)
+
+    payload = _payload(name, src, page)
+    if payload is None:
+        return _dead("QR Code", "qr: " + name)
+
+    try:
+        code = _code(payload)
+        body = (
+            _download(payload, name, code, page) if shape == "download"
+            else _svg(code, payload)
+        )
+    except Exception as exc:
+        # Payload too large, `segno` missing, or a version that no longer accepts
+        # one of the pinned arguments. Reported and declined -- never a partial
+        # image, never a build failure.
+        state.note(
+            "missing_required",
+            src + ': `!!! qr "' + name + '"` could not be encoded (' + str(exc)
+            + "). Nothing was rendered.",
+        )
+        return _dead("QR Code", "qr could not be encoded: " + name)
+
+    if shape == "download":
+        return body
+
+    # ⭐ THE MEDIA STATE IS A CLASS, NOT AN INLINE STYLE. assets/qr.css owns the
+    # visibility rules, the mm size floor and `print-color-adjust` -- a style
+    # attribute here would be unoverridable by a site's own sheet, which every
+    # other surface in this engine allows.
+    classes = ["dr-qr"]
+    for key in _KEYS:
+        if key in shape:
+            classes.append("dr-qr--" + key)
+    return '<div class="' + " ".join(classes) + '">' + body + "</div>"
+
+
 def on_config(config):
     """Start every build with an empty collector. See `PENDING`."""
     PENDING.clear()
@@ -412,7 +511,7 @@ def on_config(config):
 
 
 def on_page_markdown(markdown, page, config, files):
-    """Replace each `!!! qr "name"` with its download link.
+    """Replace each `!!! qr "name"` with its download link or its inline code.
 
     ⚠️ `sub_outside_code` IS NOT OPTIONAL. The page that documents this directive
     contains this directive, and util's own docstring records the first time that
@@ -441,6 +540,10 @@ def on_post_build(config):
     ⚠️ A FAILED WRITE IS REPORTED, NOT RAISED. A publish must not die over an
     image: the page already carries the link, so the failure is a 404 on one
     download rather than a lost site.
+
+    ⚠️ AND AN EMPTY `PENDING` IS NORMAL SINCE STEP 5, not a sign nothing worked: a
+    site whose every code is `display=`/`print=` writes no files, because those
+    are inline.
     """
     if not PENDING:
         return
