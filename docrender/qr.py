@@ -1,213 +1,82 @@
 """The `!!! qr "name"` directive -- a STATIC QR code built at publish time.
 
-WHY decisions here are the way they are: `specs/qr-codes.md` (BUILD 6) and the
-doc-render-engine Decision Log. This docstring is the CONTRACT.
+    !!! form "incident-report"    embeds the form
+    !!! qr "incident-report"      encodes its address
 
-    !!! qr "incident-report"
+🔴 THE ARGUMENT FOR EVERY DECISION HERE LIVES IN `specs/qr-codes.md` (BUILD 6),
+AND THIS DOCSTRING DELIBERATELY DOES NOT REPEAT IT. It held a summary of that
+spec until 2026-08-21 and the file reached 28,490 B against a ~22 KB ceiling --
+not because it had a seam, but because it was a SECOND CLAIMANT on a document
+that already existed. That is this repo's most-retired defect wearing a docstring,
+and trimming it was the fix rather than splitting the module.
 
-Michael, 2026-08-21: *"i wnat to qr code out to the incident report fowm, in
-case i print the page and hsare it - that way peopoel can pull up the form on
-their phone"* and, on where the address lives, *"i like the making it a part of
-exisitng links: organization."*
+⚠️ WHAT STAYS HERE IS ONLY WHAT AN EDITOR OF *THIS FILE* CANNOT SAFELY NOT KNOW:
+the reason each encoder argument is pinned (they are three lines from the call),
+the reason the write happens where it does, and what this module borrows.
 
-=============================================================================
-STEPS 2 AND 6 OF SIX. WHAT IS DELIBERATELY NOT HERE YET
-=============================================================================
-The spec's build order exists because the risky half must land AFTER the surface
-that verifies it. Built so far:
-
-    BUILT      an external `links:` name -> a PNG download link      (step 2)
-    BUILT      a `forms:` slot on the same page, as the last rung    (step 6)
-    NOT YET    `@page-id` targets (needs the base_url refusal, spec §1)
-    NOT YET    the report inventory (spec §5, and it is step 3)
-    NOT YET    `display=` / `print=` (spec §4d -- a rendered code)
-
-🔴 STEP 6 SHIPPED BEFORE STEPS 3-5, WHICH IS OUT OF THE SPEC'S ORDER, AND THE
-REASON IS RECORDED RATHER THAN GLOSSED. Michael asked for it directly, to kill a
-duplication the previous commit had just created on a live page. The spec put it
-last because it is *"a convenience on a mechanism that must already be
-trustworthy"* -- and that argument was about §1's `base_url` risk, which this rung
-does not touch: it reads an address somebody already typed into the same page.
-⚠️ The cost is real and is NOT hypothetical: step 3's report inventory still does
-not exist, so there is still no build-time surface that shows a human which
-address a code encodes. That gap is unchanged by this commit, and it is the next
-thing to build.
-
-🚫 AN UNBUILT OPTION IS REFUSED, NOT IGNORED. `display=`/`print=` parse and then
-report "recognised, not implemented" -- because a key that silently does nothing
-is the defect mkdocs.yml's own comment records a dead hook for, and because
-somebody will write them from the spec before the spec is built.
+STATE: steps 2 and 6 built (a `links:` name; a `forms:` slot on the same page).
+NOT BUILT: `@page-id` (step 4), the report inventory (step 3), `display=`/`print=`
+(step 5). 🚫 An unbuilt option is REFUSED with its own report line, never ignored.
 
 =============================================================================
-🔴 THE ADDRESS IS NAMED, NEVER TYPED INTO THE DIRECTIVE
+🔴 EVERY ENCODER ARGUMENT IS PINNED, AND NONE OF THEM IS SEGNO'S DEFAULT
 =============================================================================
-Three rungs, in order, and each one is an address somebody ALREADY declared:
+Byte-identical GENERATION is not guaranteed by ISO/IEC 18004 -- only scanning is.
+So determinism is constructed, and each pin has a failure it prevents:
 
-    1. this page's `links:` block
-    2. `site.yml`'s `links:` registry
-    3. this page's `forms:` block  <- step 6
+  boost_error=False  DEFAULT IS `True`. Left on, segno RAISES the error level
+                     whenever the version has spare capacity, so one extra
+                     character in the payload silently changes the matrix.
+                     Verified against segno's API docs 2026-08-21.
+  make_qr()          NOT `make()`, whose `micro=None` default may return a MICRO
+                     QR -- different symbology, 2-module quiet zone, materially
+                     worse reader support. It would scan on the author's phone
+                     and fail on somebody else's.
+  error=_ECC         segno's default (`None`) is level L, ~7% recovery. Not for
+                     paper, so the level is always explicit.
+  mode="byte"        alphanumeric is denser but UPPERCASE-ONLY and a URL path is
+                     case-sensitive. Pinned so an all-caps payload cannot switch
+                     modes and change the matrix.
+  encoding="utf-8"   otherwise chosen FROM THE PAYLOAD (8859-1, else UTF-8).
+  border=4           the quiet zone is PART OF THE SYMBOL. Baked in, where no
+                     stylesheet can crop it. Crop it and the code stops scanning.
 
-A raw URL typed into the directive is REFUSED: *"the same vendor link on twenty
-pages is twenty edits,"* and on paper it is twenty edits and forty reprints.
-
-⭐ AND EVERY REGISTRY IS READ, NEVER MODIFIED. `urllinks._site_links()` reads
-`state.INSTANCE` directly and `forms._entry()` reads `state.BY_SRC`, which is why
-this whole feature needs no instance config key and never touches
-`docrender/instance.py` -- a file already past the read ceiling with a `print:`
-block queued behind it.
-
-⚠️ IT CALLS PRIVATE HELPERS OUT OF TWO SIBLING MODULES (`urllinks._entry`,
-`._page_links`, `._site_links`, `._bad_scheme`; `forms._entry`) AND THAT IS A
-DELIBERATE COUPLING, not laziness. Re-implementing the two-spellings entry parser
-or the scheme allow-list here would be a SECOND CLAIMANT on one truth -- the
-defect this repo has retired three manifests over. 🔴 The consequence belongs in
-this docstring rather than in a surprise: those five names are now interface.
-Renaming any of them breaks this module. If that becomes uncomfortable, promote
-them in their own module -- do not copy them here.
-
-=============================================================================
-⭐ STEP 6: WHY A `forms:` SLOT IS A LEGITIMATE ADDRESS AND NOT A SHORTCUT
-=============================================================================
-A page that EMBEDS a form already declares that form's URL, in `forms:`. Putting
-the same URL in a `links:` entry so a QR can encode it means **one address
-declared twice on one page** -- and the build cannot detect a mismatch, because
-both entries would be perfectly valid while the QR pointed at the dead one and the
-embedded form kept working.
-
-⭐ SO THE SAME NAME NOW FEEDS BOTH DIRECTIVES, WHICH IS THE POINT:
-
-    !!! form "incident-report"    embeds it
-    !!! qr "incident-report"      encodes it
-
-One address of record, two consumers, and they cannot drift apart.
-
-🔴 THE RUNG IS LAST, AND THAT ORDER IS LOAD-BEARING RATHER THAN ARBITRARY. A
-`links:` entry is an ADDRESS BOOK -- its whole purpose is to be pointed at. A
-`forms:` slot is a thing the page RENDERS, and its URL is an implementation detail
-of that embed. So an explicit `links:` entry must be able to override it: a page
-that wants its QR to point somewhere other than the form it embeds says so, and is
-believed.
-
-⚠️ AND A NAME IN BOTH IS REPORTED, not silently resolved. Same polarity
-`urllinks` already set for a page overriding the site registry: *"a silent
-override is indistinguishable from a typo."*
-
-🔴 ONE NARROWING WORTH KNOWING BEFORE REACHING FOR THIS RUNG: `forms.py` enforces
-an allow-list of exactly one host, so a `forms:` slot can ONLY ever be a
-ClickUp form address. **This rung is not a general-purpose address book and must
-not be grown into one.** Anything else -- a vendor manual, an OSHA standard, a
-phone number -- is a `links:` entry, which is what that registry is for.
-
-⚠️ IT READS THE SLOT'S `src:`, AND `forms.py` OWNS THAT SPELLING. A `forms:` entry
-uses `src:` where a `links:` entry uses `url:`, which is why a malformed slot gets
-its own message here rather than being handed to `_bad_scheme` -- that function
-would correctly say *"has no `url:`"* about a block that has no such key, and an
-accurate error naming the wrong key is worse than a vague one.
+⚠️ A MAJOR SEGNO BUMP MAY LEGALLY CHANGE THIS OUTPUT. Hence the upper bound in
+`requirements.txt`.
 
 =============================================================================
-🔴 DETERMINISM IS CONSTRUCTED HERE, NOT INHERITED FROM THE LIBRARY
+⭐ THE PNG IS WRITTEN AT `on_post_build`, AND THE TIMING IS THE WHOLE DESIGN
 =============================================================================
-"Any generator makes the same image" is FALSE by default. Segno's own library
-comparison records that `qrcode` does not reproduce the reference symbol in
-ISO/IEC 18004:2015 Fig. 1. Scanning interoperability is guaranteed by the
-standard; byte-identical GENERATION is not. So every knob is pinned:
+A `!!! qr` lives in the page BODY, and `on_files` has already run by the time any
+body is read -- `assets.py` ruled on exactly this shape for `!!! data`. And a
+`data:` URI, which would need no file at all, is DEAD IN A PDF (viewers refuse
+non-http(s) targets), which is the medium this feature exists for.
 
-🔴 `boost_error=False` -- VERIFIED AGAINST SEGNO'S API DOCS 2026-08-21, AND THE
-DEFAULT IS `True`. Left alone, segno silently RAISES the error level whenever the
-chosen version has spare capacity, so the same payload at the same declared level
-yields a different level -- and therefore a different matrix -- because the
-payload changed by one character. The cost of switching it off is real and is
-stated so nobody "optimises" it back on: we deliberately leave spare capacity
-unused. That is the price of a matrix that cannot change on its own.
+⭐ So the href is DERIVED, not discovered: the filename is a content hash of the
+pinned recipe plus the payload, which can be written into the page before the file
+exists. Consequences, all of them the point: nothing enters `images.INDEX` (which
+refuses duplicate stems and would break a real image's reference); no stray `!`;
+and identical inputs give an identical path, so a rebuild produces no diff.
 
-🔴 `make_qr()`, NOT `make()` -- AND THIS IS THE ONE THE SPEC MISSED. `segno.make`
-takes `micro=None` by default, which means it *may* emit a MICRO QR code for a
-short payload. A Micro QR is a different symbology with its own version set, a
-2-module quiet zone, and materially worse reader support. It would have scanned
-fine on the developer's phone and failed on somebody else's, which is the exact
-failure shape this engine keeps logging. `make_qr` can never return one.
-
-`error=` -- segno's default is `None`, documented as level **L** (~7% recovery).
-Unacceptable for paper, so the level is always explicit. ONE ENGINE CONSTANT,
-never a per-line option (Michael: *"we will set it glboally for all builds in all
-renderer apps. let's not overthink it here"*). ⭐ And that is safe in a way worth
-knowing: changing `_ECC` never invalidates printed paper, because the PAYLOAD is
-unchanged, so every code already on a wall keeps scanning. It is the reverse of
-`base_url`, which is unforgiving after print.
-
-`mode="byte"` -- alphanumeric mode is denser but UPPERCASE-ONLY, and a URL path is
-case-sensitive, so a URL can never legally use it. Pinned anyway so an all-caps
-payload cannot silently switch modes and change the matrix.
-
-`encoding="utf-8"` -- segno otherwise tries ISO/IEC 8859-1 and falls back to
-UTF-8, which is a decision made from the payload's contents. Identical output for
-any ASCII URL; pinned so it stays identical for one that stops being ASCII.
-
-`border=4` -- the quiet zone, and it is PART OF THE SYMBOL rather than padding.
-It is baked into the image, where no stylesheet can crop it. Cropping it stops
-the code scanning.
-
-⚠️ A MAJOR SEGNO BUMP MAY LEGALLY CHANGE OUR OUTPUT (serialization defaults, mask
-tie-breaking). That is why `requirements.txt` carries an upper bound.
+⚠️ These files do NOT carry `assets.py`'s content fingerprint -- the hash IS the
+filename. 🚫 Do not "fix" that by routing them through `_stamped()`; it puts them
+back into the `on_files` timing problem above.
 
 =============================================================================
-⭐ WHY THE PNG IS WRITTEN AT `on_post_build` AND NOT AT `on_files`
+⚠️ WHAT THIS MODULE BORROWS, AND THE PRICE
 =============================================================================
-Michael, 2026-08-21: *"pdfs currently still work if they have links so this
-shoudl still apply where the pdf links to a donalod of the qr code."*
+`urllinks._entry`, `._page_links`, `._site_links`, `._bad_scheme` and
+`forms._entry` are called rather than reimplemented, because a second copy of the
+two-spellings entry parser or the scheme allow-list is a second claimant on one
+truth. 🔴 THE PRICE IS THAT THOSE FIVE PRIVATE NAMES ARE NOW INTERFACE: renaming
+one breaks this module. If that becomes uncomfortable, promote them in their own
+module -- do not copy them here.
 
-That ruling killed the obvious mechanism. A `data:` URI needs no file at all --
-but PDF viewers refuse non-`http(s)` link targets, so a data URI works perfectly
-on screen and DIES in a PDF, which is the medium the whole ruling is about, with
-no error anywhere.
-
-🔴 AND `on_files` CANNOT HELP, because a `!!! qr` lives in the page BODY and
-`on_files` has already run by the time any body is read. `assets.py` ruled on
-exactly this shape for `!!! data`: *"a `!!! data` block lives in the BODY of a
-page, not in the first 2000 bytes a frontmatter scan reads, so the router's trick
-does not transfer."*
-
-⭐ SO THE HREF IS DERIVED RATHER THAN DISCOVERED. The filename is a content hash
-of the pinned recipe plus the payload, which means it can be written into the page
-before the file exists, and `on_post_build` -- which runs after every body has
-been read -- writes the collected images into `site_dir`. `docindex.py` already
-publishes a real file from that event.
-
-⭐ THREE CONSEQUENCES, ALL OF THEM THE POINT:
-
-  * NOTHING ENTERS `images.INDEX`. That index refuses duplicate filename stems,
-    on the rule that *"two pictures with one name are two different pictures"* --
-    so a generated file joining it could break a real image's reference and would
-    only be safe through a hook-ordering dependency nobody would know they had.
-  * NO STRAY BANG. `images.py` works because its resolver returns link markdown
-    and the `!` in `![alt](@img:x)` survives outside the match. A block directive
-    never has that problem.
-  * IDENTICAL RECIPE + PAYLOAD -> IDENTICAL PATH, so a rebuild produces no diff.
-
-⚠️ WHAT IT COSTS, STATED RATHER THAN DISCOVERED: these files do NOT carry
-`assets.py`'s content fingerprint, because they are not planned assets. The hash
-IS the filename, so cache behaviour is the same by accident rather than by that
-mechanism -- do not "fix" it by routing them through `_stamped()`, which would
-put them back into the `on_files` timing problem above.
-
-=============================================================================
-⚠️ THE LIMIT, STATED FIRST, BECAUSE IT IS WORSE HERE THAN ANYWHERE
-=============================================================================
-`urllinks.py` already says an external URL is not verifiable at build time. A QR
-takes that unverifiable thing and makes it UNREADABLE BY A HUMAN AS WELL. Nobody
-proofreads a QR, and a wrong one renders as a perfect, confident square.
-
-🔴 THE BUILD REPORT INVENTORY (spec §5) IS THE ANSWER TO THAT, AND IT IS STEP 3.
-Until it lands, the only verification is scanning the code. Do not add
-`@page-id` support before it: a mistyped external name at least fails loudly here,
-while a wrong `base_url` produces a beautiful code pointing nowhere.
-
-📐 SIZE. This module is the largest thing BUILD 6 ships and it is close to the
-~22KB ceiling this repo enforces everywhere. ⚠️ The seam, if it is ever needed, is
-the DETERMINISM section above plus `_png` -- an encoder contract that the resolver
-does not depend on line-by-line, and the same seam `specs/qr-codes.md` has
-already pre-identified in its own prose. **Measure from the write response before
-adding to this file; never from the draft in front of you.**
+🔴 AND THE LIMIT, WHICH IS WORSE HERE THAN ANYWHERE ELSE IN THE ENGINE: an
+external URL is not verifiable at build time (`urllinks` says so first), and a QR
+makes that unverifiable thing UNREADABLE BY A HUMAN TOO. Nobody proofreads a QR;
+a wrong one renders as a perfect, confident square. The report inventory (step 3)
+is the answer and does not exist yet.
 """
 
 from __future__ import annotations
@@ -223,76 +92,68 @@ from .util import relative_url, sub_outside_code
 #: `!!! qr "name"` plus optional trailing `key=value` pairs, alone on its line.
 #:
 #: Deliberately the same shape as `!!! form "slot"` (docrender/forms.py) so the
-#: body vocabulary stays one pattern rather than two spellings of one idea. The
-#: difference is the trailing group: forms.py anchors straight to end-of-line,
-#: and that anchor is exactly where options have to go.
+#: body vocabulary stays one pattern rather than two spellings of one idea -- and
+#: since step 6 the resemblance is more than cosmetic: both directives can name
+#: the SAME slot on one page. The difference is the trailing group: forms.py
+#: anchors straight to end-of-line, and that anchor is where options go.
 #:
-#: ⭐ AND AS OF STEP 6 THE RESEMBLANCE IS MORE THAN COSMETIC: the two directives
-#: can name the SAME slot on the same page, one embedding the form and the other
-#: encoding its address.
-#:
-#: 🚫 OPTIONS ARE BARE `key=value`, NOT AN attr_list BRACE BLOCK, and that is a
-#: refusal rather than an oversight. `markers.py` hands an unrecognised brace
-#: block back untouched *"rather than eating syntax that belongs to somebody
-#: else"*, while `cells.plain()` strips EVERY brace block -- BUILD 1's spec names
-#: that disagreement as a live defect. Worse, BUILD 1's `clean.py` is built to
-#: remove our own declared vocabulary, so a QR option in braces is a QR option a
-#: future stripper deletes.
+#: 🚫 OPTIONS ARE BARE `key=value`, NOT an attr_list brace block. `markers.py`
+#: hands an unrecognised brace block back untouched while `cells.plain()` strips
+#: EVERY brace block -- BUILD 1's spec names that disagreement as a live defect --
+#: and BUILD 1's `clean.py` is built to remove our own declared vocabulary, so a
+#: QR option in braces is a QR option a future stripper deletes.
 _QR = re.compile(r'(?m)^[ \t]*!!![ \t]+qr[ \t]+"([^"\n]+)"(?P<opts>[^\n]*)$')
 
 _OPT = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(\S+)")
 
 #: Exactly two keys are legal, so anything else is an ERROR rather than a
-#: judgement call. Both are declared here and REFUSED in `_html_for` until spec
-#: §4d is built -- recognised-but-unbuilt is a different report line from
-#: mistyped, and telling them apart is the whole reason this tuple exists early.
+#: judgement call. Both are REFUSED in `_html_for` until step 5 -- and
+#: recognised-but-unbuilt is a different report line from mistyped, which is the
+#: whole reason this tuple exists before the feature does.
 _KEYS = ("display", "print")
 
-#: 🔴 ONE ENGINE CONSTANT, NOT CONFIG AND NOT A LINE OPTION. Michael's ruling was
-#: "globally for all builds in all renderer apps", and an engine constant is the
-#: only thing that spans apps -- `site.yml` would be per site.
+#: 🔴 ONE ENGINE CONSTANT, NOT CONFIG AND NOT A LINE OPTION (Michael: "globally
+#: for all builds in all renderer apps" -- `site.yml` would be per site).
 #:
-#: ⚠️ `Q` (~25% recovery) IS A STARTING POINT AWAITING ONE MEASUREMENT, and the
-#: measurement is not optional because EC IS NOT MONOTONIC AT A FIXED PHYSICAL
-#: SIZE: more correction means more codewords means a higher version means each
-#: module is physically SMALLER on the same square of paper -- and module size is
-#: what a camera has to resolve. `H` in a 25mm square can scan WORSE than `Q`.
-#: 🔴 The legibility floor for safety-critical print is Hazard Hawthorne's call,
-#: per specs/print-identity.md §3f. A safety QR that will not scan is a safety
+#: ⚠️ `Q` (~25%) IS A STARTING POINT AWAITING ONE MEASUREMENT, and it cannot be
+#: reasoned to because EC IS NOT MONOTONIC AT A FIXED PHYSICAL SIZE: more
+#: correction -> more codewords -> higher version -> each module physically
+#: SMALLER on the same square, and module size is what a camera resolves. `H` in a
+#: 25mm square can scan WORSE than `Q`.
+#: ⭐ Safe to change at any time: the PAYLOAD is unchanged, so every code already
+#: printed keeps scanning. The reverse of `base_url`, which is unforgiving.
+#: 🔴 The legibility floor for safety-critical print is Hazard Hawthorne's call
+#: (specs/print-identity.md §3f). A safety QR that will not scan is a safety
 #: defect, not a styling one.
 _ECC = "Q"
 
-#: Pixels per module in the downloaded PNG. ⚠️ RECORDED BECAUSE IT IS THE ONE
-#: PROPERTY A PERSON NOTICES: it decides whether the download is usable at poster
-#: scale. Also part of the determinism contract -- a scale change changes the
-#: bytes, therefore the hash, therefore the filename.
+#: Pixels per module in the downloaded PNG. ⚠️ It decides whether the download is
+#: usable at poster scale, which is the one property a person notices -- and it is
+#: part of the determinism contract, since a change moves the bytes, the hash and
+#: therefore the filename.
 _SCALE = 8
 
 #: The quiet zone, in modules. Part of the symbol. See the docstring.
 _BORDER = 4
 
-#: Where the images land in the built site. Not `assets/`, which is
+#: Where the images land in the built site. 🚫 NOT `assets/`, which is
 #: `assets.py`'s planned-and-fingerprinted namespace and would invite somebody to
-#: route these through `_stamped()` -- see the docstring for why that reopens the
-#: timing bug.
+#: route these through `_stamped()`.
 _DIR = "qr"
 
 #: `site-relative path -> png bytes`, filled during page rendering and drained at
 #: `on_post_build`. A module-level collector on the `images.INDEX` precedent.
 #:
 #: ⚠️ CLEARED AT THE START OF EVERY BUILD, not at import: `mkdocs serve` rebuilds
-#: IN-PROCESS, so a dict that only ever grows would carry a deleted page's code
-#: into the next build and write a file nothing references.
+#: IN-PROCESS, so a dict that only grows would carry a deleted page's code into
+#: the next build and write a file nothing references.
 PENDING: dict[str, bytes] = {}
 
 
 def _dead(label: str, reason: str) -> str:
-    """The same struck-through span `links.py` uses. Never an anchor.
-
-    Borrowed rather than reinvented so a broken QR looks like every other broken
-    reference on the site. 🚫 It is deliberately not clickable: a QR that failed
-    to resolve must not offer a control.
-    """
+    """The same struck-through span `links.py` uses, so a broken QR looks like
+    every other broken reference. 🚫 Deliberately not an anchor: a QR that failed
+    to resolve must not offer a control."""
     return (
         '<span class="docrender-dead" title="'
         + html.escape(reason, quote=True) + '">' + html.escape(label) + "</span>"
@@ -337,15 +198,15 @@ def _options(raw: str, src: str, name: str) -> dict:
 
 
 def _from_form(name: str, src: str):
-    """The `src:` of a `forms:` slot on this page, or None. Step 6, the last rung.
+    """The `src:` of a `forms:` slot on this page. None = no such slot, "" = unusable.
 
-    ⚠️ RETURNS THE URL ONLY. `forms._entry` hands back `(src, text, collapsed)`
-    and the other two belong to the EMBED -- a QR has no label to render (the
-    engine emits no caption, Michael's ruling) and cannot be collapsed.
+    ⚠️ RETURNS THE URL ONLY. `forms._entry` hands back `(src, text, collapsed)` and
+    the other two belong to the EMBED: a QR has no caption to render (the engine
+    emits none, by ruling) and cannot be collapsed.
 
-    ⚠️ AND A MALFORMED SLOT GETS ITS OWN MESSAGE, not `_bad_scheme`'s. That
-    function would say *"has no `url:`"* about a block whose key is `src:` -- an
-    accurate sentence naming the wrong key, which is worse than a vague one.
+    ⚠️ A MALFORMED SLOT GETS ITS OWN MESSAGE RATHER THAN `_bad_scheme`'s, which
+    would say *"has no `url:`"* about a block whose key is `src:`. An accurate
+    sentence naming the wrong key is worse than a vague one.
     """
     entry = forms._entry(src, name)
     if entry is None:
@@ -364,25 +225,34 @@ def _from_form(name: str, src: str):
 def _payload(name: str, src: str, page):
     """The absolute URL this code will encode, or None to decline.
 
-    THREE RUNGS, and the order is argued in the module docstring:
+    THREE RUNGS: this page's `links:` block, then `site.yml`'s registry, then this
+    page's `forms:` block. Rungs 1 and 2 are `urllinks`' own ladder and precedence,
+    reused rather than re-derived, because two resolution orders for one registry
+    is how they drift.
 
-        1. this page's `links:` block
-        2. `site.yml`'s `links:` registry
-        3. this page's `forms:` block
+    ⭐ WHY THE `forms:` RUNG IS LAST, AND IT IS LOAD-BEARING RATHER THAN
+    ARBITRARY: a `links:` entry is an ADDRESS BOOK whose purpose is to be pointed
+    at, while a `forms:` slot's URL is an implementation detail of an embed. So an
+    explicit `links:` entry must be able to override it -- a page whose QR should
+    point somewhere other than the form it embeds says so, and is believed.
 
-    Rungs 1 and 2 are `urllinks`' own ladder and precedence, reused rather than
-    re-derived, because two resolution orders for one registry is how they drift.
+    ⭐ WHY THE RUNG EXISTS AT ALL: without it, a page that embeds a form and wants
+    a QR of it must declare that URL TWICE, and no build can detect a mismatch --
+    both entries would be valid while the QR pointed at the dead one and the embed
+    kept working.
 
-    ⚠️ `_page_links` TAKES THE PAGE OBJECT, NOT `src`, which is why `page` is
-    threaded down here rather than the path alone. It reads `state.BY_SRC`
-    internally; calling it is what keeps this module from becoming a second
-    reader of the `links:` key.
+    🔴 ONE NARROWING: `forms.py` enforces an allow-list of exactly one host, so
+    this rung can only ever yield a ClickUp form address. **It is not a
+    general-purpose address book and must not be grown into one.** A vendor
+    manual, a standard, a phone number -- all `links:`.
 
-    🚫 A LEADING `@` IS AN IN-SITE PAGE ID AND IS STILL REFUSED, LOUDLY. It is the
-    half that has to construct `base_url`, and the publishing path can override
-    `base_url` for one build -- so a wrong one bakes a dead address into paper,
-    which no later publish can repair. It does not ship before the report
-    inventory that would catch it.
+    ⚠️ `_page_links` TAKES THE PAGE OBJECT, not `src`, which is why `page` is
+    threaded down here rather than the path alone.
+
+    🚫 A LEADING `@` IS AN IN-SITE PAGE ID AND IS STILL REFUSED. It is the half
+    that constructs `base_url`, the publishing path can override `base_url` for one
+    build, and a wrong one bakes a dead address into paper that no later publish
+    repairs. It does not ship before the report inventory that would catch it.
     """
     if name.startswith("@"):
         state.note(
@@ -403,8 +273,8 @@ def _payload(name: str, src: str, page):
         where = "site.yml"
 
     if entry is None:
-        # RUNG 3. Reached only when no `links:` entry of this name exists
-        # anywhere, which is what makes an explicit entry an override.
+        # RUNG 3, reached only when no `links:` entry of this name exists anywhere
+        # -- which is what makes an explicit entry an override.
         url = _from_form(name, src)
         if url is None:
             state.note(
@@ -415,12 +285,11 @@ def _payload(name: str, src: str, page):
             )
             return None
         if not url:
-            # Slot found, unusable. `_from_form` already reported why.
-            return None
-        # ⚠️ STILL SCHEME-CHECKED, even though forms.py has its own one-host
-        # allow-list. That check runs in forms.py's RENDER path, so a page that
-        # declares a slot and never embeds it has never been validated at all --
-        # and this rung can reach exactly such a slot.
+            return None  # slot found, unusable; `_from_form` reported why
+        # ⚠️ STILL SCHEME-CHECKED even though forms.py has a one-host allow-list,
+        # because that check runs in forms.py's RENDER path -- so a slot declared
+        # and never embedded has never been validated at all, and this rung can
+        # reach exactly such a slot.
         problem = urllinks._bad_scheme(url)
         if problem:
             state.note(
@@ -431,11 +300,9 @@ def _payload(name: str, src: str, page):
             return None
         return url
 
-    # ⚠️ A NAME IN BOTH IS REPORTED, NEVER SILENTLY RESOLVED. Same polarity
-    # `urllinks` sets for a page overriding the site registry: a silent override
-    # is indistinguishable from a typo. The `links:` entry wins -- an address book
-    # exists to be pointed at, while a form's URL is an implementation detail of
-    # the embed.
+    # ⚠️ A NAME IN BOTH IS REPORTED, NEVER SILENTLY RESOLVED -- same polarity
+    # `urllinks` sets for a page overriding the site registry: a silent override is
+    # indistinguishable from a typo.
     if forms._entry(src, name) is not None:
         state.note(
             "notes",
@@ -450,10 +317,9 @@ def _payload(name: str, src: str, page):
     problem = urllinks._bad_scheme(url)
     if problem:
         # ⭐ REUSED RATHER THAN REIMPLEMENTED, and it earns its keep immediately:
-        # that function is what refuses a URL pointing back into this site, with
-        # the reason already written -- "use @<id> instead". So the one wrong
-        # answer a QR author is most likely to reach for is already covered by
-        # somebody else's rule.
+        # this is the function that refuses a URL pointing back into this site,
+        # with the reason already written -- so the wrong answer a QR author is
+        # most likely to reach for is covered by somebody else's rule.
         state.note(
             "dead_links",
             src + ': `!!! qr "' + name + '"` resolves to an entry in ' + where
@@ -464,13 +330,12 @@ def _payload(name: str, src: str, page):
 
 
 def _png(payload: str) -> bytes:
-    """The pinned encoder recipe. Every argument is load-bearing; see docstring.
+    """The pinned encoder recipe. Every argument is load-bearing; see the docstring.
 
-    ⚠️ `segno` IS IMPORTED HERE, NOT AT MODULE LEVEL, AND THAT IS A CHOICE. A
-    top-level import would make a missing dependency an ImportError at hook load,
-    which takes the WHOLE BUILD down -- the shape that killed all four sites on
-    2026-08-05. Imported inside the call, a missing library degrades to one
-    reported, declined code on the one page that asked for it.
+    ⚠️ `segno` IS IMPORTED HERE, NOT AT MODULE LEVEL. A top-level import makes a
+    missing dependency an ImportError at hook load, which takes the WHOLE BUILD
+    down -- the shape that killed all four sites on 2026-08-05. Inside the call it
+    degrades to one reported, declined code.
     """
     import io
 
@@ -498,10 +363,9 @@ def _html_for(src: str, name: str, opts: dict, page) -> str:
     for key in _KEYS:
         if key in opts:
             # 🚫 RECOGNISED, NOT IMPLEMENTED -- a distinct report line from a
-            # mistyped key, on purpose. Somebody will write these straight out of
-            # the spec before the spec is built, and silently emitting a download
-            # link for a line that asked for a rendered code is the wrong output
-            # with no signal.
+            # mistyped key. Somebody will write these straight out of the spec
+            # before the spec is built, and silently emitting a download link for a
+            # line that asked for a rendered code is wrong output with no signal.
             state.note(
                 "missing_required",
                 src + ': `!!! qr "' + name + '" ' + key + "=...` is a recognised "
@@ -513,9 +377,9 @@ def _html_for(src: str, name: str, opts: dict, page) -> str:
     try:
         raw = _png(payload)
     except Exception as exc:
-        # A payload too large, a missing `segno`, or a version that no longer
-        # accepts one of the pinned arguments. Reported and declined -- never a
-        # partial image, and never a build failure.
+        # Payload too large, `segno` missing, or a version that no longer accepts
+        # one of the pinned arguments. Reported and declined -- never a partial
+        # image, never a build failure.
         state.note(
             "missing_required",
             src + ': `!!! qr "' + name + '"` could not be encoded (' + str(exc)
@@ -531,8 +395,8 @@ def _html_for(src: str, name: str, opts: dict, page) -> str:
     PENDING[target] = raw
 
     # 🔴 THROUGH THE SHARED HELPER, NEVER A `../` COUNT. images.py names that
-    # arithmetic as the bug this house "shipped wrong three separate times", and
-    # a QR renders at every depth in the tree, so it is maximally exposed.
+    # arithmetic as the bug this house "shipped wrong three separate times", and a
+    # QR renders at every depth in the tree, so it is maximally exposed.
     href = relative_url(target, page.file.url)
     return (
         '<p class="dr-qr__download"><a href="' + html.escape(href, quote=True)
@@ -552,8 +416,8 @@ def on_page_markdown(markdown, page, config, files):
 
     ⚠️ `sub_outside_code` IS NOT OPTIONAL. The page that documents this directive
     contains this directive, and util's own docstring records the first time that
-    bit this engine: the page teaching `[Main Stage](@main-stage)` shipped with
-    the resolved URL inside its own code fence.
+    bit this engine: the page teaching `[Main Stage](@main-stage)` shipped with the
+    resolved URL inside its own code fence.
     """
     if "!!!" not in markdown:
         return markdown
@@ -571,12 +435,12 @@ def on_page_markdown(markdown, page, config, files):
 def on_post_build(config):
     """Write every collected PNG into `site_dir`.
 
-    Runs after every page body has been read, which is the whole reason the file
-    is written here rather than planned at `on_files`. See the docstring.
+    Runs after every page body has been read, which is why the file is written
+    here rather than planned at `on_files`. See the docstring.
 
     ⚠️ A FAILED WRITE IS REPORTED, NOT RAISED. A publish must not die over an
-    image; the page already carries the link, so the failure is a 404 on one
-    download rather than a lost site -- and the report is where it belongs.
+    image: the page already carries the link, so the failure is a 404 on one
+    download rather than a lost site.
     """
     if not PENDING:
         return
