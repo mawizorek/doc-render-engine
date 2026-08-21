@@ -107,16 +107,36 @@ theme: uritp
 
 
 
-# THE LAST DOOR BACK TO THE SOURCE.
+# THE LAST DOOR BACK TO THE SOURCE, NOW SHUT (2026-08-21).
 #
 # `true` keeps ONE quiet line at the foot of each page: "Edit this page on
 # GitHub". Nothing else in the rendered site mentions a repository -- the
 # header widget is gone and `repo_url` is never set.
 #
-# Set this to `false` and the site stops referring to git entirely. That is the
-# intended end state once these go out to designers, guest artists and
-# students: the line is scaffolding for now, not a feature of a finished site.
-edit_links: true
+# ⭐ THE END STATE ARRIVED, AND IT ARRIVED BY BEING SEEN RATHER THAN BY BEING
+# SCHEDULED. This comment used to say `false` was "the intended end state once
+# these go out to designers, guest artists and students: the line is
+# scaffolding for now." Michael, 2026-08-21, comparing this site against
+# `uritp-safety` side by side: *"the footer saying 'edit on github' for uritp
+# docs and not in uritp-safety (prefered to not see it)."* The two sites
+# disagreeing is what made the scaffolding visible as scaffolding.
+#
+# 🔴 AND IT WAS NEVER A PRINT FIX, WHICH MATTERS BECAUSE THAT IS THE QUESTION IT
+# CAME OUT OF. `assets/print-chrome.css` already hides `.pagefoot` and
+# `.pagefoot__rule` in its chrome-off list with `!important`, so the edit line
+# has never reached paper on ANY site. This key governs the SCREEN only. Anybody
+# reading this while chasing a difference between two PRINTED sheets is in the
+# wrong file -- that difference is the theme, and the printed corner stamp is
+# `docrender/buildstamp.py`.
+#
+# ⚠️ THE OTHER TWO SITES STILL DEFAULT ON. `pagefoot.py` `_enabled()` treats a
+# missing key as `true`, so `hml`, `mawprose`, `theatre` and `template` keep the
+# line until each one opts out. Not swept here on purpose: `template` is the
+# engine's own gold standard and a developer-facing site is exactly where the
+# line still earns its place.
+#
+# Environment override for a one-off build: DOCRENDER_EDITLINK=0.
+edit_links: false
 
 # WARNING: THE `palette:` BLOCK IS GONE (2026-08-04). This note replaces it so
 # nobody puts it back.
@@ -165,3 +185,8 @@ peers:
 # which is ENGINE code. instances/ is the data the engine reads, and naming this
 # site here is the entire purpose of the file. sizecheck's own error message says
 # so -- "Move it to instances/<slug>/site.yml" is where it sends a leak.
+#
+# ⚠️ AND AS OF 2026-08-21 IT NO LONGER SCANS `theme/canonical/`, which is what
+# had been failing every build here since the 08-19 re-vendor added colour rows
+# `uritp` and `uritp-light` upstream. See docrender/sizecheck.py `_LEAK_SKIP`.
+# The claim above is unchanged and still true of everything the engine AUTHORS.
