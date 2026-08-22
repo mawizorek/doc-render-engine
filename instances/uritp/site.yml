@@ -65,7 +65,37 @@ aliases: [uritp-docs, "URITP PRP", "URITP Production Resources", prp]
 # did that, and a fixture that has finished proving its point is just a broken
 # palette. Do not re-add loud values here to debug -- change ONE cell upstream in
 # maw-themes and publish, which is the whole reason the join exists.)
+#
+# =============================================================================
+# 🚦 EACH SITE KEEPS ITS OWN THEME JOIN (2026-08-21, Michael, standing rule)
+# =============================================================================
+# > *"papyrus and uritp-safety theme need to be back on that site. i
+# > misunderstood what you were doing. no each site gets their own theme join --
+# > but the content that appears in the header or footer on print should not
+# > differ per site - that's what i meant."*
+#
+# 🔴 A THEME WAS CHANGED TO FIX A HEADER, ON BOTH URITP SITES, AND THAT IS THE
+# MISTAKE THIS LINE REVERSES. The conversation was about two PRINTED sheets
+# looking different; the theme is the lever that made the difference disappear,
+# so it got pulled -- but the ask was about what the printed furniture SAYS, not
+# about the palette. `papyrus` is restored here and `uritp-safety` on its own
+# site.
+#
+# ⚠️ AND THE REAL REQUIREMENT IS NOT A THEME KEY AT ALL. Printed header/footer
+# CONTENT is engine-owned and already identical on every site: the chrome-off
+# list lives in `assets/print-chrome.css` and the corner stamp in
+# `docrender/buildstamp.py`. Neither reads a theme. 🔴 The one thing that WOULD
+# make printed header content differ per site is the declared letterhead logo in
+# `specs/print-identity.md` §4, which is NOT BUILT -- so if two sheets still
+# disagree after this, the difference is COLOUR, and colour is meant to differ.
+#
+# ⚡ ONE HONEST CAVEAT ON "already identical": `print-chrome.css` was ITSELF
+# unpublished until 2026-08-21 (on disk, absent from `_PRINT_ASSETS`), so the
+# chrome-off list and the corner stamp have never actually reached paper on any
+# site. They do now. **Whatever the printed sheets looked like before today is
+# not evidence of what they will look like next publish.**
 
+# theme: uritp
 # theme: sharp-utility
 # theme: eos
 # theme: mclaren
@@ -80,31 +110,14 @@ aliases: [uritp-docs, "URITP PRP", "URITP Production Resources", prp]
 # theme: on-track
 # theme: eos
 # theme: f1-racetracks
-# theme: papyrus
-theme: uritp
+theme: papyrus
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# 🚩 STILL OPEN UPSTREAM, and it is why `uritp` was briefly attractive: the
+# `uritp-light` colour row sets `link` BYTE-IDENTICAL to its own `text`
+# (`#16202e`), so in light mode a link is indistinguishable from body prose for
+# every reader. Contrast is fine (14.59:1); the AFFORDANCE is gone. One cell in
+# maw-themes `canonical/colors.tsv`. Not fixed here -- maw-themes is canonical
+# and this is an engine instance file.
 
 
 # THE LAST DOOR BACK TO THE SOURCE, NOW SHUT (2026-08-21).
@@ -121,13 +134,17 @@ theme: uritp
 # docs and not in uritp-safety (prefered to not see it)."* The two sites
 # disagreeing is what made the scaffolding visible as scaffolding.
 #
+# ✅ AND THIS ONE SURVIVES THE THEME REVERT, which is worth separating out
+# because both changes came from the same side-by-side comparison. A footer LINE
+# is CONTENT, and consistent content across sites is exactly what was asked for.
+# The palette was never that.
+#
 # 🔴 AND IT WAS NEVER A PRINT FIX, WHICH MATTERS BECAUSE THAT IS THE QUESTION IT
 # CAME OUT OF. `assets/print-chrome.css` already hides `.pagefoot` and
 # `.pagefoot__rule` in its chrome-off list with `!important`, so the edit line
 # has never reached paper on ANY site. This key governs the SCREEN only. Anybody
 # reading this while chasing a difference between two PRINTED sheets is in the
-# wrong file -- that difference is the theme, and the printed corner stamp is
-# `docrender/buildstamp.py`.
+# wrong file -- the printed corner stamp is `docrender/buildstamp.py`.
 #
 # ⚠️ THE OTHER TWO SITES STILL DEFAULT ON. `pagefoot.py` `_enabled()` treats a
 # missing key as `true`, so `hml`, `mawprose`, `theatre` and `template` keep the
