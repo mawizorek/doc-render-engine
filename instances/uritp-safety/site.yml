@@ -8,10 +8,6 @@
 # Michael, 2026-08-16: *"this is the final filter that is me taking what we
 # write in uritp-docs/safety and filtering it for real humans finally."*
 #
-# ⚠️ TWO AUDIENCES, ONE LOOK, AS OF 2026-08-21. The split above is about WHAT
-# gets published and to whom. It is no longer about how it LOOKS -- see the
-# theme block below. A filter is a content decision; it was never a styling one.
-#
 # CONTENT LAW, and it lives in the content repo's own README as well: agents
 # READ and AUDIT this tree and never commit to it. A safety document somebody
 # acts on has to have been read by the person accountable for it.
@@ -63,96 +59,68 @@ content_branch: main
 aliases: [safety, uritp-safety-docs, "URITP Safety"]
 
 # =============================================================================
-# ⭐ CONVERGED ON `uritp` (2026-08-21). BOTH URITP SITES NOW RENDER ONE THEME.
+# 🪦 THE CONVERGENCE IS REVERSED (2026-08-21, ~90 minutes after it shipped)
 # =============================================================================
-# > Michael, 2026-08-21: *"Converge both URITP sites on one theme."*
+# > Michael, 2026-08-21: *"papyrus and uritp-safety theme need to be back on
+# > that site. i misunderstood what you were doing. no each site gets their own
+# > theme join - but the content that appears in the header or footer on print
+# > should not differ per site - that's what i meant."*
 #
-# Ruled after being shown WHY the two sites' headers and footers differed: they
-# named two different joins with OPPOSITE primary modes, so they opened in
-# opposite schemes before a single token differed. The goal is consistent output
-# across builds while the style is still being tuned, and ⚡ **the only lever for
-# that is this line** -- a content repo has zero say in its own styling
-# (doc-render-engine Decision Log J30), so no amount of work inside
-# `uritp-safety` could have closed the gap.
+# 🔴 THE RULING IT REVERSES WAS ANSWERING A QUESTION NOBODY ASKED, AND THAT IS
+# THE LESSON WORTH KEEPING. ~~Converge both URITP sites on one theme.~~ arrived
+# out of a conversation about two PRINTED sheets looking different, and the theme
+# was the lever that made the difference go away -- so it got pulled. But the ask
+# was about the printed FURNITURE (what the header and footer SAY), not about the
+# palette. **A theme was changed to fix a header.**
 #
-# 🔴 WHY `uritp` WON AND NOT `uritp-safety`, ON MEASUREMENT RATHER THAN TASTE.
-# The `uritp-safety` COLOUR ROWS ARE `papyrus` WITH TWO CELLS CHANGED -- every
-# other cell is byte-identical in both the light and dark rows. The two changed
-# cells are `data-1` (unconsumed by this engine) and `link`. So the row is not a
-# bespoke identity, it is a clone carrying one edit, and that edit is a
-# REGRESSION of a fix papyrus had already made:
+# ⭐ EACH SITE KEEPS ITS OWN THEME JOIN. That is the standing rule now, stated
+# rather than inferred: a per-site look is the whole point of `theme:` being a
+# per-instance key, and two sites sharing an audience is not a reason to share a
+# palette.
 #
-#     uritp-safety       link #52a0d8 on bg #f0e6d2  ->  2.30:1   FAILS AA 4.5
-#     uritp-safety-dark  link #3666b3 on bg #241c14  ->  2.97:1   FAILS AA 4.5
-#     papyrus            link #7b2d8e on bg #f0e6d2  ->  6.50:1   passes
-#     uritp (dark)       link #edffff on bg #000000  -> 20.35:1   passes
+# ⚠️ AND THE REAL REQUIREMENT IS NOT IN THIS FILE AT ALL. Printed header/footer
+# CONTENT is engine-owned and already identical on every site: the chrome-off
+# list is `assets/print-chrome.css` and the corner stamp is
+# `docrender/buildstamp.py`. Neither reads a theme, and `edit_links:` has never
+# reached paper. 🔴 The one thing that WOULD make printed header content differ
+# per site is the declared letterhead logo in `specs/print-identity.md` §4, which
+# is not built -- so if the sheets still disagree after this revert, the
+# difference is COLOUR, and colour is supposed to differ.
 #
-# ⚡ BOTH SCHEMES OF `uritp-safety` FAIL AA ON THEIR LINK COLOUR, ON THE ONE
-# SITE WHOSE READERS ARE STUDENTS AND GUEST ARTISTS ACTING ON SAFETY POLICY.
-# maw-themes moved papyrus's link OFF that family on 2026-08-19 for exactly this
-# reason ("the same brown as `accent` one shade deeper, so a link on parchment
-# read as emphasis") and this row was authored without inheriting the fix.
-# 🔴 That is not an argument for switching to papyrus. It is the evidence that
-# this row was never measured, which is what disqualifies it.
+# =============================================================================
+# 🔴 WHAT THE REVERT COSTS, AND IT IS A REAL ACCESSIBILITY REGRESSION
+# =============================================================================
+# The measurement that argued for the convergence is still true and does not go
+# away because the ruling did. The `uritp-safety` COLOUR ROWS ARE `papyrus` WITH
+# TWO CELLS CHANGED, and one of the changed cells is `link`:
 #
-# ⭐ AND `uritp` IS THE IDENTITY THEME, which is the tiebreak the measurement
-# does not have to carry alone: black ground, gold accent, `#bd0000` for `bad`,
-# and it is one of only four colour rows in the whole table that fill BOTH
-# `on-accent` and `link`. This file already named it "a defensible pick on
-# identity grounds" for this site before the ruling arrived.
+#     uritp-safety       link #52a0d8 on bg #f0e6d2  ->   2.30:1   FAILS AA 4.5
+#     uritp-safety-dark  link #3666b3 on bg #241c14  ->   2.97:1   FAILS AA 4.5
+#     papyrus            link #7b2d8e on bg #f0e6d2  ->   6.50:1   passes
 #
-# WHAT ACTUALLY CHANGES ON THIS SITE, per vector, verified against the tables:
+# ⚡ SO BOTH SCHEMES OF THE THEME THIS LINE NOW NAMES FAIL AA ON THEIR LINK
+# COLOUR, ON THE SITE WHOSE READERS ARE STUDENTS AND GUEST ARTISTS ACTING ON
+# SAFETY POLICY. maw-themes moved papyrus's link OFF that family on 2026-08-19
+# for exactly this reason and this row was authored without inheriting the fix.
 #
-#     color        uritp-safety      -> uritp / uritp-light
-#                  PARCHMENT light-primary -> BLACK dark-primary. The visible
-#                  change, and the whole point: both sites now open the same way.
-#     typography   uritp-safety      -> sharp-racing
-#                  base 1.05rem -> 1rem, tracking 0.04em -> 0.02em. ⚠️ The FONT
-#                  columns differ (Archivo -> Chakra Petch display) and that is
-#                  INVISIBLE: nothing in this engine fetches a webfont, so the
-#                  type vector's three font columns have never rendered on any
-#                  site. See assets/type.css. Only the ramp moves.
-#     forms        uritp-safety      -> sharp
-#                  radius 2->4px, radius-lg 4->6px, border-w 1->1.5px,
-#                  grad-angle 65->120deg, motion-med 280->200ms, and notably
-#                  HEAVIER shadows (0.55/0.35 vs 0.12) which suit a dark ground.
-#     spacing      uritp-safety      -> database
-#                  ⭐ A GENUINE NO-OP. The two rows are BYTE-IDENTICAL
-#                  (40px 2px 8px 2px 5px 8px). Density does not move one pixel.
+# ⭐ BUT THAT WAS NEVER AN ARGUMENT FOR A DIFFERENT THEME -- IT IS AN ARGUMENT
+# FOR FIXING ONE CELL. 🔴 THE FIX IS UPSTREAM AND IT IS ONE VALUE:
+# `uritp-safety.link` -> `#7b2d8e` (papyrus's, 6.50:1) in maw-themes
+# `canonical/colors.tsv`, and the same for the dark row. That keeps the identity
+# and clears the floor, which is what both sides of this argument actually
+# wanted. 🚩 FLAGGED FOR MICHAEL, not done here: maw-themes is canonical and this
+# is an engine instance file.
 #
-# 🚩 FLAGGED UPSTREAM, NOT FIXED HERE (maw-themes is canonical and this is an
-# engine instance file):
-#
-#   1. `uritp-light` sets `link` = `#16202e`, which is BYTE-IDENTICAL to its own
-#      `text`. Contrast is fine (14.59:1) and the affordance is gone -- in light
-#      mode a link is indistinguishable from body prose for every reader, not
-#      just a colour-blind one. This now affects BOTH URITP sites, which raises
-#      its priority. One cell.
-#   2. The `uritp-safety` JOIN and its four entities (2 colour rows, typography,
-#      forms, spacing) are now UNCONSUMED. Retire or keep is Michael's call --
-#      🚫 do not delete on my read, and note the spacing row was already a
-#      byte-identical duplicate of `database` before this change.
-#   3. Both `uritp` and `uritp-safety` are status `draft` upstream, whose own
-#      registry note says promote to `locked` only after a look. ⭐ This
-#      convergence makes `uritp` the theme of TWO live sites, so it is now the
-#      most-looked-at draft in the fleet and is the one worth promoting.
-#
-# 🪦 THE CLAIM THIS BLOCK REPLACES WAS ROTTED, and it is struck rather than
-# deleted because the correction it carried is still the lesson. The previous
-# version argued at length about `database` vs `uritp` and never once mentioned
-# that the value actually shipped on the line below was `uritp-safety` -- a file
-# whose own comment already carried a same-day correction about a PROXY READ
-# PRESENTED AS A VERIFICATION, doing the same thing one paragraph later. ~~The
-# theme for this site is `database`.~~ ~~The theme for this site is
-# `uritp-safety`.~~ The authority for a theme is the registry plus the resolver,
-# and the authority for which theme a SITE wears is this line and nothing else.
+# 🚩 ALSO STILL OPEN UPSTREAM, unchanged by the revert: `uritp-light` sets `link`
+# BYTE-IDENTICAL to its own `text`, so in light mode a link is indistinguishable
+# from body prose. That now affects `uritp` only again rather than both sites.
 #
 # Testing an alternative costs nothing and writes nothing to disk: the `theme`
-# input on the publish workflow overrides this for ONE build. Reverting the
-# convergence is one word.
+# input on the publish workflow overrides this for ONE build.
 
-theme: uritp
+theme: uritp-safety
 
+# theme: uritp
 # theme: sharp-utility
 # theme: eos
 # theme: mclaren
@@ -168,7 +136,6 @@ theme: uritp
 # theme: eos
 # theme: f1-racetracks
 # theme: papyrus
-# theme: uritp-safety
 
 
 # THE LAST DOOR BACK TO THE SOURCE, DELIBERATELY SHUT (2026-08-16).
@@ -182,7 +149,9 @@ theme: uritp
 #
 # ✅ AND `uritp` SHUT ITS DOOR TOO ON 2026-08-21, for the same reason and by the
 # same one-line mechanism -- Michael saw the two sites disagree and preferred
-# not to see it. This site's argument was the one that generalised.
+# not to see it. This site's argument was the one that generalised. ⭐ THAT ONE
+# STANDS AFTER THE THEME REVERT and is worth separating from it: a footer LINE is
+# content, and content is what he wanted consistent. The theme was never that.
 #
 # AND THE REASON IS NOT LEAK RISK, which is worth stating so nobody "restores"
 # it on the grounds that the repo is private. A private repo means the edit URL
@@ -221,11 +190,10 @@ edit_links: false
 # adopted standard into the draft it was filtered out of. That is the one
 # direction this repo exists to prevent.
 #
-# ⚠️ THE THEME CONVERGENCE DOES NOT WEAKEN THIS, and the two decisions must not
-# be confused. The sites now LOOK alike; they are still separated by audience,
-# and a shared look arguably makes the peer link MORE tempting and no more
-# correct. A safety page needing something from `uritp-docs` is a signal that
-# the thing has not been filtered yet, not a signal that it needs a link.
+# ⚠️ AND THE THEME REVERT MAKES THIS EASIER TO HOLD, not harder. While the two
+# sites looked alike, a peer link was more tempting and no more correct. A safety
+# page needing something from `uritp-docs` is a signal that the thing has not
+# been filtered yet, not a signal that it needs a link.
 
 # NO `routes.yml` in this folder, and the engine is fine with that: `_uses_router`
 # reads the file if it exists and answers False when it does not, so neither
