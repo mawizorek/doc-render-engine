@@ -108,9 +108,9 @@ aliases: [uritp-docs, "URITP PRP", "URITP Production Resources", prp]
 # theme: sharp-carbon
 # theme: database
 # theme: on-track
-# theme: eos
+theme: eos
 # theme: f1-racetracks
-theme: papyrus
+# theme: papyrus
 
 # 🚩 STILL OPEN UPSTREAM, and it is why `uritp` was briefly attractive: the
 # `uritp-light` colour row sets `link` BYTE-IDENTICAL to its own `text`
