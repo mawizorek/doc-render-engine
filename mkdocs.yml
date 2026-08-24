@@ -180,15 +180,78 @@ markdown_extensions:
   # attention." `==this==` means nothing at all and is reported nowhere. Reach
   # for the marker when the emphasis has a REASON.
   - pymdownx.mark
-  # `- [ ]` / `- [x]` task lists. ⚠️ RENDERS AS A CHECKBOX, NOT A CONTROL --
-  # `custom_checkbox` is deliberately absent, so these are Material's plain
-  # disabled inputs. 🚫 AND ON A SAFETY SITE THAT DISTINCTION IS NOT COSMETIC: a
-  # rendered checkbox on a published policy page looks like something a reader
-  # can complete, and nothing on a static page can record that they did. The
-  # completion record is a FORM (`!!! form`, docrender/forms.py) and the
-  # authorization is a PROGRAM. Use these for a procedure somebody follows with
-  # a pencil, never as a pretend intake.
-  - pymdownx.tasklist
+  # =========================================================================
+  # `- [ ]` / `- [x]` TASK LISTS, AND THE BOXES ARE CLICKABLE (2026-08-24)
+  # =========================================================================
+  # > Michael: *"I can print out the webpage or send it to a stage manager, and
+  # > they can click off what they have. When they hit print, whatever isn't
+  # > checked off in that ephemeral state is what I need to order. When it
+  # > reloads, the next stage manager can get a fresh copy."*
+  #
+  # ⭐ EPHEMERAL STATE IS THE FEATURE HERE, NOT A LIMITATION, and that is the
+  # whole reason this flipped. A tick survives no reload and is stored nowhere.
+  # For a WORKSHEET -- tick what you have, print the sheet, the print IS the
+  # artifact -- forgetting is correct: the next stage manager wants a blank one.
+  #
+  # 🔴 AND THE REFUSAL THIS REPLACES WAS RIGHT ABOUT A DIFFERENT THING. It said
+  # ~~a rendered checkbox on a published policy page looks like something a
+  # reader can complete, and nothing on a static page can record that they
+  # did~~ -- struck rather than deleted, because every word of that is still
+  # true of a RECORD. The distinction is the axis, and it is now the rule:
+  #
+  #     WORKSHEET  ticked to be PRINTED. Ephemeral state is sufficient.
+  #                Inventory sheets, pull lists, pre-show checks.
+  #     RECORD     proves somebody COMPLETED something. Ephemeral state is
+  #                worthless, and a box that looks like an intake and records
+  #                nothing is a DEAD CONTROL. That is still `!!! form`
+  #                (docrender/forms.py) and still a `type: program`.
+  #
+  # 🚫 SO THE OLD WARNING SURVIVES, NARROWED: do not put a task list on a policy
+  # page where a reader could mistake it for an intake. Michael's own scoping,
+  # same message: *"I will use normal bullet points for regular lists, but this
+  # is good for the SM inventory."* The syntax is now a choice an author makes,
+  # which means choosing it wrongly is possible -- it was not before.
+  #
+  # ⚠️ AND THE SWITCH IS GLOBAL, WHICH IS THE COST HE ACCEPTED KNOWINGLY.
+  # `markdown_extensions` has no per-site or per-page form, so every existing
+  # `- [ ]` on all six sites becomes clickable on the next publish, RETROACTIVELY
+  # -- the same hazard the three 2026-08-19 extensions above are warned about.
+  # No content is rewritten; only the `disabled` attribute goes away.
+  #
+  # 🔴 THE PRINT HALF IS UNVERIFIED AND ITS FAILURE MODE IS EXPENSIVE. Printing a
+  # ticked box relies on the browser printing the LIVE DOM, which it does. What
+  # is NOT established is whether a checked native checkbox's CHECKMARK survives
+  # print: a form control's tick is painted by the browser's own widget
+  # renderer, and browsers drop backgrounds and adjust ink at print by default.
+  #
+  # ⚡ AND FOR THIS USE CASE THE RISK IS INVERTED, WHICH IS WHY IT MATTERS MORE
+  # THAN IT LOOKS. The UNCHECKED boxes carry the meaning -- they are the order
+  # list. So a print that loses every checkmark does not look broken. It looks
+  # like a complete, plausible inventory of everything to buy. **Silently wrong
+  # in the expensive direction, which is this engine's least favourite shape.**
+  #
+  # 🔴 IF THAT HAPPENS, THE FIX IS KNOWN AND IT IS ONE SELECTOR: add the task-list
+  # input to `assets/print.css`'s `print-color-adjust: exact` list, which exists
+  # for exactly this -- elements *"whose MEANING is carried by a colour."* Same
+  # mechanism as `assets/qr.css` and as the `!!! danger` border. 🚫 Not added
+  # speculatively: an unverified rule on a live sheet is a guess wearing a fix's
+  # clothes, and one print test settles it.
+  #
+  # ⚠️ `custom_checkbox` IS STILL ABSENT, AND NOW DELIBERATELY RATHER THAN BY
+  # DEFAULT. Material recommends it and it may make the print problem WORSE, not
+  # better: it replaces the native control with a `mask-image` icon painted by
+  # `background-color`, and a background is precisely what a printer drops. The
+  # native control is the one with a chance of being printed as a control. Test
+  # before reaching for it.
+  #
+  # 🪦 THE OPTION THIS COMMENT USED TO NAME WAS THE WRONG ONE. It said the plain
+  # disabled inputs were because ~~`custom_checkbox` is deliberately absent~~.
+  # `custom_checkbox` governs ICON STYLING and has nothing to do with the
+  # `disabled` attribute -- that comes from `clickable_checkbox`, which is the
+  # key below. A correct-sounding sentence naming the wrong lever, in the exact
+  # file somebody would open to change this behaviour.
+  - pymdownx.tasklist:
+      clickable_checkbox: true
 
 # ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and six chains depend on it.
 #
