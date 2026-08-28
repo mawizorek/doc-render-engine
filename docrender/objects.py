@@ -360,7 +360,7 @@ def _child_list(page, markdown: str) -> str:
     # "Also" means YOUR PROSE ALREADY COVERED SOME OF THESE, so it is set only
     # by a body link. A page that opted out with `indexed: false` was never
     # part of the set and must not change the wording.
-    heading = "## Also in this section" if suppressed else "## In this section"
+    heading = "### Also in this section" if suppressed else "### In this section"
     lines = [heading, ""]
     for _, _, title, page_id in entries:
         lines.append("- [" + title + "](@" + page_id + ")")

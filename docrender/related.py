@@ -31,7 +31,7 @@ Michael: *"should land above 'revised' line tho."*
 The foot of a page now reads, top to bottom:
 
     the document
-    ## In this section     a contents list, if the type draws one
+    ### In this section     a contents list, if the type draws one
     Related                THIS
     Keywords:              search terms
     <em>Revised ...</em>   the last thing the DOCUMENT says
