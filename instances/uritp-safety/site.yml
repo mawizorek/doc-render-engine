@@ -87,6 +87,20 @@ aliases: [safety, uritp-safety-docs, "URITP Safety"]
 # is not built -- so if the sheets still disagree after this revert, the
 # difference is COLOUR, and colour is supposed to differ.
 #
+# ✅ AND THAT LAST PARAGRAPH IS NOW HALF OUT OF DATE, WHICH IS WORTH READING
+# CAREFULLY RATHER THAN DELETING (2026-08-29). The letterhead IS built, and the
+# `print:` block below declares it -- so printed header content DOES now differ
+# per site, by design, and this file is where that difference is authored.
+#
+# ⭐ THE RULE IT LOOKS LIKE IT BREAKS IS ACTUALLY INTACT, AND THE DISTINCTION IS
+# MICHAEL'S OWN. His objection was to the header/footer *CONTENT* differing --
+# meaning the WORDS and the FURNITURE, which is why the seasonal date format
+# above the fold is engine-owned and lands identically on all six sites with no
+# per-site key at all. **A letterhead is not furniture, it is IDENTITY**, and
+# identity is the one thing a per-site file is for. The stamp still says the same
+# KIND of thing everywhere: this site's name, this site's period, this site's
+# mark.
+#
 # =============================================================================
 # 🔴 WHAT THE REVERT COSTS, AND IT IS A REAL ACCESSIBILITY REGRESSION
 # =============================================================================
@@ -110,6 +124,11 @@ aliases: [safety, uritp-safety-docs, "URITP Safety"]
 # and clears the floor, which is what both sides of this argument actually
 # wanted. 🚩 FLAGGED FOR MICHAEL, not done here: maw-themes is canonical and this
 # is an engine instance file.
+#
+# ⚠️ STILL OPEN AS OF 2026-08-29 and it does NOT touch the letterhead either way:
+# a link colour is a SCREEN defect on this site, and the print layer strips link
+# colour anyway (print-type.css §5). The two are unrelated, said out loud so
+# nobody reads the letterhead landing as this being addressed.
 #
 # 🚩 ALSO STILL OPEN UPSTREAM, unchanged by the revert: `uritp-light` sets `link`
 # BYTE-IDENTICAL to its own `text`, so in light mode a link is indistinguishable
@@ -136,6 +155,50 @@ theme: uritp-safety
 # theme: eos
 # theme: f1-racetracks
 # theme: papyrus
+
+
+# =============================================================================
+# ⭐ THE PRINTED LETTERHEAD (2026-08-29)
+# =============================================================================
+# > Michael: *"when printing a page from the doc render (uritp-safety) i want to
+# > render logo-horizontal in the header at the left."*
+#
+# The mark that prints at the top-left of sheet one, beside the site name and
+# the period. `docrender/buildstamp.py` resolves it; `assets/print-identity.css`
+# lays it out. Full account: `docrender/buildstamp-dl.md` § THE LETTERHEAD.
+#
+# 🔴 THE VALUE IS THE **STEM** OF A FILENAME. NOT A PATH, NOT AN EXTENSION.
+# It resolves through the same index `@img:` uses, which walks every image in the
+# CONTENT tree before any page renders. So the file can live anywhere in
+# `mawizorek/uritp-safety` and this line never has to know where -- which is the
+# whole point, because a `../` count written here would go stale the first time
+# either end moved. That arithmetic has shipped wrong three separate times in
+# this engine (`links.py`, `router.py`, `datatable.py`).
+#
+# 🔴 TWO FILES SHARING THIS STEM DISABLE THE LETTERHEAD ENTIRELY, AND THAT IS
+# THE ONE TRAP TO KNOW BEFORE EDITING ANYTHING NEARBY. `90-media-logos/` holds
+# `logo-horizontal.jpg` today. Dropping a `logo-horizontal.svg` BESIDE it makes
+# the name ambiguous -- two pictures with one name are two different pictures --
+# and the engine refuses to guess, so the corner silently loses its mark. **An
+# SVG must REPLACE the JPEG, not join it.** The build report names the collision
+# and the fix, so this fails loudly rather than quietly; it still fails.
+#
+# ⭐ AND THE JPEG IS CORRECT MEANWHILE, WHICH IS NOT OBVIOUS. Its opaque white
+# background is a problem on this site's parchment SCREEN ground and irrelevant
+# on paper, because paper is white and this element is print-only. An SVG is a
+# crispness upgrade at 300dpi, not a prerequisite.
+#
+# ⭐ ABSENT MEANS NO LETTERHEAD. Omit this block and a site prints exactly as it
+# did -- the same polarity `routes.yml` already has. Five of six sites are
+# unchanged by the feature landing, and that is deliberate: a mark is an
+# organisation's identity and nothing should assume ours.
+#
+# ⚠️ THE SEASONAL DATE IS NOT IN HERE AND CANNOT BE. `Fall 2026` rather than an
+# explicit print date is engine-owned furniture and lands on every site, per the
+# header/footer-content rule above. This block declares WHOSE the sheet is, never
+# what the stamp SAYS.
+print:
+  logo: logo-horizontal
 
 
 # THE LAST DOOR BACK TO THE SOURCE, DELIBERATELY SHUT (2026-08-16).
