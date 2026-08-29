@@ -19,8 +19,7 @@ the seam was that a module docstring had become a changelog.*
   DL J20 · the night every Next link dropped the reader at the FOOT of the page,
     because one fragment was doing two jobs (state carrier and scroll target).
     ⚠️ Its live rule survives in `_at_id()`: two ids per flow, spelled in one
-    place. It was stated twice, here and there, which is the second claimant this
-    cut removes.
+    place.
 
 =============================================================================
 🔴 WHY A STRIP EXISTS: prev/next HAS ONE SLOT AND A PAGE HAS MANY FLOWS
@@ -51,14 +50,30 @@ say and leave a reader three pages deep not knowing which program they are in.
 
 The PROGRAM NAME is the payload; the arrows are the instruction.
 
-⭐ AND THAT SENTENCE IS WHY `flow_names()` EXISTS (2026-08-28). `.dr-flows` is in
-print-chrome.css's chrome-off list now -- paper has no navigation to offer -- so
-the strip does not print at all. But *a payload that only survives on screen is
-not a payload*, so `buildstamp.py` asks THIS module which programs a page belongs
-to and prints their names on the corner mark. 🔴 It ASKS rather than deriving:
-`_participation()` is the only answer to "which flows is this page in," because a
-second walk over `nav.declared()` elsewhere would agree today and drift the first
-time either side changed -- and nobody can diff a printed sheet against a page.
+🪦 AND THAT SENTENCE COST A FEATURE AND GOT IT REVERTED IN ONE EVENING, which is
+the most useful thing in this section. `.dr-flows` joined print-chrome.css's
+chrome-off list on 2026-08-28 -- paper has no navigation to offer -- so the strip
+does not print. ~~`flow_names()` therefore exported the program name to
+`buildstamp.py`, so the payload survived onto the printed corner mark.~~ Shipped
+in PR #182, reverted in #184 about seven minutes later: *"ew ew ew FUCK that header
+of all that additional text. NO. just site name and date, like before."*
+
+⚑ **THE ARGUMENT WAS SOUND AND THE ARGUMENT WAS NOT THE POINT.** *A payload that
+only survives on screen is not a payload* is still true. What it never asked is
+whether the DESTINATION had room -- and a corner mark carrying three clauses is a
+header rather than a stamp. 🚫 *"This fact belongs on that line" is an argument about
+the FACT; whether the line can take it is a separate question, and it has to be
+asked separately.* The full post-mortem lives in `buildstamp.py`, on the line it
+was about.
+
+⚠️ SO THE ORIENTATION GAP ON PAPER IS SIMPLY OPEN: a printed policy sheet does not
+say which program handed it to a reader. 🚩 If that is ever wanted it needs its own
+ELEMENT with its own placement decision -- beside the h1, where a document subtitle
+would go -- and it is Michael's call, not a second attempt at the stamp.
+
+✅ `_participation()` STAYS. It came out of that pass and it is a genuine
+refactor: `_strips` was walking the chain map inline, and the walk is now named
+once. What went with the revert is the EXPORT, not the extraction.
 
 =============================================================================
 ⭐ THE START STRIP -- THE HUB IS NEVER A MEMBER OF ITS OWN CHAIN
@@ -190,10 +205,12 @@ def _at_id(flow_id: str) -> str:
 def _participation(src, pid, chains):
     """Every flow this page takes part in, as (flow_src, role, index).
 
-    🔴 THE ONLY ANSWER TO "WHICH FLOWS IS THIS PAGE IN." `_strips` walked this
-    inline; `flow_names()` needs the same answer for the printed corner mark, and
-    two walks would be two claimants on one fact -- the defect that retired three
-    manifests here.
+    ✅ ONE WALK OVER THE CHAIN MAP, NAMED ONCE. `_strips` did this inline; a second
+    consumer (`flow_names`, for the printed corner mark) is what forced the
+    extraction, and that consumer was reverted the same evening. **The extraction
+    stayed because it was right on its own** -- the render order below is a real
+    rule and it now has one place to live rather than being implied by the shape of
+    a loop.
 
     `role` is `"start"` on the page that DECLARES the chain, `"member"` on a step
     in it. `index` is the position in the DECLARED list, or -1 for a start.
@@ -398,38 +415,6 @@ def _promo_css(flow_ids) -> str:
     if not out:
         return ""
     return "<style>" + "".join(out) + "</style>"
-
-
-def flow_names(page, files) -> list[str]:
-    """The display name of every program this page takes part in, in render order.
-
-    ⭐ THE ORIENTATION HALF OF THE STRIP, FOR A MEDIUM THAT DROPS THE STRIP --
-    `buildstamp.py` prints these on the printed corner mark. Shares
-    `_participation()` with `_strips` rather than re-deriving; see that function
-    and the module docstring.
-
-    `report=False` because this runs per page and every chain problem it could
-    report is already reported once by `nav.py`.
-    """
-    src = _src(page)
-    if not src:
-        return []
-    chains = nav.declared(report=False)
-    if not chains:
-        return []
-
-    pid = str(_meta(src).get("id") or "").strip()
-    seats = _participation(src, pid, chains)
-    if not seats:
-        return []
-
-    _by_id, by_src = nav._built(files)
-    names = []
-    for flow_src, _role, _at in seats:
-        _hub, name, _fid, _frag = _flow_meta(flow_src, by_src)
-        if name and name not in names:
-            names.append(name)
-    return names
 
 
 def _strips(page, files):
