@@ -5,6 +5,23 @@ The `chain:` vocabulary and the prev/next wiring belong to docrender/nav.py; the
 embedded completion form is docrender/forms.py. This module owns exactly one
 thing, and it is what a reader SEES of a flow.
 
+⚠️ AND ON 2026-08-28 THIS DOCSTRING HIT THE 22,528 B READ CEILING, so two dated
+post-mortems were CUT to the pointers below rather than trimmed further. The line
+directly above names the Decision Log as the home for *why*, and this file had
+accumulated five dated narratives against it -- **the operative rules stay here,
+the history stays there.** ⚑ *Two trims that each recovered less were the signal;
+the seam was that a module docstring had become a changelog.*
+
+  DL J19 · `hide: footer` and the strip becoming the ONLY footer. ⚠️ Its live
+    rule survives: `hide: footer` MUST be per-page on chain members only, because
+    a page in no flow with its footer hidden has ZERO navigation and nothing
+    reports it.
+  DL J20 · the night every Next link dropped the reader at the FOOT of the page,
+    because one fragment was doing two jobs (state carrier and scroll target).
+    ⚠️ Its live rule survives in `_at_id()`: two ids per flow, spelled in one
+    place. It was stated twice, here and there, which is the second claimant this
+    cut removes.
+
 =============================================================================
 🔴 WHY A STRIP EXISTS: prev/next HAS ONE SLOT AND A PAGE HAS MANY FLOWS
 =============================================================================
@@ -20,24 +37,6 @@ a per-request fact. This is a static site generator. There is no request.
 ⚑ SO THE ANSWER IS NOT A SMARTER SLOT, IT IS TO STOP COMPETING FOR ONE. The
 strip is ADDITIVE: a page in three programs renders three strips and nothing
 overlaps, because no strip owns anything another one wants.
-
-=============================================================================
-⭐ AND IT IS THE ONLY FOOTER, WHICH CHANGED ITS JOB
-=============================================================================
-It was designed as a SECOND footer beside Material's prev/next. Michael read the
-result and rejected it in exactly the right words: *"all this other foot matter"*
-and *"is that what I'm supposed to click next? It's not actually appearing in the
-main footer; it's in this other separate footer you created."*
-
-The fix he chose was better than the one offered: 🔴 KILL THE DEFAULT FOOTER AND
-LET THE STRIP BE IT (`hide: footer`). It needed no code -- the strip is appended
-in `on_page_content`, so it survives a hidden footer -- and ⭐ IT DISSOLVES THE
-ONE-SLOT PROBLEM: if strips are the only navigation then nothing is competing, so
-two programs sharing a page both navigate correctly.
-
-⚠️ THE COST, AND IT IS A REAL TRAP: `hide: footer` MUST BE PER-PAGE ON CHAIN
-MEMBERS ONLY. A page in no flow with its footer hidden has ZERO navigation, and
-nothing reports it.
 
 =============================================================================
 ⭐ THE STRIP'S JOB IS ORIENTATION, NOT NAVIGATION
@@ -67,50 +66,25 @@ time either side changed -- and nobody can diff a printed sheet against a page.
 Found by Michael: *"how to get the starting page to actually navigate to the
 first page in the chain - right now it doesn't have any real published pointer."*
 
-Structural: `_flows_for` matched a page's `id:` against chain MEMBERS, and a
-program declares its list without being in it. Its only pointer was `nav.py`'s
+Structural: a page's `id:` was matched against chain MEMBERS, and a program
+declares its list without being in it. Its only pointer was `nav.py`'s
 `hub.next_page` -- IN THE DEFAULT FOOTER, the element `hide: footer` removes. So
 a page that DECLARES a chain gets a `--start` variant.
 
 =============================================================================
-🔴 WHERE A LINK LANDS YOU: THE TOP OF THE PAGE (FIXED 2026-08-19, SAME NIGHT)
+🔴 WHERE PURE CSS RUNS OUT, WHICH IS WORTH STATING PLAINLY
 =============================================================================
-Michael: *"each time you hit next in for the workflow, you're at the bottom of
-the next page - can you put us back to the top of each nexted page?"*
-
-MY BUG, AND IT WAS AN HOUR OLD. The previous version pointed every strip link at
-`#flow-<program id>` -- the id ON THE STRIP -- so the browser scrolled to it, and
-the strip is at the BOTTOM of the page. Walking a safety program dumped the
-reader past the whole policy every time.
-
-⚑ THE LESSON IS ABOUT ROLES, NOT ABOUT SCROLLING. A fragment does TWO jobs at
-once: it is the STATE CARRIER (which flow am I in) and it is the SCROLL TARGET.
-I chose the anchor for the first job and never asked what the second one would
-do. A mechanism serving two purposes must be checked against BOTH, and the one
-you did not design for is the one the reader meets first.
-
-⭐ SO THE TARGET MOVED TO THE TOP AND THE STATE STAYED. Each page in a flow gets
-a zero-height marker at the very top:
-
-    <span class="dr-at" id="at-flow-program-general-safety"></span>
-
-Links point THERE. The reader lands at the top; the fragment still names the
-flow, so the promotion still works.
-
-🔴 AND THIS IS WHERE PURE CSS RUNS OUT, WHICH IS WORTH STATING PLAINLY. A
-generic rule cannot say "the strip whose id matches the targeted marker" --
+A generic rule cannot say "the strip whose id matches the targeted marker" --
 selectors cannot compare two values. So `_promo_css()` emits TWO SHORT RULES PER
-FLOW, per page, naming both ids. That breaks a rule this file set for itself
-tonight (no inline style; every stylesheet goes through `assets.py` so
-`hand_written_css()` stays the single source for the token audit) and it is
-broken DELIBERATELY, on three grounds:
+FLOW, per page, naming both ids. That breaks a rule this file set for itself (no
+inline style; every stylesheet goes through `assets.py` so `hand_written_css()`
+stays the single source for the token audit) and it is broken DELIBERATELY:
 
   1. it is per-PAGE DATA, not a stylesheet -- the ids are facts about this page,
      and `flow.css` still owns every look decision
-  2. `assets.py` is 22,333 B, at the engine's ~22KB read ceiling, so adding an
-     asset means rewriting a file that cannot be read whole (the `util.py`
-     clobber)
-  3. it is ~120 bytes on pages that are in a flow, and nothing at all elsewhere
+  2. `assets.py` is over the engine's ~22KB read ceiling, so adding an asset
+     means rewriting a file that cannot be read whole (the `util.py` clobber)
+  3. it is ~120 bytes on pages in a flow, and nothing at all elsewhere
 
 ⚠️ `display: contents` ON THE DISCLOSURE IS THE EXOTIC PART, AND IT IS THE ONE
 THING HERE MOST LIKELY TO SURPRISE SOMEBODY. A closed `<details>` hides its
@@ -121,15 +95,13 @@ strip above the rest. ⚠️ Its `<summary>` becomes a loose line of text when t
 fires, which is why `flow.css` needs no extra rule for it: the summary reads as
 a label, not a control, and the disclosure is moot once its contents are shown.
 ✅ DEGRADES HONESTLY: if a browser ignores it, the reader lands at the top of the
-correct page with the correct chain and one click to open the disclosure. Same
-degradation shape as the collapsed form -- one extra click, never a dead end.
+correct page with the correct chain and one click to open the disclosure.
 
-🚫 STILL NO JAVASCRIPT. A script would flap the footer on every page load, and
-the scroll fix does not need one.
+🚫 STILL NO JAVASCRIPT. A script would flap the footer on every page load.
 
-⚠️ A BARE URL STILL PROMOTES NOTHING, deliberately. Somebody who bookmarked a
-policy is in NO flow, and guessing tells a reader they are in MEWP training when
-they are not.
+⚠️ A BARE URL PROMOTES NOTHING, deliberately. Somebody who bookmarked a policy is
+in NO flow, and guessing tells a reader they are in MEWP training when they are
+not.
 
 =============================================================================
 🔴 A LONE STEP STATES NO COUNT (2026-08-28)
@@ -199,13 +171,18 @@ def _strip_id(flow_id: str) -> str:
 def _at_id(flow_id: str) -> str:
     """The id every LINK points at: a marker at the TOP of the page.
 
-    ⚠️ TWO IDS PER FLOW, AND THE SPLIT IS THE WHOLE FIX. One is where the reader
-    ARRIVES (top), one is what gets PROMOTED (the strip, bottom). They were the
-    same id for an hour and that is why Next dropped people at the foot of every
-    policy. Both are spelled here and nowhere else, exactly as
-    `forms.slot_anchor` owns the form's id -- a fragment matching no element is
-    not an error anywhere, so a link and its target computed in two places fails
-    silently and forever.
+    ⚠️ TWO IDS PER FLOW, AND THE SPLIT IS THE WHOLE FIX (DL J20). One is where the
+    reader ARRIVES (top), one is what gets PROMOTED (the strip, bottom). They were
+    the same id for an hour, and that is why every Next link dropped the reader at
+    the foot of the next policy: a fragment is BOTH the state carrier and the
+    scroll target, and only the first job was designed for.
+
+    ⚑ A mechanism serving two purposes must be checked against BOTH, and the one
+    you did not design for is the one the reader meets first.
+
+    Both ids are spelled here and nowhere else, exactly as `forms.slot_anchor`
+    owns the form's id -- a fragment matching no element is not an error anywhere,
+    so a link and its target computed in two places fails silently and forever.
     """
     return "at-flow-" + str(flow_id) if flow_id else ""
 
@@ -393,8 +370,7 @@ def _promo_css(flow_ids) -> str:
     """Per-page rules tying the TOP marker to the strip it promotes.
 
     See the module docstring for why this is generated per page rather than
-    living in `assets/flow.css`: a selector cannot compare a targeted element's
-    id to another element's id, so the two ids have to be named literally.
+    living in `assets/flow.css`.
 
     Two rules per flow:
       1. hoist the strip above its siblings
