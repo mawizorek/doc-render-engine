@@ -4,6 +4,7 @@
     !!! qr "incident-report" display=true         the code, on screen
     !!! qr "incident-report" print=true           the code, on paper
     !!! qr "incident-report" display=true print=true    both
+    !!! qr "incident-report" print=true align=center     centred on the measure
 
 🔴 THE ARGUMENT FOR EVERY DECISION HERE LIVES IN `specs/qr-codes.md` (BUILD 6),
 AND THIS DOCSTRING DELIBERATELY DOES NOT REPEAT IT. It held a summary of that
@@ -15,6 +16,24 @@ that already existed. That is this repo's most-retired defect wearing a docstrin
 
 STATE: steps 2, 5 and 6 built. NOT BUILT: `@page-id` (step 4) and the report
 inventory (step 3) -- and step 3 is the one that matters, see the LIMIT below.
+
+=============================================================================
+🔴 TWO OPTION VOCABULARIES, ONE PARSER, AND MIXING THEM WOULD BE A REAL BUG
+=============================================================================
+`_KEYS` is the MEDIA vocabulary and `_shape` iterates it to decide where a code
+appears. `align=` is a LAYOUT option and is deliberately NOT in that tuple.
+
+⚠️ IF IT WERE, `_shape`'s first line -- *"is any media key present?"* -- would
+answer True for `align=center` alone and silently suppress the download default,
+and its second line would read `align` as a falsy medium. **A layout key in the
+media tuple is a directive that changes what appears by talking about where it
+sits.** Verified by executing the parser against ten directive tails, including
+`align=center` alone (still `download`) and `print=false` (still refused loudly).
+
+⭐ AND THE VALUE IS A STRING, NOT A FLAG. `_KEYS` options coerce through
+`value.lower() in ("true", "yes", "1")`, which would turn `align=center` into
+False -- correct for a boolean, meaningless here. An unknown value is REPORTED
+AND DROPPED rather than guessed, on the same polarity as an unknown key.
 
 =============================================================================
 🔴 EVERY ENCODER ARGUMENT IS PINNED, AND NONE OF THEM IS SEGNO'S DEFAULT
@@ -125,14 +144,34 @@ from .util import relative_url, sub_outside_code
 #: EVERY brace block -- BUILD 1's spec names that disagreement as a live defect --
 #: and BUILD 1's `clean.py` is built to remove our own declared vocabulary, so a
 #: QR option in braces is a QR option a future stripper deletes.
+#:
+#: ⭐ AND THAT IS ALSO WHY `align=` IS A DIRECTIVE OPTION RATHER THAN THE
+#: `{.align-center}` CLASS `assets/align.css` gives every other block: attr_list
+#: cannot decorate a `!!!` directive at all, so the class an author would reach
+#: for is unreachable here. Same feature, two spellings, because the markup
+#: leaves no choice -- stated in both files so neither looks arbitrary.
 _QR = re.compile(r'(?m)^[ \t]*!!![ \t]+qr[ \t]+"([^"\n]+)"(?P<opts>[^\n]*)$')
 
 _OPT = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(\S+)")
 
-#: Exactly two keys are legal, so anything else is an ERROR rather than a
-#: judgement call -- and with only two, an unknown key is never a judgement call
-#: either.
+#: THE MEDIA VOCABULARY. Exactly two keys are legal, so anything else is an ERROR
+#: rather than a judgement call -- and with only two, an unknown key is never a
+#: judgement call either.
+#:
+#: 🔴 `align` IS NOT HERE ON PURPOSE. See the docstring: `_shape` iterates this
+#: tuple to decide which MEDIA a code appears in, so a layout key inside it would
+#: suppress the download default and then read as a falsy medium.
 _KEYS = ("display", "print")
+
+#: THE LAYOUT VOCABULARY (2026-08-29). One key, two values, and the CSS lives in
+#: `assets/align.css` -- which also carries the measurement proving `text-align`
+#: cannot move this box, because the code is a 30mm BLOCK and only margins can.
+#:
+#: 🚫 NO `left`. It is what a code already does, and a class or option that
+#: produces the current rendering is a dead control indistinguishable from one
+#: that failed to resolve. Same rule align.css states at length.
+_ALIGN_KEY = "align"
+_ALIGNS = ("right", "center")
 
 #: 🔴 ONE ENGINE CONSTANT, NOT CONFIG AND NOT A LINE OPTION (Michael: "globally
 #: for all builds in all renderer apps" -- `site.yml` would be per site).
@@ -197,6 +236,12 @@ def _options(raw: str, src: str, name: str) -> dict:
     "present and false" -- absent means the download default, while an explicit
     all-false directive is a refusal. Storing only the true ones would collapse
     those two into one.
+
+    🔴 `align` IS HANDLED FIRST AND STORES A STRING. The boolean coercion below
+    would read `align=center` as False, which is not a wrong value so much as a
+    category error -- and an unrecognised alignment is dropped with a report
+    rather than guessed, because a code silently sitting in the wrong place looks
+    like a stylesheet bug and is an authoring one.
     """
     tail = (raw or "").strip()
     if not tail:
@@ -204,12 +249,27 @@ def _options(raw: str, src: str, name: str) -> dict:
 
     found = {}
     for key, value in _OPT.findall(tail):
+        if key == _ALIGN_KEY:
+            choice = value.lower()
+            if choice not in _ALIGNS:
+                state.note(
+                    "notes",
+                    src + ': `!!! qr "' + name + '"` carries `align=' + value
+                    + "`, which is not an alignment this engine knows. Legal: "
+                    + ", ".join(_ALIGNS) + ". Ignored, so the code sits where it "
+                    + "would have anyway. There is deliberately no `left` -- that "
+                    + "is already the default.",
+                )
+                continue
+            found[key] = choice
+            continue
         if key not in _KEYS:
             state.note(
                 "notes",
                 src + ': `!!! qr "' + name + '"` carries unknown option `' + key
-                + "=" + value + "`. Legal options: " + ", ".join(_KEYS)
-                + ". Ignored -- nothing was hidden or shown because of it.",
+                + "=" + value + "`. Legal options: " + ", ".join(_KEYS) + ", "
+                + _ALIGN_KEY + ". Ignored -- nothing was hidden or shown because "
+                + "of it.",
             )
             continue
         found[key] = value.lower() in ("true", "yes", "1")
@@ -231,6 +291,11 @@ def _shape(opts: dict, src: str, name: str):
     the only thing that declares where those qr codes appear... if either is
     provided, then nothing besides the rectangle prints."* So PRESENCE, not truth,
     switches off the download.
+
+    🔴 EVERY REFERENCE HERE IS TO `_KEYS` BY NAME, WHICH IS WHAT MAKES `align=`
+    SAFE. A layout option cannot reach either branch below, so it can neither
+    suppress the download default nor count as a medium. Do not rewrite these two
+    lines to iterate `opts` instead -- that is the bug this comment prevents.
 
     🚫 AN ALL-FALSE DIRECTIVE IS REFUSED LOUDLY. `print=false` is *provided*, so it
     suppresses the download link, and then declines to print -- a declared QR that
@@ -491,16 +556,24 @@ def _html_for(src: str, name: str, opts: dict, page) -> str:
         return _dead("QR Code", "qr could not be encoded: " + name)
 
     if shape == "download":
+        # ⚠️ `align=` IS SILENTLY UNUSED ON A DOWNLOAD LINK, and that is deliberate
+        # rather than an oversight: the link is a paragraph, so it already obeys
+        # any `{.align-*}` class an author puts on the block around it, and
+        # emitting a `dr-qr--align-*` class onto a `<p>` would be a second
+        # mechanism for something `align.css` already does.
         return body
 
     # ⭐ THE MEDIA STATE IS A CLASS, NOT AN INLINE STYLE. assets/qr.css owns the
     # visibility rules, the mm size floor and `print-color-adjust` -- a style
     # attribute here would be unoverridable by a site's own sheet, which every
-    # other surface in this engine allows.
+    # other surface in this engine allows. ⭐ THE ALIGNMENT RIDES THE SAME
+    # MECHANISM for the same reason; `assets/align.css` owns the margins.
     classes = ["dr-qr"]
     for key in _KEYS:
         if key in shape:
             classes.append("dr-qr--" + key)
+    if opts.get(_ALIGN_KEY):
+        classes.append("dr-qr--align-" + opts[_ALIGN_KEY])
     return '<div class="' + " ".join(classes) + '">' + body + "</div>"
 
 

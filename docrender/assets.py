@@ -12,6 +12,12 @@ The way out is the `on_files` event: append File objects whose source is
 somewhere else entirely -- here the engine's own assets/ and the instance's
 folder. MkDocs treats them as ordinary site files from that point on.
 
+🔴 THIS FILE IS 32KB AND OVER THE ~22.5KB READ CEILING. It owes an
+`assets-dl.md` extraction on the `buildstamp-dl.md` standard -- the mechanism
+here is ~90 lines and the rest is incident history. Flagged since 2026-08-29
+(PR #190) and getting worse, not better: every asset group added since has added
+prose. **The next structural change to this file should extract first.**
+
 =============================================================================
 BUG: ON_CONFIG CANNOT SEE THE PAGES. THIS BROKE THE ROUTER COMPLETELY.
 =============================================================================
@@ -68,9 +74,10 @@ ship an unstyled strip as a site's sole means of moving -- the exact failure
 Michael reported in words on 2026-08-19 ("all this other foot matter"), arrived at
 by a clever optimisation instead of a missing file.
 
-⚠️ AND THE QR LAYER IS UNCONDITIONAL FOR THE DATA-TABLE REASON EXACTLY (2026-08-21):
-`!!! qr` is a BODY directive, so the frontmatter scan cannot see it at all. Not a
-judgement call this time -- there is no cheap question to ask.
+⚠️ AND THE QR AND ALIGN LAYERS ARE UNCONDITIONAL FOR THE DATA-TABLE REASON
+EXACTLY: `!!! qr` is a BODY directive and `{.align-*}` is an inline class, so the
+frontmatter scan cannot see either. Not a judgement call -- there is no cheap
+question to ask.
 
 =============================================================================
 ⚠️ EVERY ASSET URL CARRIES A CONTENT FINGERPRINT
@@ -97,19 +104,13 @@ This repo has killed three manifests for that defect and then kept a fourth
 inside a function. One list now, derived, in the file that has to be right or
 nothing ships at all.
 
-⭐ IT HAS ABSORBED SEVEN NEW SHEETS SINCE 2026-08-16 AND RETIRED ONE, with no
-edit to tokenaudit.py in any of the eight events -- and the RETIREMENT is the
-better evidence, because a derived list is the only kind that shrinks correctly.
-🪦 FOUR PARAGRAPHS OF PAYOFF ANECDOTES WERE TRIMMED TO THAT SENTENCE ON
-2026-08-19. **Four stories proving one rule is three too many.**
-
-🔴 AND THE WARNING IN `hand_written_css()` HAS NOW FIRED TWICE FOR REAL, which is
-better evidence than any of those anecdotes were. It said "adding a fourth group
-and forgetting it here is precisely how the old hardcoded tuple went stale" --
-written before any fourth group existed. `_FLOW_ASSETS` became the fourth on
-2026-08-19 and `_QR_ASSETS` the fifth on 2026-08-21; both times the line was read
-first and the group joined the walk in the SAME COMMIT. **A warning that has been
-obeyed twice is worth more than one that has never been tested.**
+🔴 AND THE WARNING IN `hand_written_css()` HAS NOW FIRED THREE TIMES FOR REAL.
+It said "adding a fourth group and forgetting it here is precisely how the old
+hardcoded tuple went stale" -- written before any fourth group existed.
+`_FLOW_ASSETS` became the fourth on 2026-08-19, `_QR_ASSETS` the fifth on
+08-21, and `_ALIGN_ASSETS` the sixth on 08-29; every time the line was read
+first and the group joined the walk in the SAME COMMIT. **A warning obeyed three
+times is worth more than any number of anecdotes about why it exists.**
 
 🔴 AND ON 2026-08-21 THE SAME DEFECT WAS FOUND ONE LAYER DOWN, WHERE NO WARNING
 WAS WATCHING. `hand_written_css()` guards against a forgotten GROUP. Nothing
@@ -244,11 +245,11 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: print-scheme.css, print-chrome.css" would have made this obvious on day one --
 #: and the tombstone would be one expected line rather than cover for a real one.
 #:
-#: 🔴 AND THAT GAP IS STILL OPEN, WHICH IS WHY THE NEW FILES BELOW WERE ADDED IN
-#: THE SAME PR AS THE SHEETS THEMSELVES (2026-08-29, twice). `print-identity.css`
-#: and `print-ink.css` were each authored and registered together deliberately:
-#: the 08-21 incident is the whole argument against a two-step, and a new sheet is
-#: exactly the moment the missing disk-vs-tuple check would have mattered.
+#: 🔴 AND THAT GAP IS STILL OPEN, WHICH IS WHY EVERY SHEET ADDED SINCE HAS BEEN
+#: REGISTERED IN THE SAME PR AS THE SHEET ITSELF (2026-08-29, three times:
+#: print-identity.css, print-ink.css, align.css). The 08-21 incident is the whole
+#: argument against a two-step, and a new sheet is exactly the moment the missing
+#: disk-vs-tuple check would have mattered.
 #:
 #: EIGHT FILES, EIGHT JOBS, and each one answers exactly one question:
 #:
@@ -363,7 +364,7 @@ _FLOW_ASSETS = ("flow.css",)
 #: THE QR LAYER (2026-08-21, BUILD 6 step 5). See docrender/qr.py and
 #: specs/qr-codes.md.
 #:
-#: 🔴 THE FIFTH GROUP, AND IT IS THE FIRST SHEET IN THIS ENGINE THAT CARRIES BOTH
+#: 🔴 THE FIFTH GROUP, AND IT WAS THE FIRST SHEET IN THIS ENGINE THAT CARRIED BOTH
 #: SCREEN AND PRINT RULES AS ONE FEATURE -- which is precisely why it is not in
 #: `_PRINT_ASSETS`. That group is entirely `@media print` and loads where it does
 #: for a cascade reason; a sheet with a screen half in it would make that group's
@@ -381,6 +382,28 @@ _FLOW_ASSETS = ("flow.css",)
 #: code. The sheet's own header carries that warning for anybody who opens it
 #: meaning to tidy up.
 _QR_ASSETS = ("qr.css",)
+
+#: THE ALIGNMENT LAYER (2026-08-29). `{.align-center}` / `{.align-right}` on any
+#: block, plus `align=` on `!!! qr`. See `assets/align.css` and `docrender/qr.py`.
+#:
+#: 🔴 THE SIXTH GROUP, AND IT EXISTS FOR THE SAME REASON `_QR_ASSETS` DOES: the
+#: sheet carries screen AND print rules as one feature, because an author who
+#: centres a form's title means it centred in both media -- and a class that did
+#: nothing on screen would be unverifiable before printing, which is the scar
+#: `qr.py` already carries about print-only elements. So it cannot join
+#: `_PRINT_ASSETS` without making that group's header a lie, and the rule quoted
+#: one tuple up decides it: **a group is a claim about WHEN a sheet loads and WHY.**
+#:
+#: ⭐ ITS POSITION IS GENUINELY FREE, on the `_FLOW_ASSETS` precedent. `.align-*`
+#: is matched by no other sheet in this engine, and the one selector it borrows
+#: (`.dr-qr__svg`) takes a `margin-inline` that `qr.css` never declares -- so there
+#: is no selector-and-property PAIR in either medium.
+#:
+#: ⚠️ AND IT IS THE FIRST SHEET HERE WHOSE FEATURE HAS TWO AUTHORING SPELLINGS,
+#: which is a markup constraint rather than a choice: `attr_list` cannot decorate a
+#: `!!!` directive, so a QR takes `align=` and everything else takes the class.
+#: Both files say so, so neither reads as arbitrary.
+_ALIGN_ASSETS = ("align.css",)
 
 
 def hand_written_css() -> tuple[str, ...]:
@@ -405,22 +428,19 @@ def hand_written_css() -> tuple[str, ...]:
     See `_PRINT_ASSETS` for the account and for the disk-vs-tuple check that
     would have caught it.
 
-    🔴 EVERY GROUP IS WALKED, AND THERE ARE FIVE OF THEM AS OF 2026-08-21.
-    Adding a group and forgetting it here is precisely how the old hardcoded tuple
-    in tokenaudit.py went stale within two hours. ⭐ THIS WARNING HAS NOW BEEN
-    OBEYED TWICE: it was written against a hypothetical fourth group, `_FLOW_ASSETS`
-    arrived on 08-19 and `_QR_ASSETS` on 08-21, and both joined this walk in the
-    same commit because whoever added them read this line first.
+    🔴 EVERY GROUP IS WALKED. Adding a group and forgetting it here is precisely
+    how the old hardcoded tuple in tokenaudit.py went stale within two hours.
+    ⭐ THIS WARNING HAS NOW BEEN OBEYED THREE TIMES: it was written against a
+    hypothetical fourth group, and `_FLOW_ASSETS` (08-19), `_QR_ASSETS` (08-21) and
+    `_ALIGN_ASSETS` (08-29) each joined this walk in the same commit that created
+    them, because whoever added them read this line first.
 
-    ⚠️ THE COUNT IN THAT SENTENCE IS STILL THE ONE PART OF THIS FUNCTION THAT CAN
-    ROT, and it has now been edited twice, which is the argument for deleting it
-    rather than maintaining it: `len()` of the concatenation is derivable and a
-    number in prose is not. Left in place only because the sentence needs to name
-    the risk to somebody skimming. ⭐ IT SURVIVED 2026-08-29 UNCHANGED, TWICE:
-    `print-identity.css` and `print-ink.css` both joined `_PRINT_ASSETS` rather
-    than opening a sixth group, so this function needed no edit either time --
-    which is exactly the behaviour a derived list is for, and the first time this
-    file has demonstrated it rather than argued it.
+    🪦 THE GROUP COUNT IS NO LONGER WRITTEN IN THIS SENTENCE. It said "there are
+    FIVE of them as of 2026-08-21" and had already been edited twice; `len()` of
+    the concatenation is derivable and a number in prose is not. ⭐ Removing it
+    ends the vector rather than resetting the timer -- the same move that killed
+    the fleet count in brain-config, and the sixth group is what proved it needed
+    making.
 
     ⭐ AND THE `.css` FILTER IS WHAT MAKES A SPLIT FREE. Files join these tuples in
     mixed pairs -- navtree contributed one sheet and one script -- and the sheet is
@@ -431,23 +451,20 @@ def hand_written_css() -> tuple[str, ...]:
     worth expecting rather than discovering: `line-height`, `margin`, `padding`
     and `font-size` are all in tokenaudit's `_METRIC_PROPS`, so every value
     print-type.css, print-space.css and print-callout.css set is a new row in the
-    metrics section. `flow.css` does the same and more. ⚠️ EXPECT A JUMP ON THE
-    NEXT BUILD: print-chrome.css and qr.css both join the scan for the first time.
-    🔴 qr.css's `width: 30mm` will appear as a metric row with NO TOKEN BEHIND IT,
-    and that is correct rather than a finding to fix -- a QR's physical size is not
-    a design vector. See that sheet's header. 🔴 THE SAME IS TRUE OF
-    print-identity.css's `width: 40.5mm`, `height: 8.46mm` and `gap: 4mm`: a
-    physical mark on a physical sheet is not a design vector either, and the
-    sheet's header carries the measured argument for each number. 🔴 AND
-    print-ink.css's `#000` WILL APPEAR AS A HARDCODED COLOUR, which is the one this
-    file wants read rather than fixed: it is a RULING (2026-08-29), argued in that
-    sheet's header, and the audit flagging it is the audit working.
+    metrics section. `flow.css` does the same and more.
+    🔴 THREE FAMILIES OF ROW WILL LOOK LIKE FINDINGS AND ARE NOT: qr.css's
+    `width: 30mm` and print-identity.css's `40.5mm` / `8.46mm` / `4mm` carry NO
+    token because a physical mark on a physical sheet is not a design vector;
+    print-ink.css's `#000` is a hardcoded colour BY RULING (2026-08-29); and
+    align.css's `margin-inline: auto` is a keyword, not a metric. Each sheet's
+    header carries its own argument. **The audit flagging them is the audit
+    working.**
     """
     return tuple(
         name
         for name in (
             _DATA_ASSETS + _FEATURE_ASSETS + _PRINT_ASSETS + _FLOW_ASSETS
-            + _QR_ASSETS
+            + _QR_ASSETS + _ALIGN_ASSETS
         )
         if name.endswith(".css")
     )
@@ -507,9 +524,9 @@ def _plan(config) -> list[tuple[str, bytes]]:
     Built by both events -- `on_config` needs the URLs, `on_files` needs the
     content -- and they must never disagree. Order: base, the chrome, nav, type
     and foot layers, the data-table layers (see `_DATA_ASSETS`), then the
-    generated sheets, THEN the print layers, then the flow layer, then the qr
-    layer, then any feature sheet, then the instance sheet LAST so a site always
-    has the final word on its own look.
+    generated sheets, THEN the print layers, then the flow, qr and align layers,
+    then any feature sheet, then the instance sheet LAST so a site always has the
+    final word on its own look.
 
     THE THREE GENERATED SHEETS ARE ORDERED BY WHAT THEY CONSUME:
 
@@ -533,9 +550,9 @@ def _plan(config) -> list[tuple[str, bytes]]:
     ⚠️ AND THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the
     only thing keeping navtree.js ahead of router.js. See `_FEATURE_ASSETS`.
 
-    ⭐ THE FLOW AND QR LAYERS' POSITIONS ARE FREE and are documented as such on
-    their own tuples -- neither shares a selector with anything. Do not infer a
-    rule from where they sit.
+    ⭐ THE FLOW, QR AND ALIGN LAYERS' POSITIONS ARE FREE and are documented as such
+    on their own tuples -- none shares a selector-and-property pair with anything.
+    Do not infer a rule from where they sit.
 
     ⚠️ AND `_read` RETURNING None IS WHY A MISSING FILE IS SILENT HERE. That is
     the correct behaviour for a sheet somebody deleted on purpose, and it is also
@@ -558,7 +575,7 @@ def _plan(config) -> list[tuple[str, bytes]]:
         if raw is not None:
             plan.append((name, raw))
 
-    for name in _FLOW_ASSETS + _QR_ASSETS:
+    for name in _FLOW_ASSETS + _QR_ASSETS + _ALIGN_ASSETS:
         raw = _read(state.ENGINE_ROOT / "assets" / name)
         if raw is not None:
             plan.append((name, raw))
