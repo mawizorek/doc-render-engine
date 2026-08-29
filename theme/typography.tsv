@@ -4,6 +4,32 @@
 #
 # Same override rule as colors.tsv: `base` rows always apply, the chosen
 # theme's rows are emitted after and win. Keep base first.
+#
+# 🔴 EXCEPT THAT IS NOT WHAT HAPPENS, AND IT HAS NOT SINCE THE SPLIT.
+# `theme.py:_shared()` filters this table to `theme == "base"` and skips every
+# other row, so NO per-theme row below has ever been emitted -- `eos`'s mono
+# data font, `database`'s tighter sizes and its narrower `measure` have never
+# rendered on any site. Raised 2026-08-05, still live. 🚩 Fixing it is a ruling,
+# not a typo: these rows are keyed by names that are variously JOIN slugs
+# (`database`) and vector-entity slugs (`eos` is both, and four other things),
+# so WHICH column a row should match is a design question.
+#
+# 🪦 `data-pad` IS RETIRED (2026-08-28). Cell density now comes from the theme's
+# canonical SPACING entity, per axis -- `pad-cell` for the vertical, `pad-card`
+# for the horizontal -- read directly by assets/data.css. Both rows are DELETED
+# rather than kept:
+#
+#   base       0.34rem 0.6rem     superseded, and it was a global constant
+#   database   0.26rem 0.55rem    superseded AND never emitted (see above)
+#
+# ⭐ THE REASON IT COULD NOT STAY AS AN OVERRIDE HOOK IS THE FILTER ABOVE. A
+# per-theme `data-pad` cannot be emitted, so "a theme states two axes and wins"
+# would have been a control only the `base` row could reach -- a global constant
+# wearing a dial's clothes, offered in answer to a request for a dial. This
+# engine kills dead controls on sight.
+#
+# 🚫 DO NOT RE-ADD IT to give one site tighter cells. That is what the spacing
+# entity is for, and a literal here would silently outrank it for every theme.
 theme	token	value	notes
 base	font-body	-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif	system stack, zero webfont latency
 base	font-mono	ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace	same reasoning
@@ -12,7 +38,6 @@ base	lede-weight	350
 base	spec-label	0.78rem	field names in a generated spec table
 base	measure	34rem	comfortable line length for prose
 base	data-size	0.80rem	rows in a TSV data table
-base	data-pad	0.34rem 0.6rem	cell padding in a data table
 # --- eos --------------------------------------------------------------------
 # Circuit numbers, channel ranges and rack labels are read as CODES, not as
 # words, and a proportional font makes R1zAA and R1zBB look alike at a glance.
@@ -24,5 +49,4 @@ eos	data-size	0.78rem
 # is a caption for the table rather than the other way round.
 database	data-font	ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace	
 database	data-size	0.76rem	
-database	data-pad	0.26rem 0.55rem	
 database	measure	30rem	
