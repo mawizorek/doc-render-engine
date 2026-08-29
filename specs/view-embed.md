@@ -16,12 +16,14 @@
 
 ### Half 1: ClickUp side (once per view, by hand, and no agent can do it)
 
-1. Right-click the view in the **Views Bar** → **Sharing & Permissions**. *(Also reachable per-item; views are the Views Bar route.)*
+1. Right-click the view in the **Views Bar** → **Sharing & Permissions**.
 2. Toggle **Share link with anyone** on.
 3. Copy **Embed code** from the advanced settings. That is a complete `<iframe>` string.
 4. Optional in the same panel: **Share link with search engines** (leave OFF unless indexing is wanted), **Expire link** (Enterprise), and for Docs/Whiteboards **Autosize embed height**.
 
 ⚠️ **Applied filters travel with the share.** A publicly shared view carries its filters, so scoping what a reader sees is done IN the view, not in the page. **That is the mechanism by which the author controls the rendering, and it is the whole reason this tool is worth building.**
+
+🔴 **NO AGENT CAN PRODUCE THE EMBED CODE, AND THIS IS A HARD LIMIT, NOT A GAP** (verified 2026-08-29). Nothing in the tool surface reads or writes a view's Sharing & Permissions: `create_view` can create a view but has no sharing parameter and returns nothing about public links. **And the share token is server-minted when the toggle flips, so it is not derivable from a view id either** — a perfectly-shaped guess still produces a dead `src`. Step 1 above is Michael's, always.
 
 ### Half 2: the engine side (once, then free forever)
 
@@ -64,10 +66,10 @@ One internal `_embed(url, label, ...)` serves both registries. One `slot_anchor(
 
 ```
 view_hosts:
-  - https://sharing.clickup.com/     # whatever the real embed code shows
+  - https://<whatever the real embed code shows>/
 ```
 
-- **Declared, never guessed.** 🔴 The value goes in from a REAL embed code, once. **No agent may invent, infer or remember this string** — same rule as every other unverifiable external fact in this engine.
+- **Declared, never guessed.** 🔴 The value goes in from a REAL embed code, once. **No agent may invent, infer or remember this string** — same rule as every other unverifiable external fact in this engine. ⚠️ **This file deliberately does NOT name a candidate host**, because a plausible one written down here would be copied forward as fact.
 - **A list, so a second ClickUp surface later is a config line, not a code change.**
 - 🚫 **Never a `*.clickup.com` wildcard.** That also matches `app.clickup.com`, the logged-in application — which would let a page embed a workspace URL and render a login wall to the public, looking like a broken table rather than a misconfiguration.
 - **Empty or missing `view_hosts:` → the embed is refused and REPORTED** (`dead_links`), never silently dropped. The engine ships working with nothing hardcoded.
@@ -90,12 +92,27 @@ These are facts about ClickUp and about iframes. They constrain what the tool CA
 
 | Property | What it means for a page |
 |---|---|
-| 🔴 **Non-Form views share publicly from the EVERYTHING level, Business+**; Form views share from any level on any plan | If a view's Share modal has no *Share link with anyone*, the shareable equivalent is an Everything-level view with **filters** doing the scoping. This is where a build stalls in practice, and it is a two-second check in the modal. |
+| ⚠️ **WHICH LEVEL a non-Form view can be shared from is GENUINELY UNSETTLED — see the correction below.** | Check the Share modal on the actual view. It either offers *Share link with anyone* or it does not, and that answer outranks any documentation. |
 | 🔴 **Public shares require third-party cookies** | Blocked by default in a growing number of browsers, and the affected reader is exactly the one not logged into the workspace. Unverifiable at build time. Mitigation is the `min-height` floor + the fallback link. **Acceptance test: load the page with third-party cookies OFF.** |
 | ⚠️ **The frame carries ClickUp's own chrome** — *Sign up free* / *Login* buttons, an *Embed ClickUp* label and logo | Inside a cross-origin iframe, so it cannot be removed (both are open feature requests). `caption:` is the cheap answer: label it as live ClickUp content so the chrome reads as provenance. |
 | ⚠️ **An iframe prints as a blank rectangle** | The fallback link renders **always**, not only for print — `forms.py` already does this and the reason is the print identity spec. For a form a printed link substitutes fine; for a table the content is genuinely absent on paper. Stated, not solved. |
 | 🔴 **A public share is public until revoked** | The link works for anyone who has it, is indexable if that toggle is on, and Owners/Admins on Enterprise can audit every shared item under Security & Permissions. **Recommend logging each share in the Access Tracking Decision Log so it can be revoked deliberately rather than discovered.** What is safe to publish is the author's call, per view. |
 | ⚠️ **A revoked or deleted share degrades to an empty frame with NO build finding** | Runtime behaviour of an external page is invisible at build time. The fallback link is the only thing distinguishing "loading" from "gone." |
+
+### 🔴 CORRECTION 2026-08-29 — the "Everything level" claim was stated too hard, TWICE
+
+Earlier versions of this file carried *"a non-Form view shares publicly only from the EVERYTHING level, on Business and above"* as a 🔴 flat fact, and it was repeated verbally as the reason a list-scoped view would not work. **Michael pushed on it and the source does not support it that cleanly.**
+
+**One Help Center article, *Share locations and items with a public link*, contains BOTH of these:**
+
+- a **Folders, Subfolders, and Lists** row reading *"You can publicly share views of a Folder, Subfolder, or List"* — repeated across **every** plan column, including Free.
+- a **view-types** row (Board / Calendar / … / **Table** / Timeline) reading *"You can publicly share Form views from a Space, Folder, Subfolder, or List. All other views can be publicly shared from the Everything level."*
+
+**Those two rows disagree, in the same table, about the same action.** The first says a List's views are publicly shareable; the second says only its Form views are, and everything else has to be an Everything-level view. My reading took the narrower row and presented it as settled.
+
+⭐ **THE RULE, AND IT GENERALIZES PAST THIS ROW: A DOCUMENT CONTRADICTING ITSELF IS NOT EVIDENCE, IT IS A PROMPT TO GO LOOK.** The deciding artifact is the **Share modal on the actual view** — *Share link with anyone* is present or it is not, and that beats both rows. This is the same class as the standing rule that agreeing sources are one source, applied in reverse: **disagreeing sources are ZERO sources.**
+
+⚠️ **Consequence for the build: none.** The tool does not care which level the view lives at; it takes a URL. **The Everything-level question only ever affected WHERE Michael builds the view, which §0 already says is not this document's business.** 🚫 So it is recorded here as a thing to check, never again as a constraint on his content.
 
 ---
 
@@ -128,6 +145,8 @@ These are facts about ClickUp and about iframes. They constrain what the tool CA
 2. Fold into `forms.py`: `views:` registry, `!!! view`, shared `_embed()`, caption, report messages.
 3. **Acceptance test on one page, with third-party cookies BLOCKED**, and a print preview.
 4. Then use it wherever it is wanted. **Where that is, is not this document's business.**
+
+⭐ **Step 2 can be built BEFORE step 1** — ship with `view_hosts:` empty and refusing-and-reporting, and the only manual step left is one pasted line. Recommended, because it stops the whole tool waiting on a config value.
 
 ---
 
