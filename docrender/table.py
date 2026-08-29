@@ -68,6 +68,20 @@ argument, every sheet decides what a date looks like on this site and they stop 
 an ISO stamp passes through untouched rather than being mangled.
 
 
+⭐ AND ALIGNMENT IS A THIRD KIND OF THING, WHICH IS WHY IT IS A CLASS AND NOT A STYLE
+=====================================================================================
+`align` (2026-08-29) is the first argument this module takes that is purely about LAYOUT
+rather than about the data. It is emitted as `dr-data--align-*` on the wrapper and
+`assets/align.css` owns the margins -- so this file still states no opinion about what
+anything looks like, which is the property the whole four-module split exists to protect.
+
+🔴 IT IS VALIDATED IN `datatable.py`, NOT HERE, AND NOT IN `sheet.py`. That is the seam:
+`sheet.apply_options` validates DATA-SHAPING keys and emits no HTML by contract, so a
+layout key must never reach it -- it would be reported as unknown. `datatable.py` pops
+`align` before calling it. **This function trusts what it is handed and falsy means
+nothing is emitted**, which is the same posture it already takes on `caption` and `pinned`.
+
+
 THE TWO STICKY TRAPS
 ====================
 
@@ -165,8 +179,13 @@ def _attrs(index, pinned, kinds, keys, labels, listing) -> str:
     return out
 
 
-def draw(rows, specs, href, filename, slot, caption, pinned, page) -> str:
-    """Shaped rows as one `.dr-data` block. Every cell goes through cells.render once."""
+def draw(rows, specs, href, filename, slot, caption, pinned, page, align="") -> str:
+    """Shaped rows as one `.dr-data` block. Every cell goes through cells.render once.
+
+    ⚠️ `align` IS KEYWORD-WITH-A-DEFAULT SO EVERY EXISTING CALL IS UNCHANGED. It is the
+    only argument here that describes LAYOUT rather than data; see the docstring on why it
+    is a class rather than a style and why it is validated one module up.
+    """
     header, body = rows[0], rows[1:]
     span = len(header)
     # Once per table, from the SHAPED rows -- so `hide:` has already run and both lists
@@ -179,8 +198,16 @@ def draw(rows, specs, href, filename, slot, caption, pinned, page) -> str:
     out = []
     if listing:
         out.append(_BOOT)
+    # ⚠️ BUILT AS A LIST RATHER THAN CONCATENATED CONDITIONALS. `blocks.py` carries the
+    # argument: a joined string is where a missing separator merges two class names into
+    # one that matches nothing, and this rule gained a third member on 2026-08-29.
+    wrapper = ["dr-data"]
+    if listing:
+        wrapper.append("dr-data--list")
+    if align:
+        wrapper.append("dr-data--align-" + align)
     out.append(
-        '<div class="dr-data' + (" dr-data--list" if listing else "")
+        '<div class="' + " ".join(wrapper)
         + '" id="data-' + html.escape(slot) + '">'
     )
     if caption:
