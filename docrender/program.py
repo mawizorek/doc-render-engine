@@ -2,16 +2,19 @@
 
 WHY decisions here are the way they are: the doc-render-engine Decision Log.
 The `chain:` vocabulary and the prev/next wiring belong to docrender/nav.py; the
-embedded completion form is docrender/forms.py. This module owns exactly one
-thing, and it is what a reader SEES of a flow.
+embedded completion form is docrender/forms.py; **which flow is ACTIVE, and the
+two ids that decide it, belong to docrender/promote.py** (split out 2026-08-28).
+This module owns what a flow LOOKS like.
 
 =============================================================================
 ⚠️ THIS DOCSTRING IS NOT A CHANGELOG, AND IT HAS TRIED TO BECOME ONE THREE TIMES
 =============================================================================
-It has now blown the 22,528 B read ceiling TWICE in one evening, both times on a
-small code change carrying a large dated narrative. **The rule, third time of
-asking: a post-mortem goes to the Decision Log; the rule it produced goes to the
-CALL SITE that has to obey it.** Only architecture stays up here.
+It blew the 22,528 B read ceiling twice in one evening, both times on a small code
+change carrying a large dated narrative, and each trim recovered less than the
+last. **The rule, third time of asking: a post-mortem goes to the Decision Log;
+the rule it produced goes to the CALL SITE that has to obey it.** Only
+architecture stays up here. The spiral is what finally produced `promote.py` --
+see that file, which records it against itself.
 
 ⚑ *The tell is available before the write fails: if a new section opens with a
 date and a quote, it is history and it has a home that is not this file.*
@@ -20,17 +23,15 @@ date and a quote, it is history and it has a home that is not this file.*
     ⚠️ Live rule: `hide: footer` MUST be per-page on chain members only. A page
     in no flow with its footer hidden has ZERO navigation and nothing reports it.
   DL J20 · the night every Next link dropped the reader at the FOOT of the page.
-    ⚠️ Live rule in `_at_id()`: two ids per flow, spelled in one place.
+    ⚠️ Live rule now in `promote.py`: two ids per flow, spelled in one place.
   DL J21 · the corner-stamp program name, shipped and reverted in seven minutes.
     ⚠️ Live rule: the orientation gap on PAPER is open, and closing it needs its
     own element beside the h1 -- never a third clause on the build stamp.
   DL J22 · the hub is never a member of its own chain, so a program page had no
     published pointer into its own flow.
-    ⚠️ Live rule in `_start_strip()`: a page that DECLARES a chain gets a
-    `--start` variant, and it renders nothing when the chain resolves to nothing.
+    ⚠️ Live rule in `_start_strip()`.
   DL J23 · `step 1 of 1`, and why the strip survived the complaint about it.
-    ⚠️ Live rule in `_member_strip()`: a lone step states no count, and the block
-    stays because its `Finish` link is the only route to the form.
+    ⚠️ Live rule in `_member_strip()`.
 
 =============================================================================
 🔴 WHY A STRIP EXISTS: prev/next HAS ONE SLOT AND A PAGE HAS MANY FLOWS
@@ -62,35 +63,6 @@ say and leave a reader three pages deep not knowing which program they are in.
 The PROGRAM NAME is the payload; the arrows are the instruction.
 
 =============================================================================
-🔴 WHERE PURE CSS RUNS OUT, WHICH IS WORTH STATING PLAINLY
-=============================================================================
-A generic rule cannot say "the strip whose id matches the targeted marker" --
-selectors cannot compare two values. So `_promo_css()` emits THREE SHORT RULES
-PER FLOW, per page, naming both ids. That breaks a rule this file set for itself
-(no inline style; every stylesheet goes through `assets.py` so
-`hand_written_css()` stays the single source for the token audit) and it is
-broken DELIBERATELY:
-
-  1. it is per-PAGE DATA, not a stylesheet -- the ids are facts about this page,
-     and `flow.css` still owns every look decision
-  2. `assets.py` is over the engine's ~22KB read ceiling, so adding an asset
-     means rewriting a file that cannot be read whole (the `util.py` clobber)
-  3. it is ~180 bytes on pages in a flow, and nothing at all elsewhere
-
-⚠️ `display: contents` IS THE EXOTIC PART. A closed `<details>` hides its
-children and CSS cannot open one, so the rule makes it `display: contents` --
-its children join the flex layout and become visible, and `order: -1` then hoists
-the targeted strip above the rest. ✅ Degrades honestly: a browser that ignores it
-leaves the reader on the right page with the right chain and one click to open the
-disclosure. Full mechanism in `_promo_css()`; the look lives in `flow.css`.
-
-⚠️ AND IT IS `:target`-ONLY, SO IT FIRES ONLY ON ARRIVAL FROM A FLOW LINK. A
-reader reaching a policy from the SIDEBAR, a bookmark or a search result is in no
-flow and gets the declared order below. Deliberate -- guessing tells a reader they
-are in MEWP training when they are not -- but it means the promotion is absent
-from about half of all arrivals, which is why the default matters.
-
-=============================================================================
 ⭐ THE DEFAULT ORDER IS THE SIDEBAR'S OWN KEY (2026-08-28)
 =============================================================================
 > Michael: *"how do i write in a default???"*
@@ -111,20 +83,22 @@ front.
 is nearly always a key that already sorts something else.* `nav.py` refused a
 program-specific `steps:` on this exact ground.
 
+⚠️ AND THE DEFAULT CARRIES MORE WEIGHT THAN IT LOOKS. `promote.py` fires only on
+`:target`, so a reader arriving from the SIDEBAR, a bookmark or a search result
+gets this order and nothing else -- roughly half of all arrivals.
+
 =============================================================================
 ⚠️ THE CAP
 =============================================================================
 First flow open, the rest inside a `<details>` -- which collapses with no
 stylesheet and no script, and prints open because print-flow.css already forces
-that. ⚠️ AND THE CAP IS FULLY SPENT WHEN A PROMOTION FIRES: `display: contents`
-reveals EVERY strip in the disclosure, not only the promoted one. Correct rather
-than tidy -- the reader asked for one of them by name and the rest are one line
-each -- and it is why hiding the summary is consistent rather than a patch.
+that. ⚠️ It is fully spent when a promotion fires; `promote.css()` explains why
+that is correct rather than tidy.
 """
 
 from __future__ import annotations
 
-from . import forms, nav, state
+from . import forms, nav, promote, state
 from .util import relative_url
 
 #: What a page with no `order:` sorts as. Matches `objects.py:_child_list`
@@ -157,30 +131,6 @@ def _url(page) -> str:
 
 def _src(page) -> str:
     return getattr(getattr(page, "file", None), "src_uri", "")
-
-
-def _strip_id(flow_id: str) -> str:
-    """The id ON THE STRIP, at the foot of the page."""
-    return "flow-" + str(flow_id) if flow_id else ""
-
-
-def _at_id(flow_id: str) -> str:
-    """The id every LINK points at: a marker at the TOP of the page.
-
-    ⚠️ TWO IDS PER FLOW, AND THE SPLIT IS THE WHOLE FIX (DL J20). One is where the
-    reader ARRIVES (top), one is what gets PROMOTED (the strip, bottom). They were
-    the same id for an hour, and that is why every Next link dropped the reader at
-    the foot of the next policy: a fragment is BOTH the state carrier and the
-    scroll target, and only the first job was designed for.
-
-    ⚑ A mechanism serving two purposes must be checked against BOTH, and the one
-    you did not design for is the one the reader meets first.
-
-    Both ids are spelled here and nowhere else, exactly as `forms.slot_anchor`
-    owns the form's id -- a fragment matching no element is not an error anywhere,
-    so a link and its target computed in two places fails silently and forever.
-    """
-    return "at-flow-" + str(flow_id) if flow_id else ""
 
 
 def _order(src) -> tuple:
@@ -267,7 +217,7 @@ def _open_tag(flow_id, name, extra="") -> str:
     """
     bits = ['<nav class="dr-flow' + (" " + extra if extra else "") + '"']
     if flow_id:
-        bits.append(' id="' + _esc(_strip_id(flow_id)) + '"')
+        bits.append(' id="' + _esc(promote.strip_id(flow_id)) + '"')
         bits.append(' data-dr-flow="' + _esc(flow_id) + '"')
     bits.append(' aria-label="' + _esc(name) + ' \u00b7 reading order">')
     return "".join(bits)
@@ -278,7 +228,7 @@ def _flow_meta(flow_src, by_src):
     hub = by_src.get(flow_src)
     flow_id = str(_meta(flow_src).get("id") or "").strip()
     name = _title(flow_src, hub) if hub is not None else flow_src
-    at = _at_id(flow_id)
+    at = promote.at_id(flow_id)
     return hub, name, flow_id, ("#" + at if at else "")
 
 
@@ -365,7 +315,7 @@ def _start_strip(flow_src, ids, page, by_id) -> str:
     here = _url(page)
     name = _title(flow_src, page)
     flow_id = str(_meta(flow_src).get("id") or "").strip()
-    at = _at_id(flow_id)
+    at = promote.at_id(flow_id)
     frag = "#" + at if at else ""
     first = by_id[live[0]]
 
@@ -384,61 +334,6 @@ def _start_strip(flow_src, ids, page, by_id) -> str:
         )
         + "</p></nav>"
     )
-
-
-def _promo_css(flow_ids) -> str:
-    """Per-page rules tying the TOP marker to the strip it promotes.
-
-    See the module docstring for why this is generated per page rather than
-    living in `assets/flow.css`.
-
-    Three rules per flow:
-      1. hoist the strip above its siblings
-      2. make the disclosure transparent, so a strip parked inside it is visible
-         at all (a closed `<details>` hides its children and CSS cannot open one)
-      3. 🔴 hide that disclosure's SUMMARY -- added 2026-08-28.
-
-    🔴 RULE 3 EXISTS BECAUSE RULES 1 AND 2 SUCCEEDED AND LOOKED LIKE THEY HAD
-    FAILED. Michael, expecting the arrival program to win: *"instead of burying the
-    current program inside the 'also in other programs' dropdown."* The promotion
-    was firing. **What stayed on screen was its label.** `display: contents`
-    removes the `<details>` BOX and not its `<summary>`, so a successful hoist
-    still rendered *"▸ Also part of 1 other program"* as a loose line -- at
-    `order: 0`, therefore BELOW the strip it was supposedly hiding, naming a state
-    that was no longer true.
-
-    ⚑ **A FEATURE CAN BE WORKING AND STILL BE WEARING ITS OWN FAILURE MESSAGE**,
-    and nobody debugging it will look at the mechanism, because the label is more
-    legible than the layout. `flow.css` documented the loose summary as intended
-    behaviour and never asked what the loose summary would SAY.
-
-    ⚠️ RULE 3 IS SCOPED BY `:has()`, SAME AS RULE 2, so it fires only when THIS
-    flow's strip is the one inside the disclosure. A promoted strip that was
-    already the open one leaves the label alone, correctly: the disclosure still
-    describes real flows the reader has not asked for.
-
-    ⚠️ `~` REQUIRES THE MARKER AND `.dr-flows` TO BE SIBLINGS, which they are:
-    both are inserted by `on_page_content` into the same container, the marker
-    first and the strips last. If either ever moves into a wrapper, these rules
-    stop matching -- silently, because a selector that matches nothing is not an
-    error. That is the trade for not shipping a script.
-    """
-    out = []
-    for flow_id in flow_ids:
-        at = _at_id(flow_id)
-        strip = _strip_id(flow_id)
-        if not at or not strip:
-            continue
-        held = "#" + at + ":target ~ .dr-flows .dr-flows__others:has(#" + strip
-        out.append(
-            "#" + at + ":target ~ .dr-flows #" + strip
-            + "{order:-1;margin-top:0;padding-top:0;border-top:0}"
-            + held + "){display:contents}"
-            + held + ")>summary{display:none}"
-        )
-    if not out:
-        return ""
-    return "<style>" + "".join(out) + "</style>"
 
 
 def _strips(page, files):
@@ -480,13 +375,14 @@ def _strips(page, files):
         return "", ""
 
     # THE ARRIVAL MARKERS, at the very top of the page. Zero height, no text, and
-    # one per flow this page belongs to.
+    # one per flow this page belongs to. Both the ids and the rules that act on
+    # them belong to promote.py.
     head = "".join(
-        '<span class="dr-at" id="' + _esc(_at_id(f)) + '"></span>'
+        '<span class="dr-at" id="' + _esc(promote.at_id(f)) + '"></span>'
         for f in flow_ids
-        if _at_id(f)
+        if promote.at_id(f)
     )
-    head += _promo_css(flow_ids)
+    head += promote.css(flow_ids)
 
     if len(rendered) == 1:
         return head, '<div class="dr-flows">' + rendered[0] + "</div>"
