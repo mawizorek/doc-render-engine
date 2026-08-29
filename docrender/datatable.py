@@ -38,6 +38,7 @@ THE CONTRACT
         pin: ID
         hide: internal_notes
         caption: ...                      overrides the frontmatter one
+        align: center                     LAYOUT -- `center` or `right`
 
     ...or [the inventory](@data:inventory_table)   MENTION. Inline. Links to it.
 
@@ -57,6 +58,24 @@ consequence, and the warning about adding a FIRST slot to a type are all in
 reported by name, because an ignored key looks exactly like the feature never having
 worked. ⚠️ The embed carries NO label; the mention carries one because a sentence needs
 words. `data` is a reserved admonition type.
+
+
+🔴 `align:` IS A LAYOUT OPTION AND IS POPPED BEFORE `sheet.apply_options` EVER SEES IT
+=====================================================================================
+Added 2026-08-29, on the `!!! qr align=` precedent one module over. Every OTHER option on
+the block reshapes the DATA -- `sort`, `pin`, `hide` -- and `sheet.apply_options` validates
+them against its own `KNOWN_OPTIONS`, reporting anything it does not recognise.
+
+⚠️ SO LEAVING `align` IN THAT DICT WOULD REPORT IT AS AN UNKNOWN OPTION ON EVERY TABLE
+THAT USED IT, correctly, because it IS unknown to that validator -- `sheet.py`'s contract is
+*"everything BEFORE the HTML... it emits no HTML and imports nothing that does"*, and
+alignment is presentation. Adding it to `KNOWN_OPTIONS` would break that contract for a
+key the module has no use for.
+
+⭐ SO IT IS POPPED HERE AND HANDED STRAIGHT TO `table.draw`. Two vocabularies, one
+indented option block, and the seam is written in all three files. ✅ Verified by executing
+the parser against eight option sets, including `align: middle` (reported and dropped) and
+`algin: center` (still caught by sheet.py as an unknown key).
 
 
 WHAT THE SHEET ITSELF CAN SAY
@@ -125,6 +144,11 @@ from .util import relative_url
 
 _BLOCK = re.compile(r"^[ \t]*!!![ \t]+data[ \t]+\"(?P<slot>[^\"\n]+)\"[ \t]*$")
 _OPTION = re.compile(r"^[ \t]+(?P<key>[A-Za-z_]+)[ \t]*:[ \t]*(?P<value>.*?)[ \t]*$")
+
+#: The LAYOUT vocabulary. 🚫 No `left`: it is what a table already does, and an option that
+#: produces the current rendering is a dead control indistinguishable from one that failed
+#: to resolve. `assets/align.css` states that rule at length.
+_ALIGNS = ("right", "center")
 
 #: src_uri -> {slot: {"href": ..., "anchor": bool}}. Written at stage 01b, read by links.py
 #: at stage 03 to resolve an inline @data: mention. The per-page event order guarantees 01b
@@ -220,6 +244,33 @@ def _declared(meta: dict, src: str, note) -> dict[str, dict]:
             "caption": str(value.get("caption") or ""),
         }
     return out
+
+
+def _align(options: dict, src: str, slot: str) -> str:
+    """POP `align` out of the option dict and validate it. `""` means no alignment.
+
+    🔴 THE POP IS THE POINT, NOT A CONVENIENCE. `sheet.apply_options` reports any key it
+    does not know, and it correctly does not know this one -- see the module docstring. If
+    this function is ever changed to READ rather than REMOVE, every aligned table starts
+    emitting an unknown-option warning.
+
+    ⚠️ AN UNRECOGNISED VALUE IS REPORTED AND DROPPED, never guessed. A table silently
+    sitting in the wrong place reads as a stylesheet bug and is an authoring one -- the
+    same polarity `sheet.apply_options` argues for at length.
+    """
+    raw = (options.pop("align", "") or "").strip().lower()
+    if not raw:
+        return ""
+    if raw not in _ALIGNS:
+        state.note(
+            "notes",
+            src + ': !!! data "' + slot + '" carries `align: ' + raw + "`, which is not "
+            + "an alignment this engine knows. Legal: " + ", ".join(_ALIGNS)
+            + ". Ignored, so the table sits where it would have anyway. There is "
+            + "deliberately no `left` -- that is already the default.",
+        )
+        return ""
+    return raw
 
 
 def _resolve_mention(slot: str, page, label: str):
@@ -347,6 +398,10 @@ def on_page_markdown(markdown, page, config, files):
             placed[slot]["anchor"] = False
             continue
 
+        # 🔴 LAYOUT FIRST, AND IT REMOVES THE KEY. `sheet.apply_options` reports anything
+        # it does not recognise, and it does not recognise this. See `_align`.
+        align = _align(options, src, slot)
+
         # BEFORE apply_options, so `sort: credits` still matches `credits::num`.
         rows, specs = sheet.split_header(rows, slot, src, state.note)
         rows, pinned, override = sheet.apply_options(
@@ -356,7 +411,7 @@ def on_page_markdown(markdown, page, config, files):
         replacements.append((
             start, end,
             table.draw(rows, specs, href_for(entry["file"]), entry["file"], slot,
-                       caption, pinned, page),
+                       caption, pinned, page, align),
         ))
 
     for slot in declared:
