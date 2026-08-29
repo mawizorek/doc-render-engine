@@ -6,6 +6,8 @@
 
 **One-line summary:** a page names a shared ClickUp view in frontmatter, the engine builds the iframe. Mechanically this is `docrender/forms.py` with a second allow-listed host — **which is exactly why the code is the cheap half and this spec is mostly about the four things that are not code.**
 
+🔴 **READ §10 FIRST IF YOU ARE ABOUT TO BUILD THIS.** The use case arrived a day after the spec and it is a PROGRAM INDEX, which is the one shape where three of the constraints below stop being tolerable. §10 does not cancel the build; it narrows what the build is FOR.
+
 ---
 
 ## §0 What already exists. Do not rebuild any of it.
@@ -110,7 +112,7 @@ An `Embed code` exists only once the view is toggled *Share link with anyone*. F
 | `docrender/forms.py` | **11,740 B** | **+3–4 KB.** Second registry, one shared `_embed()`, second host constant. Lands ~15–16 KB, under the warn line. |
 | `mkdocs.yml` | **28,158 B** | **untouched — deliberately.** See §2. |
 | `objects/program.yml` | not measured this pass | +vocabulary for `views:`, if the key is type-gated the way `data:` slots are. ⏳ ruling 5. |
-| `docrender/datatable.py` | 16,566 B | **untouched.** `!!! data` is the build-time alternative, not part of this build. |
+| `docrender/datatable.py` | 16,566 B | **untouched.** `!!! data` is the build-time alternative, not part of this build. ⚠️ **§10 promotes it to a candidate for the index case.** |
 | `docrender/program.py` | 18,350 B | **untouched** unless `collapsed:` is wanted for views (recommend not — §0). |
 | `theme/` CSS | not measured | one `.dr-view__caption` rule, if ruling 6 lands. |
 
@@ -118,7 +120,7 @@ An `Embed code` exists only once the view is toggled *Share link with anyone*. F
 
 ---
 
-## §7 ⏳ Rulings needed (six)
+## §7 ⏳ Rulings needed (six, plus three in §10)
 
 1. 🔴 **THE HOST — BLOCKING.** Paste the `Embed code` from a shared view's Sharing & Permissions panel. Nothing in this build can start without it. §1.
 2. **Does `forms-embed/v1.js` size a VIEW frame, or is that helper form-only?** If it is form-only, the frame has no dynamic height and `min-height` stops being a floor and becomes the height. **Recommend a fixed, declared `height:` key for views** rather than pretending the helper works. Verifiable in ten seconds from the pasted embed code — it either carries `clickup-dynamic-height` or it does not.
@@ -145,3 +147,58 @@ An `Embed code` exists only once the view is toggled *Share link with anyone*. F
 - Nothing here can prove a shared view is live, still shared, or renders correctly. Same reduction as `forms.py` and `urllinks.py`: **the host and the scheme are checked and that is all.**
 - **A revoked share degrades to an empty frame with no build finding**, because an external page's runtime behaviour is invisible at build time. The fallback link is the only thing that tells a reader the difference between "loading" and "gone."
 - **The chrome, the cookie dependency and the Everything-level constraint are all ClickUp's, not ours.** No amount of engine quality fixes any of them, and a build report that implied otherwise would be lying.
+
+---
+
+# §10 THE USE CASE — a public index of completion forms (2026-08-29)
+
+> Michael, 2026-08-29: *"i'm going to make a table view of all the available completion forms with their autofilled links with their program id - then embed that as an index of available programs - instead of hand maintaining a tsv alongside the existing details. one source of truth filtered and displayed for public."*
+
+**The goal is right and the target is the wrong surface.** Killing a hand-maintained index is exactly correct — *every hand-maintained index in this fleet is on a growth curve toward unwriteable*, and that is a standing scar, not an opinion. Three findings, then a recommendation.
+
+## §10a 🔴 IT IS NOT A BINARY, AND THE THIRD OPTION IS THE ONE HE ACTUALLY ASKED FOR
+
+The choice was framed as **live embed vs hand-maintained TSV**. There is a third shape and it is already in this engine:
+
+| | Hand-kept TSV | Live embed | **DERIVED index** |
+|---|---|---|---|
+| hand maintenance | 🔴 yes — the actual complaint | none | **none** |
+| survives blocked third-party cookies | yes | 🔴 **no** | **yes** |
+| prints | yes | 🔴 **no** — blank rectangle | **yes** |
+| can list a program that has no page | ⚠️ yes | ⚠️ **yes** | **impossible** |
+| carries ClickUp login chrome | no | ⚠️ yes | **no** |
+| updates without a publish | no | ✅ **yes** | no |
+
+**Every program page already declares its own form src, with the `Program_ID` on it, in `forms:` frontmatter.** The engine reads all of it into `state.BY_SRC` on every build. So an index of *"available programs and their completion forms"* is **derivable from the pages themselves at zero maintenance cost** — and `30-programs/index.md` already carries **`contents: auto`**, so the auto-index mechanism is not even new (`docrender/objects.py` documents the key).
+
+⭐ **The decisive property is not freshness, it is that a derived index CANNOT LIE ABOUT WHAT EXISTS.** It is built from the pages, so a program with no page cannot appear and a page with a form cannot be missing.
+
+## §10b 🔴 THE SETS ALREADY DISAGREE, AND I READ IT RATHER THAN PREDICTING IT
+
+The **Programs (canonical)** list holds **six open rows** today. Four defects, all live, all of which an embedded public index would publish:
+
+1. 🔴 **ONE `Program_ID` ON TWO DIFFERENT PROGRAMS.** *Key & Swipe Access* and *MEWP Training, for Instructors* both carry `Program_ID=ITPSAFE-1219`. **Submissions from those two programs can never be told apart** — that is a compliance defect in the RECORD, not a display problem, and it is the most important thing on this page. Neither row is PUBLIC, so the embed would hide it rather than fix it.
+2. 🔴 **TWO URL SHAPES FOR ONE SITE.** *MEWP Training, for Students* points at `/uritp-safety/programs/mewp-students/`; *General Safety for All* points at `/uritp-safety/30-programs/general-safety-for-all/`. **Both cannot be right**, and the source file behind the second is `30-programs/10-general/for-all.md` — a third shape. `Program URL` is a hand-typed URL field that **nothing validates**.
+3. ⚠️ **A PUBLIC ROW WITH AN EMPTY LINK.** *General Safety for Scene Shop* is flagged 🌐 PUBLIC with no `Program URL`, though its page exists and carries `ITPSAFE-1242`. In an embedded index that is a visible row pointing nowhere.
+4. ⚠️ **A PAGE WITH A FORM AND NO ROW.** `30-programs/10-general/rehearsal.md` carries the completion form link in its own frontmatter and has **no row in the list at all** — so it would be absent from the index while being present on the site. ⚠️ Related: *Incident Reporting* is PUBLIC, its form carries **no `Program_ID`**, and its page lives under `20-policies/` — against `30-programs/index.md`'s own opening line, *"a completion form accompanies a program and not a policy."*
+
+🔴 **THE GENERALIZATION, AND IT IS THE WHOLE FINDING: MOVING A HAND-MAINTAINED INDEX INTO A CUSTOM FIELD DOES NOT DELETE THE HAND MAINTENANCE, IT RELOCATES IT SOMEWHERE THE BUILD REPORT CANNOT SEE IT.** The TSV had exactly one virtue — it sat in the content repo, so the engine could validate it and `dead_links` would complain. A `Program URL` typed into ClickUp is checked by nobody, and defects 2 through 4 are what that looks like after a few weeks. **A source of truth is not a source of truth because it is singular; it is one because something falsifies it.**
+
+## §10c ClickUp IS canonical — for the RECORD, not for the SITE'S TABLE OF CONTENTS
+
+The counter-argument, stated fairly because it is strong: the list owns fields the pages genuinely do not have — `🌐 PUBLIC`, `on Form Dropdown`, `Roles Affected`, `Role RESPONSIBLE`, `Completed Programs Submissions`. **That is real program metadata with no home in a markdown file, and it means ClickUp authoring is not a duplicate.**
+
+So the split that holds, in this repo's existing canonical / generated / projection vocabulary:
+
+- **ClickUp is CANONICAL for the program RECORD** — who owns it, which roles it touches, whether it is public, what has been submitted against it.
+- **The SITE is CANONICAL for what is ON the site.** A page exists or it does not; nothing in ClickUp can be more authoritative about that.
+- **`🌐 PUBLIC` is a publishing DECISION, and a decision should travel into the page** (it maps onto the `status:` field `visibility.py` already gates every build on) **rather than into a live frame the site cannot verify.**
+- **`Program URL` should be DERIVED or DELETED.** It is the field that rotted, and the engine already knows every page's real URL.
+
+## §10d ⏳ Rulings needed (three more)
+
+7. 🔴 **Which surface is the program index: DERIVED from pages, or a live embed?** **Recommend DERIVED**, and it is not a close call — an index is NAVIGATION, and navigation that depends on third-party cookies degrades to a fallback link where the table of contents belongs. **A live embed is right for a table whose rows change independently of the site's pages and that nobody prints. A program index is the opposite of all three.**
+8. **Then what IS the live embed for?** ⭐ **Recommend keeping BUILD 7 and pointing it at the submission side** — *"who has completed this program,"* a genuinely live table that no page can derive, sitting on an internal-audience page. ⚠️ But that is precisely the named-people case §4 forbids in public, so it lands **only** behind an unlisted page or not at all. **This is the honest tension in the whole build and it should not be resolved by pretending §4 is softer than it says.**
+9. **The four defects in §10b — fix before or after?** **Recommend BEFORE, and treat defect 1 as urgent independently of this build.** 🚫 **Not touched in this pass by design:** a duplicated `Program_ID` is a compliance fact about two real programs, and picking which one gets renumbered is Michael's call, not a cleanup. Whichever index ships will publish these defects — the derived one at least cannot invent a fifth.
+
+⚠️ **Honest limit on §10b:** read from the list on 2026-08-29 with closed tasks and subtasks excluded by default. **Six rows is what an open, non-subtask query returned, not a proven total** — if programs live as subtasks or closed rows, the set is larger and the disagreement with the site is worse, not better.
