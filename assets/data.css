@@ -12,27 +12,14 @@
  * assets/data-list.css, which is a FEATURE layer rather than a second copy: it
  * touches only .dr-data--list and only inside a container query.
  *
- * =========================================================================
- * ⚠️ PAPER IS THE PRINT GROUP'S, AND THIS IS THE ONLY POINTER TO IT
- * =========================================================================
- * EVERY rule below is written for a SCREEN. On paper, `print.css` turns this
- * table's four backgrounds off (they printed as blobs) and `print-chrome.css`
- * uncages the scroll box -- `max-height`, `overflow`, `container-type`, `width`,
- * `white-space`, `position` -- because a scroll box on a sheet is a CROP, not a
- * panel. Both carry the full argument; neither is repeated here.
- *
- * 🔴 AND THIS SENTENCE REPLACED FOUR SCATTERED ONES ON 2026-08-28, which is the
- * only reason the file still reads whole. The paper notes were first written into
- * the header, the frozen first column, the marker rule, the container query and the
- * viewport rule -- five pointers at one fact, in the file whose own header forbids
- * exactly that. **Trimming their prose recovered less each time; deleting four of
- * them recovered the file.** ⚑ *A size problem that survives two trims is a
- * structure problem, and a cross-reference repeated per rule is the cheapest kind
- * to build and the easiest to miss.*
- *
- * 🚫 So do not re-add a paper note beside a rule. If a screen rule here needs a
- * paper exception, the exception goes in the print group and this pointer already
- * covers it. The same DECLARATION must never appear in both places.
+ * ⚠️ PAPER IS THE PRINT GROUP'S, AND THIS IS THE ONLY POINTER TO IT. Every rule
+ * below is written for a SCREEN. `print.css` turns this table's four backgrounds
+ * off (they printed as blobs) and `print-chrome.css` uncages the scroll box --
+ * max-height, overflow, container-type, width, white-space, position -- because a
+ * scroll box on a sheet is a CROP, not a panel. Both carry the argument. 🚫 Do not
+ * re-add a paper note beside a rule: five scattered pointers at this one fact are
+ * what pushed this file over the read line on 2026-08-28, in the file whose own
+ * header forbids exactly that. The same DECLARATION must never appear in both.
  *
  * Consumes --dr-* tokens only. A site retunes every colour, font, measure and
  * currency symbol from its own theme.css and never edits this file.
@@ -111,38 +98,27 @@
  * ⭐ CELL DENSITY IS THE THEME'S, PER AXIS (2026-08-28, Michael: *"per-theme
  * density dial"*)
  *
- * The canonical SPACING vector IS that dial and it was wired to almost nothing:
- * its six primitives reached `.dr-spec td` and two foot margins, and nothing else
- * in the engine. So this is a WIRING change rather than a new mechanism -- change
- * the spacing entity a join names and every cell moves.
- *
- * TWO PRIMITIVES, ONE PER AXIS, which is what the reverted `data-pad -> pad-cell`
- * bridge row could not do (PR #82: one number for a two-axis value made rows 48%
- * taller and columns 17% narrower at once). `pad-cell` takes the vertical,
- * `pad-card` the horizontal, so the short-rows/wide-columns asymmetry survives by
- * construction. ⚑ *A value needing N axes needs N primitives; that revert's
- * conclusion assumed one.*
+ * `pad-cell` takes the vertical, `pad-card` the horizontal. TWO primitives because
+ * the value has two axes: the reverted `data-pad -> pad-cell` bridge row (PR #82)
+ * mapped both to one number and made every row 48% taller and every column 17%
+ * narrower at once. Short rows so more fit, wide columns so they separate -- now by
+ * construction rather than by a literal.
  *
  * 🔴 IT IS A DIAL, NOT A TIGHTENING. Against the 5.44/9.6px literal it replaces:
  * `uritp-safety` and `database` 2/8 and `eos` 3/8 are tighter; `tight` 8/16,
  * `standard` 10/20 and `loose` 12/24 are LOOSER. ⚠️ `tight` is sized around a 42px
- * touch target and is not tight for a table -- the dense entities are `database`,
- * `eos` and `flush`.
+ * touch target and is not tight for a table.
  *
- * ✅ THE FALLBACKS ARE THE OLD LITERALS and cover a live case, not a hypothetical:
- * the vendored canonical/spacing.tsv has no `uritp-safety` row and upstream
- * maw-themes does, and canonical is read LIVE with the vendored copy as fallback --
- * so a fallback build renders byte-identically to before. 🚩 Stale projection,
- * upstream re-copy.
+ * ✅ THE FALLBACKS ARE THE OLD LITERALS. A theme with no join emits no spacing
+ * primitives (theme.py `_bridge()` reports it) and a bare var() would collapse
+ * padding to zero. 🚩 The vendored canonical/spacing.tsv is also missing the
+ * `uritp-safety` row upstream maw-themes has, so a vendored-fallback build renders
+ * byte-identically to before -- stale projection, upstream re-copy.
  *
  * 🪦 `--dr-data-pad` is retired from theme/typography.tsv rather than kept as an
- * override hook, because it would be a DEAD CONTROL: `theme.py:_shared()` skips
- * every non-`base` row, so a per-theme `data-pad` can never be emitted -- the
- * `database` row stating 0.26rem/0.55rem never once rendered. **A hook only the
- * base row can reach is a global constant wearing a dial's clothes.** 🚩 That filter
+ * override hook: `theme.py:_shared()` skips every non-`base` row, so a per-theme
+ * value could never be emitted and the hook would be a dead control. 🚩 That filter
  * is still open for `data-font`, `data-size` and `measure`.
- *
- * Full argument, measurements and flags in the PR that shipped this.
  * ------------------------------------------------------------------------ */
 .md-typeset .dr-data__table th,
 .md-typeset .dr-data__table td,
@@ -341,7 +317,7 @@
  * column kinds above, and PR #50). The pattern is not that nowrap is wrong -- it
  * is that a rule written for the short case gets applied to the long one by
  * inheritance, and nothing about the rule says which case it was for. A FOURTH
- * arrived on paper in 2026-08-28, where the long case was the MEDIUM.
+ * arrived on 2026-08-28, where the long case was the MEDIUM: paper.
  *
  * Scoped INSIDE .dr-data only. Page prose is untouched, the box shape survives,
  * and a marked note still reads as marked -- it just breaks like text.
@@ -477,7 +453,7 @@
  * leak scan and a contrast gate, and nothing that looks at a rendered page at
  * 390px. Until it does, this is where the phone gets thought about on purpose.
  *
- * ⚑ PAPER IS THE FOURTH SUCH SURFACE AND THE WORST: a `vh` cage cropped every
+ * ⚑ PAPER IS THE FOURTH SUCH SURFACE AND THE WORST: this `vh` cage cropped every
  * long printed sheet, it was found by reading stylesheets while answering a
  * different question, and nothing in CI can look at a printed page at all.
  * ------------------------------------------------------------------------ */
