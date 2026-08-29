@@ -20,6 +20,9 @@ the seam was that a module docstring had become a changelog.*
     because one fragment was doing two jobs (state carrier and scroll target).
     ⚠️ Its live rule survives in `_at_id()`: two ids per flow, spelled in one
     place.
+  DL J21 · the corner-stamp program name, shipped and reverted in seven minutes.
+    ⚠️ Its live rule: the orientation gap on PAPER is open, and a fix needs its
+    own element beside the h1 rather than a third clause on the build stamp.
 
 =============================================================================
 🔴 WHY A STRIP EXISTS: prev/next HAS ONE SLOT AND A PAGE HAS MANY FLOWS
@@ -50,31 +53,6 @@ say and leave a reader three pages deep not knowing which program they are in.
 
 The PROGRAM NAME is the payload; the arrows are the instruction.
 
-🪦 AND THAT SENTENCE COST A FEATURE AND GOT IT REVERTED IN ONE EVENING, which is
-the most useful thing in this section. `.dr-flows` joined print-chrome.css's
-chrome-off list on 2026-08-28 -- paper has no navigation to offer -- so the strip
-does not print. ~~`flow_names()` therefore exported the program name to
-`buildstamp.py`, so the payload survived onto the printed corner mark.~~ Shipped
-in PR #182, reverted in #184 about seven minutes later: *"ew ew ew FUCK that header
-of all that additional text. NO. just site name and date, like before."*
-
-⚑ **THE ARGUMENT WAS SOUND AND THE ARGUMENT WAS NOT THE POINT.** *A payload that
-only survives on screen is not a payload* is still true. What it never asked is
-whether the DESTINATION had room -- and a corner mark carrying three clauses is a
-header rather than a stamp. 🚫 *"This fact belongs on that line" is an argument about
-the FACT; whether the line can take it is a separate question, and it has to be
-asked separately.* The full post-mortem lives in `buildstamp.py`, on the line it
-was about.
-
-⚠️ SO THE ORIENTATION GAP ON PAPER IS SIMPLY OPEN: a printed policy sheet does not
-say which program handed it to a reader. 🚩 If that is ever wanted it needs its own
-ELEMENT with its own placement decision -- beside the h1, where a document subtitle
-would go -- and it is Michael's call, not a second attempt at the stamp.
-
-✅ `_participation()` STAYS. It came out of that pass and it is a genuine
-refactor: `_strips` was walking the chain map inline, and the walk is now named
-once. What went with the revert is the EXPORT, not the extraction.
-
 =============================================================================
 ⭐ THE START STRIP -- THE HUB IS NEVER A MEMBER OF ITS OWN CHAIN
 =============================================================================
@@ -90,33 +68,69 @@ a page that DECLARES a chain gets a `--start` variant.
 🔴 WHERE PURE CSS RUNS OUT, WHICH IS WORTH STATING PLAINLY
 =============================================================================
 A generic rule cannot say "the strip whose id matches the targeted marker" --
-selectors cannot compare two values. So `_promo_css()` emits TWO SHORT RULES PER
-FLOW, per page, naming both ids. That breaks a rule this file set for itself (no
-inline style; every stylesheet goes through `assets.py` so `hand_written_css()`
-stays the single source for the token audit) and it is broken DELIBERATELY:
+selectors cannot compare two values. So `_promo_css()` emits THREE SHORT RULES
+PER FLOW, per page, naming both ids. That breaks a rule this file set for itself
+(no inline style; every stylesheet goes through `assets.py` so
+`hand_written_css()` stays the single source for the token audit) and it is
+broken DELIBERATELY:
 
   1. it is per-PAGE DATA, not a stylesheet -- the ids are facts about this page,
      and `flow.css` still owns every look decision
   2. `assets.py` is over the engine's ~22KB read ceiling, so adding an asset
      means rewriting a file that cannot be read whole (the `util.py` clobber)
-  3. it is ~120 bytes on pages in a flow, and nothing at all elsewhere
+  3. it is ~180 bytes on pages in a flow, and nothing at all elsewhere
 
 ⚠️ `display: contents` ON THE DISCLOSURE IS THE EXOTIC PART, AND IT IS THE ONE
 THING HERE MOST LIKELY TO SURPRISE SOMEBODY. A closed `<details>` hides its
 children, and CSS cannot open one. When the targeted strip is INSIDE the
 disclosure, the rule makes that `<details>` `display: contents` so its children
 join the flex layout and become visible -- then `order: -1` hoists the targeted
-strip above the rest. ⚠️ Its `<summary>` becomes a loose line of text when this
-fires, which is why `flow.css` needs no extra rule for it: the summary reads as
-a label, not a control, and the disclosure is moot once its contents are shown.
+strip above the rest.
 ✅ DEGRADES HONESTLY: if a browser ignores it, the reader lands at the top of the
 correct page with the correct chain and one click to open the disclosure.
 
+🔴 AND THE THIRD RULE EXISTS BECAUSE THE FIRST TWO SUCCEEDED AND LOOKED LIKE THEY
+HAD FAILED (2026-08-28). Michael, expecting the arrival program to win: *"instead
+of burying the current program inside the 'also in other programs' dropdown."*
+The promotion was firing. **What stayed on screen was its label.**
+`display: contents` removes the `<details>` BOX and not its `<summary>`, so a
+successful hoist still rendered *"▸ Also part of 1 other program"* as a loose
+line -- at `order: 0`, therefore BELOW the strip it was supposedly hiding, naming
+a state that was no longer true.
+
+⚑ **A FEATURE CAN BE WORKING AND STILL BE WEARING ITS OWN FAILURE MESSAGE**, and
+nobody debugging it will look at the mechanism, because the label is more legible
+than the layout. `flow.css` documented the loose summary as intended behaviour
+and never asked what the loose summary would SAY.
+
 🚫 STILL NO JAVASCRIPT. A script would flap the footer on every page load.
 
-⚠️ A BARE URL PROMOTES NOTHING, deliberately. Somebody who bookmarked a policy is
-in NO flow, and guessing tells a reader they are in MEWP training when they are
-not.
+⚠️ AND IT IS `:target`-ONLY, SO IT FIRES ONLY ON ARRIVAL FROM A FLOW LINK. A
+reader who reaches a policy from the SIDEBAR, a bookmark or a search result is in
+no flow and gets the declared order below. That is deliberate -- guessing tells a
+reader they are in MEWP training when they are not -- but it means the feature is
+absent from about half of all arrivals, which is why the default matters.
+
+=============================================================================
+⭐ THE DEFAULT ORDER IS THE SIDEBAR'S OWN KEY (2026-08-28)
+=============================================================================
+> Michael: *"how do i write in a default???"*
+
+**With `order:` on the program page, and it is not a new key.** `_participation`
+sorted by src_uri, so `10-general/for-all.md` beat `10-general/rehearsal.md`
+alphabetically and rehearsal was permanently second on every policy they share --
+a default nobody chose, produced by a filename.
+
+🚫 NO NEW VOCABULARY, WHICH IS THE POINT. `objects.py:_child_list` already sorts
+by `order:` and says why: *"Two orders for the same set of pages on the same
+screen is the sort of disagreement nobody reports and everybody notices."* The
+strip list is a third such surface. Same key, same `10_000` sentinel for a page
+that declares none, so an undeclared program falls to the old alphabetical
+behaviour rather than to the front.
+
+⚑ *A request for a default is usually a request for a KEY, and the right answer
+is nearly always a key that already sorts something else.* `nav.py` refused a
+program-specific `steps:` on this exact ground.
 
 =============================================================================
 🔴 A LONE STEP STATES NO COUNT (2026-08-28)
@@ -133,22 +147,25 @@ reader's only route to the completion form. **Removing a navigation block becaus
 its label was useless would have removed the one useful thing in it.** ⚑ *A
 complaint about a label is not a complaint about the element carrying it.*
 
-🐛 The same pass fixed `1 steps` on the start strip -- live since that variant
-shipped, invisible because no real program has one page.
-
 =============================================================================
 ⚠️ THE CAP
 =============================================================================
 First flow open, the rest inside a `<details>` -- which collapses with no
 stylesheet and no script, and prints open because print-flow.css already forces
-that. The promotion rules above are what make "active" true rather than
-"whichever sorted first".
+that. ⚠️ AND THE CAP IS FULLY SPENT WHEN A PROMOTION FIRES: `display: contents`
+reveals EVERY strip in the disclosure, not only the promoted one. Correct rather
+than tidy -- the reader asked for one of them by name and the rest are one line
+each -- and it is why hiding the summary is consistent rather than a patch.
 """
 
 from __future__ import annotations
 
 from . import forms, nav, state
 from .util import relative_url
+
+#: What a page with no `order:` sorts as. Matches `objects.py:_child_list`
+#: exactly, because the two are sorting the same pages for the same reader.
+_NO_ORDER = 10_000
 
 
 def _esc(text: str) -> str:
@@ -202,28 +219,39 @@ def _at_id(flow_id: str) -> str:
     return "at-flow-" + str(flow_id) if flow_id else ""
 
 
+def _order(src) -> tuple:
+    """The sort key for a program: its declared `order:`, then its path.
+
+    See THE DEFAULT ORDER in the module docstring. The path stays as the
+    tiebreak so two programs at the same `order:` are still deterministic --
+    a build that reorders itself between runs is worse than one nobody chose.
+    """
+    raw = _meta(src).get("order")
+    return (raw if isinstance(raw, int) else _NO_ORDER, src)
+
+
 def _participation(src, pid, chains):
     """Every flow this page takes part in, as (flow_src, role, index).
 
     ✅ ONE WALK OVER THE CHAIN MAP, NAMED ONCE. `_strips` did this inline; a second
-    consumer (`flow_names`, for the printed corner mark) is what forced the
-    extraction, and that consumer was reverted the same evening. **The extraction
-    stayed because it was right on its own** -- the render order below is a real
-    rule and it now has one place to live rather than being implied by the shape of
-    a loop.
+    consumer (`flow_names`, for the printed corner mark) forced the extraction and
+    was reverted the same evening. **The extraction stayed because it was right on
+    its own** -- the render order below is a real rule and it now has one place to
+    live rather than being implied by the shape of a loop.
 
     `role` is `"start"` on the page that DECLARES the chain, `"member"` on a step
     in it. `index` is the position in the DECLARED list, or -1 for a start.
 
     ⚠️ ORDER IS THE RENDER ORDER AND IS LOAD-BEARING: the page's own chain first,
     because on a program page the entrance outranks any flow it is also a step in.
-    The rest is `sorted()` so a build is reproducible rather than dict-ordered.
+    Everything after it is sorted by `_order` -- the sidebar's key, never the
+    filename.
     """
     out = []
     if src in chains:
         out.append((src, "start", -1))
     if pid:
-        for flow_src in sorted(chains):
+        for flow_src in sorted(chains, key=_order):
             if flow_src == src:
                 continue
             ids = chains[flow_src]
@@ -389,10 +417,19 @@ def _promo_css(flow_ids) -> str:
     See the module docstring for why this is generated per page rather than
     living in `assets/flow.css`.
 
-    Two rules per flow:
+    Three rules per flow:
       1. hoist the strip above its siblings
       2. make the disclosure transparent, so a strip parked inside it is visible
          at all (a closed `<details>` hides its children and CSS cannot open one)
+      3. 🔴 hide that disclosure's SUMMARY. Rule 2 removes the box and leaves the
+         label, so a successful promotion still said "Also part of 1 other
+         program" -- below the strip it had just hoisted, about a state that no
+         longer held. The module docstring carries the argument.
+
+    ⚠️ RULE 3 IS SCOPED BY `:has()`, SAME AS RULE 2, so it fires only when THIS
+    flow's strip is the one inside the disclosure. A promoted strip that was
+    already the open one leaves the label alone, correctly: the disclosure still
+    describes real flows the reader has not asked for.
 
     ⚠️ `~` REQUIRES THE MARKER AND `.dr-flows` TO BE SIBLINGS, which they are:
     both are inserted by `on_page_content` into the same container, the marker
@@ -406,11 +443,12 @@ def _promo_css(flow_ids) -> str:
         strip = _strip_id(flow_id)
         if not at or not strip:
             continue
+        held = "#" + at + ":target ~ .dr-flows .dr-flows__others:has(#" + strip
         out.append(
             "#" + at + ":target ~ .dr-flows #" + strip
             + "{order:-1;margin-top:0;padding-top:0;border-top:0}"
-            "#" + at + ":target ~ .dr-flows .dr-flows__others:has(#" + strip
-            + "){display:contents}"
+            + held + "){display:contents}"
+            + held + ")>summary{display:none}"
         )
     if not out:
         return ""
@@ -467,9 +505,10 @@ def _strips(page, files):
     if len(rendered) == 1:
         return head, '<div class="dr-flows">' + rendered[0] + "</div>"
 
-    # ⚠️ THE FIRST STRIP IS THE BUILD-TIME DEFAULT, NOT "THE ACTIVE ONE". Which
-    # flow is active is decided in the browser by the fragment; this order is
-    # only what a reader with no fragment sees.
+    # ⚠️ THE FIRST STRIP IS THE DECLARED DEFAULT, NOT "THE ACTIVE ONE". Which flow
+    # is active is decided in the browser by the fragment; this order is what a
+    # reader with no fragment sees, and `order:` on the program page is how it is
+    # chosen. See THE DEFAULT ORDER in the module docstring.
     others = len(rendered) - 1
     body = (
         '<div class="dr-flows dr-flows--many">' + rendered[0]
