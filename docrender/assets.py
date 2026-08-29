@@ -244,13 +244,13 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: print-scheme.css, print-chrome.css" would have made this obvious on day one --
 #: and the tombstone would be one expected line rather than cover for a real one.
 #:
-#: 🔴 AND THAT GAP IS STILL OPEN, WHICH IS WHY THE SEVENTH FILE BELOW WAS ADDED IN
-#: THE SAME COMMIT AS THE SHEET ITSELF (2026-08-29). `print-identity.css` was
-#: authored and registered together deliberately: the 08-21 incident is the whole
-#: argument against a two-step, and a new sheet is exactly the moment the missing
-#: disk-vs-tuple check would have mattered.
+#: 🔴 AND THAT GAP IS STILL OPEN, WHICH IS WHY THE NEW FILES BELOW WERE ADDED IN
+#: THE SAME PR AS THE SHEETS THEMSELVES (2026-08-29, twice). `print-identity.css`
+#: and `print-ink.css` were each authored and registered together deliberately:
+#: the 08-21 incident is the whole argument against a two-step, and a new sheet is
+#: exactly the moment the missing disk-vs-tuple check would have mattered.
 #:
-#: SEVEN FILES, SEVEN JOBS, and each one answers exactly one question:
+#: EIGHT FILES, EIGHT JOBS, and each one answers exactly one question:
 #:
 #:   print.css          HOW WIDE IT RUNS    -- @page, the column unrailing,
 #:                                             print-color-adjust, code wrapping,
@@ -262,13 +262,22 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #:                                             <details>, thead repetition,
 #:                                             {.new-page}
 #:   print-type.css     HOW BIG THE TYPE IS -- the dial, the ramp, weight,
-#:                                             tracking, link decoration
+#:                                             tracking, link decoration, and the
+#:                                             data table's size anchor
 #:   print-space.css    HOW MUCH AIR IS     -- block margins, list margins,
 #:                      BETWEEN THINGS         justification, the tabbed set
 #:   print-callout.css  WHAT THE BOX IS     -- the rule and indent, the icon,
 #:                                             the font-size anchor
 #:   print-identity.css WHOSE DOCUMENT IT   -- the letterhead row: the declared
 #:                      IS                    logo mark, the two text weights
+#:   print-ink.css      WHAT COLOUR IT IS   -- body ink black on paper; h1-h3
+#:                                             keep the theme's ink
+#:
+#: 🔴 AND `print-ink.css` IS THE ONE MEMBER THAT CONTRADICTS print.css's FOUNDING
+#: RULE -- *"THIS FILE IS STRUCTURE, NOT COLOUR"* -- which is why it carries a
+#: ruling in its header rather than an argument. Michael exempted ONE property on
+#: ONE medium (2026-08-29). 🚫 It is not a precedent for a second colour opinion in
+#: this group; the next one needs its own ruling.
 #:
 #: ⚠️ THE JOB LINES ABOVE ARE ALSO CORRECTED. This table credited print.css with
 #: "chrome off" AFTER that list had moved to print-chrome.css, and with a "link
@@ -281,17 +290,18 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: was already written in the header of the file that split -- which is also where
 #: the measured argument for it lives, rather than being summarised here. **A FILE
 #: AT ITS SIZE LIMIT IS USUALLY A FILE WITH A SEAM IN IT; trimming prose is what
-#: you do instead of finding the seam.** ⭐ print-identity.css is the first member
-#: of this group that was NOT forced by a split -- it is a new subject that arrived
-#: with a spec (`specs/print-identity.md` §2) -- but print-chrome.css having 327 B
-#: of headroom is what settled WHERE it went, so the ceiling still decided it.
+#: you do instead of finding the seam.** ⭐ `print-identity.css` and `print-ink.css`
+#: are the two members that were NOT forced by a split -- both are new subjects --
+#: but in both cases every existing neighbour was inside ~330 B of the ceiling, so
+#: the ceiling still decided WHERE they went.
 #:
 #: ⭐ AND THE ORDER *WITHIN* THIS GROUP IS GENUINELY FREE, stated out loud on the
 #: `_FEATURE_ASSETS` precedent above so nobody later defends a position that was
-#: never load-bearing. No two of these seven share a selector-and-property PAIR --
-#: `.md-typeset h1` is written in both print-type.css and print-space.css, but one
-#: sets size and weight while the other sets margins, and a cascade fight needs
-#: both halves to match. What is load-bearing is the GROUP's position.
+#: never load-bearing. No two of these eight share a selector-and-property PAIR --
+#: `.md-typeset h1` is written in print-type.css, print-space.css AND print-ink.css,
+#: but they set size/weight/tracking, margins, and COLOUR respectively, and a
+#: cascade fight needs both halves to match. What is load-bearing is the GROUP's
+#: position.
 #:
 #: 🔴 AND KEEPING THAT TRUE IS WHY print-identity.css DOES NOT TOUCH
 #: `.buildstamp--corner`. `display: flex` there would have been a genuine pair
@@ -308,11 +318,12 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: corner stamp it collides with has never actually been published until this
 #: commit, so the narrowing has never been exercised on paper. Re-preview it.
 #:
-#: ⚠️ IF THAT EVER STOPS BEING TRUE, THIS COMMENT IS THE THING THAT ROTS. Two
-#: likely ways: print-type.css growing a `margin` on a heading it already sizes
-#: (print-space.css's header names this as the likeliest); or print-callout.css and
+#: ⚠️ IF THAT EVER STOPS BEING TRUE, THIS COMMENT IS THE THING THAT ROTS. Three
+#: likely ways now: print-type.css growing a `margin` on a heading it already sizes
+#: (print-space.css's header names this as the likeliest); print-callout.css and
 #: print-flow.css both reaching for `<details>` -- flow owns whether it is OPEN,
-#: callout owns what it LOOKS LIKE.
+#: callout owns what it LOOKS LIKE; or print-type.css growing a `color` on a
+#: heading, which is now print-ink.css's property.
 _PRINT_ASSETS = (
     "print.css",
     "print-chrome.css",
@@ -321,6 +332,7 @@ _PRINT_ASSETS = (
     "print-space.css",
     "print-callout.css",
     "print-identity.css",
+    "print-ink.css",
 )
 
 #: THE FLOW STRIP AND THE EMBEDDED FORM (2026-08-19). See docrender/program.py
@@ -404,11 +416,11 @@ def hand_written_css() -> tuple[str, ...]:
     ROT, and it has now been edited twice, which is the argument for deleting it
     rather than maintaining it: `len()` of the concatenation is derivable and a
     number in prose is not. Left in place only because the sentence needs to name
-    the risk to somebody skimming. ⭐ IT SURVIVED 2026-08-29 UNCHANGED AND THAT IS
-    THE POINT: `print-identity.css` joined `_PRINT_ASSETS`, not a sixth group, so
-    this function needed no edit at all -- which is exactly the behaviour a derived
-    list is for, and the first time this file has demonstrated it rather than
-    argued it.
+    the risk to somebody skimming. ⭐ IT SURVIVED 2026-08-29 UNCHANGED, TWICE:
+    `print-identity.css` and `print-ink.css` both joined `_PRINT_ASSETS` rather
+    than opening a sixth group, so this function needed no edit either time --
+    which is exactly the behaviour a derived list is for, and the first time this
+    file has demonstrated it rather than argued it.
 
     ⭐ AND THE `.css` FILTER IS WHAT MAKES A SPLIT FREE. Files join these tuples in
     mixed pairs -- navtree contributed one sheet and one script -- and the sheet is
@@ -424,9 +436,12 @@ def hand_written_css() -> tuple[str, ...]:
     🔴 qr.css's `width: 30mm` will appear as a metric row with NO TOKEN BEHIND IT,
     and that is correct rather than a finding to fix -- a QR's physical size is not
     a design vector. See that sheet's header. 🔴 THE SAME IS TRUE OF
-    print-identity.css's `width: 27mm`, `height: 5.5mm` and `gap: 4mm`: a physical
-    mark on a physical sheet is not a design vector either, and the sheet's header
-    carries the measured argument for each number.
+    print-identity.css's `width: 40.5mm`, `height: 8.46mm` and `gap: 4mm`: a
+    physical mark on a physical sheet is not a design vector either, and the
+    sheet's header carries the measured argument for each number. 🔴 AND
+    print-ink.css's `#000` WILL APPEAR AS A HARDCODED COLOUR, which is the one this
+    file wants read rather than fixed: it is a RULING (2026-08-29), argued in that
+    sheet's header, and the audit flagging it is the audit working.
     """
     return tuple(
         name
