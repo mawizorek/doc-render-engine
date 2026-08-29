@@ -5,24 +5,32 @@ The `chain:` vocabulary and the prev/next wiring belong to docrender/nav.py; the
 embedded completion form is docrender/forms.py. This module owns exactly one
 thing, and it is what a reader SEES of a flow.
 
-⚠️ AND ON 2026-08-28 THIS DOCSTRING HIT THE 22,528 B READ CEILING, so two dated
-post-mortems were CUT to the pointers below rather than trimmed further. The line
-directly above names the Decision Log as the home for *why*, and this file had
-accumulated five dated narratives against it -- **the operative rules stay here,
-the history stays there.** ⚑ *Two trims that each recovered less were the signal;
-the seam was that a module docstring had become a changelog.*
+=============================================================================
+⚠️ THIS DOCSTRING IS NOT A CHANGELOG, AND IT HAS TRIED TO BECOME ONE THREE TIMES
+=============================================================================
+It has now blown the 22,528 B read ceiling TWICE in one evening, both times on a
+small code change carrying a large dated narrative. **The rule, third time of
+asking: a post-mortem goes to the Decision Log; the rule it produced goes to the
+CALL SITE that has to obey it.** Only architecture stays up here.
 
-  DL J19 · `hide: footer` and the strip becoming the ONLY footer. ⚠️ Its live
-    rule survives: `hide: footer` MUST be per-page on chain members only, because
-    a page in no flow with its footer hidden has ZERO navigation and nothing
-    reports it.
-  DL J20 · the night every Next link dropped the reader at the FOOT of the page,
-    because one fragment was doing two jobs (state carrier and scroll target).
-    ⚠️ Its live rule survives in `_at_id()`: two ids per flow, spelled in one
-    place.
+⚑ *The tell is available before the write fails: if a new section opens with a
+date and a quote, it is history and it has a home that is not this file.*
+
+  DL J19 · `hide: footer`, and the strip becoming the ONLY footer.
+    ⚠️ Live rule: `hide: footer` MUST be per-page on chain members only. A page
+    in no flow with its footer hidden has ZERO navigation and nothing reports it.
+  DL J20 · the night every Next link dropped the reader at the FOOT of the page.
+    ⚠️ Live rule in `_at_id()`: two ids per flow, spelled in one place.
   DL J21 · the corner-stamp program name, shipped and reverted in seven minutes.
-    ⚠️ Its live rule: the orientation gap on PAPER is open, and a fix needs its
-    own element beside the h1 rather than a third clause on the build stamp.
+    ⚠️ Live rule: the orientation gap on PAPER is open, and closing it needs its
+    own element beside the h1 -- never a third clause on the build stamp.
+  DL J22 · the hub is never a member of its own chain, so a program page had no
+    published pointer into its own flow.
+    ⚠️ Live rule in `_start_strip()`: a page that DECLARES a chain gets a
+    `--start` variant, and it renders nothing when the chain resolves to nothing.
+  DL J23 · `step 1 of 1`, and why the strip survived the complaint about it.
+    ⚠️ Live rule in `_member_strip()`: a lone step states no count, and the block
+    stays because its `Finish` link is the only route to the form.
 
 =============================================================================
 🔴 WHY A STRIP EXISTS: prev/next HAS ONE SLOT AND A PAGE HAS MANY FLOWS
@@ -54,17 +62,6 @@ say and leave a reader three pages deep not knowing which program they are in.
 The PROGRAM NAME is the payload; the arrows are the instruction.
 
 =============================================================================
-⭐ THE START STRIP -- THE HUB IS NEVER A MEMBER OF ITS OWN CHAIN
-=============================================================================
-Found by Michael: *"how to get the starting page to actually navigate to the
-first page in the chain - right now it doesn't have any real published pointer."*
-
-Structural: a page's `id:` was matched against chain MEMBERS, and a program
-declares its list without being in it. Its only pointer was `nav.py`'s
-`hub.next_page` -- IN THE DEFAULT FOOTER, the element `hide: footer` removes. So
-a page that DECLARES a chain gets a `--start` variant.
-
-=============================================================================
 🔴 WHERE PURE CSS RUNS OUT, WHICH IS WORTH STATING PLAINLY
 =============================================================================
 A generic rule cannot say "the strip whose id matches the targeted marker" --
@@ -80,36 +77,18 @@ broken DELIBERATELY:
      means rewriting a file that cannot be read whole (the `util.py` clobber)
   3. it is ~180 bytes on pages in a flow, and nothing at all elsewhere
 
-⚠️ `display: contents` ON THE DISCLOSURE IS THE EXOTIC PART, AND IT IS THE ONE
-THING HERE MOST LIKELY TO SURPRISE SOMEBODY. A closed `<details>` hides its
-children, and CSS cannot open one. When the targeted strip is INSIDE the
-disclosure, the rule makes that `<details>` `display: contents` so its children
-join the flex layout and become visible -- then `order: -1` hoists the targeted
-strip above the rest.
-✅ DEGRADES HONESTLY: if a browser ignores it, the reader lands at the top of the
-correct page with the correct chain and one click to open the disclosure.
-
-🔴 AND THE THIRD RULE EXISTS BECAUSE THE FIRST TWO SUCCEEDED AND LOOKED LIKE THEY
-HAD FAILED (2026-08-28). Michael, expecting the arrival program to win: *"instead
-of burying the current program inside the 'also in other programs' dropdown."*
-The promotion was firing. **What stayed on screen was its label.**
-`display: contents` removes the `<details>` BOX and not its `<summary>`, so a
-successful hoist still rendered *"▸ Also part of 1 other program"* as a loose
-line -- at `order: 0`, therefore BELOW the strip it was supposedly hiding, naming
-a state that was no longer true.
-
-⚑ **A FEATURE CAN BE WORKING AND STILL BE WEARING ITS OWN FAILURE MESSAGE**, and
-nobody debugging it will look at the mechanism, because the label is more legible
-than the layout. `flow.css` documented the loose summary as intended behaviour
-and never asked what the loose summary would SAY.
-
-🚫 STILL NO JAVASCRIPT. A script would flap the footer on every page load.
+⚠️ `display: contents` IS THE EXOTIC PART. A closed `<details>` hides its
+children and CSS cannot open one, so the rule makes it `display: contents` --
+its children join the flex layout and become visible, and `order: -1` then hoists
+the targeted strip above the rest. ✅ Degrades honestly: a browser that ignores it
+leaves the reader on the right page with the right chain and one click to open the
+disclosure. Full mechanism in `_promo_css()`; the look lives in `flow.css`.
 
 ⚠️ AND IT IS `:target`-ONLY, SO IT FIRES ONLY ON ARRIVAL FROM A FLOW LINK. A
-reader who reaches a policy from the SIDEBAR, a bookmark or a search result is in
-no flow and gets the declared order below. That is deliberate -- guessing tells a
-reader they are in MEWP training when they are not -- but it means the feature is
-absent from about half of all arrivals, which is why the default matters.
+reader reaching a policy from the SIDEBAR, a bookmark or a search result is in no
+flow and gets the declared order below. Deliberate -- guessing tells a reader they
+are in MEWP training when they are not -- but it means the promotion is absent
+from about half of all arrivals, which is why the default matters.
 
 =============================================================================
 ⭐ THE DEFAULT ORDER IS THE SIDEBAR'S OWN KEY (2026-08-28)
@@ -124,28 +103,13 @@ a default nobody chose, produced by a filename.
 🚫 NO NEW VOCABULARY, WHICH IS THE POINT. `objects.py:_child_list` already sorts
 by `order:` and says why: *"Two orders for the same set of pages on the same
 screen is the sort of disagreement nobody reports and everybody notices."* The
-strip list is a third such surface. Same key, same `10_000` sentinel for a page
-that declares none, so an undeclared program falls to the old alphabetical
-behaviour rather than to the front.
+strip list is a third such surface. Same key, same `10_000` sentinel, so an
+undeclared program falls to the old alphabetical behaviour rather than to the
+front.
 
 ⚑ *A request for a default is usually a request for a KEY, and the right answer
 is nearly always a key that already sorts something else.* `nav.py` refused a
 program-specific `steps:` on this exact ground.
-
-=============================================================================
-🔴 A LONE STEP STATES NO COUNT (2026-08-28)
-=============================================================================
-> Michael: *"the navigation footer stuff that says 'step 1 of 1'."*
-
-A one-page chain rendered `step 1 of 1`, which is not a position -- there is
-nowhere else to be.
-
-🚫 THE STRIP IS NOT SUPPRESSED, AND THAT IS THE JUDGEMENT WORTH ARGUING. Dropping
-the whole block was the obvious reading and it builds a DEAD END: on a one-step
-chain the strip's only other content is the `Finish <name>` link, which is the
-reader's only route to the completion form. **Removing a navigation block because
-its label was useless would have removed the one useful thing in it.** ⚑ *A
-complaint about a label is not a complaint about the element carrying it.*
 
 =============================================================================
 ⚠️ THE CAP
@@ -222,9 +186,9 @@ def _at_id(flow_id: str) -> str:
 def _order(src) -> tuple:
     """The sort key for a program: its declared `order:`, then its path.
 
-    See THE DEFAULT ORDER in the module docstring. The path stays as the
-    tiebreak so two programs at the same `order:` are still deterministic --
-    a build that reorders itself between runs is worse than one nobody chose.
+    See THE DEFAULT ORDER in the module docstring. The path stays as the tiebreak
+    so two programs at the same `order:` are still deterministic -- a build that
+    reorders itself between runs is worse than one nobody chose.
     """
     raw = _meta(src).get("order")
     return (raw if isinstance(raw, int) else _NO_ORDER, src)
@@ -235,9 +199,9 @@ def _participation(src, pid, chains):
 
     ✅ ONE WALK OVER THE CHAIN MAP, NAMED ONCE. `_strips` did this inline; a second
     consumer (`flow_names`, for the printed corner mark) forced the extraction and
-    was reverted the same evening. **The extraction stayed because it was right on
-    its own** -- the render order below is a real rule and it now has one place to
-    live rather than being implied by the shape of a loop.
+    was reverted the same evening (DL J21). **The extraction stayed because it was
+    right on its own** -- the render order below is a real rule and it now has one
+    place to live rather than being implied by the shape of a loop.
 
     `role` is `"start"` on the page that DECLARES the chain, `"member"` on a step
     in it. `index` is the position in the DECLARED list, or -1 for a start.
@@ -324,6 +288,14 @@ def _member_strip(flow_src, ids, at, page, by_id, by_src) -> str:
     ⚠️ `at` IS THE POSITION IN THE DECLARED LIST, and the printed total is the
     length of the RESOLVED list, so a chain naming a page that does not exist
     reports "step 4 of 8" rather than claiming a step that was skipped.
+
+    🔴 A LONE STEP STATES NO COUNT (DL J23). `step 1 of 1` is not a position --
+    there is nowhere else to be. 🚫 AND THE STRIP IS NOT SUPPRESSED, which is the
+    judgement worth arguing: on a one-step chain the only other content is the
+    `Finish <name>` link, and that is the reader's ONLY route to the completion
+    form. **Removing a navigation block because its label was useless would have
+    removed the one useful thing in it.** ⚑ *A complaint about a label is not a
+    complaint about the element carrying it.*
     """
     here = _url(page)
     hub, name, flow_id, frag = _flow_meta(flow_src, by_src)
@@ -335,8 +307,6 @@ def _member_strip(flow_src, ids, at, page, by_id, by_src) -> str:
         step = at + 1
     i = step - 1
 
-    # 🔴 A LONE STEP STATES NO COUNT. See the module docstring, including why the
-    # STRIP survives: its `Finish` link is the only route to the form.
     detail = "" if len(live) < 2 else "step " + str(step) + " of " + str(len(live))
 
     moves = []
@@ -379,10 +349,14 @@ def _member_strip(flow_src, ids, at, page, by_id, by_src) -> str:
 
 
 def _start_strip(flow_src, ids, page, by_id) -> str:
-    """The strip on a page that DECLARES a chain.
+    """The strip on a page that DECLARES a chain (DL J22).
 
-    Returns "" when nothing in the chain resolved -- a Start button pointing
-    nowhere is worse than no button, and nav.py has already reported that case.
+    A hub is never a member of its own chain, so before this variant existed a
+    program page's only pointer into its own flow was `nav.py`'s `hub.next_page`
+    -- which lives in the DEFAULT FOOTER, the element `hide: footer` removes.
+
+    Returns "" when nothing in the chain resolved: a Start button pointing nowhere
+    is worse than no button, and nav.py has already reported that case.
     """
     live = [pid for pid in ids if pid in by_id]
     if not live:
@@ -395,8 +369,9 @@ def _start_strip(flow_src, ids, page, by_id) -> str:
     frag = "#" + at if at else ""
     first = by_id[live[0]]
 
-    # 🐛 `1 steps` shipped with this variant. A count is the one string here that
-    # has to agree with itself.
+    # 🐛 `1 steps` shipped with this variant and was invisible because no real
+    # program has one page. A count is the one string here that has to agree with
+    # itself.
     detail = str(len(live)) + (" step" if len(live) == 1 else " steps")
 
     return (
@@ -421,10 +396,21 @@ def _promo_css(flow_ids) -> str:
       1. hoist the strip above its siblings
       2. make the disclosure transparent, so a strip parked inside it is visible
          at all (a closed `<details>` hides its children and CSS cannot open one)
-      3. 🔴 hide that disclosure's SUMMARY. Rule 2 removes the box and leaves the
-         label, so a successful promotion still said "Also part of 1 other
-         program" -- below the strip it had just hoisted, about a state that no
-         longer held. The module docstring carries the argument.
+      3. 🔴 hide that disclosure's SUMMARY -- added 2026-08-28.
+
+    🔴 RULE 3 EXISTS BECAUSE RULES 1 AND 2 SUCCEEDED AND LOOKED LIKE THEY HAD
+    FAILED. Michael, expecting the arrival program to win: *"instead of burying the
+    current program inside the 'also in other programs' dropdown."* The promotion
+    was firing. **What stayed on screen was its label.** `display: contents`
+    removes the `<details>` BOX and not its `<summary>`, so a successful hoist
+    still rendered *"▸ Also part of 1 other program"* as a loose line -- at
+    `order: 0`, therefore BELOW the strip it was supposedly hiding, naming a state
+    that was no longer true.
+
+    ⚑ **A FEATURE CAN BE WORKING AND STILL BE WEARING ITS OWN FAILURE MESSAGE**,
+    and nobody debugging it will look at the mechanism, because the label is more
+    legible than the layout. `flow.css` documented the loose summary as intended
+    behaviour and never asked what the loose summary would SAY.
 
     ⚠️ RULE 3 IS SCOPED BY `:has()`, SAME AS RULE 2, so it fires only when THIS
     flow's strip is the one inside the disclosure. A promoted strip that was
