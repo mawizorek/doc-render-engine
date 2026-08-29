@@ -244,13 +244,19 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: print-scheme.css, print-chrome.css" would have made this obvious on day one --
 #: and the tombstone would be one expected line rather than cover for a real one.
 #:
-#: SIX FILES, SIX JOBS, and each one answers exactly one question:
+#: 🔴 AND THAT GAP IS STILL OPEN, WHICH IS WHY THE SEVENTH FILE BELOW WAS ADDED IN
+#: THE SAME COMMIT AS THE SHEET ITSELF (2026-08-29). `print-identity.css` was
+#: authored and registered together deliberately: the 08-21 incident is the whole
+#: argument against a two-step, and a new sheet is exactly the moment the missing
+#: disk-vs-tuple check would have mattered.
+#:
+#: SEVEN FILES, SEVEN JOBS, and each one answers exactly one question:
 #:
 #:   print.css          HOW WIDE IT RUNS    -- @page, the column unrailing,
 #:                                             print-color-adjust, code wrapping,
 #:                                             the transparent ground
 #:   print-chrome.css   WHAT APPEARS AT ALL -- the chrome-off list and the corner
-#:                                             stamp
+#:                                             stamp's own box
 #:   print-flow.css     WHERE IT BREAKS     -- break-*, orphans/widows, h1-h6,
 #:                                             tab labels, forced-open
 #:                                             <details>, thead repetition,
@@ -261,6 +267,8 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #:                      BETWEEN THINGS         justification, the tabbed set
 #:   print-callout.css  WHAT THE BOX IS     -- the rule and indent, the icon,
 #:                                             the font-size anchor
+#:   print-identity.css WHOSE DOCUMENT IT   -- the letterhead row: the declared
+#:                      IS                    logo mark, the two text weights
 #:
 #: ⚠️ THE JOB LINES ABOVE ARE ALSO CORRECTED. This table credited print.css with
 #: "chrome off" AFTER that list had moved to print-chrome.css, and with a "link
@@ -273,14 +281,24 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: was already written in the header of the file that split -- which is also where
 #: the measured argument for it lives, rather than being summarised here. **A FILE
 #: AT ITS SIZE LIMIT IS USUALLY A FILE WITH A SEAM IN IT; trimming prose is what
-#: you do instead of finding the seam.**
+#: you do instead of finding the seam.** ⭐ print-identity.css is the first member
+#: of this group that was NOT forced by a split -- it is a new subject that arrived
+#: with a spec (`specs/print-identity.md` §2) -- but print-chrome.css having 327 B
+#: of headroom is what settled WHERE it went, so the ceiling still decided it.
 #:
 #: ⭐ AND THE ORDER *WITHIN* THIS GROUP IS GENUINELY FREE, stated out loud on the
 #: `_FEATURE_ASSETS` precedent above so nobody later defends a position that was
-#: never load-bearing. No two of these six share a selector-and-property PAIR --
+#: never load-bearing. No two of these seven share a selector-and-property PAIR --
 #: `.md-typeset h1` is written in both print-type.css and print-space.css, but one
 #: sets size and weight while the other sets margins, and a cascade fight needs
 #: both halves to match. What is load-bearing is the GROUP's position.
+#:
+#: 🔴 AND KEEPING THAT TRUE IS WHY print-identity.css DOES NOT TOUCH
+#: `.buildstamp--corner`. `display: flex` there would have been a genuine pair
+#: against print-chrome.css's `display: block` on the same selector. The layout was
+#: moved onto a net-new inner element (`.buildstamp__row`) specifically to avoid
+#: creating the group's first real collision. That reasoning lives in the new
+#: sheet's own header.
 #:
 #: 🔴 WITH ONE PROVEN EXCEPTION, ADDED THE DAY IT BIT: print-space.css §9 justifies
 #: `.md-typeset p`, which MATCHES the corner buildstamp and beat print.css's
@@ -302,6 +320,7 @@ _PRINT_ASSETS = (
     "print-type.css",
     "print-space.css",
     "print-callout.css",
+    "print-identity.css",
 )
 
 #: THE FLOW STRIP AND THE EMBEDDED FORM (2026-08-19). See docrender/program.py
@@ -385,7 +404,11 @@ def hand_written_css() -> tuple[str, ...]:
     ROT, and it has now been edited twice, which is the argument for deleting it
     rather than maintaining it: `len()` of the concatenation is derivable and a
     number in prose is not. Left in place only because the sentence needs to name
-    the risk to somebody skimming.
+    the risk to somebody skimming. ⭐ IT SURVIVED 2026-08-29 UNCHANGED AND THAT IS
+    THE POINT: `print-identity.css` joined `_PRINT_ASSETS`, not a sixth group, so
+    this function needed no edit at all -- which is exactly the behaviour a derived
+    list is for, and the first time this file has demonstrated it rather than
+    argued it.
 
     ⭐ AND THE `.css` FILTER IS WHAT MAKES A SPLIT FREE. Files join these tuples in
     mixed pairs -- navtree contributed one sheet and one script -- and the sheet is
@@ -400,7 +423,10 @@ def hand_written_css() -> tuple[str, ...]:
     NEXT BUILD: print-chrome.css and qr.css both join the scan for the first time.
     🔴 qr.css's `width: 30mm` will appear as a metric row with NO TOKEN BEHIND IT,
     and that is correct rather than a finding to fix -- a QR's physical size is not
-    a design vector. See that sheet's header.
+    a design vector. See that sheet's header. 🔴 THE SAME IS TRUE OF
+    print-identity.css's `width: 27mm`, `height: 5.5mm` and `gap: 4mm`: a physical
+    mark on a physical sheet is not a design vector either, and the sheet's header
+    carries the measured argument for each number.
     """
     return tuple(
         name
