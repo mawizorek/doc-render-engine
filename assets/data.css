@@ -13,15 +13,14 @@
  * touches only .dr-data--list and only inside a container query.
  *
  * ⚠️ AND SINCE 2026-08-28 THERE IS A SECOND LEGITIMATE NEIGHBOUR, IN THE PRINT
- * GROUP, WHICH IS NOT A CONTRADICTION AND IS WORTH KNOWING ABOUT BEFORE YOU DEBUG
- * A SHEET. `print.css` turns the table's four backgrounds off, and
- * `print-chrome.css` uncages it -- `max-height`, `overflow`, `container-type`,
- * `width` and `white-space`, because on paper the scroll box this file builds is a
- * CROP. Those live in the print group rather than in a `@media print` block here,
- * deliberately: the print group is where somebody looks when a SHEET is wrong, and
- * a medium is a layer rather than a second claimant. 🔴 What is NOT allowed is the
- * same declaration in both places -- if a screen rule here ever needs a paper
- * exception, put the exception there and a pointer here.
+ * GROUP. `print.css` turns this table's four backgrounds off (they printed as
+ * blobs) and `print-chrome.css` uncages it -- `max-height`, `overflow`,
+ * `container-type`, `width`, `white-space` -- because on paper the scroll box
+ * below is a CROP. Those live in the print group rather than in an `@media print`
+ * block here, deliberately: that group is where somebody looks when a SHEET is
+ * wrong, and a medium is a layer rather than a second claimant. 🔴 What is not
+ * allowed is the same declaration in both places -- if a screen rule here needs a
+ * paper exception, put the exception there and a pointer here.
  *
  * Consumes --dr-* tokens only. A site retunes every colour, font, measure and
  * currency symbol from its own theme.css and never edits this file.
@@ -97,84 +96,59 @@
 }
 
 /* ---------------------------------------------------------------------------
- * ⭐ CELL DENSITY IS THE THEME'S, PER AXIS (2026-08-28, Michael's ruling)
+ * ⭐ CELL DENSITY IS THE THEME'S, PER AXIS (2026-08-28, Michael: *"per-theme
+ * density dial"*)
  *
- * > Michael: *"can the padding in the table render get WAY tighter? ... ALL of
- * > this site is toooo padded and feels so bad because of it. I want TIGHTER and
- * > SMALLER layouts kinda"* -- and, asked global dial or per-theme dial:
- * > *"per-theme density dial."*
+ * 🔴 THE DIAL ALREADY EXISTED AND WAS WIRED TO ALMOST NOTHING, which is why no
+ * theme edit had ever changed how padded a site feels. The canonical SPACING
+ * vector IS the dial -- a join names one entity, the entity states `touch
+ * pad-cell pad-card gap-xs gap-md gap-lg`, theme.py emits all six into `:root`
+ * every build -- and before this commit those six primitives reached exactly two
+ * surfaces in the engine: `.dr-spec td` and the aka/revised foot margins. Neither
+ * is the densest content this engine renders. So this is a WIRING change, not a
+ * new mechanism: no new table, no new vocabulary, no second manifest.
  *
- * 🔴 THE DIAL ALREADY EXISTED, WAS ALREADY SET TO MAXIMUM DENSITY, AND WAS WIRED
- * TO ALMOST NOTHING. That is the finding, and it is why no theme edit had ever
- * changed how padded this site feels. The canonical SPACING vector is the dial: a
- * join names one entity, the entity states `touch pad-cell pad-card gap-xs gap-md
- * gap-lg`, and theme.py emits all six into `:root` on every build. Before this
- * commit those six primitives reached exactly two surfaces in the whole engine --
- * `.dr-spec td`'s padding in base.css, and the aka/revised foot margins. **Not one
- * of them reached the densest content this engine renders.**
+ * 🔴 TWO PRIMITIVES, ONE PER AXIS, AND THAT IS WHAT THE CUT BRIDGE ROW GOT WRONG.
+ * `bridge.tsv` carried `data-pad -> pad-cell`; PR #82 reverted it because the
+ * local value is TWO axes and `pad-cell` is one number, so every row went 48%
+ * taller and every column 17% narrower at once. Its tombstone concluded *"a
+ * one-axis primitive cannot express a two-axis value"* -- true, and it assumed ONE
+ * primitive. **Two can.** `pad-cell` is the CELL number and takes the vertical;
+ * `pad-card` is the roomier BOX number and takes the horizontal, so the asymmetry
+ * that tombstone called the entire point (short rows, wide columns) survives by
+ * construction. ⚑ *A value needing N axes needs N primitives; "the bridge cannot
+ * express this" really meant "a one-to-one rename cannot." A composition belongs
+ * in the consumer's rule, not in a row.*
  *
- * ⭐ SO THIS IS A WIRING CHANGE, NOT A NEW MECHANISM, WHICH IS THE ONLY REASON IT
- * IS ALLOWED TO BE THIS SMALL. No new table, no new vocabulary, no second
- * manifest. Change the spacing entity a join names and every cell moves.
+ * 🔴 IT IS A DIAL, NOT A TIGHTENING, AND SOME THEMES GET LOOSER. Vertical /
+ * horizontal against the `0.34rem 0.6rem` literal it replaces (5.44 / 9.6px):
  *
- * 🔴 TWO PRIMITIVES, ONE PER AXIS, AND THAT IS THE WHOLE TRICK -- IT IS ALSO
- * EXACTLY WHAT THE CUT BRIDGE ROW GOT WRONG. `canonical/bridge.tsv` carried
- * `data-pad -> pad-cell` and PR #82 reverted it, because the local value is TWO
- * axes (`0.34rem 0.6rem`) and `pad-cell` is ONE number: mapping the pair to the
- * single primitive made every row 48% taller and every column 17% narrower at
- * once. Its tombstone concluded *"a one-axis primitive cannot express a two-axis
- * value."* True, and it quietly assumed one primitive. **Two of them can.**
- * `pad-cell` is the CELL number, so it takes the vertical; `pad-card` is the
- * roomier BOX number, so it takes the horizontal. The asymmetry the tombstone
- * called the entire point -- short rows so more fit, wide columns so they separate
- * -- is preserved by construction rather than by a literal.
- *
- * ⚑ GENERALISES, AND IT IS THE better half OF THAT REVERT: *a value that needs N
- * axes needs N primitives, and "the bridge cannot express this" was really "a
- * one-to-one rename cannot express this."* The bridge is a rename table and this
- * is a COMPOSITION, so it belongs in the consumer's own rule and not in a row.
- *
- * 🔴 IT IS A DIAL, NOT A TIGHTENING, AND SOME THEMES GET LOOSER. Said plainly
- * because the ask was "tighter" and the answer is "whatever the theme says."
- * Vertical / horizontal, against the `0.34rem 0.6rem` literal it replaces
- * (5.44px / 9.6px at a 16px root):
- *
- *     uritp-safety   2px /  8px    tighter on both  <- this site
- *     database       2px /  8px    tighter on both
- *     eos            3px /  8px    tighter on both
- *     flush          3px / 10px    tighter, then a hair wider
- *     tight          8px / 16px    LOOSER on both
- *     standard      10px / 20px    looser
+ *     uritp-safety   2px /  8px    tighter both   database  2px /  8px  tighter
+ *     eos            3px /  8px    tighter both   flush     3px / 10px  ~
+ *     tight          8px / 16px    LOOSER both    standard 10px / 20px  looser
  *     loose         12px / 24px    much looser
  *
- * ⚠️ `tight` IS NOT TIGHT FOR A TABLE and that is worth knowing before anybody
- * picks it to fix a density complaint: it is sized around a 42px touch target for
- * an app UI. The genuinely dense entities are `database`, `eos` and `flush`.
+ * ⚠️ `tight` IS NOT TIGHT FOR A TABLE -- it is sized around a 42px touch target
+ * for an app UI. The genuinely dense entities are `database`, `eos` and `flush`.
  *
- * ✅ THE FALLBACKS ARE THE OLD LITERALS, AND THEY ARE LOAD-BEARING TWICE. A theme
- * with no join emits no spacing primitives at all -- `_bridge()` in theme.py
- * already reports that case -- and a bare `var()` would collapse every cell's
- * padding to zero. So an unjoined theme renders byte-identically to before this
- * commit. 🔴 AND IT COVERS A LIVE CASE, NOT A HYPOTHETICAL ONE: the vendored
- * `theme/canonical/spacing.tsv` in this repo has SIX rows and no `uritp-safety`,
- * while upstream `maw-themes/vectors/spacing.tsv` has seven and does. vectors.py
- * reads canonical LIVE with the vendored copy as fallback, so a live build gets
- * 2px/8px and a fallback build gets today's padding. **The projection is stale,
- * which is an upstream re-copy rather than a fix here.** 🚩 Flagged.
+ * ✅ THE FALLBACKS ARE THE OLD LITERALS AND THEY COVER A LIVE CASE. A theme with
+ * no join emits no spacing primitives (theme.py `_bridge()` reports it) and a bare
+ * var() would collapse padding to zero. And the vendored
+ * `theme/canonical/spacing.tsv` has six rows with no `uritp-safety`, while
+ * upstream `maw-themes/vectors/spacing.tsv` has seven and does -- vectors.py reads
+ * canonical LIVE with the vendored copy as fallback, so a live build gets 2px/8px
+ * and a fallback build renders byte-identically to before. 🚩 The projection is
+ * stale; that is an upstream re-copy, not a fix here.
  *
- * 🪦 `--dr-data-pad` IS RETIRED, AND ITS ROW IS GONE FROM theme/typography.tsv
- * RATHER THAN LEFT AS AN OVERRIDE HOOK. Keeping it would have been the obvious
- * kindness -- a theme states two axes and wins -- and it would have been a DEAD
- * CONTROL, which this engine kills on sight. `theme.py:_shared()` filters
- * typography.tsv to `theme == "base"` and skips every other row, so a per-theme
- * `data-pad` cannot be emitted at all; the `database` row stating
- * `0.26rem 0.55rem` has never once rendered (raised as a flag on 2026-08-05 and
- * still live at HEAD). **A hook that only the base row can reach is a global
- * constant wearing a dial's clothes, which is the opposite of what was asked
- * for.** That filter is still an open defect for `data-font`, `data-size` and
- * `measure`, and fixing it is a separate ruling: those rows are keyed by names
- * that are variously joins, colour entities and typography entities, so which
- * column they should match is a design question and not a typo.
+ * 🪦 `--dr-data-pad` IS RETIRED AND ITS ROWS ARE GONE FROM theme/typography.tsv
+ * rather than kept as an override hook. Keeping it would have been a DEAD CONTROL:
+ * `theme.py:_shared()` filters that table to `theme == "base"` and skips every
+ * other row, so a per-theme `data-pad` cannot be emitted at all -- the `database`
+ * row stating `0.26rem 0.55rem` had never once rendered (flagged 2026-08-05, still
+ * live). **A hook only the base row can reach is a global constant wearing a
+ * dial's clothes**, which is the opposite of the ask. 🚩 That filter is still open
+ * for `data-font`, `data-size` and `measure`, and which column those rows should
+ * match is a design question rather than a typo.
  * ------------------------------------------------------------------------ */
 .md-typeset .dr-data__table th,
 .md-typeset .dr-data__table td,
@@ -229,11 +203,10 @@
  * the `::type` declaration both already know which columns those are, so the
  * question is answerable rather than guessed.
  *
- * ⚠️ BOTH HALVES ARE OFF ON PAPER, IN print.css AND print-chrome.css: the surface
- * colour became a printed blob, and the shadow -- the only semi-transparent value
- * in this file -- printed as a grey smear down the seam. The edge exists to say
- * THE BOX SCROLLS, and paper does not scroll, so it is chrome for an affordance
- * that is not there.
+ * ⚠️ BOTH HALVES ARE OFF ON PAPER (print.css, print-chrome.css): the surface
+ * colour printed as a blob, and this shadow -- the only semi-transparent value in
+ * the file -- printed as a grey smear down the seam. The edge exists to say THE
+ * BOX SCROLLS, and paper does not scroll.
  * ------------------------------------------------------------------------ */
 .dr-data__table tbody td:first-child {
   position: sticky;
@@ -381,10 +354,9 @@
  * inheritance, and nothing about the rule says which case it was for.
  *
  * ⚑ FOURTH TIME, ON PAPER, 2026-08-28: the nowrap VALUE columns above are an
- * unbreakable box in a cell that cannot grow and cannot scroll, so they were
- * cropped at the sheet edge. print-chrome.css wraps them. **Same sentence, fourth
- * surface** -- and this is the first one where the long case was the medium rather
- * than the content.
+ * unbreakable box in a cell that can neither grow nor scroll, so they were cropped
+ * at the sheet edge. print-chrome.css wraps them. **First instance where the long
+ * case was the MEDIUM rather than the content.**
  *
  * Scoped INSIDE .dr-data only. Page prose is untouched, the box shape survives,
  * and a marked note still reads as marked -- it just breaks like text.
@@ -427,9 +399,8 @@
 }
 
 /* The label carries the band's padding, so it takes the same two primitives as a
- * cell -- one number per axis. A band that kept a literal while every row around
- * it followed the theme would read as a paint bug at the two extremes of the
- * spacing grid, which is exactly where somebody looks last. */
+ * cell. A band keeping a literal while every row around it followed the theme
+ * would read as a paint bug at both ends of the spacing grid. */
 .dr-data__section-label {
   position: sticky;
   left: 0;
@@ -496,14 +467,13 @@
  * clear of this site's real desktop content column (~756px), where 45em was
  * firing list mode on a 1457px desktop.
  *
- * ⚠️ AND IT CANNOT FIRE ON PAPER AT ALL SINCE 2026-08-28, which is a change of
- * mechanism rather than of margin. print-chrome.css sets `container-type: normal`
- * so the printed table can fragment across sheets instead of being cropped, and a
- * box that is not a container answers no query. print.css's 12mm page margin was
- * justified almost entirely by keeping the sheet above 640px so this query would
- * not fire; that danger is now structural rather than arithmetical. The margin is
- * unchanged and its comment is not yet corrected -- that file has 296 B of
- * headroom. 🚩 Flagged there.
+ * ⚠️ AND IT CANNOT FIRE ON PAPER AT ALL SINCE 2026-08-28 -- a change of mechanism,
+ * not of margin. print-chrome.css sets `container-type: normal` so a printed table
+ * can fragment across sheets instead of being cropped, and a box that is not a
+ * container answers no query. print.css's 12mm page margin was justified almost
+ * entirely by keeping the sheet above 640px so this query would not fire; that
+ * danger is now structural rather than arithmetical. The margin is unchanged and
+ * its comment is not yet corrected -- that file has 296 B of headroom. 🚩 Flagged.
  * ------------------------------------------------------------------------ */
 @container dr-table (max-width: 640px) {
   .md-typeset .dr-data__table td.dr-col--prose,
@@ -524,12 +494,11 @@
  * sideways; a 78vh box that swallows a vertical swipe is the worst thing on this
  * page on a small screen and the best thing on it on a large one.
  *
- * ⚠️ AND `vh` IS THE OTHER REASON THE PRINT GROUP HAD TO UNCAGE THIS BOX. A vh is
- * a fraction of the PAGE BOX on paper, so `max-height: 78vh` crops a printed
- * table at roughly the first eight inches -- with `overflow: auto` there is no
- * scrollbar to reveal the rest and no marker to say it exists. A unit chosen
- * because it asks about the glass gets a confident wrong answer when there is no
- * glass.
+ * ⚠️ AND `vh` IS WHY THE PRINT GROUP HAD TO UNCAGE THIS BOX. A vh is a fraction of
+ * the PAGE BOX on paper, so `max-height: 78vh` cropped a printed table at roughly
+ * the first eight inches -- with `overflow: auto` there is no scrollbar to reveal
+ * the rest and no marker to say it exists. *A unit chosen because it asks about
+ * the glass gets a confident wrong answer where there is no glass.*
  *
  * WARNING: EVERY DEFECT THIS FILE FIXES WAS FOUND ON A PHONE AND WAS INVISIBLE ON
  * A LAPTOP, three times in two days (see base.css on the double nav rule, and
@@ -537,10 +506,9 @@
  * leak scan and a contrast gate, and nothing that looks at a rendered page at
  * 390px. Until it does, this is where the phone gets thought about on purpose.
  *
- * ⚑ AND PAPER IS NOW THE FOURTH SUCH SURFACE. The clipping above was found by
- * reading stylesheets while answering a question about something else, not by any
- * check -- and a printed sheet is even further out of reach than a 390px viewport,
- * because nothing in CI can look at one at all.
+ * ⚑ PAPER IS NOW THE FOURTH SUCH SURFACE, and the worst of them: the clipping was
+ * found by reading stylesheets while answering a question about something else,
+ * and nothing in CI can look at a printed sheet at all.
  * ------------------------------------------------------------------------ */
 @media screen and (max-width: 44.9375em) {
   .dr-data { max-height: none; }
