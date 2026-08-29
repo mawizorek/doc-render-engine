@@ -30,8 +30,9 @@ reason -- so the stamp names the build without offering a door to it.
 🔴 IT NEVER PRINTED. FIXED 2026-08-19 BY MOVING IT OUT OF THE FOOTER ENTIRELY.
 =============================================================================
 This hook used to hand its markup to `config.copyright`, which Material renders
-inside `.md-footer-meta`. `assets/print.css` hides that element in its chrome-off
-list, with `!important`, and then separately tried to bring `.buildstamp` back:
+inside `.md-footer-meta`. `assets/print-chrome.css` hides that element in its
+chrome-off list, with `!important`, and then separately tried to bring
+`.buildstamp` back:
 
     .md-footer-meta { display: none !important; }   <- the ancestor
     .buildstamp     { display: block; }             <- could never win
@@ -88,6 +89,44 @@ trade rather than a free win. Debugging a stale PRINTED page means finding the
 page on screen and revealing the foot disclosure. Correct for these documents --
 the date is the provenance a reader actually needs -- but if a printed sheet ever
 has to be traced back to a specific build, THIS is the decision to revisit.
+
+
+=============================================================================
+⭐ THE CORNER MARK NAMES THE PROGRAM (2026-08-28)
+=============================================================================
+    URITP Safety · General Safety for All · 28 Aug 2026
+
+🔴 IT IS A REPLACEMENT, NOT AN ADDITION, AND THAT IS WHY IT IS ALLOWED. The same
+evening `.dr-flows` joined print-chrome.css's chrome-off list, so the flow strip
+no longer prints -- and `program.py`'s own claim is that *"the PROGRAM NAME is the
+payload; the arrows are the instruction."* Only the instruction is meaningless on
+paper. ⚑ *When a medium drops an element, ask which of its facts were about the
+MEDIUM and which were about the DOCUMENT.* The arrows were about the medium. The
+name was not, and it was about to be lost with them.
+
+✅ AND IT LANDS ON THE ONE LINE THAT ALREADY DOES THIS JOB. The corner mark exists
+because *"a printed sheet leaves the system entirely"* -- site name so a reader
+can place it, date so a reader can age it. Which program handed it to them is the
+third question in exactly that family, and a reader holding one sheet of a
+nine-page program has no other way to answer it.
+
+🔴 IT ASKS `program.py` RATHER THAN DERIVING. `flow_names()` shares
+`_participation()` with the strip renderer, so the printed names and the screen
+strips cannot disagree. A second walk over `nav.declared()` here would agree today
+and drift the first time either side changed -- and **nobody can diff a piece of
+paper against a page**, which makes this the worst available place for that drift.
+
+⚠️ THE DATE IS STILL COMPUTED ONCE PER BUILD AND ONLY THE NAME IS PER PAGE, which
+is the whole reason `_STAMPED` survives as module state. The original rule stands:
+a build spanning midnight must not stamp two different dates onto one site. ⚑ *Per
+page is not the same as per fact -- the thing that varies is the one that has to
+be recomputed, and nothing else.*
+
+⚠️ A PAGE IN THREE PROGRAMS NAMES ALL THREE, comma-joined, and that is a real
+cost. The SCREEN caps the strips at one open plus a disclosure; a printed line
+cannot collapse, so a borrowed policy in several programs gets a long stamp. 🚩 If
+that becomes ugly the answer is a cap with a count (`+2 more`), not a silent
+truncation -- naming two of three programs is worse than naming none.
 
 
 =============================================================================
@@ -175,10 +214,14 @@ costs ~250 bytes of HTML and no request at all.
 ⭐ ONE COMPUTED VALUE PER FACT, TWO PRESENTATIONS -- NOT TWO CLAIMANTS
 =============================================================================
 The defect that retired `roster.json`, `registry.json` and `app-index.md` is two
-SOURCES of one fact, which can disagree. `_label()` and the clock are each read
-exactly once per build; the two nodes SELECT from those values rather than
-recomputing them. They cannot drift, and the mutually exclusive media scoping
-means a reader always sees exactly one stamp.
+SOURCES of one fact, which can disagree. `_label()`, the clock and the site name
+are each read exactly once per build; the two nodes SELECT from those values
+rather than recomputing them. They cannot drift, and the mutually exclusive media
+scoping means a reader always sees exactly one stamp.
+
+⚠️ THE PROGRAM NAME IS THE ONE EXCEPTION AND IT IS NOT A SECOND CLAIMANT: it is
+per-PAGE data by nature, and its single source is `program.py`. What stayed once
+per build is everything that is a property of the BUILD.
 
 ⭐ WHY THE CORNER COPY MUST BE FIRST IN THE FLOW, WHICH IS THE WHOLE MECHANISM.
 An element appended at the END of the content cannot be moved to the TOP of sheet
@@ -200,11 +243,6 @@ IT. `uritp-safety/90-media-logos/` holds two JPEGs, both already reachable as
 which does not exist yet. When it does, the image lands as a print-scoped
 `background-image` on `.buildstamp--corner`.
 
-⚠️ THE LABEL IS STILL COMPUTED ONCE PER BUILD, at `on_config`, and only the emit
-is per page. The inputs are two environment variables and a clock; reading them
-per page would be waste, and worse, a build spanning midnight could stamp two
-different dates onto one site.
-
 🚫 AND `config.copyright` STAYS UNSET. Material renders it inside the footer
 region, which is the place this hook exists to have escaped.
 """
@@ -215,6 +253,8 @@ import datetime
 import html
 import os
 import re
+
+from . import program
 
 _PR = re.compile(r"#(\d+)")
 
@@ -232,9 +272,10 @@ _ICON = (
     'l1.1 1.1L7.6 7.5ZM8 10.2h4.2v1.5H8Z"/></svg>'
 )
 
-#: The two rendered elements, built once at `on_config`. See the docstring on why
-#: they carry different text and why that is still one claimant.
-_CORNER = ""
+#: Properties of the BUILD, read once at `on_config`. The corner mark is composed
+#: per page because one of its three facts is per page; these two are not.
+_NAME = ""
+_STAMPED = ""
 _FOOT = ""
 
 
@@ -263,8 +304,36 @@ def _label() -> str:
     return "unstamped"
 
 
+def _corner(page, files) -> str:
+    """The printed corner mark: site · program(s) · date.
+
+    🔴 PER PAGE ONLY BECAUSE THE PROGRAM NAME IS. The site name and the date are
+    read once at `on_config` and only selected here -- see the docstring on why a
+    build spanning midnight must not stamp two dates onto one site.
+
+    ⚠️ NEVER RAISES. A stamp is furniture on every page of every site, so a chain
+    that cannot be resolved must cost the program name and nothing else. The
+    failure mode is the stamp this file shipped for nine days.
+    """
+    parts = [_NAME] if _NAME else []
+    try:
+        names = program.flow_names(page, files)
+    except Exception:
+        names = []
+    if names:
+        parts.append(", ".join(names))
+    if _STAMPED:
+        parts.append(_STAMPED)
+    if not parts:
+        return ""
+    return (
+        '<p class="buildstamp buildstamp--corner" hidden>'
+        + html.escape(" \u00b7 ".join(parts)) + "</p>"
+    )
+
+
 def on_config(config):
-    global _CORNER, _FOOT
+    global _NAME, _STAMPED, _FOOT
 
     label = _label()
 
@@ -275,26 +344,21 @@ def on_config(config):
 
     # The site name travels with the printed copy, because a printed sheet leaves
     # the system entirely and a bare date names nothing a reader can place.
-    name = str(getattr(config, "site_name", "") or "").strip()
+    _NAME = str(getattr(config, "site_name", "") or "").strip()
 
     # 🔴 PAPER GETS THE DATE AND NOT THE BUILD. See the docstring: a PR number is
     # provenance for the builder and unreachable plumbing for the reader.
-    stamped = when.strftime("%d %b %Y")
-    corner = (name + " · " + stamped) if name else stamped
+    _STAMPED = when.strftime("%d %b %Y")
 
     # ⚠️ NO `title` ON EITHER NODE. On the corner it was never readable (paper has
     # no hover); on the foot it would draw a second tooltip over the popup.
-    _CORNER = (
-        '<p class="buildstamp buildstamp--corner" hidden>'
-        + html.escape(corner) + "</p>"
-    )
-
+    #
     # 🚫 A `<span>` WITH `tabindex`, NOT A BUTTON: there is nothing to activate.
     # The popup is hidden with `opacity` rather than `display`, so it stays in the
     # accessibility tree -- see the docstring.
     _FOOT = (
         '<p class="buildstamp buildstamp--foot">'
-        + (html.escape(name) if name else "")
+        + (html.escape(_NAME) if _NAME else "")
         + '<span class="buildstamp__debug" tabindex="0">'
         + _ICON
         + '<span class="buildstamp__pop">' + html.escape(label) + "</span>"
@@ -318,6 +382,11 @@ def on_page_content(html_body, page, config, files):
     `.md-content__inner > :first-child` for a margin reset, which the corner mark
     now satisfies instead of the heading.
 
+    ⚠️ AND IT LANDS AHEAD OF `program.py`'s ARRIVAL MARKERS, which is safe: those
+    promotion rules need the marker and `.dr-flows` to be SIBLINGS, and another
+    sibling in front of both changes nothing. Hook 07 runs after 05b, so the
+    strips are already in `html_body` by the time this prepends.
+
     Unconditional on purpose. `pagefoot.py` skips generated pages because there
     is no source file to offer an edit link for; a build stamp has no such
     dependency, and a generated page is exactly as capable of being stale as an
@@ -325,4 +394,4 @@ def on_page_content(html_body, page, config, files):
     """
     if not _FOOT:
         return html_body
-    return _CORNER + html_body + _FOOT
+    return _corner(page, files) + html_body + _FOOT
