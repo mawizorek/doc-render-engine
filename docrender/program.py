@@ -39,13 +39,6 @@ two programs sharing a page both navigate correctly.
 MEMBERS ONLY. A page in no flow with its footer hidden has ZERO navigation, and
 nothing reports it.
 
-⚠️ AND SINCE 2026-08-28 THE STRIP DOES NOT PRINT AT ALL. `.dr-flows` is in
-`print-chrome.css`'s chrome-off list (Michael: *"when printing i do NOT want to
-see the navigation footer stuff"*). 🔴 That means on PAPER a `hide: footer` page has
-no navigation and no orientation -- which is correct, because paper has no
-navigation to offer, and the program NAME moved to the printed corner stamp
-(`buildstamp.py`) so the orientation half survives the medium change.
-
 =============================================================================
 ⭐ THE STRIP'S JOB IS ORIENTATION, NOT NAVIGATION
 =============================================================================
@@ -59,13 +52,14 @@ say and leave a reader three pages deep not knowing which program they are in.
 
 The PROGRAM NAME is the payload; the arrows are the instruction.
 
-⭐ AND THAT SENTENCE IS WHY `flow_names()` EXISTS AT THE FOOT OF THIS FILE. If the
-name is the payload, it has to survive a medium that drops the strip -- so
-`buildstamp.py` asks THIS module which programs a page belongs to and prints them
-on the corner mark. 🔴 It asks rather than deriving: *"which flows is this page in"*
-has exactly one answer and `_participation()` is the only thing allowed to give
-it. A second walk over `nav.declared()` in another module is the two-claimants
-defect that retired three manifests here.
+⭐ AND THAT SENTENCE IS WHY `flow_names()` EXISTS (2026-08-28). `.dr-flows` is in
+print-chrome.css's chrome-off list now -- paper has no navigation to offer -- so
+the strip does not print at all. But *a payload that only survives on screen is
+not a payload*, so `buildstamp.py` asks THIS module which programs a page belongs
+to and prints their names on the corner mark. 🔴 It ASKS rather than deriving:
+`_participation()` is the only answer to "which flows is this page in," because a
+second walk over `nav.declared()` elsewhere would agree today and drift the first
+time either side changed -- and nobody can diff a printed sheet against a page.
 
 =============================================================================
 ⭐ THE START STRIP -- THE HUB IS NEVER A MEMBER OF ITS OWN CHAIN
@@ -140,28 +134,20 @@ they are not.
 =============================================================================
 🔴 A LONE STEP STATES NO COUNT (2026-08-28)
 =============================================================================
-> Michael, on a printed program detail sheet: *"the navigation footer stuff that
-> says 'step 1 of 1'."*
+> Michael: *"the navigation footer stuff that says 'step 1 of 1'."*
 
-**A one-page chain rendered a full navigation block whose only content was that
-you were already finished.** No prev, no next, and `step 1 of 1` -- which is not
-a position, because there is nowhere else to be. It read as broken on paper and
-it carried nothing on screen either.
+A one-page chain rendered `step 1 of 1`, which is not a position -- there is
+nowhere else to be.
 
 🚫 THE STRIP IS NOT SUPPRESSED, AND THAT IS THE JUDGEMENT WORTH ARGUING. Dropping
-the whole block was the obvious reading of the ask and it builds a DEAD END: on a
-one-step chain the strip's only other content is the `Finish <name>` link, which
-is the reader's only route to the completion form. **Removing a navigation block
-because its label was useless would have removed the one useful thing in it.**
-⚑ *A complaint about a label is not a complaint about the element carrying it.*
+the whole block was the obvious reading and it builds a DEAD END: on a one-step
+chain the strip's only other content is the `Finish <name>` link, which is the
+reader's only route to the completion form. **Removing a navigation block because
+its label was useless would have removed the one useful thing in it.** ⚑ *A
+complaint about a label is not a complaint about the element carrying it.*
 
-✅ So the COUNT goes and the link stays: `_member_strip` passes an empty detail,
-and `_where` omits the span rather than rendering an empty one. The strip reads
-`General Safety for All   Finish General Safety for All →`.
-
-🐛 AND THE SAME PASS FIXED `1 steps` ON THE START STRIP, which had been live since
-the variant shipped. A hub whose chain has one page announced *"1 steps"* --
-invisible on every real program and wrong on every one-page one.
+🐛 The same pass fixed `1 steps` on the start strip -- live since that variant
+shipped, invisible because no real program has one page.
 
 =============================================================================
 ⚠️ THE CAP
@@ -227,20 +213,17 @@ def _at_id(flow_id: str) -> str:
 def _participation(src, pid, chains):
     """Every flow this page takes part in, as (flow_src, role, index).
 
-    🔴 THE ONLY ANSWER TO "WHICH FLOWS IS THIS PAGE IN", AND THAT IS THE POINT OF
-    EXTRACTING IT. `_strips` walked this itself; `buildstamp.py` now needs the same
-    answer for the printed corner mark, and a second walk over `nav.declared()`
-    in another module is two claimants on one fact -- the defect that retired
-    `roster.json`, `registry.json` and `app-index.md`. They would not disagree
-    today; they would disagree the first time either side changed.
+    🔴 THE ONLY ANSWER TO "WHICH FLOWS IS THIS PAGE IN." `_strips` walked this
+    inline; `flow_names()` needs the same answer for the printed corner mark, and
+    two walks would be two claimants on one fact -- the defect that retired three
+    manifests here.
 
-    `role` is `"start"` on the page that DECLARES the chain and `"member"` on a
-    step in it. `index` is the position in the DECLARED list, or -1 for a start.
+    `role` is `"start"` on the page that DECLARES the chain, `"member"` on a step
+    in it. `index` is the position in the DECLARED list, or -1 for a start.
 
     ⚠️ ORDER IS THE RENDER ORDER AND IS LOAD-BEARING: the page's own chain first,
-    because on a program page the entrance outranks any flow that page also
-    happens to be a step in. Everything after it is `sorted()` so a build is
-    reproducible rather than dict-ordered.
+    because on a program page the entrance outranks any flow it is also a step in.
+    The rest is `sorted()` so a build is reproducible rather than dict-ordered.
     """
     out = []
     if src in chains:
@@ -267,11 +250,9 @@ def _link(cls, page, here, frag, label, arrow_before=False) -> str:
 def _where(flow_name, hub, here, frag, detail) -> str:
     """The orientation line: which program, and where in it.
 
-    ⚠️ AN EMPTY `detail` OMITS THE SPAN RATHER THAN RENDERING AN EMPTY ONE. A
-    one-step chain has no position to report (see the module docstring), and an
-    empty element still occupies its margins -- so the strip would carry a gap
-    where a fact used to be, which reads as a value that failed to load. Same
-    argument `table.py` already makes for skipping an empty detail cell.
+    ⚠️ AN EMPTY `detail` OMITS THE SPAN rather than rendering an empty one, which
+    would still occupy its margins and read as a value that failed to load. Same
+    argument `table.py` makes for skipping an empty detail cell.
     """
     if hub is not None:
         who = (
@@ -332,9 +313,8 @@ def _member_strip(flow_src, ids, at, page, by_id, by_src) -> str:
         step = at + 1
     i = step - 1
 
-    # 🔴 A LONE STEP STATES NO COUNT. `step 1 of 1` is not a position -- there is
-    # nowhere else to be. The module docstring carries the full argument, and why
-    # the STRIP survives: its `Finish` link is the only route to the form.
+    # 🔴 A LONE STEP STATES NO COUNT. See the module docstring, including why the
+    # STRIP survives: its `Finish` link is the only route to the form.
     detail = "" if len(live) < 2 else "step " + str(step) + " of " + str(len(live))
 
     moves = []
@@ -393,9 +373,8 @@ def _start_strip(flow_src, ids, page, by_id) -> str:
     frag = "#" + at if at else ""
     first = by_id[live[0]]
 
-    # 🐛 `1 steps` SHIPPED WITH THIS VARIANT AND NOBODY SAW IT, because no real
-    # program has one page. A count is the one string here that has to agree with
-    # itself.
+    # 🐛 `1 steps` shipped with this variant. A count is the one string here that
+    # has to agree with itself.
     detail = str(len(live)) + (" step" if len(live) == 1 else " steps")
 
     return (
@@ -446,22 +425,15 @@ def _promo_css(flow_ids) -> str:
 
 
 def flow_names(page, files) -> list[str]:
-    """The display name of every program this page takes part in.
+    """The display name of every program this page takes part in, in render order.
 
-    ⭐ THE ORIENTATION HALF OF THE STRIP, FOR A MEDIUM THAT DROPS THE STRIP.
-    `buildstamp.py` prints these on the corner mark, because the strip no longer
-    reaches paper and this file's own claim is that *the PROGRAM NAME is the
-    payload*. A payload that only survives on screen is not a payload.
+    ⭐ THE ORIENTATION HALF OF THE STRIP, FOR A MEDIUM THAT DROPS THE STRIP --
+    `buildstamp.py` prints these on the printed corner mark. Shares
+    `_participation()` with `_strips` rather than re-deriving; see that function
+    and the module docstring.
 
-    🔴 IT SHARES `_participation()` WITH `_strips` RATHER THAN RE-DERIVING. Two
-    walks over `nav.declared()` would agree today and drift the first time either
-    changed -- and a printed sheet naming a different set of programs than the
-    screen strip is the worst possible place for that drift, because nobody can
-    diff a piece of paper against a page.
-
-    ⚠️ NAMES, NOT IDS, AND IN RENDER ORDER. `report=False` because this runs per
-    page and the chain problems it would report are already reported once by
-    `nav.py`.
+    `report=False` because this runs per page and every chain problem it could
+    report is already reported once by `nav.py`.
     """
     src = _src(page)
     if not src:
@@ -504,8 +476,7 @@ def _strips(page, files):
         if fid:
             flow_ids.append(fid)
 
-    # ⚠️ ORDER COMES FROM `_participation`, NOT FROM HERE. The page's own chain
-    # first; see that function.
+    # ⚠️ ORDER COMES FROM `_participation`, NOT FROM HERE.
     for flow_src, role, at in _participation(src, pid, chains):
         if role == "start":
             start = _start_strip(flow_src, chains[flow_src], page, by_id)
@@ -557,11 +528,8 @@ def on_page_content(html, page, config, files):
     ⚠️ THE MARKER MUST BE FIRST IN THE RETURNED STRING and the strips last: the
     promotion rules use a sibling combinator, so their ORDER in the document is
     load-bearing. Prepending to `html` rather than wrapping it is what keeps them
-    siblings.
-
-    ⚠️ AND HOOK 07 PREPENDS THE CORNER STAMP AHEAD OF THE MARKER, which is safe
-    for the same reason: `~` needs the marker and `.dr-flows` to be siblings, and
-    another sibling in front of both changes nothing.
+    siblings. Hook 07 prepends the corner stamp ahead of the marker, which is safe
+    for the same reason: another sibling in front of both changes nothing.
     """
     head, strips = _strips(page, files)
     if not strips:
