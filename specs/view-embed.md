@@ -1,204 +1,143 @@
-# BUILD 7 — a `views:` registry: a live ClickUp view, embedded by NAME
+# BUILD 7 — the `views:` registry: embed ANY ClickUp view by NAME
 
-⚠️ **SCOPED, NOT GREENLIT.** 2026-08-28. Indexed from [`next-build-spec.md`](../next-build-spec.md) as **BUILD 7**.
+⚠️ **SCOPED, NOT GREENLIT.** 2026-08-28. Rewritten 2026-08-29. Indexed from [`next-build-spec.md`](../next-build-spec.md) as **BUILD 7**.
 
-> Michael, 2026-08-28: *"could i embed a clickup TABLE VIEW into one of my doc renderer pages??? like embedding a clickup form on the safety site but doing a custom clickup table view to embed instead."* Asked whether it should be **live** or a build-time table: **"live."**
+> Michael, 2026-08-28: *"could i embed a clickup TABLE VIEW into one of my doc renderer pages??? like embedding a clickup form on the safety site but doing a custom clickup table view to embed instead."* → **live**, not build-time.
+>
+> Michael, 2026-08-29, correcting the scope of this document: *"i want to know how to embed any clickup view in one of my pages. let me decide what actually gets rendered. i gave you an example for a tool i wanted. focus on the tool."*
 
-**One-line summary:** a page names a shared ClickUp view in frontmatter, the engine builds the iframe. Mechanically this is `docrender/forms.py` with a second allow-listed host — **which is exactly why the code is the cheap half and this spec is mostly about the four things that are not code.**
+🔴 **THIS IS A TOOL SPEC. IT DOES NOT DECIDE WHAT GOES ON A PAGE.** The v1 of this file argued about which surface deserved a live embed and shipped a ruling asking Michael to choose between derived and live. **That was scope creep dressed as diligence: he asked for a capability and got an architecture review of his content.** The capability is general — any view type, any list, any page — and the author decides what to render. Constraints below are stated as **properties of the mechanism**, never as gates on his choice.
 
-🔴 **READ §10 FIRST IF YOU ARE ABOUT TO BUILD THIS.** The use case arrived a day after the spec and it is a PROGRAM INDEX, which is the one shape where three of the constraints below stop being tolerable. §10 does not cancel the build; it narrows what the build is FOR.
-
----
-
-## §0 What already exists. Do not rebuild any of it.
-
-`docrender/forms.py` (11,740 B at HEAD) already solved this problem for forms on 2026-08-19, and every hard-won piece of it transfers unchanged:
-
-| Piece | Already in `forms.py` | Transfers? |
-|---|---|---|
-| frontmatter registry + `!!! form "slot"` directive | yes | **yes**, same shape |
-| host **allow-list** rather than a scheme check | `_FORM_HOST` | **yes**, different constant |
-| `clickup-dynamic-height` + the `forms-embed/v1.js` CDN asset | yes | ⏳ **UNVERIFIED for views** — ruling 2 |
-| `min-height` floor so a script failure degrades to a scrollable frame, not a hole | `_FORM_MIN_HEIGHT = 40rem` | **yes** |
-| always-rendered fallback link (print + "it did not load") | `dr-form__fallback` | **yes**, and it matters MORE here — §5 |
-| `collapsed:` → closed `<details>`, opened by fragment navigation, zero JS | yes | **probably not wanted** — a table is content, not an action |
-| `sub_outside_code` on the substitution | yes | **yes, non-optional** |
-| script appended **once per page**, not once per embed | yes | **yes**, and now it is once per page across BOTH registries |
-
-🚫 **THE CONTENT REPO STILL NEVER HOLDS THE IFRAME.** The rule `forms.py` opens with is untouched: the page NAMES a view, the engine builds the element. `views:` is the third registry to follow `links:`, `data:` and `forms:`, not a new idea.
+**One-line summary:** a page names a shared ClickUp view in frontmatter; the engine builds the iframe. Mechanically this is `docrender/forms.py` with a second allow-listed host.
 
 ---
 
-## §1 🔴 RULING 1 — THE HOST, AND IT BLOCKS THE BUILD
+## §1 HOW IT WORKS — the two halves, end to end
 
-`_FORM_HOST = "https://forms.clickup.com/"` is a deliberate allow-list, and its reason is stated in the file: *"this element executes a third-party script in the reader's browser on a page that carries a compliance instruction, so 'any https URL' is not a good enough answer."*
+### Half 1: ClickUp side (once per view, by hand, and no agent can do it)
 
-**A shared view does not live on `forms.clickup.com`.** So the build needs a second constant, and:
+1. Right-click the view in the **Views Bar** → **Sharing & Permissions**. *(Also reachable per-item; views are the Views Bar route.)*
+2. Toggle **Share link with anyone** on.
+3. Copy **Embed code** from the advanced settings. That is a complete `<iframe>` string.
+4. Optional in the same panel: **Share link with search engines** (leave OFF unless indexing is wanted), **Expire link** (Enterprise), and for Docs/Whiteboards **Autosize embed height**.
 
-🔴 **THE VALUE CANNOT BE DERIVED, INFERRED, OR REMEMBERED. IT MUST BE COPIED OUT OF THE SHARE MODAL.** Not a guess with a fallback, not a regex over `*.clickup.com`, and not a value carried in from another session. **Michael pastes the `Embed code` from the view's Sharing & Permissions panel; the `src=` host in that string becomes the constant.** Everything below assumes it exists and nothing below can supply it.
+⚠️ **Applied filters travel with the share.** A publicly shared view carries its filters, so scoping what a reader sees is done IN the view, not in the page. **That is the mechanism by which the author controls the rendering, and it is the whole reason this tool is worth building.**
 
-⚠️ **Why a wildcard is the wrong shortcut, since it will be proposed:** `*.clickup.com` also matches `app.clickup.com`, which is the LOGGED-IN application. An allow-list that admits it invites a page that embeds a workspace URL, renders a login wall to the public, and looks like a broken table rather than a misconfiguration. **Two named hosts, no pattern.**
+### Half 2: the engine side (once, then free forever)
+
+```
+views:
+  program-index:
+    src: <the shared view URL, from the embed code's src=>
+    text: Available programs and their completion forms
+    caption: true
+    height: 48rem          # optional; see §3
+
+    !!! view "program-index"
+```
+
+Same grammar as `forms:`, `links:` and `data:`. **A bare string is allowed as shorthand for `src:`**, exactly as `forms:` already permits.
+
+🚫 **THE CONTENT REPO STILL NEVER HOLDS THE IFRAME.** The page NAMES a view; the engine builds the element. This is the fourth registry to follow that split, not a new idea.
 
 ---
 
 ## §2 The design: FOLD into `forms.py`. Do not write `views.py`.
 
-`forms.py`'s own docstring makes the cohesion argument that decides this: *"A strip is NAVIGATION... A form is an EMBED — it validates a URL and emits an element."*
+`forms.py`'s own docstring makes the argument that decides this: *"A form is an EMBED — it validates a URL and emits an element."* **A shared view is the same verb.** Same CDN question, same height problem, same fallback shape, same one-script-per-page rule. A `views.py` would be a second implementation of one idea, and this repo has retired three manifests over exactly that.
 
-**A shared view is also an embed that validates a URL and emits an element.** Same concern, same CDN dependency, same height problem, same fallback shape, same one-script-per-page rule. A `views.py` would be a **second implementation of one idea** — and this repo has retired three manifests over exactly that.
+One internal `_embed(url, label, ...)` serves both registries. One `slot_anchor()`. One script append **per page across both**. The registries differ in three values: the allow-listed host, the default label, and whether `Program_ID=` is checked (a **form** concern — a view has no submission to attribute).
 
-**The shape:**
+🚫 **Do not rename the file to `embeds.py`.** The rename is cosmetically right and costs an edit to `mkdocs.yml` — **28,158 B at HEAD, past the read ceiling.** ⭐ **The fold needs NO new hook registration at all, which is half its value.** Note the wrong filename in the docstring and move on.
+
+**Everything in `forms.py` that transfers unchanged:** the frontmatter registry, the `!!!` directive shape, `sub_outside_code` on the substitution (**non-optional** — the page documenting the directive contains the directive), the `min-height` floor, the always-rendered fallback link, and the once-per-page script append.
+
+**What does not transfer:** `collapsed:` (a `<details>` that a fragment link opens). It exists because a program page is both entrance and exit for a *form*. Available for views if wanted, not the default — a table is usually content rather than an action.
+
+---
+
+## §3 THE HOST — a declared instance key, so this does NOT block
+
+`_FORM_HOST = "https://forms.clickup.com/"` is a deliberate allow-list, not a scheme check, because this element runs a third-party script in the reader's browser. **A shared view is not on that host, so the tool needs a second value — and v1 made that a blocking ruling waiting on a pasted string. Wrong call: it blocked the whole tool on one config value.**
+
+⭐ **Instead: the view host is DECLARED, read off `state.INSTANCE`.** `urllinks.py` already reads `links:` straight off the instance config, so this needs **zero** edits to `instance.py` (23,047 B, past ceiling) — just a read of a new key:
 
 ```
-forms:            # unchanged
-  completion:
-    src: https://forms.clickup.com/...?Program_ID=ITPSAFE-1225
-
-views:            # new, same grammar
-  training-log:
-    src: <the host from ruling 1>/...
-    text: Live training completion log
-    caption: true
-
-    !!! view "training-log"
+view_hosts:
+  - https://sharing.clickup.com/     # whatever the real embed code shows
 ```
 
-One internal `_embed(url, label, host, ...)` builds the frame for both. One `slot_anchor()`. One script append. The registries differ in three values: the allow-listed host, the default label, and whether `Program_ID=` is checked (it is a **form** concern — a view has no submission to attribute).
+- **Declared, never guessed.** 🔴 The value goes in from a REAL embed code, once. **No agent may invent, infer or remember this string** — same rule as every other unverifiable external fact in this engine.
+- **A list, so a second ClickUp surface later is a config line, not a code change.**
+- 🚫 **Never a `*.clickup.com` wildcard.** That also matches `app.clickup.com`, the logged-in application — which would let a page embed a workspace URL and render a login wall to the public, looking like a broken table rather than a misconfiguration.
+- **Empty or missing `view_hosts:` → the embed is refused and REPORTED** (`dead_links`), never silently dropped. The engine ships working with nothing hardcoded.
 
-🚫 **DO NOT RENAME THE FILE TO `embeds.py`.** The rename is cosmetically correct and costs an edit to **`mkdocs.yml`, 28,158 B at HEAD — past the read ceiling.** A hook path edit in a file that cannot be read whole, to fix a filename nobody is confused by, is the worse trade. ⭐ **And the fold means NO new hook registration at all, which is half its value.** Note the wrongness in the docstring and move on.
+### The height question, and it is the one real unknown
 
-⚠️ **Size forecast, and Sally is seated at the plan rather than at the commit:** `forms.py` 11,740 B + ~3–4 KB of mechanism ≈ **15–16 KB**, under the 18KB warn line. **The risk is prose, not code.** This spec's reasoning belongs in the **doc-render-engine (repo) — Decision Log** in ClickUp, where `forms.py` already points for its own *why*. Do not paste §1–§5 into the module docstring.
+The form embed leans on `class="clickup-embed clickup-dynamic-height"` plus `app-cdn.clickup.com/assets/js/forms-embed/v1.js`. **Whether that helper sizes a VIEW frame is unverified** — and `forms.py` already documents what happens when it fails: `height="100%"` with no sized parent is ~0px, so the embed is not broken, it is **invisible**.
 
----
+**So the tool does not depend on the answer:**
 
-## §3 The three ClickUp-side gates that are NOT code
-
-All three are true of ClickUp itself, verified against the Help Center on 2026-08-28. **Any one of them can make a shipped, correct build useless.**
-
-**a) 🔴 A non-Form view shares publicly only from the EVERYTHING level, on Business and above.** Forms publish from a List on every plan — which is why the safety site's completion form was easy. Per *Share locations and items with a public link*: Form views share from a Space, Folder, Subfolder or List; **all other views "can be publicly shared from the Everything level."** ⚠️ **This is a CONTENT-MODEL constraint, not a code one:** the tidy List-scoped table Michael is picturing may have no share toggle at all, and the shareable equivalent is an Everything-level view with filters doing the scoping. **Verify on the actual view before any code is written** — the Share modal either offers *Share link with anyone* or it does not.
-
-**b) 🔴 Public shares require THIRD-PARTY COOKIES.** Stated in the same article. Browsers block them by default in more configurations every quarter, and the reader most likely to be blocked is **exactly the one who is not logged into the workspace** — which is every reader a public docs site has. **Unverifiable at build time**, the same reduction `forms.py` and `urllinks.py` both state at the top of their own files. The `min-height` floor and the fallback link are the whole mitigation.
-
-**c) ⚠️ The embed carries ClickUp's own chrome and it CANNOT be removed.** An embedded view renders **"Sign up free" and "Login" buttons** plus an **"Embed ClickUp" label and logo**; both are open, unresolved feature requests on ClickUp's feedback board. On a compliance page that reads as an advertisement inside a policy document. **Recommend: accept it and CAPTION the frame** ("Live from ClickUp — updates automatically") so the chrome reads as provenance rather than as clutter. Hiding it is not on the table: it is inside a cross-origin iframe.
+- The **`height:` key** in §1 is a declared, real height. Use it and the helper is irrelevant.
+- The **`min-height` floor** (`40rem`, as forms) is the default. A script failure degrades to a scrollable frame, never a hole.
+- **If the pasted embed code carries `clickup-dynamic-height`, pass it through; if it does not, omit it.** One glance at the string decides it, and no code path changes.
 
 ---
 
-## §4 🔴 A PUBLIC SHARE IS PUBLIC, AND THE ENGINE CANNOT SEE WHAT IS IN THE TABLE
+## §4 Properties of the mechanism (NOT gates — read once, then decide freely)
 
-The form embed collects data from readers. **This embed publishes data to them**, and that inverts the risk.
+These are facts about ClickUp and about iframes. They constrain what the tool CAN do, not what should be on a page.
 
-An `Embed code` exists only once the view is toggled *Share link with anyone*. From that moment the rows are readable by anyone with the link, indexable if the search-engine toggle is on, and **the link keeps working until somebody revokes it** — Owners and Admins on Enterprise can see every publicly shared item in Security & Permissions, which is the audit surface if this ships.
-
-🚫 **A view carrying named people — training completion, roster status, contact columns — is not a candidate.** Same class as the standing rule that a PII/FERPA judgment is never carried between repos: the safety site's repo visibility says nothing about what a ClickUp share link exposes. **The two are independent, and the share link is the more public of the two.**
-
-**Recommend, and this is a real gate rather than a caution:** a view is embeddable only if **every visible column is already public-safe with names attached**, decided per view before the toggle is flipped, and the share is recorded in the **Access Tracking (person × target × level)** Decision Log so it can be revoked deliberately rather than discovered. ⏳ **Ruling 3.**
-
----
-
-## §5 Print — the fallback link is doing more work here than it does for a form
-
-`forms.py` already renders its fallback link on every build, not only for print, because *"an iframe prints as a blank rectangle and this engine has a print identity spec."*
-
-**For a form, a printed link is a fully adequate substitute** — the reader was going to click something anyway. **For a table it is not: the table IS the content**, so a printed program packet carries a link where information belongs. That is a genuine loss and it should be written down rather than smoothed over.
-
-⏳ **Ruling 4 — and my recommendation is the boring one:** do **NOT** make print render a build-time `!!! data` table as a substitute. Two sources for one table is the mirror defect this repo keeps retiring, and they would disagree the first time the ClickUp view's filters changed. **Ship the link, name the limitation in the caption, and if print fidelity turns out to be the real requirement then the honest answer was `!!! data` all along and the live embed was the wrong build.**
+| Property | What it means for a page |
+|---|---|
+| 🔴 **Non-Form views share publicly from the EVERYTHING level, Business+**; Form views share from any level on any plan | If a view's Share modal has no *Share link with anyone*, the shareable equivalent is an Everything-level view with **filters** doing the scoping. This is where a build stalls in practice, and it is a two-second check in the modal. |
+| 🔴 **Public shares require third-party cookies** | Blocked by default in a growing number of browsers, and the affected reader is exactly the one not logged into the workspace. Unverifiable at build time. Mitigation is the `min-height` floor + the fallback link. **Acceptance test: load the page with third-party cookies OFF.** |
+| ⚠️ **The frame carries ClickUp's own chrome** — *Sign up free* / *Login* buttons, an *Embed ClickUp* label and logo | Inside a cross-origin iframe, so it cannot be removed (both are open feature requests). `caption:` is the cheap answer: label it as live ClickUp content so the chrome reads as provenance. |
+| ⚠️ **An iframe prints as a blank rectangle** | The fallback link renders **always**, not only for print — `forms.py` already does this and the reason is the print identity spec. For a form a printed link substitutes fine; for a table the content is genuinely absent on paper. Stated, not solved. |
+| 🔴 **A public share is public until revoked** | The link works for anyone who has it, is indexable if that toggle is on, and Owners/Admins on Enterprise can audit every shared item under Security & Permissions. **Recommend logging each share in the Access Tracking Decision Log so it can be revoked deliberately rather than discovered.** What is safe to publish is the author's call, per view. |
+| ⚠️ **A revoked or deleted share degrades to an empty frame with NO build finding** | Runtime behaviour of an external page is invisible at build time. The fallback link is the only thing distinguishing "loading" from "gone." |
 
 ---
 
-## §6 Files and sizes — measured at HEAD 2026-08-28, read back, not estimated
+## §5 Files and sizes — measured at HEAD 2026-08-29, read back, not estimated
 
 | File | Now | Change |
 |---|---|---|
-| `docrender/forms.py` | **11,740 B** | **+3–4 KB.** Second registry, one shared `_embed()`, second host constant. Lands ~15–16 KB, under the warn line. |
-| `mkdocs.yml` | **28,158 B** | **untouched — deliberately.** See §2. |
-| `objects/program.yml` | not measured this pass | +vocabulary for `views:`, if the key is type-gated the way `data:` slots are. ⏳ ruling 5. |
-| `docrender/datatable.py` | 16,566 B | **untouched.** `!!! data` is the build-time alternative, not part of this build. ⚠️ **§10 promotes it to a candidate for the index case.** |
-| `docrender/program.py` | 18,350 B | **untouched** unless `collapsed:` is wanted for views (recommend not — §0). |
-| `theme/` CSS | not measured | one `.dr-view__caption` rule, if ruling 6 lands. |
+| `docrender/forms.py` | **11,740 B** | **+3–4 KB.** Second registry, shared `_embed()`, `view_hosts:` read, `height:`/`caption:` keys. Lands ~15–16 KB, under the 18KB warn line. |
+| `mkdocs.yml` | **28,158 B** | **untouched — deliberately.** No hook registration. §2. |
+| `docrender/instance.py` | **23,047 B** | **untouched.** `view_hosts:` is READ off `state.INSTANCE`, never parsed per-key. §3. |
+| `instances/<slug>/` config | not measured | `+view_hosts:`, one line, once per site. |
+| `theme/` CSS | not measured | one `.dr-view__caption` rule. |
+| `docrender/datatable.py` | 16,566 B | **untouched.** `!!! data` remains the build-time table directive; unrelated to this build. |
 
-⚠️ **`mkdocs.yml` IS RECORDED IN `next-build-spec.md` AT 13,632 B "AT HEAD 2026-08-21" AND IS 28,158 B TODAY — a 106% drift in seven days.** That file already carries the scar *"a size written into prose is wrong within two days, every time, in this repo,"* and it has now been proven by its own most recently corrected number. **Measure at the moment you act; never quote a table.**
-
----
-
-## §7 ⏳ Rulings needed (six, plus three in §10)
-
-1. 🔴 **THE HOST — BLOCKING.** Paste the `Embed code` from a shared view's Sharing & Permissions panel. Nothing in this build can start without it. §1.
-2. **Does `forms-embed/v1.js` size a VIEW frame, or is that helper form-only?** If it is form-only, the frame has no dynamic height and `min-height` stops being a floor and becomes the height. **Recommend a fixed, declared `height:` key for views** rather than pretending the helper works. Verifiable in ten seconds from the pasted embed code — it either carries `clickup-dynamic-height` or it does not.
-3. **The public-safe-columns gate in §4 — is it a rule or a caution?** **Recommend: a rule**, plus an Access Tracking row per shared view.
-4. **Print.** **Recommend: fallback link only.** No second table. §5.
-5. **Is `views:` type-gated like `data:` slots, or universally available like `links:`?** `forms:` chose DECLARED-not-inferred and put its vocabulary in `objects/program.yml`. **Recommend: universal**, because unlike a completion form a live table is not a program-shaped idea.
-6. **Caption on or off by default?** **Recommend a `caption:` key, defaulting ON**, because the unremovable ClickUp chrome (§3c) needs explaining and a caption is the cheapest place to also carry "this is live."
+⚠️ **`mkdocs.yml` is recorded in `next-build-spec.md` at 13,632 B "at HEAD 2026-08-21" and is 28,158 B — a 106% drift in eight days**, on a file whose own scar reads *"a size written into prose is wrong within two days, every time, in this repo."* **Measure when you act; never quote a table.**
 
 ---
 
-## §8 Sequence
+## §6 ⏳ Rulings needed (three, and none of them block reading §1)
 
-1. **Michael pastes one real embed code.** Ruling 1 and ruling 2 both resolve off that single string.
-2. **Verify a non-Form view can actually be shared** on this workspace's plan, at the level the content wants (§3a). **If it cannot, the build stops here and `!!! data` is the answer.**
-3. **One page, one view, hand-checked in a browser with third-party cookies BLOCKED** (§3b). This is the acceptance test, and it is the one that decides whether the feature is real.
-4. Then the fold into `forms.py`, the caption, the report messages.
-
-🚫 **Do not start at step 4.** Steps 1–3 are all ClickUp-side and any one of them can cancel the code.
+1. **`caption:` default ON or OFF?** **Recommend ON** — the unremovable chrome needs explaining and the caption is also where "this is live" belongs.
+2. **Is `views:` type-gated like `data:` slots, or universal like `links:`?** **Recommend universal.** `forms:` is type-gated because a completion form is a program-shaped idea; an embedded view is not shaped like anything.
+3. **Does a view embed get a `print:` treatment beyond the fallback link?** **Recommend no**, and say so in the caption. A second, build-time copy of the same table would be a mirror that disagrees with the live one the first time a filter changes.
 
 ---
 
-## §9 Honest limits, stated up front
+## §7 Sequence
 
-- Nothing here can prove a shared view is live, still shared, or renders correctly. Same reduction as `forms.py` and `urllinks.py`: **the host and the scheme are checked and that is all.**
-- **A revoked share degrades to an empty frame with no build finding**, because an external page's runtime behaviour is invisible at build time. The fallback link is the only thing that tells a reader the difference between "loading" and "gone."
-- **The chrome, the cookie dependency and the Everything-level constraint are all ClickUp's, not ours.** No amount of engine quality fixes any of them, and a build report that implied otherwise would be lying.
+1. **Share one view and paste the embed code.** Its `src=` host → `view_hosts:`; its class list answers the `clickup-dynamic-height` question. **One string resolves both.**
+2. Fold into `forms.py`: `views:` registry, `!!! view`, shared `_embed()`, caption, report messages.
+3. **Acceptance test on one page, with third-party cookies BLOCKED**, and a print preview.
+4. Then use it wherever it is wanted. **Where that is, is not this document's business.**
 
 ---
 
-# §10 THE USE CASE — a public index of completion forms (2026-08-29)
+## §8 Recorded, not prescriptive: the program-index example
 
-> Michael, 2026-08-29: *"i'm going to make a table view of all the available completion forms with their autofilled links with their program id - then embed that as an index of available programs - instead of hand maintaining a tsv alongside the existing details. one source of truth filtered and displayed for public."*
+Michael's first use case was *"a table view of all the available completion forms with their autofilled links with their program id... one source of truth filtered and displayed for public."* **The tool serves that directly and the choice is his.** Two things were found while reading the live data on 2026-08-29 and they are recorded here because they are FACTS about the data, not arguments about the design:
 
-**The goal is right and the target is the wrong surface.** Killing a hand-maintained index is exactly correct — *every hand-maintained index in this fleet is on a growth curve toward unwriteable*, and that is a standing scar, not an opinion. Three findings, then a recommendation.
+- 🔴 **`Program_ID=ITPSAFE-1219` is on two different programs** in Programs (canonical) — *Key & Swipe Access* and *MEWP Training, for Instructors*. Submissions from those two cannot be told apart. **A compliance defect in the record, independent of any rendering decision, and worth fixing on its own.**
+- ⚠️ **`Program URL` disagrees with the site in three ways today**: two different URL shapes for one site, one 🌐 PUBLIC row with an empty URL, and one page (`30-programs/10-general/rehearsal.md`) carrying a completion form with no row at all. Whatever renders that field will render these.
 
-## §10a 🔴 IT IS NOT A BINARY, AND THE THIRD OPTION IS THE ONE HE ACTUALLY ASKED FOR
+⚠️ **Honest limit on the above:** read with closed tasks and subtasks excluded by default — six open non-subtask rows is what the query returned, **not a proven total.**
 
-The choice was framed as **live embed vs hand-maintained TSV**. There is a third shape and it is already in this engine:
-
-| | Hand-kept TSV | Live embed | **DERIVED index** |
-|---|---|---|---|
-| hand maintenance | 🔴 yes — the actual complaint | none | **none** |
-| survives blocked third-party cookies | yes | 🔴 **no** | **yes** |
-| prints | yes | 🔴 **no** — blank rectangle | **yes** |
-| can list a program that has no page | ⚠️ yes | ⚠️ **yes** | **impossible** |
-| carries ClickUp login chrome | no | ⚠️ yes | **no** |
-| updates without a publish | no | ✅ **yes** | no |
-
-**Every program page already declares its own form src, with the `Program_ID` on it, in `forms:` frontmatter.** The engine reads all of it into `state.BY_SRC` on every build. So an index of *"available programs and their completion forms"* is **derivable from the pages themselves at zero maintenance cost** — and `30-programs/index.md` already carries **`contents: auto`**, so the auto-index mechanism is not even new (`docrender/objects.py` documents the key).
-
-⭐ **The decisive property is not freshness, it is that a derived index CANNOT LIE ABOUT WHAT EXISTS.** It is built from the pages, so a program with no page cannot appear and a page with a form cannot be missing.
-
-## §10b 🔴 THE SETS ALREADY DISAGREE, AND I READ IT RATHER THAN PREDICTING IT
-
-The **Programs (canonical)** list holds **six open rows** today. Four defects, all live, all of which an embedded public index would publish:
-
-1. 🔴 **ONE `Program_ID` ON TWO DIFFERENT PROGRAMS.** *Key & Swipe Access* and *MEWP Training, for Instructors* both carry `Program_ID=ITPSAFE-1219`. **Submissions from those two programs can never be told apart** — that is a compliance defect in the RECORD, not a display problem, and it is the most important thing on this page. Neither row is PUBLIC, so the embed would hide it rather than fix it.
-2. 🔴 **TWO URL SHAPES FOR ONE SITE.** *MEWP Training, for Students* points at `/uritp-safety/programs/mewp-students/`; *General Safety for All* points at `/uritp-safety/30-programs/general-safety-for-all/`. **Both cannot be right**, and the source file behind the second is `30-programs/10-general/for-all.md` — a third shape. `Program URL` is a hand-typed URL field that **nothing validates**.
-3. ⚠️ **A PUBLIC ROW WITH AN EMPTY LINK.** *General Safety for Scene Shop* is flagged 🌐 PUBLIC with no `Program URL`, though its page exists and carries `ITPSAFE-1242`. In an embedded index that is a visible row pointing nowhere.
-4. ⚠️ **A PAGE WITH A FORM AND NO ROW.** `30-programs/10-general/rehearsal.md` carries the completion form link in its own frontmatter and has **no row in the list at all** — so it would be absent from the index while being present on the site. ⚠️ Related: *Incident Reporting* is PUBLIC, its form carries **no `Program_ID`**, and its page lives under `20-policies/` — against `30-programs/index.md`'s own opening line, *"a completion form accompanies a program and not a policy."*
-
-🔴 **THE GENERALIZATION, AND IT IS THE WHOLE FINDING: MOVING A HAND-MAINTAINED INDEX INTO A CUSTOM FIELD DOES NOT DELETE THE HAND MAINTENANCE, IT RELOCATES IT SOMEWHERE THE BUILD REPORT CANNOT SEE IT.** The TSV had exactly one virtue — it sat in the content repo, so the engine could validate it and `dead_links` would complain. A `Program URL` typed into ClickUp is checked by nobody, and defects 2 through 4 are what that looks like after a few weeks. **A source of truth is not a source of truth because it is singular; it is one because something falsifies it.**
-
-## §10c ClickUp IS canonical — for the RECORD, not for the SITE'S TABLE OF CONTENTS
-
-The counter-argument, stated fairly because it is strong: the list owns fields the pages genuinely do not have — `🌐 PUBLIC`, `on Form Dropdown`, `Roles Affected`, `Role RESPONSIBLE`, `Completed Programs Submissions`. **That is real program metadata with no home in a markdown file, and it means ClickUp authoring is not a duplicate.**
-
-So the split that holds, in this repo's existing canonical / generated / projection vocabulary:
-
-- **ClickUp is CANONICAL for the program RECORD** — who owns it, which roles it touches, whether it is public, what has been submitted against it.
-- **The SITE is CANONICAL for what is ON the site.** A page exists or it does not; nothing in ClickUp can be more authoritative about that.
-- **`🌐 PUBLIC` is a publishing DECISION, and a decision should travel into the page** (it maps onto the `status:` field `visibility.py` already gates every build on) **rather than into a live frame the site cannot verify.**
-- **`Program URL` should be DERIVED or DELETED.** It is the field that rotted, and the engine already knows every page's real URL.
-
-## §10d ⏳ Rulings needed (three more)
-
-7. 🔴 **Which surface is the program index: DERIVED from pages, or a live embed?** **Recommend DERIVED**, and it is not a close call — an index is NAVIGATION, and navigation that depends on third-party cookies degrades to a fallback link where the table of contents belongs. **A live embed is right for a table whose rows change independently of the site's pages and that nobody prints. A program index is the opposite of all three.**
-8. **Then what IS the live embed for?** ⭐ **Recommend keeping BUILD 7 and pointing it at the submission side** — *"who has completed this program,"* a genuinely live table that no page can derive, sitting on an internal-audience page. ⚠️ But that is precisely the named-people case §4 forbids in public, so it lands **only** behind an unlisted page or not at all. **This is the honest tension in the whole build and it should not be resolved by pretending §4 is softer than it says.**
-9. **The four defects in §10b — fix before or after?** **Recommend BEFORE, and treat defect 1 as urgent independently of this build.** 🚫 **Not touched in this pass by design:** a duplicated `Program_ID` is a compliance fact about two real programs, and picking which one gets renumbered is Michael's call, not a cleanup. Whichever index ships will publish these defects — the derived one at least cannot invent a fifth.
-
-⚠️ **Honest limit on §10b:** read from the list on 2026-08-29 with closed tasks and subtasks excluded by default. **Six rows is what an open, non-subtask query returned, not a proven total** — if programs live as subtasks or closed rows, the set is larger and the disagreement with the site is worse, not better.
+🚫 **No fix was attempted and none is proposed here.** Which program gets renumbered, and whether `Program URL` stays hand-typed, are Michael's calls.
