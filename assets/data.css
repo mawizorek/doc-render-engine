@@ -12,12 +12,27 @@
  * assets/data-list.css, which is a FEATURE layer rather than a second copy: it
  * touches only .dr-data--list and only inside a container query.
  *
- * ⚠️ SECOND LEGITIMATE NEIGHBOUR SINCE 2026-08-28, IN THE PRINT GROUP: print.css
- * turns this table's four backgrounds off (they printed as blobs) and
- * print-chrome.css uncages the scroll box (`max-height`, `overflow`,
- * `container-type`, `width`, `white-space`), because on paper a scroll box is a
- * CROP. A medium is a layer, not a second claimant -- but 🔴 the same declaration
- * must never appear in both places. Paper exception goes there, pointer goes here.
+ * =========================================================================
+ * ⚠️ PAPER IS THE PRINT GROUP'S, AND THIS IS THE ONLY POINTER TO IT
+ * =========================================================================
+ * EVERY rule below is written for a SCREEN. On paper, `print.css` turns this
+ * table's four backgrounds off (they printed as blobs) and `print-chrome.css`
+ * uncages the scroll box -- `max-height`, `overflow`, `container-type`, `width`,
+ * `white-space`, `position` -- because a scroll box on a sheet is a CROP, not a
+ * panel. Both carry the full argument; neither is repeated here.
+ *
+ * 🔴 AND THIS SENTENCE REPLACED FOUR SCATTERED ONES ON 2026-08-28, which is the
+ * only reason the file still reads whole. The paper notes were first written into
+ * the header, the frozen first column, the marker rule, the container query and the
+ * viewport rule -- five pointers at one fact, in the file whose own header forbids
+ * exactly that. **Trimming their prose recovered less each time; deleting four of
+ * them recovered the file.** ⚑ *A size problem that survives two trims is a
+ * structure problem, and a cross-reference repeated per rule is the cheapest kind
+ * to build and the easiest to miss.*
+ *
+ * 🚫 So do not re-add a paper note beside a rule. If a screen rule here needs a
+ * paper exception, the exception goes in the print group and this pointer already
+ * covers it. The same DECLARATION must never appear in both places.
  *
  * Consumes --dr-* tokens only. A site retunes every colour, font, measure and
  * currency symbol from its own theme.css and never edits this file.
@@ -127,7 +142,7 @@
  * base row can reach is a global constant wearing a dial's clothes.** 🚩 That filter
  * is still open for `data-font`, `data-size` and `measure`.
  *
- * Full argument, measurements and the flags in the PR that shipped this.
+ * Full argument, measurements and flags in the PR that shipped this.
  * ------------------------------------------------------------------------ */
 .md-typeset .dr-data__table th,
 .md-typeset .dr-data__table td,
@@ -181,10 +196,6 @@
  * A num or money column is never an identifier -- `sheet.classify_columns` and
  * the `::type` declaration both already know which columns those are, so the
  * question is answerable rather than guessed.
- *
- * ⚠️ BOTH HALVES ARE OFF ON PAPER. The surface printed as a blob, and this shadow
- * -- the only semi-transparent value in the file -- as a grey smear down the seam.
- * The edge says THE BOX SCROLLS, and paper does not scroll.
  * ------------------------------------------------------------------------ */
 .dr-data__table tbody td:first-child {
   position: sticky;
@@ -329,11 +340,8 @@
  * ⚑ THIRD TIME nowrap has been correct for VALUES and wrong for PROSE (see the
  * column kinds above, and PR #50). The pattern is not that nowrap is wrong -- it
  * is that a rule written for the short case gets applied to the long one by
- * inheritance, and nothing about the rule says which case it was for.
- *
- * ⚑ FOURTH TIME ON PAPER, 2026-08-28: the nowrap VALUE columns are unbreakable in
- * a cell that can neither grow nor scroll, so they cropped at the sheet edge.
- * print-chrome.css wraps them. First instance where the long case was the MEDIUM.
+ * inheritance, and nothing about the rule says which case it was for. A FOURTH
+ * arrived on paper in 2026-08-28, where the long case was the MEDIUM.
  *
  * Scoped INSIDE .dr-data only. Page prose is untouched, the box shape survives,
  * and a marked note still reads as marked -- it just breaks like text.
@@ -443,13 +451,6 @@
  * nobody could say what it was. 640px is below every phone (390-430) and 116px
  * clear of this site's real desktop content column (~756px), where 45em was
  * firing list mode on a 1457px desktop.
- *
- * ⚠️ AND IT CANNOT FIRE ON PAPER AT ALL SINCE 2026-08-28: print-chrome.css sets
- * `container-type: normal` so a printed table can fragment instead of being
- * cropped, and a box that is not a container answers no query. print.css's 12mm
- * margin was justified almost entirely by keeping the sheet above this threshold,
- * so that danger is now structural rather than arithmetical. 🚩 Its comment is not
- * yet corrected -- that file has 296 B of headroom.
  * ------------------------------------------------------------------------ */
 @container dr-table (max-width: 640px) {
   .md-typeset .dr-data__table td.dr-col--prose,
@@ -470,20 +471,15 @@
  * sideways; a 78vh box that swallows a vertical swipe is the worst thing on this
  * page on a small screen and the best thing on it on a large one.
  *
- * ⚠️ AND `vh` IS WHY THE PRINT GROUP HAD TO UNCAGE THIS BOX: a vh is a fraction of
- * the PAGE BOX on paper, so this cropped a printed table at roughly eight inches
- * with no scrollbar to reveal the rest. *A unit chosen because it asks about the
- * glass gets a confident wrong answer where there is no glass.*
- *
  * WARNING: EVERY DEFECT THIS FILE FIXES WAS FOUND ON A PHONE AND WAS INVISIBLE ON
  * A LAPTOP, three times in two days (see base.css on the double nav rule, and
  * router.css on the revealed menu). The engine has a build report, a size gate, a
  * leak scan and a contrast gate, and nothing that looks at a rendered page at
  * 390px. Until it does, this is where the phone gets thought about on purpose.
  *
- * ⚑ PAPER IS THE FOURTH SUCH SURFACE AND THE WORST: the clipping was found by
- * reading stylesheets while answering a different question, and nothing in CI can
- * look at a printed sheet at all.
+ * ⚑ PAPER IS THE FOURTH SUCH SURFACE AND THE WORST: a `vh` cage cropped every
+ * long printed sheet, it was found by reading stylesheets while answering a
+ * different question, and nothing in CI can look at a printed page at all.
  * ------------------------------------------------------------------------ */
 @media screen and (max-width: 44.9375em) {
   .dr-data { max-height: none; }
