@@ -27,6 +27,44 @@ reason -- so the stamp names the build without offering a door to it.
 
 
 =============================================================================
+🪦 THE CORNER MARK IS SITE + DATE, AND IT IS NOT NEGOTIABLE (2026-08-28)
+=============================================================================
+> Michael, on a corner mark reading `URITP Safety · General Safety for All ·
+> 28 Aug 2026`: *"ew ew ew ew FUCK that header of all that additional text. NO.
+> just site name and date, like before."*
+
+~~The corner mark names the program.~~ Shipped in PR #182, reverted in #184,
+live for about seven minutes.
+
+🔴 THE ARGUMENT FOR IT WAS SOUND AND THE ARGUMENT WAS NOT THE POINT. It went: the
+flow strip stopped printing, `program.py` calls the program name its payload, so
+the name should survive onto the one printed line that already carries provenance.
+Every step of that is true. **What it never asked is whether the corner mark had
+room for a third fact.**
+
+⚑ GENERALISES, AND IT IS THE MORE USEFUL HALF: A LINE THAT CARRIES TWO FACTS IS A
+STAMP. A LINE THAT CARRIES THREE IS A HEADER. The difference is not length, it is
+what a reader does on meeting it -- a stamp is glanced at and dismissed, a header
+is read. Adding a third clause silently changed the ELEMENT, not just its content,
+and nothing in the reasoning about payloads could have caught that. 🚫 *"This fact
+belongs on that line" is an argument about the FACT. Whether the line can take it
+is a separate question and it has to be asked separately.*
+
+⚠️ AND THE ORIENTATION GAP IT WAS SOLVING IS REAL AND IS NOW SIMPLY OPEN: a
+printed policy sheet does not say which program handed it to a reader. 🚩 That is
+not a licence to put it back here. If it is ever wanted on paper it needs its own
+element with its own placement decision -- most likely beside the h1, where a
+document's own subtitle would go -- and Michael rules on that, not this file.
+
+🚫 `program.flow_names()` WAS DELETED IN THE SAME PASS rather than left for a
+future caller. Its only consumer was the line above; an exported function with no
+caller is exactly the dead surface this engine kills on sight, and keeping it "for
+when we do this properly" is how `sort:` sat inert in eleven content files.
+`_participation()` STAYS -- it is a genuine internal refactor that `_strips` uses
+and it removed a duplicate walk.
+
+
+=============================================================================
 🔴 IT NEVER PRINTED. FIXED 2026-08-19 BY MOVING IT OUT OF THE FOOTER ENTIRELY.
 =============================================================================
 This hook used to hand its markup to `config.copyright`, which Material renders
@@ -90,43 +128,12 @@ page on screen and revealing the foot disclosure. Correct for these documents --
 the date is the provenance a reader actually needs -- but if a printed sheet ever
 has to be traced back to a specific build, THIS is the decision to revisit.
 
-
-=============================================================================
-⭐ THE CORNER MARK NAMES THE PROGRAM (2026-08-28)
-=============================================================================
-    URITP Safety · General Safety for All · 28 Aug 2026
-
-🔴 IT IS A REPLACEMENT, NOT AN ADDITION, AND THAT IS WHY IT IS ALLOWED. The same
-evening `.dr-flows` joined print-chrome.css's chrome-off list, so the flow strip
-no longer prints -- and `program.py`'s own claim is that *"the PROGRAM NAME is the
-payload; the arrows are the instruction."* Only the instruction is meaningless on
-paper. ⚑ *When a medium drops an element, ask which of its facts were about the
-MEDIUM and which were about the DOCUMENT.* The arrows were about the medium. The
-name was not, and it was about to be lost with them.
-
-✅ AND IT LANDS ON THE ONE LINE THAT ALREADY DOES THIS JOB. The corner mark exists
-because *"a printed sheet leaves the system entirely"* -- site name so a reader
-can place it, date so a reader can age it. Which program handed it to them is the
-third question in exactly that family, and a reader holding one sheet of a
-nine-page program has no other way to answer it.
-
-🔴 IT ASKS `program.py` RATHER THAN DERIVING. `flow_names()` shares
-`_participation()` with the strip renderer, so the printed names and the screen
-strips cannot disagree. A second walk over `nav.declared()` here would agree today
-and drift the first time either side changed -- and **nobody can diff a piece of
-paper against a page**, which makes this the worst available place for that drift.
-
-⚠️ THE DATE IS STILL COMPUTED ONCE PER BUILD AND ONLY THE NAME IS PER PAGE, which
-is the whole reason `_STAMPED` survives as module state. The original rule stands:
-a build spanning midnight must not stamp two different dates onto one site. ⚑ *Per
-page is not the same as per fact -- the thing that varies is the one that has to
-be recomputed, and nothing else.*
-
-⚠️ A PAGE IN THREE PROGRAMS NAMES ALL THREE, comma-joined, and that is a real
-cost. The SCREEN caps the strips at one open plus a disclosure; a printed line
-cannot collapse, so a borrowed policy in several programs gets a long stamp. 🚩 If
-that becomes ugly the answer is a cap with a count (`+2 more`), not a silent
-truncation -- naming two of three programs is worse than naming none.
+⚠️ AND THE 08-28 REVERT ABOVE IS THE SECOND TIME THIS LINE HAS BEEN TRIMMED BY
+RULING, WHICH IS WORTH SEEING AS A PATTERN RATHER THAN TWO INCIDENTS. First the PR
+number came off it, then a program name went on and came straight back off. **Both
+additions were defensible and both were refused on sight.** 🚩 The next person with
+a fact that "belongs" on this line should read that as the standing answer: it is
+full, and it has been full twice.
 
 
 =============================================================================
@@ -149,6 +156,11 @@ PR number alone -- it either matches the last merge or it does not. The timestam
 and both SHAs were things I could compute rather than things the question needed,
 and the give-away is that they had to be joined with separators to fit on a line.
 *A debugging readout that needs punctuation is carrying more than one fact.*
+
+⚠️ AND THAT SENTENCE PREDICTED THE 08-28 REVERT WORD FOR WORD, on a different
+element, and I did not hear it while writing the thing it condemned: the corner
+mark's third clause needed a second `·` to fit on the line. **The tell was already
+written down in this same docstring.**
 
 ⚠️ WHAT IS GENUINELY LOST, STATED RATHER THAN GLOSSED: the ENGINE ref. Content
 and engine are separate repos with separate deploys, so "the content is current
@@ -219,9 +231,11 @@ are each read exactly once per build; the two nodes SELECT from those values
 rather than recomputing them. They cannot drift, and the mutually exclusive media
 scoping means a reader always sees exactly one stamp.
 
-⚠️ THE PROGRAM NAME IS THE ONE EXCEPTION AND IT IS NOT A SECOND CLAIMANT: it is
-per-PAGE data by nature, and its single source is `program.py`. What stayed once
-per build is everything that is a property of the BUILD.
+✅ AND BOTH NODES ARE BUILT ONCE AT `on_config` AGAIN, as of the 08-28 revert. The
+program name was the only per-PAGE fact either of them ever held, and composing
+the corner mark per page was the machinery that carried it. **With the fact gone,
+the machinery goes too** -- the original rule stands undiluted: a build spanning
+midnight must not stamp two different dates onto one site.
 
 ⭐ WHY THE CORNER COPY MUST BE FIRST IN THE FLOW, WHICH IS THE WHOLE MECHANISM.
 An element appended at the END of the content cannot be moved to the TOP of sheet
@@ -243,6 +257,11 @@ IT. `uritp-safety/90-media-logos/` holds two JPEGs, both already reachable as
 which does not exist yet. When it does, the image lands as a print-scoped
 `background-image` on `.buildstamp--corner`.
 
+🚩 AND IT IS THE ONE ADDITION THIS LINE HAS NOT ALREADY REFUSED, which is worth
+noting beside the two it has: a logo is not a third CLAUSE of text, it is a mark.
+The 08-28 objection was to reading a header; a background image adds nothing to
+read. That is an argument, not a permission.
+
 🚫 AND `config.copyright` STAYS UNSET. Material renders it inside the footer
 region, which is the place this hook exists to have escaped.
 """
@@ -253,8 +272,6 @@ import datetime
 import html
 import os
 import re
-
-from . import program
 
 _PR = re.compile(r"#(\d+)")
 
@@ -272,10 +289,9 @@ _ICON = (
     'l1.1 1.1L7.6 7.5ZM8 10.2h4.2v1.5H8Z"/></svg>'
 )
 
-#: Properties of the BUILD, read once at `on_config`. The corner mark is composed
-#: per page because one of its three facts is per page; these two are not.
-_NAME = ""
-_STAMPED = ""
+#: The two rendered elements, built once at `on_config`. See the docstring on why
+#: they carry different text and why that is still one claimant.
+_CORNER = ""
 _FOOT = ""
 
 
@@ -304,36 +320,8 @@ def _label() -> str:
     return "unstamped"
 
 
-def _corner(page, files) -> str:
-    """The printed corner mark: site · program(s) · date.
-
-    🔴 PER PAGE ONLY BECAUSE THE PROGRAM NAME IS. The site name and the date are
-    read once at `on_config` and only selected here -- see the docstring on why a
-    build spanning midnight must not stamp two dates onto one site.
-
-    ⚠️ NEVER RAISES. A stamp is furniture on every page of every site, so a chain
-    that cannot be resolved must cost the program name and nothing else. The
-    failure mode is the stamp this file shipped for nine days.
-    """
-    parts = [_NAME] if _NAME else []
-    try:
-        names = program.flow_names(page, files)
-    except Exception:
-        names = []
-    if names:
-        parts.append(", ".join(names))
-    if _STAMPED:
-        parts.append(_STAMPED)
-    if not parts:
-        return ""
-    return (
-        '<p class="buildstamp buildstamp--corner" hidden>'
-        + html.escape(" \u00b7 ".join(parts)) + "</p>"
-    )
-
-
 def on_config(config):
-    global _NAME, _STAMPED, _FOOT
+    global _CORNER, _FOOT
 
     label = _label()
 
@@ -344,21 +332,29 @@ def on_config(config):
 
     # The site name travels with the printed copy, because a printed sheet leaves
     # the system entirely and a bare date names nothing a reader can place.
-    _NAME = str(getattr(config, "site_name", "") or "").strip()
+    name = str(getattr(config, "site_name", "") or "").strip()
 
     # 🔴 PAPER GETS THE DATE AND NOT THE BUILD. See the docstring: a PR number is
     # provenance for the builder and unreachable plumbing for the reader.
-    _STAMPED = when.strftime("%d %b %Y")
+    #
+    # 🚫 TWO FACTS. NOT THREE. The 2026-08-28 revert is in the docstring, and the
+    # short version is that a third clause turns a stamp into a header.
+    stamped = when.strftime("%d %b %Y")
+    corner = (name + " \u00b7 " + stamped) if name else stamped
 
     # ⚠️ NO `title` ON EITHER NODE. On the corner it was never readable (paper has
     # no hover); on the foot it would draw a second tooltip over the popup.
-    #
+    _CORNER = (
+        '<p class="buildstamp buildstamp--corner" hidden>'
+        + html.escape(corner) + "</p>"
+    )
+
     # 🚫 A `<span>` WITH `tabindex`, NOT A BUTTON: there is nothing to activate.
     # The popup is hidden with `opacity` rather than `display`, so it stays in the
     # accessibility tree -- see the docstring.
     _FOOT = (
         '<p class="buildstamp buildstamp--foot">'
-        + (html.escape(_NAME) if _NAME else "")
+        + (html.escape(name) if name else "")
         + '<span class="buildstamp__debug" tabindex="0">'
         + _ICON
         + '<span class="buildstamp__pop">' + html.escape(label) + "</span>"
@@ -384,8 +380,7 @@ def on_page_content(html_body, page, config, files):
 
     ⚠️ AND IT LANDS AHEAD OF `program.py`'s ARRIVAL MARKERS, which is safe: those
     promotion rules need the marker and `.dr-flows` to be SIBLINGS, and another
-    sibling in front of both changes nothing. Hook 07 runs after 05b, so the
-    strips are already in `html_body` by the time this prepends.
+    sibling in front of both changes nothing.
 
     Unconditional on purpose. `pagefoot.py` skips generated pages because there
     is no source file to offer an edit link for; a build stamp has no such
@@ -394,4 +389,4 @@ def on_page_content(html_body, page, config, files):
     """
     if not _FOOT:
         return html_body
-    return _corner(page, files) + html_body + _FOOT
+    return _CORNER + html_body + _FOOT
