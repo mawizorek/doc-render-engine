@@ -94,6 +94,13 @@ aliases: [uritp-docs, "URITP PRP", "URITP Production Resources", prp]
 # chrome-off list and the corner stamp have never actually reached paper on any
 # site. They do now. **Whatever the printed sheets looked like before today is
 # not evidence of what they will look like next publish.**
+#
+# 🔴 AND THAT "NOT BUILT" CLAUSE WENT STALE ON 2026-08-29 AND COST A ROUND ON
+# 2026-08-30. The letterhead IS built, and it was declared on `uritp-safety`
+# only -- so this site printed no mark while its sibling did, which is exactly
+# the per-site header difference the paragraph above calls out. It is declared
+# below now. ⚑ *A sentence that says a feature does not exist is a fact with an
+# expiry date, and nothing fails when it passes.*
 
 # theme: uritp
 # theme: sharp-utility
@@ -118,6 +125,102 @@ theme: eos
 # every reader. Contrast is fine (14.59:1); the AFFORDANCE is gone. One cell in
 # maw-themes `canonical/colors.tsv`. Not fixed here -- maw-themes is canonical
 # and this is an engine instance file.
+#
+# 🔴 AND THE `owner:` BLOCK BELOW JUST GAVE IT A NEW READER, same as it did on
+# `uritp-safety`: the ownership tag ends in a `mailto:` ANCHOR at the foot of
+# every page, so on the light row that address is now indistinguishable from the
+# prose beside it. The tag does not cause the defect and does not change its fix;
+# it removes the last excuse for calling it cosmetic. Print strips link colour
+# (print-type.css §5), so this is a SCREEN defect only.
+
+
+# =============================================================================
+# ⭐ THE PRINTED LETTERHEAD (declared here 2026-08-30; feature built 2026-08-29)
+# =============================================================================
+# The mark that prints at the top-left of sheet one, beside the site name and
+# the period. `docrender/buildstamp.py` resolves it; `assets/print-identity.css`
+# lays it out. Full account: `docrender/buildstamp-dl.md` § THE LETTERHEAD.
+#
+# 🔴 THE VALUE IS THE **STEM** OF A FILENAME. NOT A PATH, NOT AN EXTENSION. It
+# resolves through the same index `@img:` uses, which walks every image in the
+# CONTENT tree before any page renders, so the file can live anywhere in
+# `mawizorek/uritp-docs` and this line never has to know where.
+#
+# ✅ VERIFIED PRESENT BEFORE DECLARING: `90-media-logos/logo-horizontal.jpg`
+# (171,760 B) exists on `uritp-docs@main`. A stem naming no file prints no
+# letterhead and reports it -- so this was checked rather than copied across on
+# the assumption that two URITP repos hold the same assets.
+#
+# 🔴 TWO FILES SHARING THIS STEM DISABLE THE LETTERHEAD ENTIRELY. `logo-square.jpg`
+# sits beside it and is a DIFFERENT stem, so there is no collision today. Adding
+# a `logo-horizontal.svg` would make the name ambiguous and the corner would
+# silently lose its mark -- **an SVG must REPLACE the JPEG, not join it.**
+#
+# ⚠️ AND THIS IS THE HEADER HALF OF WHAT `uritp-safety` GOT. It is declared here
+# because a printed sheet from either URITP site should carry the same furniture;
+# it is a PER-SITE key because a mark is an organisation's identity and the engine
+# must not assume ours. Absent means no letterhead, which is still the default for
+# `hml`, `mawprose`, `theatre` and `template`.
+print:
+  logo: logo-horizontal
+
+
+# =============================================================================
+# ⭐ THE OWNERSHIP TAG (declared here 2026-08-30) -- ONE FOOTER LINE, TWO ENDS
+# =============================================================================
+# On every page of this site:
+#
+#     Revised Aug 2026        Posted by Michael A Wizorek
+#                          michael.wizorek@rochester.edu
+#
+# `docrender/lede.py` `owner()` draws it; `assets/foot.css` floats it right of
+# the revision line, which keeps its own left position, font, size and colour.
+# `print-space.css` §9 excludes it from justification -- without that exclusion
+# it prints flush LEFT, which is a real defect the sibling site hit first.
+#
+# 🔴 WHY IT WAS MISSING HERE, AND IT IS THE ANSWER TO A REAL QUESTION MICHAEL
+# ASKED THE SAME DAY: *"why didnt URITP ProductionResources doc render site not
+# take the same header and footer alterations ... i thought that was the whole
+# point of the renderer?"*
+#
+# **The renderer DID share everything it owns.** This site was already serving
+# the identical bytes -- `foot.63f3ef78.css` (18,194 B) and
+# `print-space.c1041ead.css` (21,654 B), byte-for-byte the sibling's sheets. The
+# MECHANISM travelled on the next publish with no per-site work at all, which is
+# exactly the point of the engine.
+#
+# ⚑ **What did not travel is the DECLARATION, because a name and an address are
+# IDENTITY and identity is per-site by design.** `owner()` returns an empty
+# string when the key is absent, so the tag rendered nothing here and nothing was
+# reported -- the same absent-means-off polarity `print:` and `routes.yml` have.
+# The engine shares MACHINERY; a site still has to say who it belongs to.
+#
+# 🔴 THE HONEST PART: that polarity was a deliberate choice made on 08-30 and
+# written up as *"five of six sites are untouched by this landing"* -- stated as a
+# feature, and nobody was asked whether the OTHER URITP site wanted it. **A
+# default that is documented is still a default that was never agreed.** The two
+# URITP sites share an audience and an author, so on this pair the answer was
+# always going to be yes.
+#
+# ⚠️ THE ENGINE OWNS THE WORD `Posted by`. This block holds a name and an address
+# and nothing else, which is what keeps the phrasing identical across both sites
+# and every sheet in a printed packet. 🚩 Do NOT add a label key here -- a per-site
+# LABEL is the one thing the header/footer-content rule above forbids.
+#
+# ⚠️ THE ADDRESS IS THE WORK ONE, ON PURPOSE, and the spelling is `wizorek`. A
+# dictated `michael.wazorek@` was caught on the sibling site before it shipped;
+# `mawizorek@gmail.com` is the personal account and was refused for this surface.
+# Copied from `instances/uritp-safety/site.yml` rather than retyped.
+#
+# ⚠️ WHAT THIS TAG DOES NOT DO: it claims MAINTENANCE without proving any. It
+# renders unconditionally while `revised:` stays optional, so a page with no date
+# carries a named owner and no evidence anybody has looked at it since -- and this
+# tree is the LARGER of the two, so the exposure is bigger here. Raised 08-30 and
+# deferred by Michael to the revision-log / update-cycle conversation. Not fixed,
+# and not to be read as fixed.
+owner:
+  name: Michael A Wizorek
+  email: michael.wizorek@rochester.edu
 
 
 # THE LAST DOOR BACK TO THE SOURCE, NOW SHUT (2026-08-21).
@@ -139,6 +242,11 @@ theme: eos
 # is CONTENT, and consistent content across sites is exactly what was asked for.
 # The palette was never that.
 #
+# ⭐ AND IT IS THE PRECEDENT THE `owner:` BLOCK ABOVE SHOULD HAVE BEEN READ
+# AGAINST ON 08-30. The same side-by-side comparison, the same pair of sites, the
+# same conclusion: **footer content that differs between these two is a defect,
+# not a feature.** That ruling was eleven days old and sitting in this file.
+#
 # 🔴 AND IT WAS NEVER A PRINT FIX, WHICH MATTERS BECAUSE THAT IS THE QUESTION IT
 # CAME OUT OF. `assets/print-chrome.css` already hides `.pagefoot` and
 # `.pagefoot__rule` in its chrome-off list with `!important`, so the edit line
@@ -146,7 +254,12 @@ theme: eos
 # reading this while chasing a difference between two PRINTED sheets is in the
 # wrong file -- the printed corner stamp is `docrender/buildstamp.py`.
 #
-# ⚠️ THE OTHER TWO SITES STILL DEFAULT ON. `pagefoot.py` `_enabled()` treats a
+# ⚠️ AND THE OWNERSHIP TAG IS NOT GOVERNED BY THIS KEY. They are both foot lines
+# about where a page came from and they are opposites: the edit line is
+# SCAFFOLDING for a builder, hidden on paper and switched off here; the tag is
+# CONTENT for a reader, and paper is the surface it was built for.
+#
+# ⚠️ THE OTHER SITES STILL DEFAULT ON. `pagefoot.py` `_enabled()` treats a
 # missing key as `true`, so `hml`, `mawprose`, `theatre` and `template` keep the
 # line until each one opts out. Not swept here on purpose: `template` is the
 # engine's own gold standard and a developer-facing site is exactly where the
