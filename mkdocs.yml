@@ -237,12 +237,29 @@ markdown_extensions:
   # speculatively: an unverified rule on a live sheet is a guess wearing a fix's
   # clothes, and one print test settles it.
   #
-  # ⚠️ `custom_checkbox` IS STILL ABSENT, AND NOW DELIBERATELY RATHER THAN BY
+  # ⚠️ `custom_checkbox` IS ON AS OF 2026-08-30 (Michael's call). The warning
+  # below is SUPERSEDED, not wrong -- struck rather than deleted, because a
+  # superseded constraint and a violated one look identical in a config file.
+  #
+  # ~~`custom_checkbox` IS STILL ABSENT, AND NOW DELIBERATELY RATHER THAN BY
   # DEFAULT. Material recommends it and it may make the print problem WORSE, not
   # better: it replaces the native control with a `mask-image` icon painted by
   # `background-color`, and a background is precisely what a printer drops. The
   # native control is the one with a chance of being printed as a control. Test
-  # before reaching for it.
+  # before reaching for it.~~
+  #
+  # 🔴 WHY: a bare native control is drawn by the browser's widget renderer, so
+  # its box does not scale with `font-size` and sits on the text BASELINE -- small
+  # and low beside large type. Read off BUILT OUTPUT, not reasoned: the markup was
+  # `<li class="task-list-item"><input type="checkbox"/>`, no `task-list-control`
+  # wrapper, which is what Material's checkbox CSS is written against. ⭐ The
+  # alignment was never ours to style -- the element Material centres was not
+  # being emitted, and this engine ships no task-list rules (grepped).
+  #
+  # 🚩 THE STRUCK PRINT HAZARD IS NOW LIVE, in the inverted direction this block
+  # already warns about. ONE PRINT TEST WITH A TICKED BOX IS OWED; if the tick is
+  # gone, aim the `print-color-adjust: exact` selector above at the INDICATOR
+  # rather than the input.
   #
   # 🪦 THE OPTION THIS COMMENT USED TO NAME WAS THE WRONG ONE. It said the plain
   # disabled inputs were because ~~`custom_checkbox` is deliberately absent~~.
@@ -252,6 +269,7 @@ markdown_extensions:
   # file somebody would open to change this behaviour.
   - pymdownx.tasklist:
       clickable_checkbox: true
+      custom_checkbox: true
 
 # ⚠️ ORDER IN THIS LIST IS THE RUN ORDER, and six chains depend on it.
 #
