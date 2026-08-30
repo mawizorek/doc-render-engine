@@ -2,9 +2,56 @@
 #
 #   Theatre Administrator · Production Manager · Technical Director
 #
-# Referenced from any other page as `[the words you want](@role:<id>)`, which
-# renders as a terminology-coloured link and reveals `gloss` on hover. See
-# specs/hover-text.md and docrender/markerlinks.py.
+# ===========================================================================
+# MAKING ONE. Copy this, change four values, save it anywhere in the tree.
+# ===========================================================================
+#
+#     ---
+#     id: theatre-administrator
+#     type: role
+#     title: Theatre Administrator
+#     status: public
+#     summary: Who to see about building access, keys and the master calendar.
+#     gloss: Holds the master key set and issues building access.
+#     ---
+#
+#     The Theatre Administrator manages building access, room bookings and the
+#     master calendar. Come to this office for a key, a swipe card, or to book
+#     a space outside production hours.
+#
+# `id` is the only value another page ever types, so pick it once and never
+# change it -- that promise is what makes moving or renaming the file safe.
+#
+# ---------------------------------------------------------------------------
+# REFERENCING IT, which is the whole point of the type:
+#
+#     Go get your keys from the [Theatre Administrator](@role:theatre-administrator).
+#
+# The link text is yours -- write whatever the sentence needs. All of these are
+# the same reference:
+#
+#     ...ask the [Theatre Administrator](@role:theatre-administrator)
+#     ...ask the [administrator](@role:theatre-administrator)
+#     ...the [TA](@role:theatre-administrator) signs those out
+#
+# On SCREEN it renders as a terminology-coloured underlined link, and hovering
+# (or tabbing to it) shows the `gloss` in a small box. On PAPER, where hovering
+# does not exist, the gloss prints inline instead:
+#
+#     Go get your keys from the Theatre Administrator (Holds the master key set
+#     and issues building access).
+#
+# Add `print_gloss:` to change what paper shows. See the block near the bottom.
+#
+# ⚠️ NO `role-` PREFIX ON THE ID. `@role:` already says what it is, so
+# `@role:role-theatre-administrator` says it twice -- and two names for one thing
+# is the defect that retired three manifests in brain-config.
+#
+# ⚠️ WORKS ANYWHERE INLINE MARKDOWN WORKS: prose, TSV table cells, markdown table
+# cells, list items, callout bodies, blockquotes, a `summary:` lede. NOT inside a
+# code fence (deliberately -- a page documenting the syntax has not referenced a
+# role) and NOT in a heading (ruled out of v1: a heading is also a nav label, a
+# TOC entry and an anchor target, which is four surfaces for one string).
 #
 # ---------------------------------------------------------------------------
 # ⭐ `gloss` IS THE ONLY FIELD THIS TYPE ADDS, AND IT IS THE FIRST SUBJECT FIELD
@@ -22,6 +69,14 @@
 # 🚫 SO DO NOT ADD A FACTS-ABOUT-THE-SUBJECT FIELD HERE. No `phone:`, no
 # `office:`, no `email:`, no `term:`. Every one of those is read only on this
 # page, which means space.yml has already refused it. Write it in the BODY.
+#
+# ⚠️ KEEP THE GLOSS TO ONE SENTENCE. It renders in a hover box about 32
+# characters wide and it prints inside parentheses mid-sentence; a paragraph will
+# be technically correct and unreadable in both places.
+#
+# ⚠️ NO BRACES OR LINE BREAKS IN IT. `{` and `}` cannot survive the attr_list
+# block that carries the value, so markerlinks drops the gloss for that reference
+# and says so in the build report. Quotes and apostrophes are fine.
 # ---------------------------------------------------------------------------
 # 🔴 RULING (Michael, 2026-08-30): THE GLOSS NEVER RENDERS ON THIS PAGE.
 #
@@ -53,14 +108,11 @@
 # ---------------------------------------------------------------------------
 # `print_gloss` -- OPTIONAL, and what PAPER shows instead of the gloss.
 #
-# Hover does not exist on paper, so markerlinks prints the gloss inline in
-# parentheses after the link text. This key overrides that string for this role.
-#
 # ⚠️ ABSENT AND EMPTY ARE DIFFERENT STATES AND BOTH ARE REAL:
 #
 #   print_gloss absent      paper prints the `gloss`
 #   print_gloss: ""         paper prints NOTHING for this role
-#   print_gloss: "Sara P."  paper prints " (Sara P.)"
+#   print_gloss: Sara P.    paper prints " (Sara P.)"
 #
 # markerlinks tests `is None`, never falsiness -- `collapsed:` had to be
 # retrofitted for exactly this on 2026-08-30 (PR #201), where `false` and an
