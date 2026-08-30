@@ -460,7 +460,7 @@ def on_page_markdown(markdown, page, config, files):
     #
     #   related   places to go next        -- a reader's business
     #   keywords  search terms             -- a searcher's business
-    #   owner     who posted it, who to ask -- a reader's business again
+    #   owner     who posted it, who to ask -- FLOATED onto revised's own line
     #   revised   provenance               -- "the very last thing on any page"
     #
     # ⚠️ `related` EMITS `@id` TOKENS, so it must be written here in the markdown
@@ -475,11 +475,13 @@ def on_page_markdown(markdown, page, config, files):
     if words:
         markdown = markdown.rstrip() + "\n\n" + words + "\n"
 
-    # THE OWNERSHIP TAG (2026-08-30), and it is the one foot line NOT drawn from
-    # frontmatter: `owner:` in the instance's site.yml, so it lands on every page
-    # of a site with no page edit anywhere. It sits directly ABOVE the revision
-    # line, which leaves the 08-07 ruling below intact. lede.owner() carries the
-    # whole account, including why it lives in that module.
+    # THE OWNERSHIP TAG (2026-08-30), the one foot line NOT drawn from frontmatter:
+    # `owner:` in the instance's site.yml, so it lands on every page with no page
+    # edit anywhere. 🔴 IT MUST STAY AHEAD OF THE REVISED LINE. base.css floats it
+    # right so the two share ONE footer line, and a float only shares a line with
+    # what FOLLOWS it -- swap these two blocks and the tag drops onto its own line,
+    # which is the exact defect Michael rejected on 08-30. lede.owner() has the
+    # account; nothing about the revised line below is changed by any of it.
     tag = lede.owner(state.INSTANCE.get("owner"))
     if tag:
         markdown = markdown.rstrip() + "\n\n" + tag + "\n"
