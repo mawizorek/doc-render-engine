@@ -13,11 +13,15 @@ other signal that has happened.
 2026-08-29 at 21,149 B against a 22,528 B read limit: ~70% narrative over ~40 lines
 of mechanism, which is the point where the file that must stay editable stops being
 editable. Read that sibling before changing anything here -- every rule below was
-paid for by an incident recorded there. 🔴 THE RUNNING FURNITURE IS WRITTEN UP THERE
-TOO (§ THE RUNNING FURNITURE), including the capability reversal that allowed it, the
-WeasyPrint-vs-Chromium split, and the margin trap it introduces. **This file went to
-27,760 B on the first attempt at keeping that narrative here.** Same extraction, one
-feature later.
+paid for by an incident recorded there.
+
+🔴 **AND THE SAME EXTRACTION HAPPENED AGAIN ON 2026-08-30, ONE FEATURE LATER.** The
+running furniture's account -- the capability reversal that allowed it, the
+WeasyPrint-vs-Chromium split, the collapsed-newline bug, the margin trap it
+introduces -- is in that sibling under § THE RUNNING FURNITURE. Keeping it here took
+this file to **27,760 B, then 24,641 B after a first trim.** ⚑ *A file that has
+already been split once will need splitting again at the same rate; the second time
+is not a surprise and should not be treated as one.*
 
 The number in the popup is parsed from the head commit SUBJECT:
 
@@ -33,10 +37,10 @@ mentioning another issue number must not win.
 =============================================================================
 🚫 **TWO FACTS ON THE PRINTED LINE. NOT THREE.** It has refused the PR number
 (08-19) and a program name (08-28). A line carrying two facts is a stamp; three is
-a header. § *The corner mark is SITE + DATE* in the sibling. ⚠️ **THE FOOTER BAND IS
-NOT GOVERNED BY THIS, and the distinction is the one that let 08-30 ship:** that
-rule was about ONE line. The footer is three SEPARATE margin boxes -- left, centre,
-right -- each carrying one fact, which is the opposite of crowding three onto one.
+a header. ⚠️ **THE FOOTER BAND IS NOT GOVERNED BY THIS, and that distinction is what
+let 08-30 ship:** the rule was about ONE line. The footer is three SEPARATE margin
+boxes -- left, centre, right -- each carrying one fact, which is the opposite of
+crowding three onto one line.
 
 ✅ **A LOGO IS NOT A THIRD CLAUSE, IT IS A MARK** -- which is why the letterhead was
 allowed on 2026-08-29 where two text additions were not. § *THE LETTERHEAD*.
@@ -74,16 +78,12 @@ which is the place this hook exists to have escaped.
 =============================================================================
 `_label()`, the clock and the site name are each read exactly once per build; every
 node SELECTS from those values rather than recomputing them, and the mutually
-exclusive media scoping means a reader always sees exactly one stamp.
+exclusive media scoping means a reader always sees exactly one stamp. **What is per
+page is the logo URL and the revision date only.**
 
-⚠️ **THE SEASON STRING IS STILL BUILT ONCE AT `on_config`** -- a build spanning a
-boundary must not stamp two different periods onto one site. **What is per page is
-the logo URL and the revision date only.** § *The date is still built ONCE*.
-
-⚠️ **`_NAME` AND `_PERIOD` ARE KEPT RAW ALONGSIDE THE ESCAPED MARKUP**, because the
-running header needs them as CSS strings and an HTML-escaped `&amp;` inside a CSS
-string prints literally. One computed fact, two encodings, neither derived from the
-other.
+⚠️ `_NAME` and `_PERIOD` are kept RAW beside the escaped markup, because a CSS
+string cannot reuse HTML-escaped text -- an `&amp;` would print literally. One
+computed fact, two encodings, neither derived from the other.
 
 =============================================================================
 ⚠️ THE STYLING IS SPLIT ACROSS TWO SHEETS ON PURPOSE
@@ -155,9 +155,9 @@ _PERIOD = ""
 
 #: The block-axis room the margin boxes need.
 #:
-#: ⚠️ 16mm RATHER THAN 12, AND IT IS MEASURED FROM SHIPPED VALUES rather than
-#: chosen: the letterhead mark is 8.46mm tall (`print-identity.css`) and the
-#: footer's right box is TWO lines at 8.5pt (~6mm). 12mm fits neither with air.
+#: ⚠️ 16mm RATHER THAN 12, MEASURED FROM SHIPPED VALUES rather than chosen: the
+#: letterhead mark is 8.46mm tall (`print-identity.css`) and the footer's right box
+#: is TWO lines at 8.5pt (~6mm). 12mm fits neither with air.
 _BAND = "16mm"
 
 
@@ -201,23 +201,18 @@ def _period(when) -> str:
 
 
 def _css(text) -> str:
-    """One CSS string literal, quoted and escaped.
+    """ONE CSS string literal, quoted and escaped.
 
     🔴 A BACKSLASH AND A DOUBLE QUOTE ARE THE WHOLE ATTACK SURFACE, and both are
-    escaped rather than stripped. These values come from config and from frontmatter
-    -- `revised:` is authored on every page of a content repo agents may not commit
-    to, and therefore may not sanitise either. An unescaped quote would not "look
-    wrong": it would terminate the string, invalidate the whole `@page` rule, and
-    drop the ENTIRE header and footer from every page of that document, silently.
+    escaped rather than stripped. `revised:` is authored on every page of a content
+    repo agents may not commit to and therefore may not sanitise either. An
+    unescaped quote would not "look wrong": it would terminate the string,
+    invalidate the whole `@page` rule, and drop the ENTIRE header and footer from
+    every page of that document, silently.
 
-    🔴 IT COLLAPSES WHITESPACE, WHICH IS WHY A MULTI-LINE VALUE MUST NOT BE PASSED
-    THROUGH IT. `" ".join(s.split())` splits on newlines too, so the first version of
-    the footer built `"line one\nline two"`, handed it here, and got one flat line --
-    the `\\A` substitution that followed had nothing left to match. Caught by reading
-    the code back, not by a render, because the output looked plausible. ⚑ *A helper
-    that normalises input silently defeats any caller that encodes meaning in the
-    characters it normalises.* Two-line content is built as TWO calls joined by an
-    escaped line feed -- see `_page_css`.
+    🔴 IT COLLAPSES WHITESPACE, SO NEVER PASS IT A MULTI-LINE VALUE -- `split()`
+    splits on newlines too. That cost a real bug on 08-30; § the sibling. Multi-line
+    content is built as SEPARATE calls joined by an escaped line feed.
     """
     s = " ".join(str(text or "").split())
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
@@ -294,13 +289,10 @@ def _corner(page) -> str:
     empty. `print-identity.css` gives it a 5.5mm height, so an empty box would spend
     the whole of Michael's 140% height budget on nothing.
 
-    🔴 THE URL IS AN INLINE `background-image`, AND IT WAS A `var()` UNTIL A RENDER
-    PROVED THAT BLANK. A custom property read as `background-image: var(--dr-print-logo)`
-    is the tidier shape and it produced an EMPTY BOX in WeasyPrint every way it was
-    tried. Browsers do substitute custom properties into `background-image`, so the
-    tidy version is probably fine in Chrome; **"probably fine" is not a standard this
-    element can be held to**, because its failure mode is a blank corner that reports
-    nothing.
+    🔴 THE URL IS AN INLINE `background-image` AND WAS A `var()` UNTIL A RENDER PROVED
+    THAT BLANK in WeasyPrint every way it was tried. "Probably fine in Chrome" is not
+    a standard an element can be held to when its failure mode is a blank corner that
+    reports nothing. § the sibling.
 
     ⚠️ AND IT IS STILL NOT FETCHED ON SCREEN, which is the whole reason this is a
     background rather than an `<img>`. The `<p>` carries `hidden`, so on screen the
@@ -337,27 +329,13 @@ def _page_css(page) -> str:
                                          @bottom-right   Posted by <name>
                                                          <email>
 
-    ⭐ EMITTED AS A PER-PAGE `<style>`, WHICH LOOKS WRONG AND IS THE ONLY OPTION. A
-    margin box cannot read document content and `string-set` is unimplemented in
-    Chrome -- but `revised:` is per-DOCUMENT and every MkDocs page IS exactly one
-    document, so the engine writes that page's own values into that page's own rule
-    at build time. No named strings, no polyfill, nothing at read time. § the sibling.
+    ⭐ A PER-PAGE `<style>` LOOKS WRONG AND IS THE ONLY OPTION: a margin box cannot
+    read document content, `string-set` is unimplemented in Chrome, and a stylesheet
+    is shared by every page while the revision date is not. § the sibling for why
+    that does not bite here.
 
-    ⭐ THE LAYOUT MIRRORS WHAT THE SCREEN ALREADY DOES, which is why it needed no
-    design pass: `revised` has held the left of the screen footer since 08-07 and the
-    ownership tag the right since 08-30. The page number takes the centre because it
-    is the one fact belonging to the SHEET rather than to the document -- Michael,
-    2026-08-30: *"i like center for page No."*
-
-    ✅ `counter(pages)` GIVES THE TOTAL, and that is the whole safety argument for
-    having it: a stapled packet found on a desk announces that it is incomplete. A
-    bare page number cannot.
-
-    ⚠️ THE EMAIL IS A SECOND LINE VIA TWO STRINGS JOINED BY `\\A` PLUS
-    `white-space: pre`, not a `<br>`: a margin box takes generated CONTENT, so there
-    is no markup to put a break tag in. 🔴 AND IT IS TWO SEPARATE `_css()` CALLS ON
-    PURPOSE -- passing one `\\n`-joined string through that helper collapsed the
-    newline and printed one flat line. See `_css`.
+    ✅ `counter(pages)` gives the TOTAL, which is the safety argument for having it: a
+    stapled packet found on a desk announces that it is incomplete.
 
     🔴 EVERY VALUE IS OPTIONAL AND EACH BOX IS OMITTED RATHER THAN EMITTED EMPTY. A
     margin box with no `content` is not generated at all, so an omitted box costs
@@ -389,8 +367,7 @@ def _page_css(page) -> str:
     revised = str(meta.get("revised") or "").strip()
     if revised:
         # The LABEL is engine-supplied here exactly as in `lede.revised()`. Two
-        # emitters, one wording, and neither reformats the value -- that function
-        # carries why a human's provenance string is passed through verbatim.
+        # emitters, one wording, and neither reformats the value.
         boxes.append("@bottom-left{content:" + _css("Revised " + revised) + "}")
 
     boxes.append('@bottom-center{content:"Page " counter(page) " of " counter(pages)}')
@@ -399,6 +376,9 @@ def _page_css(page) -> str:
     name = owner if isinstance(owner, str) else (owner.get("name") or "")
     email = "" if isinstance(owner, str) else (owner.get("email") or "")
     if str(name).strip():
+        # 🔴 TWO SEPARATE `_css()` CALLS, NOT ONE JOINED STRING. That helper collapses
+        # whitespace, so a `\n` handed to it vanishes before any substitution -- the
+        # 08-30 bug. An escaped line feed between two literals cannot be normalised.
         content = _css("Posted by " + str(name))
         if str(email).strip():
             content += ' "\\A " ' + _css(email)
@@ -429,8 +409,7 @@ def on_config(config):
     name = str(getattr(config, "site_name", "") or "").strip()
     period = _period(when)
 
-    # Raw, for the running header. See the module docstring: escaped markup cannot
-    # be reused inside a CSS string.
+    # Raw, for the running header. See the module docstring.
     _NAME, _PERIOD = name, period
 
     # 🔴 PAPER GETS THE PERIOD AND NOT THE BUILD, and it gets TWO FACTS. The name is
