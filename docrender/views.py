@@ -8,12 +8,13 @@
         height: 700px        # optional, defaults to 700px
 
     !!! view "recently-created"
+    !!! view "recently-created" align=center
 
 ✅ WORKS ON ANY SITE WITH NO CONFIGURATION.
 
 🔴 WHY ANY OF THIS IS THE WAY IT IS: `docrender/views-dl.md`. Read it before
 changing behaviour here -- every rule below traces to a specific correction, and
-three of them were Michael correcting this module in its first three days.
+four of them were Michael correcting this module in its first three days.
 The standing law that came out of them:
 
     THE ENGINE EMITS STRUCTURE. THE AUTHOR DECIDES CONTENT.
@@ -32,6 +33,10 @@ cycle, and not tidy-able in either direction. views-dl.md D2.
 shared, still exists, or shows what its author thinks. A revoked share renders an
 empty frame with NO build finding -- the fallback link is the only thing that
 distinguishes "loading" from "gone."
+
+🔴 `align=` MOVES THE FURNITURE, NOT THE FRAME, AND THAT IS PHYSICS RATHER THAN A
+CHOICE: the iframe is `width: 100%`, so it has no slack to be moved within. What
+aligns is the summary label and the fallback link. views-dl.md D8.
 """
 
 from __future__ import annotations
@@ -40,11 +45,21 @@ import re
 
 from . import state
 from .forms import _dead, _esc
-from .util import sub_outside_code
+from .util import directive_options, sub_outside_code
 
-#: `!!! view "slot"` alone on its line. Same shape as `!!! form` and `!!! data`,
-#: so the body vocabulary stays one pattern rather than three spellings.
-_VIEW = re.compile(r'(?m)^[ \t]*!!![ \t]+view[ \t]+"([^"\n]+)"[ \t]*$')
+#: `!!! view "slot"` plus optional trailing `key=value` options.
+#:
+#: 🔴 THE TRAILING GROUP IS THE 2026-08-30 BUG FIX AND IT WAS A SILENT ONE. This
+#: pattern anchored `"[ \t]*$` straight after the closing quote, so
+#: `!!! view "x" align=center` did not match AT ALL -- the directive was left as
+#: literal text on the page with NOTHING in the build report, because nothing had
+#: matched to report on. ⚠️ Only `qr.py` accepted options, and `align.css` claimed
+#: the reason was "stated in every file" while forms and views never mentioned it.
+#: **A doc that says a rule is written down elsewhere is how the rule stops being
+#: written down.** views-dl.md D8.
+_VIEW = re.compile(
+    r'(?m)^[ \t]*!!![ \t]+view[ \t]+"([^"\n]+)"(?P<opts>[^\n]*)$'
+)
 
 #: Where ClickUp serves a publicly shared view. Read out of a real embed code,
 #: not guessed -- a module constant for the same reason `_FORM_HOST` is one, and
@@ -58,6 +73,11 @@ _DEFAULT_HEIGHT = "700px"
 #: A CSS length, loosely. Enough to catch a bare number or a stray unit typo
 #: before it reaches an attribute, not a full CSS parser.
 _LENGTH = re.compile(r"^\d+(\.\d+)?(px|rem|em|vh|%)$")
+
+#: 🚫 NO MEDIA VOCABULARY HERE. `qr.py` has `display=`/`print=` because a code can
+#: legitimately exist in one medium only; an embed always appears on screen and
+#: never on paper, so there is nothing to declare. `align` is the only option.
+_LEGAL_OPTS: tuple = ()
 
 _DEAD_LABEL = "View"
 
@@ -157,7 +177,8 @@ def _height(src, slot, declared) -> str:
     return _DEFAULT_HEIGHT
 
 
-def _html(src, slot) -> str:
+def _html(src, slot, opts=None) -> str:
+    opts = opts or {}
     entry = _entry(src, slot)
     if entry is None:
         known = _declared(src)
@@ -241,14 +262,21 @@ def _html(src, slot) -> str:
         + _esc(label) + "</a></p>"
     )
 
+    # ⭐ THE ALIGNMENT IS A CLASS ON THE WRAPPER, and `assets/align.css` owns what
+    # it means -- the same seam `qr.py` uses for `dr-qr--align-*`. An inline style
+    # here would be unoverridable by a site's own sheet.
+    classes = "dr-view"
+    if opts.get("align"):
+        classes += " dr-view--align-" + opts["align"]
+
     if not collapsed:
-        return '<div class="dr-view">' + frame + fallback + "</div>"
+        return '<div class="' + classes + '">' + frame + fallback + "</div>"
 
     # ⭐ ZERO JAVASCRIPT. Per the HTML spec a fragment targeting content inside a
     # closed <details> expands it, so `#dr-view-<slot>` opens this. The id is on
     # the <summary> for that reason -- see slot_anchor.
     return (
-        '<div class="dr-view">'
+        '<div class="' + classes + '">'
         '<details class="dr-view__open">'
         '<summary id="' + _esc(slot_anchor(slot)) + '">' + _esc(text) + "</summary>"
         + frame + fallback
@@ -267,6 +295,12 @@ def on_page_markdown(markdown, page, config, files):
     contains the directive, and `util.py`'s docstring records the first time that
     bit this engine.
 
+    ⚠️ EVERY OPTION PROBLEM IS REPORTED, NEVER DROPPED. `directive_options` is a
+    pure function that hands back sentences rather than logging them, so this is
+    where they become findings -- and a mistyped option that vanished would leave
+    an author staring at an unmoved block with no signal, which is the failure this
+    whole change exists to end.
+
     🚫 NO SCRIPT APPEND, unlike the forms pass. Nothing to size.
     """
     if "!!!" not in markdown:
@@ -274,7 +308,14 @@ def on_page_markdown(markdown, page, config, files):
     src = getattr(page.file, "src_uri", "")
 
     def swap(match):
-        out = _html(src, match.group(1).strip())
+        slot = match.group(1).strip()
+        opts, problems = directive_options(match.group("opts"), _LEGAL_OPTS)
+        for problem in problems:
+            state.note(
+                "notes",
+                src + ': `!!! view "' + slot + '"` carries ' + problem,
+            )
+        out = _html(src, slot, opts)
         return "\n\n" + out + "\n\n" if out else ""
 
     return sub_outside_code(_VIEW, swap, markdown)
