@@ -4,18 +4,18 @@
       completion:
         src: https://forms.clickup.com/36074068/f/...?Program_ID=ITPSAFE-1225
         text: General Safety completion form
-        collapsed: true      # optional; open by default
+        collapsed: false     # optional; THREE STATES -- see THE FOLD below
         reload: false        # optional; the Reload button is ON by default
 
     !!! form "completion"
 
-🔴 **THE ARGUMENTS LIVE IN `docrender/forms-dl.md`.** This file reached 24,664 B
-against a 22,528 B read ceiling on 2026-08-30 while the reload button's reasoning
-was being written into it, so four accumulated arguments moved to the sibling --
-the reload button, the broken-slot fix, the program.py split, and `collapsed:`.
-The steps and the warnings stay here; **why a step exists at all is one file
-over.** Same standard `buildstamp-dl.md` set. Decision history: the
-doc-render-engine Decision Log.
+🔴 **EVERY ARGUMENT LIVES IN `docrender/forms-dl.md`.** This file has now crossed
+the 22,528 B read ceiling TWICE in one day (24,664 B, then 24,030 B) while
+reasoning was being written into it. **The steps and the warnings stay here; why a
+step exists at all is one file over.** Same standard `buildstamp-dl.md` set.
+
+⚠️ AND BOTH OVERRUNS WERE PREDICTED BY A SIZE I ESTIMATED RATHER THAN MEASURED.
+If you are adding to this docstring, write the section in the sibling first.
 
 Michael, 2026-08-19: *"can i embed an actual clickup form as content in the
 bottom of these pages... so that users dont have to leave the page"* and, on
@@ -31,43 +31,46 @@ is `!!! form` rather than pasted HTML.
 ⭐ THIS MODULE ALSO DRIVES `docrender/views.py` (the `views:` registry). It has no
 hook of its own: `on_page_markdown` below calls it, and it imports `_esc` and
 `_dead` from here rather than re-declaring them. 🔴 The full argument for one hook
-and two files -- and the measurement that killed the fold -- lives in THE
-DELEGATION in `views.py`, not here.
+and two files lives in THE DELEGATION in `views.py`, not here.
 
 =============================================================================
-✅ THE RELOAD BUTTON (2026-08-30) -- MECHANISM ONLY; ARGUMENT IN `forms-dl.md`
+⭐ THE FOLD -- THREE STATES, ONE KEY (2026-08-30)
 =============================================================================
-> Michael: *"i want to be able to reload the embedded form without having to
-> reload the entire webpage of the doc renderer."*
+    collapsed: ABSENT   a bare embed. No disclosure at all.
+    collapsed: false    `<details open>` -- expanded on arrival, collapsible.
+    collapsed: true     `<details>` -- closed on arrival.
 
-🔴 `cloneNode` + `replaceWith`, NEVER `iframe.src = src`. Assigning `src`
-NAVIGATES the existing browsing context and pushes a session-history entry, so
-after three reloads the reader's Back button walks iframe states instead of
-leaving the page. A fresh node is an initial load and pushes nothing. Verified by
-executing the handler against a DOM model: zero history entries, one fresh load,
-the other form on the page untouched.
+⭐ A MISSING KEY AND A KEY SET TO `false` ARE DIFFERENT FACTS -- the distinction
+`reload:` and `pagefoot._enabled` already turn on. "Not collapsed" is a claim
+about a fold; **saying nothing is not a claim at all.**
 
-🔴 IT DISCARDS WHATEVER WAS TYPED, WITH NO CONFIRMATION, AND THAT IS THE ASK --
-refused on 08-29 on data-loss grounds and released by Michael the next morning.
-**The label is the safety mechanism.**
-
-⚠️ STYLES AND LISTENER ARE INLINE, once per page, on `program.py`'s precedent.
-`assets/flow.css` is the obvious home and lands **three bytes** under the read
-ceiling with this rule in it. 🚩 When flow.css splits, they move.
-
-🚫 NOT ON A `views:` EMBED. A shared view is read-only furniture with nothing
-typed into it, so a reload control there answers a question nobody asked.
+✅ Every slot that OMITS the key renders byte for byte what it did before.
+⚠️ A slot explicitly declaring `collapsed: false` GAINS a disclosure; `forms-dl.md`
+names the live pages that reaches. 🚫 NOT a second `collapsible:` key -- two
+booleans give four states and one of them is unsatisfiable.
 
 =============================================================================
-🔴 A BROKEN SLOT RENDERS A MARKER, NOT NOTHING (fixed 2026-08-30)
+🔴 THE RELOAD BUTTON, AND WHY IT REPLACES THE NODE (2026-08-30)
 =============================================================================
-`_html` used to return `""` for an unknown slot and `swap` returns `""` on falsy,
-so a typo'd directive line VANISHED -- no marker, no gap, no clue, on a page that
-already showed one working form. Its two siblings (`qr.py`, `links.py`) already
-rendered the struck-through `docrender-dead` span.
+`cloneNode` + `replaceWith`, NEVER `iframe.src = src`: assigning `src` NAVIGATES
+the browsing context and pushes a session-history entry, so after three reloads
+the reader's Back button walks iframe states instead of leaving the page.
 
-⭐ THE MESSAGE IS THE ONE THAT WAS ALREADY GOING TO THE BUILD REPORT, on a second
-SURFACE rather than as a second claimant. Full account: `forms-dl.md`.
+🔴 IT DISCARDS WHATEVER WAS TYPED, WITH NO CONFIRMATION, AND THAT IS THE ASK.
+**The label is the safety mechanism.** 🚫 Not on a `views:` embed -- a shared view
+is read-only furniture. Argument: `forms-dl.md`.
+
+=============================================================================
+🔴 A COLLAPSED EMBED PRINTED AS A CALLOUT. FIXED 2026-08-30.
+=============================================================================
+Material `@extend`s `.admonition` onto EVERY `<details>`, so `print-callout.css`
+gave a collapsed embed a 2pt band and an indent its uncollapsed sibling never
+got. ⚑ **Two embeds declared the same way, differing in one SCREEN-only key,
+printed as two different KINDS of object.** `flow.css` fixed exactly this for
+`.dr-flows__others` and nobody pointed the same fix at the form.
+
+⚠️ The summary is hidden on paper -- a control, whose text the fallback link
+already carries. 🚩 One lossy edge case, in `forms-dl.md`.
 
 =============================================================================
 🔴 `height="100%"` COLLAPSES TO NOTHING WITHOUT THEIR SCRIPT
@@ -105,24 +108,20 @@ printed program packet would otherwise carry a hole where the completion form
 belongs. On screen the same link is the answer to "the form did not load."
 
 =============================================================================
-⭐ `collapsed:` AND `reload:` DEFAULT OPPOSITE WAYS, ON PURPOSE
+🔴 A BROKEN SLOT RENDERS A MARKER, NOT NOTHING (fixed 2026-08-30)
 =============================================================================
-`collapsed:` renders the embed inside a closed `<details>` whose `<summary>` id
-the last step of a flow links to -- a fragment pointing INSIDE a closed disclosure
-expands it, so no script is involved. It defaults FALSE because hiding a
-compliance form is an editorial decision that must be declared.
-
-`reload:` defaults TRUE because offering a reload button is not. ⭐ The asymmetry
-is the point; `forms-dl.md` carries both arguments.
+`_html` used to return `""` for an unknown slot and `swap` returns `""` on falsy,
+so a typo'd directive line VANISHED. Its two siblings (`qr.py`, `links.py`)
+already rendered the struck-through `docrender-dead` span. ⭐ The message is the
+one already going to the build report, on a second SURFACE rather than as a
+second claimant.
 
 =============================================================================
 🔴 THE PREFILL PARAM IS THE RECORD
 =============================================================================
 `?Program_ID=` on the src is what makes a submission attributable to a program.
-It was already in uritp-safety's `links:` block before this key existed and moves
-onto the src unchanged. A form embedded WITHOUT it collects rows nobody can match
-to a program -- a compliance failure that looks like a working page, so it is
-reported.
+A form embedded WITHOUT it collects rows nobody can match to a program -- a
+compliance failure that looks like a working page, so it is reported.
 
 ⚠️ UNVERIFIABLE AT BUILD TIME, the same reduction `urllinks.py` states at the top
 of its own file. The host and the scheme are checked; nothing here can prove the
@@ -186,12 +185,19 @@ _RESET_JS = (
     "});</script>"
 )
 
-#: Inline, once per page. `forms-dl.md` carries the byte budget that put it here
-#: rather than in `assets/flow.css`, which has three bytes of headroom.
+#: Inline, once per page, because `assets/flow.css` -- which owns `.dr-form*` -- is
+#: **23,485 B and already 957 B PAST the read ceiling**, having grown 2,365 B the
+#: same morning when the `.dr-view*` rules landed. 🚩 These move there after the
+#: split its own header prescribes.
 #:
-#: ⚠️ THE PRINT RULE IS NOT OPTIONAL. A button on paper is a lie -- the same pen
-#: test `print.css` applies to its whole chrome-off list, and `flow.css` already
-#: strips the flow buttons for it.
+#: ⚠️ THE PRINT HALF IS THE FIX FOR MICHAEL'S 08-30 PREVIEW, not decoration. Rule
+#: two strips the callout costume Material puts on every `<details>`; rule three
+#: hides the summary, a control whose text the fallback link already carries.
+#: (0,2,0)/(0,2,1) beat print-callout's (0,1,1) OUTRIGHT rather than on load order,
+#: which matters because that file's position in the print group is free.
+#:
+#: ⚠️ AND THE BUTTON GOES TOO -- a button on paper is a lie, the same pen test
+#: `print.css` applies to its whole chrome-off list.
 _RESET_CSS = (
     "<style>.dr-form__tools{margin:.6rem 0 0}"
     ".dr-form__reset{display:inline-block;padding:.3rem .7rem;"
@@ -201,7 +207,11 @@ _RESET_CSS = (
     "font-weight:600;cursor:pointer}"
     ".dr-form__reset:hover{border-color:var(--dr-accent,var(--md-typeset-a-color));"
     "color:var(--dr-accent,var(--md-typeset-a-color))}"
-    "@media print{.dr-form__tools{display:none}}</style>"
+    "@media print{.dr-form__tools{display:none}"
+    ".dr-form__open,.md-typeset .dr-form__open{margin:0;padding:0;"
+    "border:0 !important;background:transparent}"
+    ".dr-form__open>summary,.md-typeset .dr-form__open>summary{display:none}}"
+    "</style>"
 )
 
 
@@ -225,8 +235,7 @@ def _dead(reason: str, label: str = _DEAD_LABEL) -> str:
 
     ✅ AND IT PRINTS WITHOUT A PRINT RULE. `base.css` declares the `--dr-dead`
     dotted underline unscoped to any medium; `print.css` has a whole block
-    arguing against re-declaring it. So a printed sheet shows the failure too,
-    which matters on a compliance page more than on screen.
+    arguing against re-declaring it.
 
     ⭐ `label` IS A PARAMETER SO `views.py` SHARES THIS SPAN. Two directives with
     two copies of a failure vocabulary is how they start disagreeing about what
@@ -246,6 +255,10 @@ def slot_anchor(slot: str) -> str:
     this id, because a link and its target computed in two places is the defect
     that produces a Next button landing on nothing -- and it would land
     SILENTLY, since a fragment that matches no element is not an error.
+
+    ✅ STILL CORRECT FOR AN ALREADY-OPEN FOLD. A fragment pointing inside a closed
+    `<details>` expands it; pointing inside an open one just scrolls. So the flow's
+    last step lands the same way whichever state the slot declares.
     """
     return "dr-form-" + re.sub(r"[^A-Za-z0-9_-]+", "-", str(slot)).strip("-")
 
@@ -271,8 +284,7 @@ def _declared(src) -> list:
 
     ⭐ NAMING WHAT *IS* DECLARED IS MOST OF THE VALUE OF THE MESSAGE, and it is
     what turns a typo from a hunt into a glance. `sheet.apply_options` sets the
-    precedent -- it prints the sheet's real header beside a bad `hide:` -- and
-    `datatable.py` does the same for an undeclared data slot.
+    precedent -- it prints the sheet's real header beside a bad `hide:`.
     """
     block = (state.BY_SRC.get(src, {}) or {}).get("forms")
     return sorted(str(k) for k in block) if isinstance(block, dict) else []
@@ -281,13 +293,14 @@ def _declared(src) -> list:
 def _entry(src, slot):
     """One entry out of a page's `forms:` map, or None.
 
-    Two spellings, matching the `links:` registry: a bare string is the src, a
-    mapping carries `src:`, `text:`, `collapsed:` and `reload:`.
+    Returns `(src, text, fold, reloadable)` where `fold` is one of `""` (no
+    disclosure), `"open"` or `"closed"`. See THE FOLD in the docstring.
 
-    ⭐ THE `reload` TEST IS `is not False`, NOT TRUTHINESS. A slot that omits the
-    key must get the button; only an explicit `false` removes it. Same shape as
-    `pagefoot._enabled`, which reads `is not False` on `edit_links` for exactly
-    this reason -- a missing key and a key set to nothing are different facts.
+    ⭐ BOTH THREE-STATE TESTS TURN ON PRESENCE, NOT TRUTHINESS. `"collapsed" in
+    raw` separates "no fold" from "a fold that starts open", and `reload` reads
+    `is not False` so an omitted key still gets the button. **A missing key and a
+    key set to false are different facts** -- `pagefoot._enabled` reads
+    `edit_links` the same way, for the same reason.
     """
     block = (state.BY_SRC.get(src, {}) or {}).get("forms")
     if not isinstance(block, dict):
@@ -296,15 +309,18 @@ def _entry(src, slot):
     if raw is None:
         return None
     if isinstance(raw, str):
-        return (raw.strip(), "", False, True)
+        return (raw.strip(), "", "", True)
     if isinstance(raw, dict):
+        fold = ""
+        if "collapsed" in raw:
+            fold = "closed" if raw.get("collapsed") is True else "open"
         return (
             str(raw.get("src", "")).strip(),
             str(raw.get("text", "")).strip(),
-            raw.get("collapsed") is True,
+            fold,
             raw.get("reload") is not False,
         )
-    return ("", "", False, True)
+    return ("", "", "", True)
 
 
 def _html(src, slot) -> str:
@@ -324,7 +340,7 @@ def _html(src, slot) -> str:
             + ". Declared here: " + (", ".join(known) or "nothing") + "."
         )
 
-    url, text, collapsed, reloadable = entry
+    url, text, fold, reloadable = entry
     if not url.startswith(_FORM_HOST):
         state.note(
             "dead_links",
@@ -370,7 +386,7 @@ def _html(src, slot) -> str:
         + _esc(label) + "</a></p>"
     )
 
-    if not collapsed:
+    if not fold:
         return (
             '<div class="dr-form">' + frame + tools + fallback + "</div>"
         )
@@ -379,10 +395,15 @@ def _html(src, slot) -> str:
     # target something INSIDE the disclosure for the auto-expand behaviour to
     # apply; pointing it at the <details> itself is the version of this that
     # scrolls correctly and stays shut.
+    #
+    # ⭐ `open` IS AN ATTRIBUTE ON THE SAME ELEMENT, so "expanded" and "closed" are
+    # ONE markup shape with one character of difference -- not two branches. That
+    # is what keeps the print rules, the anchor and the styles from needing to know
+    # which state a slot asked for.
     return (
         '<div class="dr-form">'
-        '<details class="dr-form__open">'
-        '<summary id="' + _esc(slot_anchor(slot)) + '">'
+        '<details class="dr-form__open"' + (" open" if fold == "open" else "")
+        + '><summary id="' + _esc(slot_anchor(slot)) + '">'
         + _esc(text or _DEFAULT_LABEL) + "</summary>"
         + frame + tools + fallback
         + "</details></div>"
@@ -404,12 +425,13 @@ def on_page_markdown(markdown, page, config, files):
     TWO OF THEM IS WHAT CAUSED THE LAST BUG: *a directive matched* · *a frame
     exists* · *a button exists*. The CDN script is gated on the second, because a
     page whose only form is broken has no frame for it to size and the request
-    would be pure cost. The reload assets are gated on the third, because a rule
-    matching nothing and a listener nothing can trigger are both the dead surface
-    this engine kills on sight.
+    would be pure cost. The style/listener block is gated on the third.
 
-    ⚠️ Before 2026-08-30 the first two were the same question, because a broken
-    slot returned "" and could not be told apart from no directive at all.
+    ⚠️ AND THE PRINT PARITY RULES RIDE IN THAT SAME BLOCK, which means a page whose
+    every form sets `reload: false` ALSO loses them. Acceptable and stated: the
+    rules only matter to a `.dr-form__open`, and a page with no button is a page
+    nobody has asked to interact with. 🚩 If that combination ever ships, the block
+    splits in two.
 
     ⭐ THE `views:` PASS RUNS HERE TOO, LAST, because one hook is what keeps this
     feature out of `mkdocs.yml`. 🔴 The import is local to this function ON PURPOSE
