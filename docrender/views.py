@@ -13,6 +13,10 @@ calls in. See THE DELEGATION below.
 
     !!! view "recently-created"
 
+✅ WORKS ON ANY SITE WITH NO CONFIGURATION. That is the whole shape of the
+feature and it is deliberate -- see THE HOST below for why an earlier version got
+it wrong.
+
 Michael, 2026-08-28: *"could i embed a clickup TABLE VIEW into one of my doc
 renderer pages??? like embedding a clickup form on the safety site but doing a
 custom clickup table view to embed instead"* -- and on scope, 2026-08-29: *"i
@@ -22,6 +26,10 @@ what actually gets rendered... focus on the tool."*
 🚫 THE CONTENT REPO NEVER HOLDS THE IFRAME, exactly as `forms.py` states it. The
 page NAMES a view; the engine builds the element. Fourth registry to take that
 shape, after `links:`, `data:` and `forms:`.
+
+⚠️ ONLY THE `src=` URL GOES IN THE FRONTMATTER, NOT THE WHOLE `<iframe>`. The
+first real paste did exactly that, which is the predictable mistake, so the
+allow-list message below says so by name.
 
 🚫 AND IT DOES NOT DECIDE WHAT BELONGS ON A PAGE. Every constraint recorded here
 is a property of the MECHANISM. Which view, on which page, showing what, is the
@@ -35,7 +43,7 @@ validate a URL and emit an element, and a second module would be a second
 implementation of one idea.
 
 🔴 THE FOLD DIED ON A MEASUREMENT. `forms.py` was 11,740 B when that was written
-and is 17,360 B at HEAD -- PR #197 added the dead-reference marker on 08-30.
+and is ~17.4KB at HEAD -- PR #197 added the dead-reference marker on 08-30.
 Folding a second registry in lands ~21KB, past the 18KB warn line and into the
 ~22KB read ceiling, and a file that cannot be read whole cannot be safely edited.
 
@@ -50,13 +58,68 @@ hold, and the shape that honours both is DELEGATION:
 A second hook means an edit to `mkdocs.yml`, which is 28,158 B -- unreadable
 whole, therefore unsafe to rewrite. The delegation buys a new directive for zero
 edits to any file past the ceiling. `instance.py` (23,047 B) is dodged the same
-way: `view_hosts:` is READ off `state.INSTANCE`, never parsed per-key, which is
-the trick `urllinks.py` already uses for `links:`.
+way: the optional `view_hosts:` key is READ off `state.INSTANCE`, never parsed
+per-key, which is the trick `urllinks.py` already uses for `links:`.
 
 ⚠️ IMPORT ORDER IS LOAD-BEARING AND LOOKS LIKE A CIRCLE. `forms.py` imports this
 module INSIDE its hook function, not at module top; this module imports from
 `forms.py` at module top. That is deliberate: by the time anything calls the
 hook, `forms` is fully loaded, so there is no cycle. Do not "tidy" either import.
+
+=============================================================================
+🔴 THE HOST IS AN ENGINE DEFAULT. CORRECTED 2026-08-30, SAME DAY IT SHIPPED.
+=============================================================================
+> Michael, on being told the host goes in every site's config: *"in every sits
+> congit?????????????????? so i can do this anywehre i want later?"*
+
+He was right and this is the correction. v1 of this module required every site to
+declare `view_hosts:` in its own `instances/<slug>/site.yml`, with NO default, on
+the rule that *"this engine never guesses a third-party hostname."*
+
+🔴 THE RULE WAS RIGHT AND IT WAS BEING APPLIED TO THE WRONG NOUN. "Never guess"
+protects against inventing a value nobody has verified. `sharing.clickup.com` was
+not guessed -- it was read out of a real embed code Michael pasted. **Once a value
+is verified it is a FACT, and a fact does not need six copies to become true.**
+
+⚠️ AND THE SIBLING FILE ALREADY SETTLED THIS. `forms.py` hardcodes
+`_FORM_HOST = "https://forms.clickup.com/"` as a module constant and has since
+day one. Both are ClickUp's own product hostnames, both single-valued, both
+verified from real output. **Two files, one kind of fact, two different
+mechanisms -- and the newer one was the inconsistent one.** The cheap tell I
+missed: a per-site key whose correct value is identical on every site is not
+configuration, it is a constant with extra steps.
+
+🔴 THE REAL COST WAS A SILENT FAILURE ON EVERY FUTURE SITE. Six `instances/*`
+configs exist today. A seventh site would embed a view, get a refusal, and the
+author would have no reason to suspect a config key they never knew about --
+which is precisely the class of defect PR #197 was fixing one file over, on the
+same day, in the same feature.
+
+✅ SO: `_DEFAULT_HOST` is the verified value, and `view_hosts:` survives as an
+ADDITIVE per-site extension -- a site can allow an extra host, and cannot lose
+the default by declaring one. It is now for the case the default cannot cover
+(ClickUp ships a second surface, or a site is on a different tenant domain), not
+for the ordinary case.
+
+🚫 EVERYTHING THE ORIGINAL RULE ACTUALLY PROTECTED IS UNCHANGED:
+  * an allow-list, never a scheme check, because this element embeds third-party
+    content on a page that may carry a compliance instruction;
+  * NEVER a `*.clickup.com` wildcard -- that also matches `app.clickup.com`, the
+    LOGGED-IN application, so a page could embed a workspace URL and serve a
+    login wall to the public, which reads as a broken table rather than as a
+    misconfiguration;
+  * a `src` off the list is refused, REPORTED, and marked on the page.
+
+⚠️ AND IF THE DEFAULT EVER GOES STALE, THE FAILURE IS LOUD, WHICH IS WHY THIS IS
+SAFE. A wrong host produces a refusal naming both the found URL and the allowed
+hosts, on the page and in the build report -- not a silent empty frame. Fix the
+constant, or add the new host to one site's `view_hosts:` to unblock immediately.
+
+⚠️ UNVERIFIABLE AT BUILD TIME, the same reduction `forms.py` and `urllinks.py`
+both state at the top of their own files. The host is checked. Nothing here can
+prove the view is still shared, still exists, or shows what its author thinks.
+🔴 A REVOKED SHARE RENDERS AN EMPTY FRAME WITH NO FINDING -- the fallback link is
+the only thing that distinguishes "loading" from "gone."
 
 =============================================================================
 🔴 NO CDN SCRIPT, AND CLICKUP'S OWN OUTPUT IS THE EVIDENCE
@@ -83,34 +146,6 @@ registries racing to append the same asset once per page.
 ⚠️ THE FLOOR STAYS ANYWAY. `min-height` is set to the same value as `height`, so
 a stylesheet that overrides the attribute cannot collapse the frame to nothing.
 Cheap, and it is the one failure mode `forms.py` calls unobservable at build time.
-
-=============================================================================
-🔴 THE HOST IS DECLARED PER SITE. NEVER GUESSED, NEVER HARDCODED HERE.
-=============================================================================
-`_FORM_HOST` is a single literal because a form has exactly one home. A view does
-not: the share surface is a ClickUp product decision that can move, and this
-engine renders more than one site.
-
-So the allow-list comes from the instance config:
-
-    view_hosts:
-      - https://sharing.clickup.com/
-
-🚫 NO DEFAULT, AND NO FALLBACK. An absent or empty `view_hosts:` refuses every
-embed and REPORTS it. A default would be this engine remembering a third-party
-hostname on the reader's behalf, and the standing rule is that an unverifiable
-external fact is declared or it does not exist.
-
-🚫 AND NEVER A `*.clickup.com` WILDCARD, however tempting. That also matches
-`app.clickup.com`, the LOGGED-IN application -- so a page could embed a workspace
-URL and serve a login wall to the public, which reads as a broken table rather
-than as a misconfiguration. Exact hosts, listed.
-
-⚠️ UNVERIFIABLE AT BUILD TIME, the same reduction `forms.py` and `urllinks.py`
-both state at the top of their own files. The host is checked. Nothing here can
-prove the view is still shared, still exists, or shows what its author thinks.
-🔴 A REVOKED SHARE RENDERS AN EMPTY FRAME WITH NO FINDING -- the fallback link is
-the only thing that distinguishes "loading" from "gone."
 
 =============================================================================
 ⚠️ WHAT THE READER GETS THAT A FORM READER DOES NOT: A CAPTION
@@ -145,6 +180,12 @@ from .util import sub_outside_code
 #: so the body vocabulary stays one pattern rather than three spellings.
 _VIEW = re.compile(r'(?m)^[ \t]*!!![ \t]+view[ \t]+"([^"\n]+)"[ \t]*$')
 
+#: Where ClickUp serves a publicly shared view. Read out of a real embed code on
+#: 2026-08-30, not guessed -- and a module constant for exactly the reason
+#: `_FORM_HOST` is one. See THE HOST in the docstring: this is what makes the
+#: feature work on a brand-new site with no configuration at all.
+_DEFAULT_HOST = "https://sharing.clickup.com/"
+
 #: ClickUp's own literal for a shared view. See the docstring: their embed code
 #: ships a real height, so ours does too.
 _DEFAULT_HEIGHT = "700px"
@@ -159,22 +200,30 @@ _DEAD_LABEL = "View"
 
 
 def _hosts() -> list:
-    """The allow-listed view hosts for THIS site, normalised to end in "/".
+    """The allow-listed view hosts: the engine default, plus this site's extras.
+
+    ✅ ADDITIVE, NOT AN OVERRIDE, and that is the load-bearing word. A site that
+    declares `view_hosts:` ADDS to the default rather than replacing it, so no
+    configuration can accidentally break the ordinary case. Declaring one host to
+    allow a second ClickUp surface must not silently disallow the first.
 
     ⚠️ READ AT CALL TIME, never cached at import. `prefixes.py` documents the trap
     in its own header: the instance config is populated during the build, so a
     read at import time caches an empty answer for the whole run.
     """
+    out = [_DEFAULT_HOST]
     raw = (state.INSTANCE or {}).get("view_hosts")
     if isinstance(raw, str):
         raw = [raw]
-    if not isinstance(raw, list):
-        return []
-    out = []
-    for item in raw:
-        host = str(item).strip()
-        if host:
-            out.append(host if host.endswith("/") else host + "/")
+    if isinstance(raw, list):
+        for item in raw:
+            host = str(item).strip()
+            if not host:
+                continue
+            if not host.endswith("/"):
+                host += "/"
+            if host not in out:
+                out.append(host)
     return out
 
 
@@ -260,28 +309,13 @@ def _html(src, slot) -> str:
     url, text, caption, raw_height = entry
     hosts = _hosts()
 
-    if not hosts:
-        state.note(
-            "dead_links",
-            src + ": `views: " + slot + "` cannot be embedded because this site "
-            "declares no `view_hosts:` in its instance config. Add the host from "
-            "a real ClickUp embed code. NOT embedded -- the host is an "
-            "allow-list, and this engine never guesses a third-party hostname.",
-        )
-        return _dead(
-            "no `view_hosts:` is declared for this site, so view '" + slot
-            + "' was not embedded.",
-            _DEAD_LABEL,
-        )
-
     if not any(url.startswith(host) for host in hosts):
         state.note(
             "dead_links",
-            src + ": `views: " + slot + "` must start with one of this site's "
-            "declared `view_hosts:` (" + ", ".join(hosts) + ") -- found '" + url
-            + "'. NOT embedded. \u26a0\ufe0f If the value looks like a whole "
-            "<iframe>, paste only the src= URL: the page names a view and the "
-            "engine builds the element.",
+            src + ": `views: " + slot + "` must start with an allow-listed host ("
+            + ", ".join(hosts) + ") -- found '" + url + "'. NOT embedded. "
+            "\u26a0\ufe0f If the value looks like a whole <iframe>, paste only the "
+            "src= URL: the page names a view and the engine builds the element.",
         )
         # ⚠️ THE CASE WHERE A MARKER MATTERS MOST: the slot EXISTS, so an author
         # reading the page has every reason to think the embed is merely slow.
