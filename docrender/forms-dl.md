@@ -1,24 +1,144 @@
 # `forms.py` — rationale
 
 Sibling to `docrender/forms.py`. **The steps and warnings live in the module; the
-arguments and the incidents live here.** Started 2026-08-30 when the module reached
-**24,664 B against a 22,528 B read ceiling** while the reload button's argument was
-being written into it — the module's own docstring had already said *"This file is at
-the warn line already."*
+arguments and the incidents live here.** Started 2026-08-30 when the module hit its
+own warn line — its docstring already said *"This file is at the warn line already."*
 
-⚠️ **The trigger was the reload button; the CAUSE was four accumulated arguments.**
-The sections below were MOVED out of the module verbatim rather than trimmed, on the
-`buildstamp-dl.md` standard: *the steps, values and conditions stay in the file; why a
-step exists at all moves to the sibling.* Suffix convention is Michael's
-(`publish-dl.md` set it). Do not invent a second name for this job.
+⚠️ **THE MODULE CROSSED THE 22,528 B READ CEILING TWICE IN ONE DAY** — 24,664 B, then
+24,030 B — both times while reasoning was being written into it, and **both times off
+a size I estimated rather than measured.** ⚑ *If you are adding to that docstring,
+write the section here first.* Suffix convention is Michael's (`publish-dl.md` set
+it). Do not invent a second name for this job.
+
+---
+
+## ⭐ THE FOLD — THREE STATES, ONE KEY (2026-08-30)
+
+> Michael: *"although I said the rehearsal report should be expanded when the form
+> opens, it is now permanently open with no option to collapse it. How do I set it to
+> default as expanded but still allow the user to collapse it later, compared to the
+> rehearsal note which defaults to collapsed?"*
+
+```
+collapsed: ABSENT   a bare embed. No disclosure at all.
+collapsed: false    <details open>  -- expanded on arrival, collapsible.
+collapsed: true     <details>       -- closed on arrival.
+```
+
+### ⭐ Why `false` is not the same as saying nothing
+
+The module's binary read `collapsed is True` → closed, **everything else** → no
+disclosure at all. So `collapsed: false` and an omitted key produced identical output,
+and the state Michael wanted — *a fold that starts open* — was unreachable.
+
+⚑ **A MISSING KEY AND A KEY SET TO `false` ARE DIFFERENT FACTS.** "Not collapsed" is
+a claim about a fold; saying nothing is not a claim at all. That is the same
+distinction `reload:` turns on in this file (`is not False`) and the one
+`pagefoot._enabled` has read on `edit_links` since August.
+
+✅ **So he needed ZERO content edits.** `40-forms/rehearsal-report.md` already declared
+`collapsed: false` on the report and `collapsed: true` on the note — which under the
+new reading is exactly *"report expanded but foldable, note closed."* The frontmatter
+was already right; the engine could not express it.
+
+### ⚠️ What changes for pages that already wrote `collapsed: false`
+
+Only those pages change, and they gain a disclosure they did not have:
+
+| page | slot | before | after |
+|---|---|---|---|
+| `40-forms/rehearsal-report.md` | `form` | bare | **open + foldable** — the ask |
+| `40-forms/rehearsal-report.md` | `rehearsal-note` | closed | closed (unchanged) |
+| `40-forms/incident-report.md` | `incident-report` | bare | **open + foldable** |
+
+🚩 **The incident-report page is the one to look at.** It gains a fold control nobody
+requested. That is defensible — a reader who has submitted can now collapse a tall
+embed — but it is a change to a live compliance page and it is Michael's to keep or
+revert. **Reverting is deleting one line** (`collapsed: false`), which returns it to a
+bare embed.
+
+✅ Every slot that OMITS the key is byte-identical, which is what keeps DL J15's rule
+alive: shipping a feature must not re-shape a page nobody touched.
+
+### 🚫 Not a second key, and not a renamed one
+
+`collapsible: true` beside `collapsed: true` gives **four states, one of them
+unsatisfiable** (not collapsible + collapsed) — the shape `nav: hidden` +
+`status: unlisted` already had to be reported as a contradiction rather than resolved.
+And renaming the key to something with three honest values (`fold: open|closed|none`)
+would break every live page, in a repo **agents may not commit to**. One key, three
+states, no migration.
+
+### ⭐ `open` is an attribute, so there is only one markup shape
+
+"Expanded" and "closed" differ by five characters on the same element. That is why the
+print rules, the `slot_anchor` fragment and the screen styles need no knowledge of
+which state a slot asked for — **one shape, one set of rules.** ✅ And the flow-strip
+fragment still lands correctly: a fragment pointing inside a *closed* `<details>`
+expands it, and inside an *open* one simply scrolls.
+
+---
+
+## 🔴 A COLLAPSED EMBED PRINTED AS A CALLOUT (2026-08-30)
+
+> Michael, from a print preview: *"the rehearsal report is not in a collapsed iframe,
+> so it prints correctly, but because the rehearsal note form is collapsed, it renders
+> differently at print and breaks the system. We need to fix that so it reads like the
+> rehearsal report when printed."*
+
+### The cause was already documented — at the other end of the same file
+
+Material `@extend`s `.admonition` onto **every** `<details>` in typeset content, and
+`print-callout.css` turns every `.md-typeset details` into a rule-and-indent: a 2pt
+coloured left band plus a 0.85em indent. Correct for a real callout. Wrong for a form.
+
+⚑ **THE DEFECT IS A DIVERGENCE, NOT A STYLE.** Two embeds declared the same way,
+differing in one **screen-only** key, printed as two different KINDS of object. And
+`flow.css`'s own THE CAP section fixed exactly this for `.dr-flows__others`, with the
+reasoning written out — *"without this it would print with a BLUE band, because no
+family rule ever gave it a colour"* — and **nobody pointed the same fix at the form.**
+Second instance of one defect, in one file, found by printing rather than by reading.
+
+### ⚠️ The summary is hidden on paper, and that is parity rather than loss
+
+A `<summary>` is a **control**, and paper has none — `print.css`'s pen test. Its text
+is the slot's own `text:`, which the fallback link already carries, so both embeds now
+print as one line naming the form.
+
+🚩 **The one case where a string genuinely goes:** a slot with no `text:` at all. Then
+the summary would have read `"Complete this program"` while the link reads its own
+fallback wording. The form is still named, so nothing is orphaned — but it is not the
+same sentence, and that is worth knowing before somebody declares a slot with no text.
+
+### ⚠️ Why the rules are inline instead of in `flow.css`, which owns `.dr-form*`
+
+**`flow.css` is 23,485 B and already 957 B PAST the 22,528 B read ceiling** — it grew
+**2,365 B the same morning**, when a parallel session landed the `.dr-view*` rules. So
+the file that should own these rules cannot safely be edited at all.
+
+⚠️ **And this corrects the measurement in PR #199.** That PR said flow.css sat at
+21,120 B and would land three bytes under with the reload rule in it. True when
+measured, false four hours later. ⚑ *A size measured once is a size that was true
+once.* The conclusion — inline, on `program.py`'s per-page `<style>` precedent — now
+holds for a far stronger reason than the three-byte margin it was first argued from.
+
+🚩 **`flow.css` needs the split its own header prescribes** (*"a file at its size limit
+is usually a file with a seam in it"*), and the seam is obvious: the flow strip and the
+`.dr-view*` rules are different subjects. These print rules move there afterwards.
+
+⚠️ **One superseded rule was deliberately left alone.** `flow.css`'s print block still
+carries `.dr-form__open > summary { border: 0; padding: 0 }`, which is now unobservable
+because the summary is `display: none`. That is precisely the *"a rule is only as real
+as the state it is allowed to observe"* defect that file documents about its own deleted
+position reset — **but deleting it means rewriting a 23KB file a parallel session just
+touched.** Named as debt rather than fixed; it goes with the split.
 
 ---
 
 ## ✅ THE RELOAD BUTTON (2026-08-30)
 
-> Michael: *"when i'm working ON THE REHEARSAL REPORT page and interacting only with
-> the embedded add note clickup form, i want to be able to reload the embedded form
-> without having to reload the entire webpage of the doc renderer."*
+> Michael: *"i want to be able to reload the embedded form without having to reload the
+> entire webpage of the doc renderer."*
 
 Every embed carries one `<button class="dr-form__reset">Reload form</button>`. On by
 default; `reload: false` on the slot removes it.
@@ -45,147 +165,89 @@ collapsing."*
 A replaced node orphans ClickUp's `clickup-dynamic-height` binding, so a fresh frame
 that is never re-measured would collapse to ~0px without the floor. ⚑ **A guard
 written for a CDN outage is what made a later feature safe, and the file named the
-feature before it existed.** Second consumer, same value, no new number.
+feature before it existed.**
 
 ### 🔴 It discards what was typed, with no confirmation, and that is the ask
 
-This was **refused on 2026-08-29** on data-loss grounds — a half-filled incident
-report wiped by a stray click. Michael's answer: *"sometimes i do want to reset a
-form after i've filled it in halfway."*
+**Refused on 2026-08-29** on data-loss grounds — a half-filled incident report wiped by
+a stray click. Michael's answer: *"sometimes i do want to reset a form after i've
+filled it in halfway."*
 
 ⚑ **An objection built on a guessed intent is answered by the intent, not argued
 with.** The refusal assumed the click would be accidental; he is describing a
 deliberate one. So the label is the entire safety mechanism: **"Reload form"**, not
 something coy, and **no confirm dialog** — a dialog on a control whose purpose is to
-discard is a nag, and this engine's own dead-control rule says a control should say
-what it does.
-
-### ⚠️ The styles are inline, once per page, and that is a byte budget not a taste
-
-`assets/flow.css` owns `.dr-form*` and is the obvious home. Measured:
-
-```
-flow.css at HEAD ............ 21,120 B
-rule block + print rule ..... +1,405 B
-                              22,525 B against a 22,528 B ceiling
-                              -> THREE BYTES of headroom
-```
-
-That is a tripwire, not a home — the next person to touch that file breaks it. A new
-sheet needs a group in `assets.py`, which is **32,684 B and past the 30KB write ban**
-(LOCKED 2026-07-02, after that path corrupted a file four times in one session).
-
-✅ So the styles ride with the markup, on **`program.py`'s precedent** — it already
-emits a per-page `<style>` block for its promotion rules. 🚩 When `flow.css` splits,
-they move into it.
-
-⚠️ **And I told Michael this was blocked before I measured it.** I said flow.css plus
-a rule went over the ceiling; it fits, by three bytes. ⚑ *A blocker asserted from a
-remembered size is the same defect as a version asserted from one — measure at the
-moment you act.* The conclusion held for a different reason than the one I gave.
+discard is a nag.
 
 ### 🚫 Three things it deliberately is not
 
 - **Not on a `views:` embed.** A shared view is read-only furniture with nothing typed
-  into it, so a reload control there answers a question nobody asked — and `views.py`
-  already records that the whole dynamic-height problem is form-only.
-- **Not an anchor.** A real `<button type="button">`, because it performs an action on
-  this page rather than going anywhere: announced correctly, keyboard-reachable with
-  no `tabindex` bolted on.
-- **Not one listener per form.** One delegated listener per PAGE, appended beside the
-  CDN script, so a two-form page binds once.
+  into it — and `views.py` already records that the whole dynamic-height problem is
+  form-only.
+- **Not an anchor.** A real `<button type="button">`, because it acts on this page
+  rather than going anywhere: announced correctly, keyboard-reachable with no
+  `tabindex` bolted on.
+- **Not one listener per form.** One delegated listener per PAGE, so a two-form page
+  binds once.
 
-### ⚠️ What it cannot do, stated so nobody assumes otherwise
+### ⚠️ What it cannot do
 
 The frame is **cross-origin**. Nothing here can read the form's state, clear one
 field, or detect a submission — `contentWindow` is closed to us by the same-origin
-policy. This reloads the whole embed and nothing finer, and no amount of engine work
-changes that. 🔴 So the *self-redirect-after-submit* problem is **not** addressed by
-this button: that is a ClickUp form setting, invisible from a build.
+policy. This reloads the whole embed and nothing finer. 🔴 So the
+*self-redirect-after-submit* problem is **not** addressed by this button: that is a
+ClickUp form setting, invisible from a build.
 
 ---
 
 ## 🔴 A BROKEN SLOT USED TO RENDER **NOTHING**. FIXED 2026-08-30.
 
-> Michael, 2026-08-30: *"why wont the second form for NOTES render on my new rehearsal
-> report page"*
+> Michael: *"why wont the second form for NOTES render on my new rehearsal report page"*
 
 The cause was a one-word typo — the body said `rehearesl-note`, the frontmatter
 declared `rehearsal-note`. **The cause is not the finding.** `_html` returned `""` for
 an unknown slot and `swap` returns `""` on falsy, so the directive line VANISHED: no
 marker, no gap, no clue.
 
-⚑ **AND THE TELL IS THAT ITS TWO SIBLINGS ALREADY GOT THIS RIGHT.** `qr.py` renders a
-struck-through `docrender-dead` span; `links.py` renders the same thing for a dead
-reference and `markerlinks.py` states the rule outright — *"a dead reference never
-degrades into a span... falling back would be a silent second legal path."* **Three
-directives share one pattern and one vocabulary, and the only one that failed silently
-was the one whose absence a reader cannot infer.** A missing QR is obviously missing. A
-missing form on a page that already shows one form looks deliberate.
+⚑ **AND ITS TWO SIBLINGS ALREADY GOT THIS RIGHT.** `qr.py` renders a struck-through
+`docrender-dead` span; `links.py` renders the same for a dead reference and
+`markerlinks.py` states the rule outright — *"a dead reference never degrades into a
+span... falling back would be a silent second legal path."* **Three directives share
+one pattern, and the only one that failed silently was the one whose absence a reader
+cannot infer.** A missing QR is obviously missing. A missing form on a page that
+already shows one form looks deliberate.
 
 ⚠️ **It was in the build report the whole time**, under `dead_links`, naming the bad
-slot and listing the legal ones. Nobody read it — which is `next-build-spec.md` BUILD
-2's entire premise (*"the build report has no reader"*) acquiring a live fourth
-instance. ⭐ **So the fix is not a new message. It is the message that already existed,
-on a second SURFACE** — the page — rather than a second claimant on one truth.
+slot and listing the legal ones. Nobody read it — `next-build-spec.md` BUILD 2's
+premise acquiring a live fourth instance. ⭐ **So the fix is not a new message. It is
+the message that already existed, on a second SURFACE.**
 
-✅ **And it reaches paper for free.** `assets/base.css` gives `.docrender-dead` a
-`--dr-dead` dotted underline unscoped to any medium, and `print.css` carries a whole
-block arguing AGAINST re-declaring it. Verified live 2026-08-19: two dead references
-printed in red on a policy sheet with no print rule at all.
-
-🚫 **Not an anchor**, on `qr.py`'s precedent: a form that failed to resolve must not
-offer a control. The `title` carries the diagnosis; the span carries no href.
+✅ **And it reaches paper for free.** `base.css` gives `.docrender-dead` a `--dr-dead`
+dotted underline unscoped to any medium. Verified live 2026-08-19.
 
 ---
 
-## ⭐ SPLIT OUT OF `program.py` THE SAME DAY IT SHIPPED, AND THE REASON IS COHESION
+## ⭐ SPLIT OUT OF `program.py` THE SAME DAY IT SHIPPED
 
 `program.py` held the flow strip and this embed and reached 16,949 B; adding
-`collapsed:` would have pushed it past the ~22KB read ceiling. 🔴 **But size was the
-TRIGGER, not the REASON** — `specs/visibility-split.md` §1 already ruled on exactly
-this: *"The cut that is worth making follows the concerns. It also fixes the bytes. If
-those two ever disagree, follow the concerns."*
+`collapsed:` would have pushed it past the ceiling. 🔴 **But size was the TRIGGER, not
+the REASON** — `specs/visibility-split.md` §1: *"The cut that is worth making follows
+the concerns. It also fixes the bytes. If those two ever disagree, follow the
+concerns."*
 
-They agree here. A strip is NAVIGATION — it reads the chain graph, resolves pages, and
-computes position. A form is an EMBED — it validates a URL and emits an element. They
-share no state and call none of each other's helpers. The only thing they ever shared
-was a hook shim, and they still do.
+They agreed. A strip is NAVIGATION; a form is an EMBED. They share no state and call
+none of each other's helpers.
 
-⚠️ **And the same thing happened to THIS file on 2026-08-30**, which is why this
-document exists. Same trigger, same test, and the concerns agreed again: the module
-keeps the mechanism, the sibling takes the arguments.
+⚠️ **And the same thing happened to THIS file on 2026-08-30**, twice, which is why this
+document exists. Same trigger, same test, same answer: the module keeps the mechanism,
+the sibling takes the arguments.
 
 ---
 
-## ⭐ `collapsed:` — A PROGRAM PAGE IS BOTH THE ENTRANCE AND THE EXIT
+## ⭐ `collapsed:` AND `reload:` DEFAULT OPPOSITE WAYS, ON PURPOSE
 
-> Michael, 2026-08-19: *"if the form could not be so stand out on the first landing but
-> then when we circle back to ending there on the same page - it's easily found."*
-
-That is a real sequencing problem rather than a styling preference. A reader lands on
-the program page BEFORE reading anything and returns to it to submit. An open form on
-arrival instructs somebody to certify material they have not read yet, which is the
-pre-filled-checklist hazard `30-programs/index.md` already warns about in its own
-words.
-
-🔴 **The mechanism is a FRAGMENT, not a script.** `collapsed: true` renders the embed
-inside a closed `<details>`, and the LAST STEP of the flow links to the `<summary>`'s
-own id. Per the HTML spec, a fragment navigation targeting content inside a closed
-`<details>` expands it — so arriving from the end of the program opens the form, with
-no JavaScript, no query parameter and no state.
-
-⚠️ **It degrades honestly where that behaviour is missing**, which is why it was safe
-to ship without browser-support arithmetic nobody could verify: the reader lands on a
-visible, obviously-clickable "Complete this program" control and clicks once. One extra
-click, never a dead end.
-
-🚫 **Not automatic on a program page**, though it easily could be. It is a DECLARED
-key, because a form on a single policy page acknowledging one rule wants to be open,
-and an engine deciding that by type would be a rule nobody can see in the content.
-Declared beats inferred; `objects/program.yml` carries the vocabulary.
-
-⭐ **AND `reload:` DEFAULTS THE OTHER WAY, WHICH IS THE CONTRAST WORTH KEEPING.** A
-reload control is useful on every embed and harmless where nobody clicks it, so it is
-on by default and `reload: false` is the opt-out. Hiding a compliance form is an
-editorial decision that must be declared; offering a reload button is not.
+`collapsed:` defaults to **no fold at all** because hiding a compliance form is an
+editorial decision that must be declared. `reload:` defaults to **on** because
+offering a reload button is not. ⭐ The asymmetry is the point: a key whose default
+changes what a reader can SEE has to be explicit; a key whose default adds a harmless
+affordance does not.
