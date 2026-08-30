@@ -103,6 +103,11 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: ⭐ EIGHT FILES, EIGHT JOBS, one question each -- the table is D7. The ORDER
 #: WITHIN this group is free (no two share a selector-and-property pair) with two
 #: proven exceptions, both in D9. What is load-bearing is the GROUP's position.
+#:
+#: ⚠️ BUILD 10's `print-packet.css` IS DELIBERATELY NOT HERE. It is @media print
+#: and it would look like a ninth member of this group, but it shares no selector
+#: with any sheet at all, so it has no cascade fight to win and this group's claim
+#: does not describe it. See `_PACKET_ASSETS`.
 _PRINT_ASSETS = (
     "print.css",
     "print-chrome.css",
@@ -173,6 +178,33 @@ _ALIGN_ASSETS = ("align.css",)
 #: already beaten a plain rule twice in this feature family.
 _GLOSS_ASSETS = ("gloss.css",)
 
+#: THE PROGRAM PACKET (BUILD 10, 2026-08-30). The export button and the cover on
+#: screen; one policy per sheet on paper. See docrender/packet.py,
+#: docrender/packetbuild.py and specs/print-packet.md.
+#:
+#: ⭐ TWO FILES IN ONE GROUP, ON THE `_GLOSS_ASSETS` REASONING APPLIED HONESTLY.
+#: gloss.css kept screen and print in ONE sheet because one `::after` served both
+#: mediums, so splitting would have put one element's two states in two files.
+#: Here the two halves share no element: the screen sheet styles a button and a
+#: contents box, and the print sheet answers a question that only exists on paper
+#: (where does a SHEET begin, in a document built from many pages). Two files, one
+#: group -- the group is the feature, the file split follows the medium.
+#:
+#: 🔴 `print-packet.css` IS NOT IN `_PRINT_ASSETS` AND THAT IS A DECISION. That
+#: group's claim is "must beat the generated sheets at equal specificity." These
+#: rules share no selector with any other sheet, so the claim is false about them,
+#: and a member that breaks its group's claim is worse than a new group. ✅ It still
+#: lands AFTER the print group, because this group is appended after it in `_plan`
+#: -- which is what keeps it clear of print-flow.css, the only sheet that has ever
+#: contested a rule in this feature family.
+#:
+#: ⚠️ UNCONDITIONAL, like every group but the router's (D3). `export:` is
+#: frontmatter, so a scan COULD answer "does this site have a packet" cheaply --
+#: and the cost of being wrong is a sheet of `.dr-packet*` rules that match
+#: nothing, against the cost of a second place stating which sites use the
+#: feature. The router's scan exists because its assets are 63 KB; these are 10.
+_PACKET_ASSETS = ("packet.css", "print-packet.css")
+
 
 def hand_written_css() -> tuple[str, ...]:
     """Every HAND-WRITTEN stylesheet this engine ships, in load order.
@@ -186,10 +218,11 @@ def hand_written_css() -> tuple[str, ...]:
     sheets are NOT here -- they have no file on disk and the audit builds them.
 
     🔴 EVERY GROUP IS WALKED. Adding a group and forgetting it here is precisely
-    how that tuple went stale. ⭐ THIS WARNING HAS BEEN OBEYED FOUR TIMES --
-    _FLOW_ASSETS (08-19), _QR_ASSETS (08-21), _ALIGN_ASSETS (08-29) and
-    _GLOSS_ASSETS (08-30) each joined this walk in the same commit that created
-    them, because whoever added them read this line first.
+    how that tuple went stale. ⭐ THIS WARNING HAS BEEN OBEYED FIVE TIMES --
+    _FLOW_ASSETS (08-19), _QR_ASSETS (08-21), _ALIGN_ASSETS (08-29),
+    _GLOSS_ASSETS and _PACKET_ASSETS (both 08-30) each joined this walk in the
+    same commit that created them, because whoever added them read this line
+    first.
 
     ⚠️ It guards against a forgotten GROUP. Nothing guards against a forgotten
     FILE, and an unregistered sheet is invisible here whether the omission was
@@ -210,7 +243,7 @@ def hand_written_css() -> tuple[str, ...]:
         name
         for name in (
             _DATA_ASSETS + _FEATURE_ASSETS + _PRINT_ASSETS + _FLOW_ASSETS
-            + _QR_ASSETS + _ALIGN_ASSETS + _GLOSS_ASSETS
+            + _QR_ASSETS + _ALIGN_ASSETS + _GLOSS_ASSETS + _PACKET_ASSETS
         )
         if name.endswith(".css")
     )
@@ -296,8 +329,13 @@ def _plan(config) -> list[tuple[str, bytes]]:
     ⚠️ THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the only
     thing keeping navtree.js ahead of router.js.
 
-    ⭐ THE FLOW, QR, ALIGN AND GLOSS POSITIONS ARE FREE (D8). Do not infer a rule
-    from where they sit.
+    ⭐ THE FLOW, QR, ALIGN, GLOSS AND PACKET POSITIONS ARE FREE (D8). Do not infer
+    a rule from where they sit. ⚠️ ONE EXCEPTION, AND IT IS NOT A CASCADE RULE:
+    the packet group must stay AFTER `_PRINT_ASSETS` in this list, because
+    print-packet.css's `display: none` on the export button competes with
+    print-flow.css's `display: revert !important` on details children. It also
+    carries `!important` itself, so the order is belt AND braces rather than the
+    only defence.
 
     ⚠️ `_read` RETURNING None IS WHY A MISSING FILE IS SILENT HERE -- correct for a
     sheet deleted on purpose, and also why an UNREGISTERED sheet was undetectable:
@@ -319,7 +357,8 @@ def _plan(config) -> list[tuple[str, bytes]]:
         if raw is not None:
             plan.append((name, raw))
 
-    for name in _FLOW_ASSETS + _QR_ASSETS + _ALIGN_ASSETS + _GLOSS_ASSETS:
+    for name in (_FLOW_ASSETS + _QR_ASSETS + _ALIGN_ASSETS + _GLOSS_ASSETS
+                 + _PACKET_ASSETS):
         raw = _read(state.ENGINE_ROOT / "assets" / name)
         if raw is not None:
             plan.append((name, raw))
