@@ -31,6 +31,12 @@
  * particular must stay after this file or every dark-mode link reverts to
  * Material's blue.
  *
+ * 🔴 IT HAS ~40 B OF HEADROOM AS OF 2026-08-30 AND THE NEXT EDIT MUST SPLIT IT,
+ * not trim it. 🚩 THE LAYER TO CUT OUT IS THE DOCUMENT-ELEMENT SET (lede, aka,
+ * owner, revised, markers, spec table, dead reference) -- a real surface, and
+ * most of what is left once the mapping is set aside. Blocked only on registering
+ * a new sheet in docrender/assets.py (32,684 B, unwritable whole).
+ *
  * ⭐ AND foot.css MAKES THE REMAINING SUBJECT LEGIBLE, which is the best argument
  * any of these splits has produced. What is left is the Material MAPPING plus
  * DOCUMENT elements -- the lede, the aka line, the revised line, the ownership
@@ -261,35 +267,37 @@
 }
 
 /* ---------------------------------------------------------------------------
- * THE OWNERSHIP TAG (2026-08-30, Michael) -- one line, two ends
+ * THE OWNERSHIP TAG (2026-08-30, Michael) -- one footer line, two ends
  *
  *   Revised Aug 2026          Posted by Michael A Wizorek · michael@...
  *
- * `revised:` keeps the left, untouched. This is one line of prose set RIGHT of
- * it, from `owner:` in the instance's site.yml. THE ACCOUNT IS IN
- * docrender/lede.py `owner()` -- this file is at its read ceiling, so only what
- * a reader of these three rules cannot derive is written here:
+ * `revised:` keeps the left, untouched. One line of prose set RIGHT of it, from
+ * `owner:` in the instance's site.yml. Account: lede.py `owner()`.
  *
- * 🔴 A FLOAT, WHICH IS WHY THE REVISED RULE IS UNTOUCHED. Two blocks cannot share
- * a line, and both alternatives (a flex wrapper, or emitting this inside the
- * revised paragraph) change that line's rule, markup or context. A float is out
- * of flow, so `.dr-revised` lays out as though this did not exist. ⚠️ IT MUST
- * PRECEDE REVISED IN SOURCE -- a float after a block starts below it.
+ * 🔴 EMITTED AFTER REVISED AND PULLED BACK ONTO ITS LINE -- the opposite of what
+ * it looks like it should be. MEASURED in WeasyPrint, both ways:
  *
- * 🔴 THE THIRD SELECTOR ONLY KEEPS REVISED WHERE IT WAS: a sibling between aka
- * and revised breaks the adjacency rule above, so the value is restated.
+ *   float BEFORE  `margin-top` moved it NOT AT ALL; it landed a line low and the
+ *                 error VARIED with whatever preceded it (12.8px bare, 5.6px
+ *                 under keywords). No single value aligns both cases.
+ *   float AFTER   the offset is CONSTANT (25.7px) because it hangs off revised's
+ *                 own bottom. One value fixes every case.
+ *
+ * ⭐ AND SITTING AFTER REVISED IS WHY `.dr-aka + .dr-revised` IS NEVER BROKEN: no
+ * sibling lands between them, so there is no restoration selector and no edit to
+ * that rule. The order that aligns is the order that touches nothing.
+ *
+ * ✅ `-2.36em` IS VERIFIED, NOT REASONED: revised UNMOVED (0.0px) and both on ONE
+ * baseline (dy 0.0) in four cases -- with and without keywords, at root 16px and
+ * 20px. `em` is what makes it root-agnostic. ⚠️ A float rather than `text-align`,
+ * so a long address wraps instead of colliding.
  * ------------------------------------------------------------------------ */
 .md-typeset .dr-owner {
   float: right;
-  margin-top: var(--dr-gap-lg, 2rem);
+  margin-top: -2.36em;
+  margin-bottom: 0;
   font-size: 0.85em;
   color: var(--dr-ink-muted);
-}
-.md-typeset .dr-aka + .dr-owner {
-  margin-top: 0.35rem;
-}
-.md-typeset .dr-aka + .dr-owner + .dr-revised {
-  margin-top: 0.35rem;
 }
 
 /* ---------------------------------------------------------------------------
