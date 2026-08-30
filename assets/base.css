@@ -33,9 +33,10 @@
  *
  * ⭐ AND foot.css MAKES THE REMAINING SUBJECT LEGIBLE, which is the best argument
  * any of these splits has produced. What is left is the Material MAPPING plus
- * DOCUMENT elements -- the lede, the aka line, the revised line, inline markers,
- * the spec table, a dead reference. Every one of them is something an author can
- * write. The footer is not, and it was sitting in the middle of them.
+ * DOCUMENT elements -- the lede, the aka line, the revised line, the ownership
+ * tag, inline markers, the spec table, a dead reference. Every one of them is
+ * something an author can write, or on the tag's account something a SITE
+ * declares once. The footer is not, and it was sitting in the middle of them.
  */
 
 [data-md-color-scheme="slate"],
@@ -195,19 +196,31 @@
 }
 
 /* ---------------------------------------------------------------------------
- * THE REVISED LINE (2026-08-07, Michael)
+ * THE OWNERSHIP TAG AND THE REVISED LINE -- ONE RULE, TWO LINES
  *
+ *     Posted by Michael A Wizorek · michael.wizorek@rochester.edu
  *     Revised Aug 2026
  *
- * From `revised:`, and the LAST thing the document says. The edit rule and its
- * link still sit below it -- that rule is the seam between the document and the
- * scaffolding, and `edit_links: false` takes the whole lower half away.
+ * THE REVISED LINE (2026-08-07, Michael) is from `revised:` and is the LAST
+ * thing the document says. THE OWNERSHIP TAG (2026-08-30, Michael) sits directly
+ * above it and comes from `owner:` in the instance's site.yml -- one declaration
+ * per SITE, no page edit anywhere. The edit rule and its link still sit below
+ * both: that rule is the seam between the document and the scaffolding, and
+ * `edit_links: false` takes the whole lower half away.
  *
- * ⭐ WHY IT EXISTS AT ALL. The field was declared optional on every page type
- * from the day the type system shipped, and NOTHING IN THE ENGINE EVER READ IT.
- * The date a reader actually saw was a line typed by hand at the bottom of the
- * page. So the field was decoration and the body line was the real one, which is
- * the exact inverse of what the README and the page template both said.
+ * ⭐ ONE DECLARATION BLOCK FOR BOTH, DELIBERATELY. They are an adjacent pair of
+ * provenance furniture in the same register, and the aka-line finding below
+ * already proved what happens when two lines of the same kind carry different
+ * sizes -- it reads as a paint bug. A second block would have been a second
+ * claimant on one visual decision. 🚩 `.dr-owner` has no rule of its own yet and
+ * should not get one without a reason: the day it needs to differ, split it and
+ * say why.
+ *
+ * ⭐ WHY THE REVISED LINE EXISTS AT ALL. The field was declared optional on every
+ * page type from the day the type system shipped, and NOTHING IN THE ENGINE EVER
+ * READ IT. The date a reader actually saw was a line typed by hand at the bottom
+ * of the page. So the field was decoration and the body line was the real one,
+ * which is the exact inverse of what the README and the page template both said.
  *
  * ⭐ AND THE INTERESTING PART IS WHAT TWO COPIES DID TO THE VALUE. A field has
  * one spelling; a typed line has as many as there are authors. Live across nine
@@ -218,21 +231,33 @@
  * duplication did not cause a CONTRADICTION, it caused a DRIFT -- and a drift
  * has no failing build to announce it.
  *
+ * 🚩 THAT DRIFT IS NOW A TAG'S PROBLEM TOO, and it is the one thing to know before
+ * trusting this pair on paper. A sheet carrying a NAMED OWNER beside a missing or
+ * placeholder date looks controlled and is not, which is worse than carrying
+ * neither -- the tag is an implicit claim that somebody is maintaining this. The
+ * tag renders unconditionally; `revised:` is still optional. Raised with Michael
+ * on 2026-08-30 and deferred to the revision-log conversation, not fixed here.
+ *
  * ⚠️ THE ITALIC IS AN `<em>` IN THE MARKUP AND NOT `font-style` HERE. Italic was
  * the request rather than a styling choice, so it should survive print.css, a
  * stylesheet that failed to load, and anything reading the HTML without our CSS.
  * This rule owns size, colour and spacing, and nothing else. Do not tidy the
- * `<em>` away into a declaration below.
+ * `<em>` away into a declaration below. ⚠️ The tag is deliberately NOT italic:
+ * the two lines are the same register, not the same voice, and the roman face is
+ * what keeps an email address legible at 8.5pt on a photocopy.
  *
- * ⚠️ TWO MARGINS, WHICH IS ONE MORE THAN IT LOOKS LIKE IT NEEDS. The keywords
- * line already spends `gap-lg` opening the foot block, so a second big gap under
- * it leaves the two furniture lines further apart than either is from the prose.
- * The adjacent-sibling rule is the only case where that happens, and it costs
- * one selector to get right in both.
+ * ⚠️ THREE ADJACENT-SIBLING PAIRS, WHICH IS TWO MORE THAN IT LOOKS LIKE IT NEEDS.
+ * The keywords line already spends `gap-lg` opening the foot block, so a second
+ * big gap under it leaves the furniture lines further apart than any of them is
+ * from the prose. Every pair that can actually occur is listed: aka+tag,
+ * aka+revised (a site with no owner declared), and tag+revised. Missing one
+ * would open a 2rem hole between two lines that belong together, on the sites
+ * that happen to hit that combination -- and five of six sites hit the middle
+ * one today.
  *
  * ⚠️ SIZE AND OPACITY: THE AKA LINE ABOVE CARRIES THAT FINDING. One statement,
- * and both lines take the same fix because they are an adjacent pair -- leaving
- * one at 97% of body beside the other at 85% would read as a paint bug.
+ * and all three lines take the same fix because they are an adjacent set --
+ * leaving one at 97% of body beside the others at 85% would read as a paint bug.
  *
  * 🚩 AND THE COLOUR IS `ink-muted`, NOT `accent`. Michael, 2026-08-28: *"italic
  * and accent color still"* -- the ask was to LEAVE the colour alone, and it is
@@ -243,13 +268,26 @@
  * wordmark vanished on the light ramp twice. If accent is genuinely wanted here,
  * `accent-deep` clears light at 6.31 and fails dark at 2.15, so it needs a
  * per-scheme pair rather than one value, and that is a ruling rather than an edit.
+ *
+ * ⚠️ THE ADDRESS IN THE TAG IS A REAL ANCHOR and therefore takes
+ * `--md-typeset-a-color` on screen from the mapping at the top of this file. It
+ * is NOT exempted here: a link that does not look like a link is the dead-control
+ * shape from the other side. On paper `print-type.css` §5 strips link colour, so
+ * the tag prints as one unbroken line of provenance -- which is the whole point
+ * of it being on paper. 🔴 BUT SEE THE STANDING DEFECT: `uritp-safety.link` is
+ * **2.30:1 on this site's parchment ground and FAILS AA**, logged in the
+ * instance's own site.yml and open upstream in maw-themes. The tag does not cause
+ * that and is now one more surface reading it.
  * ------------------------------------------------------------------------ */
-.md-typeset .dr-revised {
+.md-typeset .dr-revised,
+.md-typeset .dr-owner {
   margin-top: var(--dr-gap-lg, 2rem);
   font-size: 0.85em;
   color: var(--dr-ink-muted);
 }
-.md-typeset .dr-aka + .dr-revised {
+.md-typeset .dr-aka + .dr-revised,
+.md-typeset .dr-aka + .dr-owner,
+.md-typeset .dr-owner + .dr-revised {
   margin-top: 0.35rem;
 }
 
