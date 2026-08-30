@@ -1,13 +1,15 @@
 """The `forms:` registry -- an embedded ClickUp form, named once in frontmatter.
 
-WHY decisions here are the way they are: the doc-render-engine Decision Log.
-The flow strip is docrender/program.py; both are registered by stage 05b.
+WHY decisions here are the way they are: the doc-render-engine Decision Log, and
+`docrender/forms-dl.md` beside this file. The flow strip is docrender/program.py;
+both are registered by stage 05b.
 
     forms:
       completion:
         src: https://forms.clickup.com/36074068/f/...?Program_ID=ITPSAFE-1225
         text: General Safety completion form
         collapsed: true
+        reload: false        # optional; the Reload button is ON by default
 
     !!! form "completion"
 
@@ -27,6 +29,28 @@ hook of its own: `on_page_markdown` below calls it, and it imports `_esc` and
 `_dead` from here rather than re-declaring them. 🔴 The full argument for one hook
 and two files -- and the measurement that killed the fold -- lives in THE
 DELEGATION in `views.py`, not here. This file is at the warn line already.
+
+=============================================================================
+✅ THE RELOAD BUTTON (2026-08-30). ARGUMENT IN `forms-dl.md`; MECHANISM HERE.
+=============================================================================
+> Michael: *"i want to be able to reload the embedded form without having to
+> reload the entire webpage of the doc renderer."*
+
+🔴 `cloneNode` + `replaceWith`, NEVER `iframe.src = src`. Assigning `src`
+NAVIGATES the existing browsing context and pushes a session-history entry, so
+after three reloads the reader's Back button walks iframe states instead of
+leaving the page. A fresh node is an initial load and pushes nothing. Verified
+by executing the handler against a DOM model: zero history entries, one fresh
+load, the other form on the page untouched.
+
+🔴 IT DISCARDS WHATEVER WAS TYPED, WITH NO CONFIRMATION, AND THAT IS THE ASK
+rather than an oversight -- refused on 08-29 on data-loss grounds and released by
+Michael the next morning. **The label is the safety mechanism.**
+
+⚠️ STYLES AND LISTENER ARE INLINE, once per page, on `program.py`'s precedent.
+`assets/flow.css` is the obvious home and lands **three bytes** under the read
+ceiling with this rule in it; `forms-dl.md` carries the measurement. 🚩 When
+flow.css splits, they move.
 
 =============================================================================
 🔴 A BROKEN SLOT USED TO RENDER **NOTHING**. FIXED 2026-08-30.
@@ -95,6 +119,12 @@ that replaces or re-creates this element at runtime -- a refresh control, for
 instance -- orphans the CDN script's listener, so the frame falls back to exactly
 this value instead of collapsing. Stated here because the floor reads like
 defensive tidiness and is load-bearing for a feature nobody has built yet.
+
+⭐ THAT FEATURE ARRIVED ON 2026-08-30 AND THE PARAGRAPH ABOVE IS UNCHANGED. It
+named *"a refresh control, for instance"* before one existed, and the floor is
+now its second consumer. **A guard written for a CDN outage is what made a later
+feature safe** -- worth keeping visible, because the usual version of this note is
+written after the damage.
 
 🔴 AND THE WHOLE PROBLEM IS FORM-ONLY -- read this before copying the machinery.
 ClickUp's embed code for a shared VIEW ships `clickup-embed` alone with a literal
@@ -174,7 +204,9 @@ _FORM_HOST = "https://forms.clickup.com/"
 #: ClickUp's own embed helper. What `clickup-dynamic-height` needs.
 _FORM_SCRIPT = "https://app-cdn.clickup.com/assets/js/forms-embed/v1.js"
 
-#: The floor that keeps a script failure from rendering an invisible form.
+#: The floor that keeps a script failure from rendering an invisible form -- and,
+#: since 2026-08-30, what keeps a RELOADED frame from collapsing. One value, two
+#: consumers, and the second was named in the docstring before it was built.
 _FORM_MIN_HEIGHT = "40rem"
 
 _DEFAULT_LABEL = "Complete this program"
@@ -183,6 +215,44 @@ _DEFAULT_LABEL = "Complete this program"
 #: `qr.py` both render a short label with the diagnosis in the `title`, so a
 #: reader meets one consistent shape for every broken reference on the site.
 _DEAD_LABEL = "Form"
+
+#: 🔴 THE HONEST WORD IS THE SAFETY MECHANISM. This control throws away whatever
+#: is typed in the frame, with no confirmation, BY REQUEST -- so the label must not
+#: be coy about it. See `forms-dl.md` on why there is no confirm dialog.
+_RESET_LABEL = "Reload form"
+
+#: ONE DELEGATED LISTENER PER PAGE, so a two-form page binds once.
+#:
+#: 🔴 `cloneNode` + `replaceWith`, NEVER `f.src = src` -- see the docstring: that
+#: pushes a session-history entry and hijacks the Back button.
+#: ⚠️ `closest` IS GUARDED because `e.target` can be a node without it; a handler
+#: that throws on one stray click is worse than one that does nothing.
+_RESET_JS = (
+    "<script>document.addEventListener('click',function(e){"
+    "var b=e.target&&e.target.closest?e.target.closest('.dr-form__reset'):null;"
+    "if(!b)return;"
+    "var w=b.closest('.dr-form');var o=w&&w.querySelector('iframe');if(!o)return;"
+    "var f=o.cloneNode(false);f.src=o.getAttribute('src');o.replaceWith(f);"
+    "});</script>"
+)
+
+#: Inline, once per page. `forms-dl.md` carries the byte budget that put it here
+#: rather than in `assets/flow.css`, which has three bytes of headroom.
+#:
+#: ⚠️ THE PRINT RULE IS NOT OPTIONAL. A button on paper is a lie -- the same pen
+#: test `print.css` applies to its whole chrome-off list, and `flow.css` already
+#: strips the flow buttons for it.
+_RESET_CSS = (
+    "<style>.dr-form__tools{margin:.6rem 0 0}"
+    ".dr-form__reset{display:inline-block;padding:.3rem .7rem;"
+    "border:1px solid var(--dr-border,var(--md-default-fg-color--lighter));"
+    "border-radius:.25rem;background:transparent;"
+    "color:var(--md-default-fg-color--light);font:inherit;font-size:.72rem;"
+    "font-weight:600;cursor:pointer}"
+    ".dr-form__reset:hover{border-color:var(--dr-accent,var(--md-typeset-a-color));"
+    "color:var(--dr-accent,var(--md-typeset-a-color))}"
+    "@media print{.dr-form__tools{display:none}}</style>"
+)
 
 
 def _esc(text: str) -> str:
@@ -262,7 +332,18 @@ def _entry(src, slot):
     """One entry out of a page's `forms:` map, or None.
 
     Two spellings, matching the `links:` registry: a bare string is the src, a
-    mapping carries `src:`, `text:` and `collapsed:`.
+    mapping carries `src:`, `text:`, `collapsed:` and `reload:`.
+
+    ⚠️ `reload` DEFAULTS TO **TRUE**, WHICH IS THE OPPOSITE OF `collapsed`, and the
+    asymmetry is deliberate. A reload control is useful on every embed and
+    harmless where nobody clicks it, so the default is the useful one and
+    `reload: false` is an opt-OUT. `collapsed` defaults False because hiding a
+    compliance form is a real editorial decision that must be declared.
+
+    ⭐ THE TEST IS `is not False`, NOT TRUTHINESS. A slot that omits the key must
+    get the button; only an explicit `false` removes it. Same shape as
+    `pagefoot._enabled`, which reads `is not False` on `edit_links` for exactly
+    this reason -- a missing key and a key set to nothing are different facts.
     """
     block = (state.BY_SRC.get(src, {}) or {}).get("forms")
     if not isinstance(block, dict):
@@ -271,14 +352,15 @@ def _entry(src, slot):
     if raw is None:
         return None
     if isinstance(raw, str):
-        return (raw.strip(), "", False)
+        return (raw.strip(), "", False, True)
     if isinstance(raw, dict):
         return (
             str(raw.get("src", "")).strip(),
             str(raw.get("text", "")).strip(),
             raw.get("collapsed") is True,
+            raw.get("reload") is not False,
         )
-    return ("", "", False)
+    return ("", "", False, True)
 
 
 def _html(src, slot) -> str:
@@ -299,7 +381,7 @@ def _html(src, slot) -> str:
             + ". Declared here: " + (", ".join(known) or "nothing") + "."
         )
 
-    url, text, collapsed = entry
+    url, text, collapsed, reloadable = entry
     if not url.startswith(_FORM_HOST):
         state.note(
             "dead_links",
@@ -333,6 +415,13 @@ def _html(src, slot) -> str:
         + '" style="background: transparent; border: 1px solid #ccc; '
         "min-height: " + _FORM_MIN_HEIGHT + ';"></iframe>'
     )
+    # ⚠️ A REAL `<button type="button">`, never a styled anchor: it acts on THIS
+    # page rather than going anywhere, so it must be announced as a button and be
+    # keyboard-reachable without a `tabindex` bolted on.
+    tools = (
+        '<p class="dr-form__tools"><button type="button" class="dr-form__reset">'
+        + _esc(_RESET_LABEL) + "</button></p>"
+    ) if reloadable else ""
     fallback = (
         '<p class="dr-form__fallback"><a href="' + _esc(url) + '">'
         + _esc(label) + "</a></p>"
@@ -340,7 +429,7 @@ def _html(src, slot) -> str:
 
     if not collapsed:
         return (
-            '<div class="dr-form">' + frame + fallback + "</div>"
+            '<div class="dr-form">' + frame + tools + fallback + "</div>"
         )
 
     # 🔴 THE ANCHOR SITS ON THE <summary>, NOT ON THE <details>. A fragment must
@@ -352,7 +441,7 @@ def _html(src, slot) -> str:
         '<details class="dr-form__open">'
         '<summary id="' + _esc(slot_anchor(slot)) + '">'
         + _esc(text or _DEFAULT_LABEL) + "</summary>"
-        + frame + fallback
+        + frame + tools + fallback
         + "</details></div>"
     )
 
@@ -376,6 +465,13 @@ def on_page_markdown(markdown, page, config, files):
     question, because a broken slot returned "" and could not be told apart from
     no directive at all.
 
+    ⚠️ AND THE RELOAD ASSETS ARE GATED A THIRD TIME, on `reloadable`. A page whose
+    every form sets `reload: false` gets the CDN script and NOT the listener or the
+    styles -- a rule matching nothing and a listener nothing can trigger are both
+    the dead surface this engine kills on sight. **Three questions, three counters,
+    because "a directive matched", "a frame exists" and "a button exists" are three
+    different facts and collapsing any two of them is what caused the last bug.**
+
     ⭐ THE `views:` PASS RUNS HERE TOO, LAST, because one hook is what keeps this
     feature out of `mkdocs.yml`. 🔴 The import is local to this function ON PURPOSE
     -- `views.py` imports from here at its module top, and top-level imports in
@@ -387,6 +483,7 @@ def on_page_markdown(markdown, page, config, files):
 
     src = getattr(page.file, "src_uri", "")
     embedded = []
+    reloadable = []
 
     def swap(match):
         html_out = _html(src, match.group(1).strip())
@@ -394,11 +491,15 @@ def on_page_markdown(markdown, page, config, files):
             return ""
         if "<iframe" in html_out:
             embedded.append(1)
+        if "dr-form__reset" in html_out:
+            reloadable.append(1)
         return "\n\n" + html_out + "\n\n"
 
     out = sub_outside_code(_FORM, swap, markdown)
     if embedded:
         out += '\n\n<script async src="' + _FORM_SCRIPT + '"></script>\n'
+    if reloadable:
+        out += "\n" + _RESET_CSS + "\n" + _RESET_JS + "\n"
 
     from . import views
 
