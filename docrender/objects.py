@@ -460,8 +460,9 @@ def on_page_markdown(markdown, page, config, files):
     #
     #   related   places to go next        -- a reader's business
     #   keywords  search terms             -- a searcher's business
-    #   owner     who posted it, who to ask -- FLOATED onto revised's own line
     #   revised   provenance               -- "the very last thing on any page"
+    #   owner     who posted it, who to ask -- LAST in source, but it renders
+    #             ON the revised line, floated right. See below.
     #
     # ⚠️ `related` EMITS `@id` TOKENS, so it must be written here in the markdown
     # hook and never later: stage 03 has to still be ahead of it. See
@@ -475,19 +476,10 @@ def on_page_markdown(markdown, page, config, files):
     if words:
         markdown = markdown.rstrip() + "\n\n" + words + "\n"
 
-    # THE OWNERSHIP TAG (2026-08-30), the one foot line NOT drawn from frontmatter:
-    # `owner:` in the instance's site.yml, so it lands on every page with no page
-    # edit anywhere. 🔴 IT MUST STAY AHEAD OF THE REVISED LINE. base.css floats it
-    # right so the two share ONE footer line, and a float only shares a line with
-    # what FOLLOWS it -- swap these two blocks and the tag drops onto its own line,
-    # which is the exact defect Michael rejected on 08-30. lede.owner() has the
-    # account; nothing about the revised line below is changed by any of it.
-    tag = lede.owner(state.INSTANCE.get("owner"))
-    if tag:
-        markdown = markdown.rstrip() + "\n\n" + tag + "\n"
-
-    # LAST, and below the keywords line. Michael, 2026-08-07: the revision date
-    # is "the very last thing on any page".
+    # Michael, 2026-08-07: the revision date is "the very last thing on any
+    # page". 🔴 Reaffirmed 2026-08-30 (*"don't fucking move or change revised"*)
+    # when the ownership tag was first built ABOVE it -- so it is still written
+    # here, before the tag, and nothing about it changed.
     #
     # ⚠️ THE EDIT LINK STILL LANDS UNDER IT, and that is the ordering rather
     # than a miss. Hook 06 appends a rule and a link in on_page_content, which
@@ -498,5 +490,20 @@ def on_page_markdown(markdown, page, config, files):
     stamp = lede.revised(meta.get("revised"))
     if stamp:
         markdown = markdown.rstrip() + "\n\n" + stamp + "\n"
+
+    # THE OWNERSHIP TAG (2026-08-30) -- LAST IN SOURCE, ON THE REVISED LINE.
+    # The one foot line not drawn from frontmatter: `owner:` in the instance's
+    # site.yml, so it lands on every page with no page edit anywhere.
+    #
+    # 🔴 IT MUST STAY AFTER THE REVISED BLOCK ABOVE, and that is the opposite of
+    # what it looks like it should be. foot.css floats it right and pulls it up
+    # onto revised's line with a negative margin -- MEASURED as constant only
+    # when it hangs off revised's own bottom. Emitted BEFORE revised the offset
+    # varied with whatever preceded it and no single value aligned. Swapping
+    # these two statements drops the tag onto its own line, which is exactly the
+    # stacking Michael rejected. Reasons in foot.css § THE OWNERSHIP TAG.
+    tag = lede.owner(state.INSTANCE.get("owner"))
+    if tag:
+        markdown = markdown.rstrip() + "\n\n" + tag + "\n"
 
     return markdown
