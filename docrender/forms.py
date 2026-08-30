@@ -22,26 +22,11 @@ The page NAMES a form; the engine builds the element. Exactly the split `data:`
 slots and the `links:` registry already use, and the reason the body directive
 is `!!! form` rather than pasted HTML.
 
-=============================================================================
-⭐ THIS MODULE ALSO DRIVES `views.py`, AND THAT IS A SIZE DECISION
-=============================================================================
-`docrender/views.py` owns the `views:` registry (`!!! view "slot"`, an embedded
-ClickUp VIEW). It has NO hook of its own: `on_page_markdown` below calls it, and
-it imports `_esc` and `_dead` from here rather than re-declaring them.
-
-`specs/view-embed.md` §2 originally argued for folding that registry INTO this
-file -- same verb, validate a URL and emit an element. 🔴 THE FOLD DIED ON A
-MEASUREMENT: this file was 11,740 B when that was written and is ~17.4KB after
-PR #197, so a second registry would land ~21KB, past the 18KB warn line and into
-the read ceiling. ⚠️ The cohesion argument did not lose, though -- so the seam
-moved to DELEGATION: one hook, one copy of the shared vocabulary, two files.
-
-🔴 THE ONE HOOK IS THE POINT, NOT TIDINESS. A second hook means editing
-`mkdocs.yml`, which is 28,158 B -- unreadable whole, therefore unsafe to rewrite.
-The delegation buys a whole new directive for zero edits to any file past the
-ceiling. ⚠️ The `views` import lives INSIDE the hook function, not at module top,
-because `views.py` imports from here at ITS module top. That is not a cycle by
-the time anything runs, and it is not tidy-able in either direction.
+⭐ THIS MODULE ALSO DRIVES `docrender/views.py` (the `views:` registry). It has no
+hook of its own: `on_page_markdown` below calls it, and it imports `_esc` and
+`_dead` from here rather than re-declaring them. 🔴 The full argument for one hook
+and two files -- and the measurement that killed the fold -- lives in THE
+DELEGATION in `views.py`, not here. This file is at the warn line already.
 
 =============================================================================
 🔴 A BROKEN SLOT USED TO RENDER **NOTHING**. FIXED 2026-08-30.
@@ -78,11 +63,6 @@ dead references printed in red on a policy sheet with no print rule at all.
 🚫 NOT AN ANCHOR, on `qr.py`'s precedent: a form that failed to resolve must not
 offer a control. The `title` carries the diagnosis; the span carries no href.
 
-⭐ AND IT IS NOW SHARED RATHER THAN COPIED. `_dead` takes the noun as a
-parameter so `views.py` can render the identical span reading "View" -- because a
-second copy of a failure vocabulary is how two directives start disagreeing
-about what broken looks like.
-
 =============================================================================
 ⭐ SPLIT OUT OF program.py THE SAME DAY IT SHIPPED, AND THE REASON IS COHESION
 =============================================================================
@@ -116,10 +96,10 @@ instance -- orphans the CDN script's listener, so the frame falls back to exactl
 this value instead of collapsing. Stated here because the floor reads like
 defensive tidiness and is load-bearing for a feature nobody has built yet.
 
-⭐ AND THE PROBLEM IS FORM-ONLY, WHICH IS WORTH KNOWING BEFORE COPYING THIS.
+🔴 AND THE WHOLE PROBLEM IS FORM-ONLY -- read this before copying the machinery.
 ClickUp's embed code for a shared VIEW ships `clickup-embed` alone with a literal
-`height="700px"` -- no dynamic-height class, no helper script. `views.py` states
-the consequence at length; do not port this paragraph's machinery over there.
+`height="700px"`: no dynamic-height class, no helper script, nothing to fail.
+`views.py` states the consequence.
 
 ⚠️ AND THE FALLBACK LINK IS ALWAYS RENDERED, not only for print. An iframe
 prints as a blank rectangle and this engine has a print identity spec, so a
@@ -188,8 +168,7 @@ _FORM = re.compile(r'(?m)^[ \t]*!!![ \t]+form[ \t]+"([^"\n]+)"[ \t]*$')
 #: is not a good enough answer.
 #:
 #: ⚠️ A LITERAL BECAUSE A FORM HAS ONE HOME. A shared VIEW does not, so
-#: `views.py` reads its allow-list from the instance config instead. Same rule,
-#: different cardinality -- do not "unify" these into one constant.
+#: `views.py` reads its allow-list from the instance config. Do not unify these.
 _FORM_HOST = "https://forms.clickup.com/"
 
 #: ClickUp's own embed helper. What `clickup-dynamic-height` needs.
@@ -229,10 +208,9 @@ def _dead(reason: str, label: str = _DEAD_LABEL) -> str:
     arguing against re-declaring it. So a printed sheet shows the failure too,
     which matters on a compliance page more than on screen.
 
-    ⭐ `label` IS A PARAMETER SO `views.py` CAN SHARE THIS, and sharing it is the
-    point: two directives with two copies of a failure vocabulary is how they
-    start disagreeing about what broken looks like. Callers pass their own noun
-    ("Form", "View"); nobody re-implements the span.
+    ⭐ `label` IS A PARAMETER SO `views.py` SHARES THIS SPAN. Two directives with
+    two copies of a failure vocabulary is how they start disagreeing about what
+    broken looks like. Callers pass their own noun; nobody re-implements it.
     """
     return (
         '<span class="docrender-dead" title="'
@@ -398,15 +376,11 @@ def on_page_markdown(markdown, page, config, files):
     question, because a broken slot returned "" and could not be told apart from
     no directive at all.
 
-    ⭐ THE `views:` PASS RUNS HERE TOO, LAST. See THIS MODULE ALSO DRIVES
-    views.py in the docstring: it is one hook because a second one would mean
-    editing `mkdocs.yml`, which cannot be read whole. 🔴 The import is local to
-    this function ON PURPOSE -- `views.py` imports `_esc` and `_dead` from here
-    at its module top, and a top-level import in both directions is a cycle.
-
-    ⚠️ ORDER IS FORMS THEN VIEWS, and it is arbitrary rather than load-bearing:
-    the two directives match disjoint patterns and neither reads the other's
-    output. Stated so nobody "fixes" the order looking for a reason.
+    ⭐ THE `views:` PASS RUNS HERE TOO, LAST, because one hook is what keeps this
+    feature out of `mkdocs.yml`. 🔴 The import is local to this function ON PURPOSE
+    -- `views.py` imports from here at its module top, and top-level imports in
+    both directions would be a cycle. ⚠️ Order is arbitrary, not load-bearing:
+    the patterns are disjoint and neither pass reads the other's output.
     """
     if "!!!" not in markdown:
         return markdown
