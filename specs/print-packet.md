@@ -1,8 +1,8 @@
 # BUILD 10 — THE PROGRAM PACKET: one document, printed once, with the program page as its cover
 
-⚠️ **SCOPED, NOT GREENLIT.** 2026-08-30. Indexed from [`next-build-spec.md`](../next-build-spec.md) — 🚩 **see §12, that index STILL could not be edited, and it is now FOUR rows behind.** Decision history: the **doc-render-engine (repo) — Decision Log** subpage in ClickUp.
+⚠️ **SCOPED, NOT GREENLIT** — but **three rulings closed same-day** (§0, Rulings 4 and 6). 2026-08-30. Indexed from [`next-build-spec.md`](../next-build-spec.md) — 🚩 **see §12, that index STILL could not be edited, and it is now FOUR rows behind.** Decision history: the **doc-render-engine (repo) — Decision Log** subpage in ClickUp.
 
-> Michael, 2026-08-30: *"in the doc render spec the safety docs and a page type: program — can we render a button that essentially navigates to each policy in the program chain, and does a print of that page, and then stacks them all together to make a packet of all the policies in that program? and then naturally the program page becomes a cover page for that whole program with complete link clickable in pdf viewer."*
+> Michael, 2026-08-30: *"can we render a button that essentially navigates to each policy in the program chain, and does a print of that page, and then stacks them all together to make a packet of all the policies in that program? and then naturally the program page becomes a cover page for that whole program with complete link clickable in pdf viewer."*
 
 ---
 
@@ -16,7 +16,35 @@
 
 ---
 
-## 🔴 §1 — THE BLOCKING FINDING: NAVIGATE-PRINT-STACK IS NOT A THING A BROWSER CAN DO, AND THE REASON MATTERS MORE THAN THE FACT
+## ✅ §0 — RULED 2026-08-30: THE PRINT IS AN ORDINARY PRINT. AND ONE WORD IN THE ASK IS WRONG.
+
+> Michael, 2026-08-30: *"the print should run just like a manual print command on the page to make sure you get all the theming stripped and header and such that we've defined."*
+
+✅ **CONFIRMED, AND IT IS THE PROPERTY THAT MAKES THIS BUILD CHEAP RATHER THAN A CONCESSION.** The packet is an ordinary page in the site, so `Ctrl+P` on it is the whole mechanism: all five print sheets registered in `_PRINT_ASSETS` apply unconditionally, the chrome-off list applies, the corner stamp applies. 🚫 **THERE IS NO SECOND PRINT PATH AND NONE MAY BE BUILT.** ⚑ *This is the same argument §5 uses to refuse WeasyPrint, arriving from the other direction: the packet is printed by the exact code path every other page is printed by, or the printed artifact stops being the page anybody previewed.*
+
+<p><br/></p>
+
+🔴 **BUT "ALL THE THEMING STRIPPED" IS NOT WHAT THE PRINT LAYER DOES, AND THE DIFFERENCE IS LOAD-BEARING ON A SAFETY PACKET.** `print.css` applies `print-color-adjust: exact` **narrowly and deliberately**, to *"elements whose MEANING is carried by a colour"* — a `!!! danger` border, a marker chip, the letterhead. So the print layer strips **chrome and ground** and **keeps semantic colour**.
+
+<p><br/></p>
+
+⭐ **THAT IS THE CORRECT BEHAVIOUR AND THE PACKET DEPENDS ON IT.** A packet is distributed and photocopied (§8), and a hazard box that printed as a grey box would be a `!!! danger` that no longer reads as danger — which BUILD 8 §1 already refuses as a control on exactly these grounds (*"Hawthorne's floor, not a preference"*). ⚠️ **Stated here because the ask names the opposite, and a future reader could "fix" the packet toward it.** Full strip is not a target; it is a regression.
+
+<p><br/></p>
+
+🚫 **AND THE PACKET PAGE MUST NOT AUTO-FIRE `window.print()` ON LOAD. THIS IS A REFUSAL, NOT A PREFERENCE.**
+
+<p><br/></p>
+
+It is technically legal — `window.print()` on the packet page IS identical to a manual print command, same document, same sheets. 🔴 **It also defeats §6.** The one check a human can perform is *"is my whole program in here?"*, and a dialog that opens before the cover renders takes that away. **A short packet is a valid document** — nine sections from a ten-id chain looks exactly like a correct nine — so the reader's glance at the cover contents list is the last line of defence, and auto-print spends it. ⚑ *An automatic action is only safe when the thing it skips is worthless, and here the thing it skips is the verification.*
+
+<p><br/></p>
+
+✅ **So: the button NAVIGATES to the packet page. The packet page carries a one-line print affordance and nothing more.** That affordance is chrome and does not print, per §10.
+
+---
+
+## 🔴 §1 — NAVIGATE-PRINT-STACK IS NOT A THING A BROWSER CAN DO, AND THE REASON MATTERS MORE THAN THE FACT
 
 Three separate walls, none of them a gap somebody could close:
 
@@ -134,7 +162,7 @@ Two things a distributed packet obviously wants, and Chrome gives neither from C
 
 <p><br/></p>
 
-🚫 **AND THE FIX IS NOT A PDF LIBRARY. THIS IS A REFUSAL, NOT A DEFERRAL.** WeasyPrint would give real margin boxes, a real outline and guaranteed annotations. It would also add cairo, pango and gdk-pixbuf to a `requirements.txt` whose own header argues that *"an unpinned transitive dependency is an unpinned build"* and which refuses **Pillow** on the grounds that `segno` writing PNG natively is *"the only reason a new dependency is defensible."* ⚑ **A build-time PDF renderer is a SECOND renderer: two engines, two layouts, and the printed artifact stops being the page anybody previewed.** The packet is HTML that Chrome prints, or it is a different product.
+🚫 **AND THE FIX IS NOT A PDF LIBRARY. THIS IS A REFUSAL, NOT A DEFERRAL.** WeasyPrint would give real margin boxes, a real outline and guaranteed annotations. It would also add cairo, pango and gdk-pixbuf to a `requirements.txt` whose own header argues that *"an unpinned transitive dependency is an unpinned build"* and which refuses **Pillow** on the grounds that `segno` writing PNG natively is *"the only reason a new dependency is defensible."* ⚑ **A build-time PDF renderer is a SECOND renderer: two engines, two layouts, and the printed artifact stops being the page anybody previewed.** The packet is HTML that Chrome prints, or it is a different product. ✅ **Reinforced by §0's ruling** — *"just like a manual print command on the page"* is incompatible with a second renderer by definition.
 
 ---
 
@@ -153,6 +181,10 @@ Two things a distributed packet obviously wants, and Chrome gives neither from C
 <p><br/></p>
 
 🔴 **ALSO INHERITED, AND IT WILL BITE: THE FIRST-DECLARATION RULE.** `program.yml` records that `20-policies/index.md` declaring a chain over the same nine policies made **every program resolve to ZERO steps**, because it sorted first alphabetically. **A packet built during that state is a cover page with nothing behind it** — and it would have looked like a working build, because zero sections is a valid document. The straggler report was already re-scoped once for this exact reason (folder-scoped on a type whose whole point is crossing folders).
+
+<p><br/></p>
+
+✅ **§0's auto-print refusal exists to protect this section.** The cover contents list is the only place a human can catch a short packet, so nothing may open a print dialog before they have seen it.
 
 ---
 
@@ -220,7 +252,7 @@ The naive answer is that a packet is one document and therefore carries one iden
 
 <p><br/></p>
 
-🚫 **AND THE BUTTON MUST NOT PRINT — the precedent is already written, verbatim, in the file it belongs to.** `assets/flow.css`: *"A BUTTON ON PAPER IS A LIE."* The packet link joins the chrome-off list **in the commit that creates it**, or sheet one carries a picture of the button that made it. ⚠️ **And it is NOT a fourth footer.** Michael rejected exactly that shape on 08-19 — *"all this other foot matter... is that what I'm supposed to click next?"* — so the button sits with the flow strip or in the program body, never in new foot matter of its own.
+🚫 **AND THE BUTTON MUST NOT PRINT — the precedent is already written, verbatim, in the file it belongs to.** `assets/flow.css`: *"A BUTTON ON PAPER IS A LIE."* The packet link joins the chrome-off list **in the commit that creates it**, or sheet one carries a picture of the button that made it. ⚠️ **And it is NOT a fourth footer.** Michael rejected exactly that shape on 08-19 — *"all this other foot matter... is that what I'm supposed to click next?"* — so the button sits with the flow strip or in the program body, never in new foot matter of its own. ✅ **The packet page's own print affordance (§0) is on the same list, for the same reason.**
 
 ---
 
@@ -242,15 +274,37 @@ BUILD 8 splits print work into **A** (per-page frontmatter defaults, cheap) and 
 
 ---
 
-## ⏳ Rulings needed
+## ⏳ Rulings
 
-1. 🔴 **Do link annotations survive Chrome print-to-PDF, including `#fragment` jumps?** §4. **Ten-minute experiment, and it decides whether the cover is an INDEX or a LIST.** Nothing else should start first.
-2. **Is the packet CHROME-ONLY, stated in the report?** If §4 passes in Blink and fails in WebKit, that is a documented constraint on the artifact — the same shape as J28's browser split, handled up front instead of after four attempts.
-3. **Does the packet route through `visibility.py`, or does it refuse any chain id that is not `public`?** §7. **Recommend refuse-and-report:** `unlisted` is a curtain for readers, and a packet is a distribution channel, not a reader.
-4. **Opt-in or automatic?** A `packet: true` key on the program, or every `type: program` gets one. **Recommend automatic with `packet: false` to opt out** — a program that cannot be printed as a packet is the exception, and a key nobody sets is a feature nobody finds. ⚠️ This is a new `objects/program.yml` `optional:` entry either way.
-5. **Does the packet honour BUILD 8's per-page `print:` block?** §11. **Recommend no: PACKET > PAGE, and say so in the report.**
-6. **Where does the button live?** §10 rules out new foot matter. **Recommend inside the flow strip's block**, which is already the only navigation on a program page by the `hide: footer` contract.
-7. **Does the browser print-footer page number get switched on?** §5. Provenance question, Michael's call, not a default.
+**1. 🔴 OPEN — do link annotations survive Chrome print-to-PDF, including `#fragment` jumps?** §4. **Ten-minute experiment, and it decides whether the cover is an INDEX or a LIST.** Nothing else should start first.
+
+**2. OPEN — is the packet CHROME-ONLY, stated in the report?** If §4 passes in Blink and fails in WebKit, that is a documented constraint on the artifact — the same shape as J28's browser split, handled up front instead of after four attempts.
+
+**3. OPEN — does the packet route through `visibility.py`, or refuse any chain id that is not `public`?** §7. **Recommend refuse-and-report:** `unlisted` is a curtain for readers, and a packet is a distribution channel, not a reader.
+
+**4. ✅ CLOSED 2026-08-30 — DECLARED IN FRONTMATTER, NOT AUTOMATIC.** Michael: *"it should be front matter defined on any type: program to say like `export: available` to render a button."* The recommendation of automatic-with-opt-out is **overruled**, and correctly: a program that should not be handed out as a packet is a real case, and silence is the safe default for a distributable artifact (§7).
+
+<p><br/></p>
+
+⚠️ **BUT THE VALUE `available` IS THE WRONG SHAPE, AND THE OBJECTION IS MECHANICAL RATHER THAN AESTHETIC.** There are exactly two states — there is a packet or there is not — so `available` is **a boolean wearing a status costume**, and it invites `pending`, `soon`, `unavailable`, none of which anything would validate. 🔴 **The failure is the dead-control shape this repo keeps finding:** nothing in the `objects/` family validates a VALUE, only a key's presence. So `export: availabe` either passes as truthy and works by accident, or is compared against a literal, silently produces no button, and **nothing reports it.**
+
+<p><br/></p>
+
+🔴 **AND `export` COLLIDES WITH A WORD THE ENGINE ALREADY OWNS.** `status: draft | unlisted | public` governs whether a page is built. `export: available` sits inches away in the same frontmatter block and reads as a second status axis — **two vocabularies for one idea, which is what retired three manifests here.**
+
+<p><br/></p>
+
+✅ **Recommend, keeping his word and killing the ambiguity: `export: [packet]`** — a LIST of named export kinds, validated against a closed set (`markers._SHAPES` is the precedent: *"the closed set of four"*), with an unknown kind **reported, not ignored**. It survives the second export kind he will inevitably want, it cannot be a status, and a typo is a finding instead of a silent no-op. 🚩 **His call; `export: true` is also correct and I will build either.** What must not ship is a free-text status word.
+
+**5. OPEN — does the packet honour BUILD 8's per-page `print:` block?** §11. **Recommend no: PACKET > PAGE, and say so in the report.**
+
+**6. ✅ CLOSED 2026-08-30 — BOTH, AND THE HOUSE PATTERN ALREADY ANSWERED IT.** Michael: *"maybe i place it or it does so automatically?"* ⭐ **`forms:` is the exact precedent and he is the one who praised it:** the frontmatter DECLARES (*"love that i can define in frontmatter, well outside of the actual body content"*) and a body directive DRAWS (`!!! form "completion"`).
+
+<p><br/></p>
+
+✅ **So: `export:` declares the packet exists. A body directive (`!!! export`) places the button exactly where he wants it. With no directive, it renders automatically inside the flow strip's block** — which §10 already requires, because `hide: footer` makes the strip the only navigation and a second footer was rejected by name on 08-19. ⚑ *A registry plus an optional directive is a fold-in of a shipped mechanism, not a new one — same split as `data:` slots and the `links:` registry, and it is the third time this pattern has been the right answer.*
+
+**7. OPEN — does the browser print-footer page number get switched on?** §5. Provenance question, Michael's call, not a default.
 
 ---
 
@@ -264,8 +318,8 @@ BUILD 8 splits print work into **A** (per-page frontmatter defaults, cheap) and 
 |---|---|---|
 | **NEW** `docrender/packet.py` | — | walks `chain:`, namespaces ids, rewrites hrefs, emits via `File.generated` |
 | **NEW** `assets/print-packet.css` | — | cover rules, section breaks, and its own chrome-off rule |
-| `docrender/program.py` | 17,659 B (blob `89f4a57`) | + the button only. **Nothing else.** |
-| `objects/program.yml` | 9,708 B | one `optional:` key (Ruling 4) |
+| `docrender/program.py` | 17,659 B (blob `89f4a57`) | + the button and the `!!! export` directive. **Nothing else.** |
+| `objects/program.yml` | 9,708 B | one `optional:` key — `export`, per Ruling 4 |
 | `docrender/instance.py` | 23,047 B per BUILD 8 §7 | 🚫 **past the ceiling. Not the home for any of this.** |
 | `assets/print-type.css` | 22,289 B per BUILD 8 §7 | 🚫 **~239 B of headroom. Do not open it.** |
 | `next-build-spec.md` | **32,840 B** (blob `2c082a6`) | 🚩 **NOT EDITED.** |
@@ -282,6 +336,10 @@ BUILD 8 splits print work into **A** (per-page frontmatter defaults, cheap) and 
 
 ✅ **The fix is unchanged and it is a pure move: lift BUILDS 1 and 2 into `specs/`**, which drops this file to a ~4KB index and makes it writable again. The header already asks for it in its own words. **That is the change that stops this recurring, and it should happen before a fifth spec is written.**
 
+<p><br/></p>
+
+🔴 **AND THIS FILE IS NOW THE ONE WITH THE PROBLEM IT DOCUMENTS.** It is past the ~22.5KB read ceiling and climbing on every ruling. ⚠️ **The NEXT substantive edit cuts `specs/print-packet-dl.md`** and moves the arguments there, on the `hover-text.md` / `hover-text-dl.md` precedent — spec states decisions, sidecar is the single claimant for the reasoning. **Do not close another ruling in place.**
+
 ---
 
 ## Sequence
@@ -291,7 +349,7 @@ BUILD 8 splits print work into **A** (per-page frontmatter defaults, cheap) and 
 3. **`packet.py`, sections only** — chain walk, section breaks, coverage reporting. **No cover, no links.** A stack of policies is already the useful half.
 4. **Ids and hrefs** (§3), which is where the real work is.
 5. **The cover** — contents list, QR, letterhead if BUILD 5 has landed.
-6. **The button** (§10) last, because it is one line and it is the only part that cannot be tested without the rest.
+6. **The button and the `!!! export` directive** (§10, Ruling 6) last, because it is a few lines and it is the only part that cannot be tested without the rest.
 
 <p><br/></p>
 
