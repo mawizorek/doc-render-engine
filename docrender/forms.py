@@ -4,17 +4,18 @@
       completion:
         src: https://forms.clickup.com/36074068/f/...?Program_ID=ITPSAFE-1225
         text: General Safety completion form
-        collapsed: false     # optional; see THE FOLD -- three states, one key
+        collapsed: false     # optional; THREE STATES -- see THE FOLD below
         reload: false        # optional; the Reload button is ON by default
 
     !!! form "completion"
 
-🔴 **THE ARGUMENTS LIVE IN `docrender/forms-dl.md`.** This file reached 24,664 B
-against a 22,528 B read ceiling on 2026-08-30 while the reload button's reasoning
-was being written into it, so the accumulated arguments moved to the sibling.
-The steps and the warnings stay here; **why a step exists at all is one file
-over.** Same standard `buildstamp-dl.md` set. Decision history: the
-doc-render-engine Decision Log.
+🔴 **EVERY ARGUMENT LIVES IN `docrender/forms-dl.md`.** This file has now crossed
+the 22,528 B read ceiling TWICE in one day (24,664 B, then 24,030 B) while
+reasoning was being written into it. **The steps and the warnings stay here; why a
+step exists at all is one file over.** Same standard `buildstamp-dl.md` set.
+
+⚠️ AND BOTH OVERRUNS WERE PREDICTED BY A SIZE I ESTIMATED RATHER THAN MEASURED.
+If you are adding to this docstring, write the section in the sibling first.
 
 Michael, 2026-08-19: *"can i embed an actual clickup form as content in the
 bottom of these pages... so that users dont have to leave the page"* and, on
@@ -30,84 +31,46 @@ is `!!! form` rather than pasted HTML.
 ⭐ THIS MODULE ALSO DRIVES `docrender/views.py` (the `views:` registry). It has no
 hook of its own: `on_page_markdown` below calls it, and it imports `_esc` and
 `_dead` from here rather than re-declaring them. 🔴 The full argument for one hook
-and two files -- and the measurement that killed the fold -- lives in THE
-DELEGATION in `views.py`, not here.
+and two files lives in THE DELEGATION in `views.py`, not here.
 
 =============================================================================
 ⭐ THE FOLD -- THREE STATES, ONE KEY (2026-08-30)
 =============================================================================
-> Michael: *"although I said the rehearsal report should be expanded when the
-> form opens, it is now permanently open with no option to collapse it. How do I
-> set it to default as expanded but still allow the user to collapse it later?"*
-
     collapsed: ABSENT   a bare embed. No disclosure at all.
     collapsed: false    `<details open>` -- expanded on arrival, collapsible.
     collapsed: true     `<details>` -- closed on arrival.
 
-⭐ A MISSING KEY AND A KEY SET TO `false` ARE DIFFERENT FACTS, which is the same
-distinction `reload:` and `pagefoot._enabled` already turn on. "Not collapsed"
-is a claim about a fold; **saying nothing is not a claim at all.** So `false`
-asks for a fold that starts open, and silence asks for no fold.
+⭐ A MISSING KEY AND A KEY SET TO `false` ARE DIFFERENT FACTS -- the distinction
+`reload:` and `pagefoot._enabled` already turn on. "Not collapsed" is a claim
+about a fold; **saying nothing is not a claim at all.**
 
-✅ BACKWARDS COMPATIBLE WHERE IT MATTERS: every slot that OMITS the key renders
-byte for byte what it rendered before. ⚠️ A slot that explicitly declares
-`collapsed: false` GAINS a disclosure -- intended for the page that prompted
-this, and `forms-dl.md` names the other live page it reaches.
-
-🚫 NOT A SECOND KEY. `collapsible:` beside `collapsed:` would be two booleans
-with four states, one of them unsatisfiable -- the shape `nav: hidden` +
-`status: unlisted` already had to be reported as a contradiction.
+✅ Every slot that OMITS the key renders byte for byte what it did before.
+⚠️ A slot explicitly declaring `collapsed: false` GAINS a disclosure; `forms-dl.md`
+names the live pages that reaches. 🚫 NOT a second `collapsible:` key -- two
+booleans give four states and one of them is unsatisfiable.
 
 =============================================================================
-🔴 THE RELOAD BUTTON (2026-08-30) -- MECHANISM ONLY; ARGUMENT IN `forms-dl.md`
+🔴 THE RELOAD BUTTON, AND WHY IT REPLACES THE NODE (2026-08-30)
 =============================================================================
-🔴 `cloneNode` + `replaceWith`, NEVER `iframe.src = src`. Assigning `src`
-NAVIGATES the existing browsing context and pushes a session-history entry, so
-after three reloads the reader's Back button walks iframe states instead of
-leaving the page. A fresh node is an initial load and pushes nothing. Verified by
-executing the handler against a DOM model: zero history entries, one fresh load,
-the other form on the page untouched.
+`cloneNode` + `replaceWith`, NEVER `iframe.src = src`: assigning `src` NAVIGATES
+the browsing context and pushes a session-history entry, so after three reloads
+the reader's Back button walks iframe states instead of leaving the page.
 
-🔴 IT DISCARDS WHATEVER WAS TYPED, WITH NO CONFIRMATION, AND THAT IS THE ASK --
-refused on 08-29 on data-loss grounds and released by Michael the next morning.
-**The label is the safety mechanism.**
-
-🚫 NOT ON A `views:` EMBED. A shared view is read-only furniture with nothing
-typed into it, so a reload control there answers a question nobody asked.
+🔴 IT DISCARDS WHATEVER WAS TYPED, WITH NO CONFIRMATION, AND THAT IS THE ASK.
+**The label is the safety mechanism.** 🚫 Not on a `views:` embed -- a shared view
+is read-only furniture. Argument: `forms-dl.md`.
 
 =============================================================================
-🔴 A COLLAPSED EMBED USED TO PRINT AS A CALLOUT. FIXED 2026-08-30.
+🔴 A COLLAPSED EMBED PRINTED AS A CALLOUT. FIXED 2026-08-30.
 =============================================================================
-> Michael, from a print preview: *"the rehearsal report is not in a collapsed
-> iframe, so it prints correctly, but because the rehearsal note form is
-> collapsed, it renders differently at print and breaks the system."*
-
 Material `@extend`s `.admonition` onto EVERY `<details>`, so `print-callout.css`
-gave the disclosure a 2pt coloured band and a 0.85em indent that its uncollapsed
-sibling never got. ⚑ **Two embeds declared the same way, differing in one
-SCREEN-only key, printed as two different KINDS of object.** `flow.css` fixed
-exactly this for `.dr-flows__others` and nobody pointed the same fix at the form.
+gave a collapsed embed a 2pt band and an indent its uncollapsed sibling never
+got. ⚑ **Two embeds declared the same way, differing in one SCREEN-only key,
+printed as two different KINDS of object.** `flow.css` fixed exactly this for
+`.dr-flows__others` and nobody pointed the same fix at the form.
 
-⚠️ THE SUMMARY IS HIDDEN ON PAPER, AND THAT IS PARITY RATHER THAN LOSS: it is a
-control, and its text is the slot's own `text:`, which the fallback link already
-carries. Both embeds now print as one line naming the form. `forms-dl.md` carries
-the one edge case where a string genuinely goes.
-
-⚠️ AND THE RULES ARE INLINE, NOT IN `flow.css`, WHICH OWNS `.dr-form*`. That file
-is **23,485 B, already 957 B PAST the read ceiling** before this change -- it grew
-by 2,365 B the same morning when the `.dr-view*` rules landed. 🚩 It needs the
-split its own header prescribes; these rules move there when it happens.
-
-=============================================================================
-🔴 A BROKEN SLOT RENDERS A MARKER, NOT NOTHING (fixed 2026-08-30)
-=============================================================================
-`_html` used to return `""` for an unknown slot and `swap` returns `""` on falsy,
-so a typo'd directive line VANISHED -- no marker, no gap, no clue, on a page that
-already showed one working form. Its two siblings (`qr.py`, `links.py`) already
-rendered the struck-through `docrender-dead` span.
-
-⭐ THE MESSAGE IS THE ONE THAT WAS ALREADY GOING TO THE BUILD REPORT, on a second
-SURFACE rather than as a second claimant. Full account: `forms-dl.md`.
+⚠️ The summary is hidden on paper -- a control, whose text the fallback link
+already carries. 🚩 One lossy edge case, in `forms-dl.md`.
 
 =============================================================================
 🔴 `height="100%"` COLLAPSES TO NOTHING WITHOUT THEIR SCRIPT
@@ -145,13 +108,20 @@ printed program packet would otherwise carry a hole where the completion form
 belongs. On screen the same link is the answer to "the form did not load."
 
 =============================================================================
+🔴 A BROKEN SLOT RENDERS A MARKER, NOT NOTHING (fixed 2026-08-30)
+=============================================================================
+`_html` used to return `""` for an unknown slot and `swap` returns `""` on falsy,
+so a typo'd directive line VANISHED. Its two siblings (`qr.py`, `links.py`)
+already rendered the struck-through `docrender-dead` span. ⭐ The message is the
+one already going to the build report, on a second SURFACE rather than as a
+second claimant.
+
+=============================================================================
 🔴 THE PREFILL PARAM IS THE RECORD
 =============================================================================
 `?Program_ID=` on the src is what makes a submission attributable to a program.
-It was already in uritp-safety's `links:` block before this key existed and moves
-onto the src unchanged. A form embedded WITHOUT it collects rows nobody can match
-to a program -- a compliance failure that looks like a working page, so it is
-reported.
+A form embedded WITHOUT it collects rows nobody can match to a program -- a
+compliance failure that looks like a working page, so it is reported.
 
 ⚠️ UNVERIFIABLE AT BUILD TIME, the same reduction `urllinks.py` states at the top
 of its own file. The host and the scheme are checked; nothing here can prove the
@@ -216,16 +186,17 @@ _RESET_JS = (
 )
 
 #: Inline, once per page, because `assets/flow.css` -- which owns `.dr-form*` -- is
-#: **23,485 B and already past the 22,528 B read ceiling**. `forms-dl.md` carries
-#: the measurement and the split this file is waiting on.
+#: **23,485 B and already 957 B PAST the read ceiling**, having grown 2,365 B the
+#: same morning when the `.dr-view*` rules landed. 🚩 These move there after the
+#: split its own header prescribes.
 #:
-#: ⚠️ THE PRINT HALF IS THE FIX FOR MICHAEL'S 08-30 PREVIEW, not decoration. The
-#: first two rules strip the callout costume Material puts on every `<details>`;
-#: the third hides the summary, which is a control whose text the fallback link
-#: already carries. (0,2,0)/(0,2,1) beat print-callout's (0,1,1) outright rather
-#: than on load order.
+#: ⚠️ THE PRINT HALF IS THE FIX FOR MICHAEL'S 08-30 PREVIEW, not decoration. Rule
+#: two strips the callout costume Material puts on every `<details>`; rule three
+#: hides the summary, a control whose text the fallback link already carries.
+#: (0,2,0)/(0,2,1) beat print-callout's (0,1,1) OUTRIGHT rather than on load order,
+#: which matters because that file's position in the print group is free.
 #:
-#: ⚠️ AND THE BUTTON GOES TOO. A button on paper is a lie -- the same pen test
+#: ⚠️ AND THE BUTTON GOES TOO -- a button on paper is a lie, the same pen test
 #: `print.css` applies to its whole chrome-off list.
 _RESET_CSS = (
     "<style>.dr-form__tools{margin:.6rem 0 0}"
@@ -264,8 +235,7 @@ def _dead(reason: str, label: str = _DEAD_LABEL) -> str:
 
     ✅ AND IT PRINTS WITHOUT A PRINT RULE. `base.css` declares the `--dr-dead`
     dotted underline unscoped to any medium; `print.css` has a whole block
-    arguing against re-declaring it. So a printed sheet shows the failure too,
-    which matters on a compliance page more than on screen.
+    arguing against re-declaring it.
 
     ⭐ `label` IS A PARAMETER SO `views.py` SHARES THIS SPAN. Two directives with
     two copies of a failure vocabulary is how they start disagreeing about what
@@ -314,8 +284,7 @@ def _declared(src) -> list:
 
     ⭐ NAMING WHAT *IS* DECLARED IS MOST OF THE VALUE OF THE MESSAGE, and it is
     what turns a typo from a hunt into a glance. `sheet.apply_options` sets the
-    precedent -- it prints the sheet's real header beside a bad `hide:` -- and
-    `datatable.py` does the same for an undeclared data slot.
+    precedent -- it prints the sheet's real header beside a bad `hide:`.
     """
     block = (state.BY_SRC.get(src, {}) or {}).get("forms")
     return sorted(str(k) for k in block) if isinstance(block, dict) else []
