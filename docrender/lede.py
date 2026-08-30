@@ -1,5 +1,5 @@
-"""The lede, the keywords line, and the revision line. What a page says around
-the edges of what it argues.
+"""The lede, the keywords line, the ownership tag and the revision line. What a
+page says around the edges of what it argues.
 
 WHY THE LEDE IS A FIELD AND NOT A POSITION (decided 2026-08-03, Michael).
 
@@ -44,12 +44,6 @@ objects.py _LEGACY_KEYS. **The visible label moved with the field on purpose:**
 the old name could only honestly hold aliases, and the new one also holds search
 terms that are not names, so "Also called: electrics" was about to be false.
 
-⚠️ THE CSS CLASS IS STILL `dr-aka` AND THAT IS DELIBERATE, not a half-finished
-rename. Moving it means editing a stylesheet measured near the read-clip line,
-and a file that cannot be read whole cannot be safely rewritten -- which is a
-worse trade than one internal name that disagrees with its field. Named here so
-the next reader does not mistake it for an oversight.
-
 🔴 THE REVISION LINE, AND THE FIELD THAT HAD NO READER (2026-08-07, Michael).
 
 `revised:` has been declared optional on `_base` since the type system shipped.
@@ -88,12 +82,73 @@ survive print.css, a stylesheet that failed to load, and anything that reads
 this HTML without our CSS. base.css owns the size, colour and spacing of the
 line and nothing else. Do not tidy the `<em>` away into a rule.
 
-⚠️ THIS MODULE IS NAMED FOR THE LEDE AND NOW HOLDS THREE FOOT-OF-PAGE FIELDS.
+=============================================================================
+🔴 THE OWNERSHIP TAG (2026-08-30, Michael) -- AND IT IS NOT A FIELD
+=============================================================================
+    Posted by Michael A Wizorek · michael.wizorek@rochester.edu
+
+> Michael: *"I'm thinking of something more general and global so I don't have
+> to worry about adding it to every page. Right now, if someone sees this
+> printed on a desk and is curious about it, they need to know where it came
+> from and who to contact."*
+
+⭐ WHY IT EXISTS. These sheets are now PRINTED and posted around the building,
+and a printed page has left the system entirely: no nav, no header, no URL, no
+way back. The site name and season already print at the top of sheet one
+(`buildstamp.py`), which says WHOSE the sheet is; this says WHO TO ASK. It is
+the one thing a stranger finding a page face-down on a desk cannot get from
+anything else on it.
+
+🔴 IT IS DRAWN FROM THE INSTANCE, NOT FROM FRONTMATTER, AND THAT IS THE WHOLE
+REQUEST. Every other line this module renders is a per-page field. This one is
+authored ONCE in `instances/<slug>/site.yml` and lands on every page of that
+site with no page edit anywhere -- which is what "general and global" means and
+why a `posted_by:` frontmatter key was never a candidate. Same polarity as
+`print:` and `routes.yml`: **absent means the line does not render**, so five of
+six sites are untouched by this landing.
+
+⚠️ SO THIS FUNCTION BREAKS THE ONE THING THE FOUR ABOVE IT HAVE IN COMMON, and
+it is named rather than smuggled. The closing note in this docstring says what
+these functions share is being "drawn from frontmatter on EVERY page regardless
+of type." `owner()` is drawn from CONFIG on every page regardless of type. It
+lives here anyway because it is the same FOOT-OF-PAGE FURNITURE class, renders
+into the same block, and is styled by the same base.css rule -- and because the
+alternative was hosting it in objects.py, which has **~930 B of headroom against
+the 22,528 B read ceiling.** A function there would have breached it. 🚩 The
+right long-term home is its own small module, and that needs a hook registration
+in `mkdocs.yml`, which is 28,158 B and cannot be written whole. Debt, stated.
+
+⚠️ THE LABEL IS ENGINE-SUPPLIED, exactly as `Revised` and `Keywords:` are. The
+config holds a name and an address; it does not hold the word "Posted". That is
+what keeps the phrasing identical across every sheet in a printed packet, which
+was the point of making it global rather than typed.
+
+⚠️ THE SEPARATOR IS `·` (U+00B7), matching the printed corner stamp. One
+separator convention for provenance furniture on this engine, so a reader who
+has seen the top of the sheet recognises the bottom of it.
+
+⚠️ THE ADDRESS IS A REAL `mailto:` ANCHOR AND THAT IS A DELIBERATE ASYMMETRY.
+On screen it is a live control; on paper it renders as plain text, because
+`print-type.css` §5 strips link colour and paper has no click. A contact line
+you cannot contact from the screen is the DEAD CONTROL shape this engine kills
+on sight, so the anchor is the correct default and the paper case degrades for
+free. 🚩 NOT YET VERIFIED against `urllinks.py` / `links.py`: those resolve
+markdown link syntax and `@id` tokens, not raw anchors, so a decoration on this
+one is unlikely rather than proven. **If a stray external-link mark appears
+beside the address, the fallback is one line -- drop the anchor and emit the
+address as text.** Said plainly rather than claimed as tested.
+
+⚠️ NO HTML-ESCAPING OF THE ADDRESS, AND IT IS A JUDGEMENT NOT AN OVERSIGHT. The
+value comes from a config file only Michael writes, and an `&` in an email local
+part is legal-but-absurd. If this ever reads from anything a third party can
+write, escape it there and not here.
+
+⚠️ THIS MODULE IS NAMED FOR THE LEDE AND NOW HOLDS FOUR FOOT-OF-PAGE LINES.
 That mismatch is known and is not worth a rename today: what these functions
-share is that they are drawn from frontmatter on EVERY page regardless of type,
-which is a real thing to have in common and is the reason objects.py calls all
-of them from the same three lines. Named so the next reader does not file it as
-an accident.
+share is that they are drawn from frontmatter -- or, in `owner()`'s case, from
+config -- on EVERY page regardless of type, which is a real thing to have in
+common and is the reason objects.py calls all of them from the same few lines.
+Named so the next reader does not file it as an accident.
 """
 
 from __future__ import annotations
@@ -308,6 +363,42 @@ def keywords(value) -> str:
     if not names:
         return ""
     return '<p class="dr-aka">Keywords: ' + ", ".join(names) + "</p>"
+
+
+def owner(value) -> str:
+    """The ownership tag. WHO POSTED THIS AND WHO TO ASK, on every page.
+
+    Takes the `owner:` mapping off the INSTANCE -- `{name, email}` -- and not a
+    frontmatter field. The caller reads `state.INSTANCE`; this function stays
+    pure, same bargain as `keywords` and `revised` above, so it can be reasoned
+    about without a build. Full account in the module docstring.
+
+    THE NAME IS THE ONLY REQUIRED HALF. A site declaring an address and no name
+    renders nothing rather than `Posted by · someone@x` -- a label with no
+    subject is worse than an absent line, and the absent line is already the
+    documented default for five of six sites.
+
+    ⚠️ A STRING IS ACCEPTED AS THE NAME. `owner: Michael A Wizorek` is what
+    somebody will type on the first site that copies this, and refusing it buys
+    nothing -- it renders the tag with no address, which is exactly what was
+    written. Same posture as `keywords` taking a bare string.
+    """
+    if value in (None, "", [], {}):
+        return ""
+    if isinstance(value, str):
+        name, email = " ".join(value.split()), ""
+    else:
+        name = " ".join(str(value.get("name") or "").split())
+        email = " ".join(str(value.get("email") or "").split())
+    if not name:
+        return ""
+
+    line = "Posted by " + name
+    if email:
+        line += (
+            " \u00b7 " + '<a href="mailto:' + email + '">' + email + "</a>"
+        )
+    return '<p class="dr-owner">' + line + "</p>"
 
 
 def revised(value) -> str:
