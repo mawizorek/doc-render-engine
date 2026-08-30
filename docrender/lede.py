@@ -83,45 +83,70 @@ this HTML without our CSS. base.css owns the size, colour and spacing of the
 line and nothing else. Do not tidy the `<em>` away into a rule.
 
 =============================================================================
-🔴 THE OWNERSHIP TAG (2026-08-30, Michael) -- AND IT IS NOT A FIELD
+🔴 THE OWNERSHIP TAG (2026-08-30, Michael) -- ONE LINE, TWO ENDS
 =============================================================================
-    Posted by Michael A Wizorek · michael.wizorek@rochester.edu
+    Revised Aug 2026              Posted by Michael A Wizorek · michael@...
 
-> Michael: *"I'm thinking of something more general and global so I don't have
-> to worry about adding it to every page. Right now, if someone sees this
-> printed on a desk and is curious about it, they need to know where it came
-> from and who to contact."*
+> Michael: *"something more general and global so I don't have to worry about
+> adding it to every page ... if someone sees this printed on a desk and is
+> curious about it, they need to know where it came from and who to contact."*
 
-⭐ WHY IT EXISTS. These sheets are now PRINTED and posted around the building,
-and a printed page has left the system entirely: no nav, no header, no URL, no
-way back. The site name and season already print at the top of sheet one
-(`buildstamp.py`), which says WHOSE the sheet is; this says WHO TO ASK. It is
-the one thing a stranger finding a page face-down on a desk cannot get from
-anything else on it.
+And, after the first attempt STACKED it as its own line above the revision date
+and rewrote the revised rule to match:
 
-🔴 IT IS DRAWN FROM THE INSTANCE, NOT FROM FRONTMATTER, AND THAT IS THE WHOLE
-REQUEST. Every other line this module renders is a per-page field. This one is
-authored ONCE in `instances/<slug>/site.yml` and lands on every page of that
-site with no page edit anywhere -- which is what "general and global" means and
-why a `posted_by:` frontmatter key was never a candidate. Same polarity as
-`print:` and `routes.yml`: **absent means the line does not render**, so five of
-six sites are untouched by this landing.
+> *"Leave the revised function and position and font and size exactly the same
+> on the left side of the footer. Add POSTED BY aligned right in the same line
+> of the footer. No stacking, don't overthink the date. You are adding a single
+> line of prose text with my email link ... don't fucking move or change
+> revised. Not your job right now."*
 
-⚠️ SO THIS FUNCTION BREAKS THE ONE THING THE FOUR ABOVE IT HAVE IN COMMON, and
-it is named rather than smuggled. The closing note in this docstring says what
-these functions share is being "drawn from frontmatter on EVERY page regardless
-of type." `owner()` is drawn from CONFIG on every page regardless of type. It
-lives here anyway because it is the same FOOT-OF-PAGE FURNITURE class, renders
-into the same block, and is styled by the same base.css rule -- and because the
-alternative was hosting it in objects.py, which has **~930 B of headroom against
-the 22,528 B read ceiling.** A function there would have breached it. 🚩 The
-right long-term home is its own small module, and that needs a hook registration
-in `mkdocs.yml`, which is 28,158 B and cannot be written whole. Debt, stated.
+🔴 SO THE SHAPE IS ONE FOOTER LINE WITH TWO ENDS, AND THE REVISED LINE IS
+UNTOUCHED. `revised:` keeps the left at its original position, font, size and
+colour -- base.css's rule for it is byte-identical to what it was before this
+feature existed, and it was restored to that within the hour. This tag is a
+single line of prose set to the RIGHT of it. ⚑ *The v1 failure was not a
+mechanism error, it was scope: a request to ADD a line was executed as a
+redesign of the line already there.*
+
+⭐ IT IS A FLOAT, AND THAT IS WHAT MAKES "DON'T TOUCH REVISED" ACHIEVABLE. Two
+block siblings cannot share a line. The alternatives were a flex wrapper around
+both, or emitting this INSIDE the revised paragraph -- and each of those changes
+the revised line's rule, its markup, or its layout context. A float is taken OUT
+of flow, so `.dr-revised` lays out exactly as though this element did not exist
+and its text simply flows beside it. Nothing about it moves.
+
+🔴 CONSEQUENCE, AND IT IS THE ONE THING TO KNOW BEFORE REORDERING ANYTHING IN
+objects.py: **THE TAG MUST BE EMITTED BEFORE THE REVISED LINE.** A float shares a
+line with what FOLLOWS it; a float placed after a block starts below that block.
+The emit order in `on_page_markdown` is therefore load-bearing rather than
+cosmetic, and swapping those two statements silently drops the tag onto its own
+line -- which is precisely the v1 defect, rebuilt by a tidy-up.
+
+🔴 IT IS DRAWN FROM THE INSTANCE, NOT FROM FRONTMATTER, AND THAT IS THE OTHER
+HALF OF THE REQUEST. Every other line this module renders is a per-page field.
+This one is authored ONCE in `instances/<slug>/site.yml` and lands on every page
+of that site with no page edit anywhere -- which is what "general and global"
+means, and it matters more than it looks: the safety content repo is one agents
+may never commit to, so a `posted_by:` frontmatter key would have meant Michael
+hand-editing every file in the tree, forever. Same polarity as `print:` and
+`routes.yml`: **absent means the line does not render**, so five of six sites are
+untouched by this landing.
+
+⚠️ SO `owner()` BREAKS THE ONE THING THE FOUR FUNCTIONS ABOVE IT HAVE IN COMMON,
+and it is named rather than smuggled. The closing note in this docstring says
+what they share is being "drawn from frontmatter on EVERY page regardless of
+type." This one is drawn from CONFIG on every page regardless of type. It lives
+here anyway because it is the same FOOT-OF-PAGE FURNITURE class, renders into the
+same block, and is styled beside `.dr-revised` -- and because the alternative was
+hosting it in objects.py, which has **~280 B of headroom against the 22,528 B
+read ceiling.** A function there would have breached it. 🚩 The right long-term
+home is its own small module, and that needs a hook registration in `mkdocs.yml`,
+which is 28,158 B and cannot be written whole. Debt, stated.
 
 ⚠️ THE LABEL IS ENGINE-SUPPLIED, exactly as `Revised` and `Keywords:` are. The
 config holds a name and an address; it does not hold the word "Posted". That is
 what keeps the phrasing identical across every sheet in a printed packet, which
-was the point of making it global rather than typed.
+was the point of making the tag global rather than typed.
 
 ⚠️ THE SEPARATOR IS `·` (U+00B7), matching the printed corner stamp. One
 separator convention for provenance furniture on this engine, so a reader who
@@ -142,6 +167,12 @@ address as text.** Said plainly rather than claimed as tested.
 value comes from a config file only Michael writes, and an `&` in an email local
 part is legal-but-absurd. If this ever reads from anything a third party can
 write, escape it there and not here.
+
+🚩 AND THE TAG CLAIMS MAINTENANCE IT CANNOT PROVE. It renders unconditionally
+while `revised:` stays optional, so a page with no date carries a named owner and
+no evidence anybody has looked at it since. Raised on 2026-08-30 and deferred by
+Michael to the revision-log / update-cycle conversation -- **explicitly not this
+feature's job.** Recorded so it is not read as solved.
 
 ⚠️ THIS MODULE IS NAMED FOR THE LEDE AND NOW HOLDS FOUR FOOT-OF-PAGE LINES.
 That mismatch is known and is not worth a rename today: what these functions
@@ -366,12 +397,13 @@ def keywords(value) -> str:
 
 
 def owner(value) -> str:
-    """The ownership tag. WHO POSTED THIS AND WHO TO ASK, on every page.
+    """The ownership tag: ONE line of prose, floated to the right of `revised`.
 
     Takes the `owner:` mapping off the INSTANCE -- `{name, email}` -- and not a
     frontmatter field. The caller reads `state.INSTANCE`; this function stays
-    pure, same bargain as `keywords` and `revised` above, so it can be reasoned
-    about without a build. Full account in the module docstring.
+    pure, same bargain as `keywords` and `revised`, so it can be reasoned about
+    without a build. Full account, and the emit-order rule it depends on, in the
+    module docstring.
 
     THE NAME IS THE ONLY REQUIRED HALF. A site declaring an address and no name
     renders nothing rather than `Posted by · someone@x` -- a label with no
@@ -408,6 +440,11 @@ def revised(value) -> str:
     draws it, and an author never types it. The module docstring carries why
     the value is passed through verbatim and why the italic is markup rather
     than a stylesheet rule.
+
+    🔴 UNCHANGED BY THE OWNERSHIP TAG, BY RULING (Michael, 2026-08-30: *"don't
+    fucking move or change revised"*). This function, its label, its `<em>` and
+    its base.css rule are byte-identical to what they were before the tag
+    existed. The tag floats beside it and touches none of this.
 
     ⚠️ `str(value)` RATHER THAN AN ISINSTANCE LADDER, and it is load-bearing.
     YAML resolves `revised: 2026-08` to a string and `revised: 2026-08-07` to a
