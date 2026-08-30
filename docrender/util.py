@@ -42,6 +42,17 @@ _PROTECTED = re.compile(
     r"|(?P<t>`+)(?:.|\n)*?(?P=t)"
 )
 
+#: A trailing `key=value` pair on a `!!!` directive line. Lifted verbatim from
+#: `qr.py`'s `_OPT`, which has been parsing this shape in production since
+#: 2026-08-21 -- the pattern is the proven half and is not being redesigned here.
+_DIRECTIVE_OPT = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(\S+)")
+
+#: The LAYOUT vocabulary, shared by every block directive that can be aligned.
+#: 🚫 NO `left`: it is what a block already does, and a control that produces the
+#: current rendering is indistinguishable from one that failed to resolve.
+#: `assets/align.css` states that rule at length and this is the enforcement.
+ALIGNS = ("right", "center")
+
 
 def _url_parts(url: str) -> list[str]:
     """Split a site-relative URL into normalized path segments.
@@ -131,6 +142,73 @@ def sub_outside_code(pattern: re.Pattern, repl, markdown: str) -> str:
         cursor = guard.end()
     out.append(pattern.sub(repl, markdown[cursor:]))
     return "".join(out)
+
+
+def directive_options(tail: str, legal=()) -> tuple[dict, list[str]]:
+    """Parse the trailing `key=value` options on a `!!!` directive line.
+
+    Returns `(options, problems)`. `align` is validated against `ALIGNS` and
+    lands as a STRING; every other legal key coerces to a bool the way `qr.py`
+    has always done. Anything unrecognised is DROPPED and described in
+    `problems` -- one human sentence per fault, ready to hand to `state.note`.
+
+    🔴 IT REPORTS RATHER THAN LOGGING, AND THAT IS THE WHOLE INTERFACE DECISION.
+    Importing `state` here would put a docrender module inside the one file whose
+    header promises it stays framework-free and independently usable. So the
+    caller owns the bucket, and this stays a pure function a linter can run.
+
+    ⚠️ AN UNKNOWN KEY IS NEVER SILENTLY IGNORED. A mistyped `algin=center` that
+    vanished would leave an author staring at an unmoved block with no signal --
+    and this function exists BECAUSE the silent version of that failure shipped:
+    `!!! form "x" align=center` did not match `forms._FORM` at all, so the whole
+    directive was left as literal text with nothing in the report, because
+    nothing had matched to report on.
+
+    ⚠️ `false` IS RECORDED, NOT DROPPED, so a caller can tell "absent" from
+    "present and false" -- the distinction `qr._shape` turns on and `forms._entry`
+    turns on twice. Storing only the true keys would collapse two different facts.
+
+    🚩 `qr.py` STILL HAS ITS OWN COPY OF THIS LOGIC and should call this instead.
+    It is not converted in the same pass because that file is 29,915 B, at the
+    `create_or_update_file` write cap, so it cannot be rewritten safely --
+    recorded here rather than left as an invisible second claimant. When `qr.py`
+    is split, delete its `_OPT`, `_ALIGN_KEY` and `_ALIGNS` and pass
+    `legal=("display", "print")`.
+    """
+    text = (tail or "").strip()
+    if not text:
+        return {}, []
+
+    found: dict = {}
+    problems: list[str] = []
+    for key, value in _DIRECTIVE_OPT.findall(text):
+        if key == "align":
+            choice = value.lower()
+            if choice not in ALIGNS:
+                problems.append(
+                    "`align=" + value + "` is not an alignment this engine "
+                    "knows. Legal: " + ", ".join(ALIGNS) + ". Ignored, so the "
+                    "block sits where it would have anyway. There is "
+                    "deliberately no `left` -- that is already the default."
+                )
+                continue
+            found[key] = choice
+            continue
+        if key not in legal:
+            problems.append(
+                "unknown option `" + key + "=" + value + "`. Legal here: "
+                + ", ".join(tuple(legal) + ("align",)) + ". Ignored."
+            )
+            continue
+        found[key] = value.lower() in ("true", "yes", "1")
+
+    leftover = _DIRECTIVE_OPT.sub("", text).strip()
+    if leftover:
+        problems.append(
+            "trailing text that is not a `key=value` option: '" + leftover
+            + "'. Ignored."
+        )
+    return found, problems
 
 
 def duplicate_keys(text: str) -> list[str]:
