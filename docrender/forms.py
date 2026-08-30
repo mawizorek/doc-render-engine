@@ -1,17 +1,21 @@
 """The `forms:` registry -- an embedded ClickUp form, named once in frontmatter.
 
-WHY decisions here are the way they are: the doc-render-engine Decision Log, and
-`docrender/forms-dl.md` beside this file. The flow strip is docrender/program.py;
-both are registered by stage 05b.
-
     forms:
       completion:
         src: https://forms.clickup.com/36074068/f/...?Program_ID=ITPSAFE-1225
         text: General Safety completion form
-        collapsed: true
+        collapsed: true      # optional; open by default
         reload: false        # optional; the Reload button is ON by default
 
     !!! form "completion"
+
+🔴 **THE ARGUMENTS LIVE IN `docrender/forms-dl.md`.** This file reached 24,664 B
+against a 22,528 B read ceiling on 2026-08-30 while the reload button's reasoning
+was being written into it, so four accumulated arguments moved to the sibling --
+the reload button, the broken-slot fix, the program.py split, and `collapsed:`.
+The steps and the warnings stay here; **why a step exists at all is one file
+over.** Same standard `buildstamp-dl.md` set. Decision history: the
+doc-render-engine Decision Log.
 
 Michael, 2026-08-19: *"can i embed an actual clickup form as content in the
 bottom of these pages... so that users dont have to leave the page"* and, on
@@ -28,10 +32,10 @@ is `!!! form` rather than pasted HTML.
 hook of its own: `on_page_markdown` below calls it, and it imports `_esc` and
 `_dead` from here rather than re-declaring them. 🔴 The full argument for one hook
 and two files -- and the measurement that killed the fold -- lives in THE
-DELEGATION in `views.py`, not here. This file is at the warn line already.
+DELEGATION in `views.py`, not here.
 
 =============================================================================
-✅ THE RELOAD BUTTON (2026-08-30). ARGUMENT IN `forms-dl.md`; MECHANISM HERE.
+✅ THE RELOAD BUTTON (2026-08-30) -- MECHANISM ONLY; ARGUMENT IN `forms-dl.md`
 =============================================================================
 > Michael: *"i want to be able to reload the embedded form without having to
 > reload the entire webpage of the doc renderer."*
@@ -39,67 +43,31 @@ DELEGATION in `views.py`, not here. This file is at the warn line already.
 🔴 `cloneNode` + `replaceWith`, NEVER `iframe.src = src`. Assigning `src`
 NAVIGATES the existing browsing context and pushes a session-history entry, so
 after three reloads the reader's Back button walks iframe states instead of
-leaving the page. A fresh node is an initial load and pushes nothing. Verified
-by executing the handler against a DOM model: zero history entries, one fresh
-load, the other form on the page untouched.
+leaving the page. A fresh node is an initial load and pushes nothing. Verified by
+executing the handler against a DOM model: zero history entries, one fresh load,
+the other form on the page untouched.
 
-🔴 IT DISCARDS WHATEVER WAS TYPED, WITH NO CONFIRMATION, AND THAT IS THE ASK
-rather than an oversight -- refused on 08-29 on data-loss grounds and released by
-Michael the next morning. **The label is the safety mechanism.**
+🔴 IT DISCARDS WHATEVER WAS TYPED, WITH NO CONFIRMATION, AND THAT IS THE ASK --
+refused on 08-29 on data-loss grounds and released by Michael the next morning.
+**The label is the safety mechanism.**
 
 ⚠️ STYLES AND LISTENER ARE INLINE, once per page, on `program.py`'s precedent.
 `assets/flow.css` is the obvious home and lands **three bytes** under the read
-ceiling with this rule in it; `forms-dl.md` carries the measurement. 🚩 When
-flow.css splits, they move.
+ceiling with this rule in it. 🚩 When flow.css splits, they move.
+
+🚫 NOT ON A `views:` EMBED. A shared view is read-only furniture with nothing
+typed into it, so a reload control there answers a question nobody asked.
 
 =============================================================================
-🔴 A BROKEN SLOT USED TO RENDER **NOTHING**. FIXED 2026-08-30.
+🔴 A BROKEN SLOT RENDERS A MARKER, NOT NOTHING (fixed 2026-08-30)
 =============================================================================
-> Michael, 2026-08-30: *"why wont the second form for NOTES render on my new
-> rehearsal report page"*
+`_html` used to return `""` for an unknown slot and `swap` returns `""` on falsy,
+so a typo'd directive line VANISHED -- no marker, no gap, no clue, on a page that
+already showed one working form. Its two siblings (`qr.py`, `links.py`) already
+rendered the struck-through `docrender-dead` span.
 
-The cause was a one-word typo -- the body said `rehearesl-note`, the frontmatter
-declared `rehearsal-note`. **The cause is not the finding.** `_html` returned
-`""` for an unknown slot and `swap` returns `""` on falsy, so the directive line
-VANISHED: no marker, no gap, no clue.
-
-⚑ AND THE TELL IS THAT ITS TWO SIBLINGS ALREADY GOT THIS RIGHT. `qr.py` renders
-a struck-through `docrender-dead` span; `links.py` renders the same thing for a
-dead reference and `markerlinks.py` states the rule outright -- *"a dead
-reference never degrades into a span... falling back would be a silent second
-legal path."* **Three directives share one pattern and one vocabulary, and the
-only one that failed silently was the one whose absence a reader cannot infer.**
-A missing QR is obviously missing. A missing form on a page that already shows
-one form looks deliberate.
-
-⚠️ IT WAS IN THE BUILD REPORT THE WHOLE TIME, under `dead_links`, naming the bad
-slot and listing the legal ones. Nobody read it -- which is `next-build-spec.md`
-BUILD 2's entire premise (*"the build report has no reader"*) acquiring a live
-fourth instance. ⭐ **So the fix is not a new message. It is the message that
-already existed, on a second SURFACE** -- the page -- rather than a second
-claimant on one truth.
-
-✅ AND IT REACHES PAPER FOR FREE. `assets/base.css` gives `.docrender-dead` a
-`--dr-dead` dotted underline unscoped to any medium, and `print.css` carries a
-whole block arguing AGAINST re-declaring it. Verified live on 2026-08-19: two
-dead references printed in red on a policy sheet with no print rule at all.
-
-🚫 NOT AN ANCHOR, on `qr.py`'s precedent: a form that failed to resolve must not
-offer a control. The `title` carries the diagnosis; the span carries no href.
-
-=============================================================================
-⭐ SPLIT OUT OF program.py THE SAME DAY IT SHIPPED, AND THE REASON IS COHESION
-=============================================================================
-`program.py` held the flow strip and this embed and reached 16,949 B; adding
-`collapsed:` would have pushed it past the ~22KB read ceiling. 🔴 BUT SIZE WAS
-THE TRIGGER, NOT THE REASON -- `specs/visibility-split.md` §1 already ruled on
-exactly this: *"The cut that is worth making follows the concerns. It also fixes
-the bytes. If those two ever disagree, follow the concerns."*
-
-They agree here. A strip is NAVIGATION -- it reads the chain graph, resolves
-pages, and computes position. A form is an EMBED -- it validates a URL and emits
-an element. They share no state and call none of each other's helpers. The only
-thing they ever shared was a hook shim, and they still do.
+⭐ THE MESSAGE IS THE ONE THAT WAS ALREADY GOING TO THE BUILD REPORT, on a second
+SURFACE rather than as a second claimant. Full account: `forms-dl.md`.
 
 =============================================================================
 🔴 `height="100%"` COLLAPSES TO NOTHING WITHOUT THEIR SCRIPT
@@ -121,10 +89,10 @@ this value instead of collapsing. Stated here because the floor reads like
 defensive tidiness and is load-bearing for a feature nobody has built yet.
 
 ⭐ THAT FEATURE ARRIVED ON 2026-08-30 AND THE PARAGRAPH ABOVE IS UNCHANGED. It
-named *"a refresh control, for instance"* before one existed, and the floor is
-now its second consumer. **A guard written for a CDN outage is what made a later
-feature safe** -- worth keeping visible, because the usual version of this note is
-written after the damage.
+named *"a refresh control, for instance"* before one existed, and the floor is now
+its second consumer. **A guard written for a CDN outage is what made a later
+feature safe** -- kept visible because the usual version of this note is written
+after the damage.
 
 🔴 AND THE WHOLE PROBLEM IS FORM-ONLY -- read this before copying the machinery.
 ClickUp's embed code for a shared VIEW ships `clickup-embed` alone with a literal
@@ -137,33 +105,15 @@ printed program packet would otherwise carry a hole where the completion form
 belongs. On screen the same link is the answer to "the form did not load."
 
 =============================================================================
-⭐ `collapsed:` -- A PROGRAM PAGE IS BOTH THE ENTRANCE AND THE EXIT
+⭐ `collapsed:` AND `reload:` DEFAULT OPPOSITE WAYS, ON PURPOSE
 =============================================================================
-Michael, 2026-08-19: *"if the form could not be so stand out on the first
-landing but then when we circle back to ending there on the same page - it's
-easily found."*
+`collapsed:` renders the embed inside a closed `<details>` whose `<summary>` id
+the last step of a flow links to -- a fragment pointing INSIDE a closed disclosure
+expands it, so no script is involved. It defaults FALSE because hiding a
+compliance form is an editorial decision that must be declared.
 
-That is a real sequencing problem rather than a styling preference. A reader
-lands on the program page BEFORE reading anything and returns to it to submit.
-An open form on arrival instructs somebody to certify material they have not
-read yet, which is the pre-filled-checklist hazard `30-programs/index.md`
-already warns about in its own words.
-
-🔴 THE MECHANISM IS A FRAGMENT, NOT A SCRIPT. `collapsed: true` renders the embed
-inside a closed `<details>`, and the LAST STEP of the flow links to the
-`<summary>`'s own id. Per the HTML spec, a fragment navigation targeting content
-inside a closed `<details>` expands it -- so arriving from the end of the program
-opens the form, with no JavaScript, no query parameter and no state.
-
-⚠️ IT DEGRADES HONESTLY WHERE THAT BEHAVIOUR IS MISSING, which is why it is safe
-to ship without browser-support arithmetic nobody can verify from this chair: the
-reader lands on a visible, obviously-clickable "Complete this program" control
-and clicks once. One extra click, never a dead end.
-
-🚫 NOT AUTOMATIC ON A PROGRAM PAGE, though it easily could be. It is a DECLARED
-key, because a form on a single policy page acknowledging one rule wants to be
-open, and an engine deciding that by type would be a rule nobody can see in the
-content. Declared beats inferred; `objects/program.yml` carries the vocabulary.
+`reload:` defaults TRUE because offering a reload button is not. ⭐ The asymmetry
+is the point; `forms-dl.md` carries both arguments.
 
 =============================================================================
 🔴 THE PREFILL PARAM IS THE RECORD
@@ -334,14 +284,8 @@ def _entry(src, slot):
     Two spellings, matching the `links:` registry: a bare string is the src, a
     mapping carries `src:`, `text:`, `collapsed:` and `reload:`.
 
-    ⚠️ `reload` DEFAULTS TO **TRUE**, WHICH IS THE OPPOSITE OF `collapsed`, and the
-    asymmetry is deliberate. A reload control is useful on every embed and
-    harmless where nobody clicks it, so the default is the useful one and
-    `reload: false` is an opt-OUT. `collapsed` defaults False because hiding a
-    compliance form is a real editorial decision that must be declared.
-
-    ⭐ THE TEST IS `is not False`, NOT TRUTHINESS. A slot that omits the key must
-    get the button; only an explicit `false` removes it. Same shape as
+    ⭐ THE `reload` TEST IS `is not False`, NOT TRUTHINESS. A slot that omits the
+    key must get the button; only an explicit `false` removes it. Same shape as
     `pagefoot._enabled`, which reads `is not False` on `edit_links` for exactly
     this reason -- a missing key and a key set to nothing are different facts.
     """
@@ -374,8 +318,7 @@ def _html(src, slot) -> str:
             + (", ".join(known) or "nothing") + ". Nothing was embedded.",
         )
         # 🔴 A MARKER, NOT "". Returning empty deleted the line and made a typo
-        # indistinguishable from a page that never asked for a form. See the
-        # docstring: this is the report's own sentence on a second surface.
+        # indistinguishable from a page that never asked for a form.
         return _dead(
             "form slot not declared on this page: " + slot
             + ". Declared here: " + (", ".join(known) or "nothing") + "."
@@ -390,9 +333,9 @@ def _html(src, slot) -> str:
             "a third-party script in the reader's browser, so the host is an "
             "allow-list rather than a scheme check.",
         )
-        # ⚠️ ALSO VISIBLE NOW, and this is the case where it matters most: the
-        # slot EXISTS, so an author reading the page has every reason to believe
-        # the embed is working and merely slow.
+        # ⚠️ ALSO VISIBLE, and this is the case where it matters most: the slot
+        # EXISTS, so an author reading the page has every reason to believe the
+        # embed is working and merely slow.
         return _dead(
             "form slot '" + slot + "' is not a " + _FORM_HOST + " address, so it "
             "was not embedded. This element runs a third-party script, so the "
@@ -457,20 +400,16 @@ def on_page_markdown(markdown, page, config, files):
     ⭐ THE HELPER SCRIPT IS APPENDED ONCE PER PAGE, NOT ONCE PER FORM. Two forms
     on a page would otherwise fetch and execute the same CDN asset twice.
 
-    🔴 AND IT IS APPENDED ONLY WHEN A FRAME WAS ACTUALLY EMITTED, which is why
-    `embedded` is counted separately from "the directive matched". A page whose
-    only form is broken now renders a visible marker and MUST NOT fetch the CDN
-    asset for it -- there would be no frame for the script to size, so the
-    request would be pure cost. ⚠️ Before 2026-08-30 the two were the same
-    question, because a broken slot returned "" and could not be told apart from
-    no directive at all.
+    🔴 THREE COUNTERS, BECAUSE THESE ARE THREE DIFFERENT FACTS AND COLLAPSING ANY
+    TWO OF THEM IS WHAT CAUSED THE LAST BUG: *a directive matched* · *a frame
+    exists* · *a button exists*. The CDN script is gated on the second, because a
+    page whose only form is broken has no frame for it to size and the request
+    would be pure cost. The reload assets are gated on the third, because a rule
+    matching nothing and a listener nothing can trigger are both the dead surface
+    this engine kills on sight.
 
-    ⚠️ AND THE RELOAD ASSETS ARE GATED A THIRD TIME, on `reloadable`. A page whose
-    every form sets `reload: false` gets the CDN script and NOT the listener or the
-    styles -- a rule matching nothing and a listener nothing can trigger are both
-    the dead surface this engine kills on sight. **Three questions, three counters,
-    because "a directive matched", "a frame exists" and "a button exists" are three
-    different facts and collapsing any two of them is what caused the last bug.**
+    ⚠️ Before 2026-08-30 the first two were the same question, because a broken
+    slot returned "" and could not be told apart from no directive at all.
 
     ⭐ THE `views:` PASS RUNS HERE TOO, LAST, because one hook is what keeps this
     feature out of `mkdocs.yml`. 🔴 The import is local to this function ON PURPOSE
