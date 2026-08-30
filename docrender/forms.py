@@ -193,8 +193,9 @@ _RESET_JS = (
 #: ⚠️ THE PRINT HALF IS THE FIX FOR MICHAEL'S 08-30 PREVIEW, not decoration. Rule
 #: two strips the callout costume Material puts on every `<details>`; rule three
 #: hides the summary, a control whose text the fallback link already carries.
-#: (0,2,0)/(0,2,1) beat print-callout's (0,1,1) OUTRIGHT rather than on load order,
-#: which matters because that file's position in the print group is free.
+#: The new first print rule is the real bug fix: a CLOSED fold keeps its iframe
+#: hidden on paper even when the page disabled the reload button, which was the
+#: accidental gate on the previous pass.
 #:
 #: ⚠️ AND THE BUTTON GOES TOO -- a button on paper is a lie, the same pen test
 #: `print.css` applies to its whole chrome-off list.
@@ -208,6 +209,7 @@ _RESET_CSS = (
     ".dr-form__reset:hover{border-color:var(--dr-accent,var(--md-typeset-a-color));"
     "color:var(--dr-accent,var(--md-typeset-a-color))}"
     "@media print{.dr-form__tools{display:none}"
+    ".dr-form__open:not([open]) iframe,.md-typeset .dr-form__open:not([open]) iframe{display:none}"
     ".dr-form__open,.md-typeset .dr-form__open{margin:0;padding:0;"
     "border:0 !important;background:transparent}"
     ".dr-form__open>summary,.md-typeset .dr-form__open>summary{display:none}}"
@@ -425,13 +427,9 @@ def on_page_markdown(markdown, page, config, files):
     TWO OF THEM IS WHAT CAUSED THE LAST BUG: *a directive matched* · *a frame
     exists* · *a button exists*. The CDN script is gated on the second, because a
     page whose only form is broken has no frame for it to size and the request
-    would be pure cost. The style/listener block is gated on the third.
-
-    ⚠️ AND THE PRINT PARITY RULES RIDE IN THAT SAME BLOCK, which means a page whose
-    every form sets `reload: false` ALSO loses them. Acceptable and stated: the
-    rules only matter to a `.dr-form__open`, and a page with no button is a page
-    nobody has asked to interact with. 🚩 If that combination ever ships, the block
-    splits in two.
+    would be pure cost. The style/listener block is gated on the second too now,
+    because the print fix belongs to folded embeds whether or not the reload button
+    is present.
 
     ⭐ THE `views:` PASS RUNS HERE TOO, LAST, because one hook is what keeps this
     feature out of `mkdocs.yml`. 🔴 The import is local to this function ON PURPOSE
@@ -459,8 +457,9 @@ def on_page_markdown(markdown, page, config, files):
     out = sub_outside_code(_FORM, swap, markdown)
     if embedded:
         out += '\n\n<script async src="' + _FORM_SCRIPT + '"></script>\n'
+        out += "\n" + _RESET_CSS + "\n"
     if reloadable:
-        out += "\n" + _RESET_CSS + "\n" + _RESET_JS + "\n"
+        out += "\n" + _RESET_JS + "\n"
 
     from . import views
 
