@@ -461,8 +461,8 @@ def on_page_markdown(markdown, page, config, files):
     #   related   places to go next        -- a reader's business
     #   keywords  search terms             -- a searcher's business
     #   revised   provenance               -- "the very last thing on any page"
-    #   owner     who posted it, who to ask -- LAST in source, but it renders
-    #             ON the revised line, floated right. See below.
+    #   owner     who posted it, who to ask -- LAST in source, but it RENDERS
+    #             on the revised line, floated right. See below.
     #
     # ⚠️ `related` EMITS `@id` TOKENS, so it must be written here in the markdown
     # hook and never later: stage 03 has to still be ahead of it. See
@@ -477,9 +477,7 @@ def on_page_markdown(markdown, page, config, files):
         markdown = markdown.rstrip() + "\n\n" + words + "\n"
 
     # Michael, 2026-08-07: the revision date is "the very last thing on any
-    # page". 🔴 Reaffirmed 2026-08-30 (*"don't fucking move or change revised"*)
-    # when the ownership tag was first built ABOVE it -- so it is still written
-    # here, before the tag, and nothing about it changed.
+    # page". 🔴 Reaffirmed 2026-08-30; unchanged by the tag below.
     #
     # ⚠️ THE EDIT LINK STILL LANDS UNDER IT, and that is the ordering rather
     # than a miss. Hook 06 appends a rule and a link in on_page_content, which
@@ -492,16 +490,11 @@ def on_page_markdown(markdown, page, config, files):
         markdown = markdown.rstrip() + "\n\n" + stamp + "\n"
 
     # THE OWNERSHIP TAG (2026-08-30) -- LAST IN SOURCE, ON THE REVISED LINE.
-    # The one foot line not drawn from frontmatter: `owner:` in the instance's
-    # site.yml, so it lands on every page with no page edit anywhere.
-    #
-    # 🔴 IT MUST STAY AFTER THE REVISED BLOCK ABOVE, and that is the opposite of
-    # what it looks like it should be. foot.css floats it right and pulls it up
-    # onto revised's line with a negative margin -- MEASURED as constant only
-    # when it hangs off revised's own bottom. Emitted BEFORE revised the offset
-    # varied with whatever preceded it and no single value aligned. Swapping
-    # these two statements drops the tag onto its own line, which is exactly the
-    # stacking Michael rejected. Reasons in foot.css § THE OWNERSHIP TAG.
+    # `owner:` in the instance's site.yml, so it lands on every page with no page
+    # edit anywhere. 🔴 IT MUST STAY AFTER THE REVISED BLOCK: foot.css floats it
+    # right and pulls it onto that line, and the pull is constant ONLY when it
+    # hangs off revised's own bottom (measured; before, nothing aligned). Swap
+    # these and the tag stacks -- what Michael rejected. Why: foot.css.
     tag = lede.owner(state.INSTANCE.get("owner"))
     if tag:
         markdown = markdown.rstrip() + "\n\n" + tag + "\n"
