@@ -36,7 +36,10 @@ distinguishes "loading" from "gone."
 
 🔴 `align=` MOVES THE FURNITURE, NOT THE FRAME, AND THAT IS PHYSICS RATHER THAN A
 CHOICE: the iframe is `width: 100%`, so it has no slack to be moved within. What
-aligns is the summary label and the fallback link. views-dl.md D8.
+aligns is the summary label and the fallback link. ⭐ The argument, the silent-regex
+incident behind it and the shared parser live in **`forms-dl.md`**, under the
+`align=` heading -- ONE claimant for a fact that spans both modules, rather than a
+half-copy here that drifts.
 """
 
 from __future__ import annotations
@@ -53,10 +56,8 @@ from .util import directive_options, sub_outside_code
 #: pattern anchored `"[ \t]*$` straight after the closing quote, so
 #: `!!! view "x" align=center` did not match AT ALL -- the directive was left as
 #: literal text on the page with NOTHING in the build report, because nothing had
-#: matched to report on. ⚠️ Only `qr.py` accepted options, and `align.css` claimed
-#: the reason was "stated in every file" while forms and views never mentioned it.
-#: **A doc that says a rule is written down elsewhere is how the rule stops being
-#: written down.** views-dl.md D8.
+#: matched to report on. ⚠️ A guard placed inside `_html` cannot see what the
+#: pattern turned away. Full incident: `forms-dl.md` under `align=`.
 _VIEW = re.compile(
     r'(?m)^[ \t]*!!![ \t]+view[ \t]+"([^"\n]+)"(?P<opts>[^\n]*)$'
 )
@@ -76,7 +77,8 @@ _LENGTH = re.compile(r"^\d+(\.\d+)?(px|rem|em|vh|%)$")
 
 #: 🚫 NO MEDIA VOCABULARY HERE. `qr.py` has `display=`/`print=` because a code can
 #: legitimately exist in one medium only; an embed always appears on screen and
-#: never on paper, so there is nothing to declare. `align` is the only option.
+#: never on paper, so there is nothing to declare. `align` is the only option, and
+#: `util.directive_options` validates it.
 _LEGAL_OPTS: tuple = ()
 
 _DEAD_LABEL = "View"
