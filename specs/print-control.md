@@ -134,12 +134,64 @@ So:
 
 ---
 
+## 🚩 §8 — THE STANDING MARGIN ITEM: BINDERS AND PAMPHLETS (2026-08-30)
+
+> Michael, 2026-08-30, asked to flag rather than build: *"just flag it as a thing for later when doing the print menu. cos i'll want to print for binders (large left margin) or print for pamphlet (half sheets) idk fun shit later."*
+
+⭐ **THESE ARE THE FIRST REAL REASONS ANYBODY HAS WANTED A MARGIN CONTROL, and they change §1's verdict from a refusal into a bounded range.** §1 refuses inline margins as a READER control because a narrower column silently flips every data table to list mode. It never asked what a margin change was actually FOR. A binder gutter and a half sheet are both legitimate, both physical, and both hit that same 640px boundary — so the question is not whether to allow them but where the ceiling is.
+
+### The binder gutter has a computable ceiling
+
+US Letter, right margin held at 12mm, container boundary at 640px:
+
+| left margin | column | table mode |
+|---|---|---|
+| 0.472in (12mm, today) | 725.3px | TABLE |
+| 0.75in | 698.6px | TABLE |
+| 1.0in | 674.6px | TABLE |
+| 1.25in | 650.6px | TABLE |
+| **1.375in** | **638.6px** | 🔴 **LIST MODE** |
+| 1.5in | 626.6px | 🔴 LIST MODE |
+
+✅ **THE CEILING IS 1.361in (34.6mm).** A standard three-ring binder gutter is 0.75–1.0in, so **the thing he wants fits with room to spare** — and a 1.5in gutter does not. ⚑ *A refused control with a computed ceiling becomes a permitted control with a clamp, and the clamp is the deliverable.*
+
+### 🔴 The half-sheet pamphlet CANNOT clear the boundary, at any margin
+
+Half-letter is 5.5in wide. At 12mm margins the column is **437.4px**; at zero margin the theoretical maximum is **528px**. Both are under 640.
+
+⚠️ **So every data table on a pamphlet prints as a key/value stack, unavoidably.** That may well be the RIGHT rendering for a narrow sheet — list mode exists because a table cannot survive a narrow measure — but it must be a stated consequence rather than a surprise. 🚩 **A pamphlet mode is therefore a document-shape decision, not a margin slider**, and it belongs beside Feature A rather than in the widget.
+
+### 🔴 AND THE RUNNING FURNITURE JUST RAISED THE STAKES ON ALL OF IT
+
+Shipped 2026-08-30: `runfoot.py` puts the header, footer and page number into `@page` margin boxes. **A margin box's height IS the page margin**, so a margin control now deletes furniture rather than merely reflowing text. Measured:
+
+| `@page` margin | header | posted-by | page number |
+|---|---|---|---|
+| 40/32pt · 20pt · 10pt | yes | yes | yes |
+| **2pt** | yes | 🔴 **GONE** | 🔴 **GONE** |
+| **0 / "None"** | yes | 🔴 **GONE** | 🔴 **GONE** |
+
+Chrome's own documentation adds a worse quirk: **if page ONE has no room, later pages lose their margin content too**, even where there is space.
+
+⚠️ **BEFORE 08-30 THE CORNER STAMP WAS IN-FLOW AND SURVIVED ANY MARGIN. IT NO LONGER DOES.** A dropdown in the browser's own print dialog can now erase the author's name and the page numbers off a posted safety sheet, with no report anywhere. **That is a real regression this feature introduced**, and it is why §1's refusal has to become a floor rather than simply relax.
+
+⚠️ **AND THE FIRST MEASUREMENT OF THAT TABLE SAID EVERYTHING SURVIVED AT ZERO MARGIN.** It counted dark pixels in the top and bottom bands of the raster; the tell that it was lying was that the counts went UP as margins shrank — body text moving into the band, not furniture staying in it. Re-run with per-page text extraction for the exact strings. ⚑ *A proxy metric that moves in the right direction for the wrong reason is worse than no metric: it produces the reassuring answer.*
+
+### ⏳ What §8 owes the build
+
+1. **A declared MINIMUM block margin** the engine enforces, rather than trusting the dialog. Without it the footer is one dropdown from gone.
+2. **A stated behaviour on "None"** — degrade loudly, not silently. An empty band with no explanation is the failure this repo keeps writing down.
+3. **A clamped inline range, ceiling 1.361in**, if a binder gutter becomes a control. 🚫 Never a free number.
+4. **Pamphlet handled as a page SHAPE with list mode declared as intended**, not as a margin value that happens to be small.
+
+---
+
 ## ⏳ Rulings needed
 
 1. **🔴 Does the widget ship at all, or is Feature A enough?** ✅ **Recommend A first, alone, and live with it.** A is small, testable, and the thing he actually needs for *"defaults and codable options per page."* B is a new state category whose most valuable control (the type dial) is also available as a page default. **Ship A, print a few sheets, and see whether B is still wanted.**
-2. **Which controls does the safe column contain?** §1's table is the recommendation. Margins, callout density and ink are refused as READER controls; §4 refuses `qr:` as one too.
+2. **Which controls does the safe column contain?** §1's table is the recommendation, **now amended by §8**: inline margins move from refused to clamped-with-a-ceiling, because §8 supplies the use case §1 lacked. Callout density and ink stay refused; §4 refuses `qr:` as a reader control too.
 3. **🔴 Is a printed sheet allowed to differ between two readers of the same page?** This is the question underneath the whole build and it has not been asked. `instances/uritp-safety/site.yml` carries Michael's own ruling that printed header/footer CONTENT must not differ per site — a reader-facing menu makes it differ per PERSON. **Recommend: the type dial yes, anything carrying content or provenance no.**
-4. **Where does Feature A's `print:` page block get validated?** `objects/` owns page vocabulary and `docrender/instance.py` is **23,047 B and already past the ceiling**, with BUILD 5's `print:` block queued behind it. **Recommend a new small module rather than either.**
+4. **Where does Feature A's `print:` page block get validated?** `objects/` owns page vocabulary and `docrender/instance.py` is **23,047 B and already past the ceiling**, with BUILD 5's `print:` block queued behind it. **Recommend a new small module rather than either.** ✅ **AND 08-30 PROVED THAT PATH IS OPEN:** `docrender/runfoot.py` shipped as a plain helper imported by an already-registered hook, which needs **no `mkdocs.yml` edit at all** — the blocker §7 records was on the assumed SHAPE, not on the outcome.
 5. **Does `--dr-print-base` get a floor?** §7 of print-type.css defends ~10pt for photocopy and shop-floor legibility, and Hawthorne owns that floor. **Recommend a clamped range rather than a free number, with the clamp stated in the report.**
 
 ---
