@@ -12,14 +12,14 @@
  * (`hide: footer` in frontmatter, Michael's call), and the only navigation on a
  * page must look like navigation.
  *
- * ⚠️ THREE THINGS NOW LIVE HERE AND THAT IS A COMPROMISE, NAMED RATHER THAN
- * HIDDEN (2026-08-30). `.dr-view` belongs in its own sheet on every argument
- * this repo normally makes -- a view embed is not navigation and is not a form.
- * It is here because a new sheet must be REGISTERED in `docrender/assets.py`,
- * which is 32,684 B: past the read ceiling AND past the write cap, so it cannot
- * be safely rewritten. 🔴 THE COST IS RECORDED SO IT CAN BE PAID LATER: when
- * `assets.py` is split, `.dr-view` moves to `embed.css` and this note goes with
- * it. A compromise nobody wrote down becomes the convention.
+ * 🔴 THIS SHEET IS OVER BUDGET AND THE VIEW SECTION IS A LODGER (2026-08-30).
+ * `.dr-view` belongs in its own `embed.css` -- it is neither navigation nor a
+ * form -- but a new sheet must be registered in `docrender/assets.py`, which is
+ * 32,684 B: past the read ceiling AND the write cap, so it cannot be rewritten
+ * safely. This file was ~21.6KB before the lodger arrived, so it is now at the
+ * ~22KB ceiling with nothing left. ⚠️ NEXT EDIT TO EITHER CONCERN SPLITS THIS
+ * FILE; do not add a fourth thing. Recorded rather than hidden, because a
+ * compromise nobody writes down becomes the convention.
  *
  * =========================================================================
  * 🔴 EVERY ANCHOR RULE IS SCOPED UNDER `.md-typeset`, AND THAT IS A BUG FIX
@@ -456,6 +456,41 @@
   color: var(--md-default-fg-color--light);
 }
 
+/* -------------------------------------------------------------------- view */
+
+/* 🔴 NO `height` HERE ON PURPOSE. ClickUp's embed code for a shared VIEW ships a
+ * literal `height="700px"` and `views.py` mirrors it into `min-height`, so a CSS
+ * height would out-rank the attribute and make the frontmatter `height:` key a
+ * lie. A key that appears to work is worse than one that is absent. */
+.dr-view {
+  margin: 1.5rem 0 0;
+}
+
+.dr-view iframe {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 0.25rem;
+}
+
+/* 🔴 THE CAPTION IS NOT DECORATION. The frame carries ClickUp's own *Sign up
+ * free* / *Login* chrome, unremovable from outside a cross-origin iframe, and
+ * unexplained it reads as an advert in a policy page. This line names it as live
+ * third-party content, which turns clutter into provenance. Above the fallback:
+ * provenance first, then the escape hatch. */
+.dr-view__caption {
+  margin: 0.5rem 0 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  color: var(--md-default-fg-color--light);
+}
+
+.dr-view__fallback {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--md-default-fg-color--light);
+}
+
 /* ------------------------------------------------------------------- print */
 
 @media print {
@@ -544,80 +579,13 @@
     border: 0;
     padding: 0;
   }
-}
 
-/* =========================================================================
- * ⭐ THE VIEW EMBED -- A LIVE CLICKUP VIEW, AND THE CAPTION IS LOAD-BEARING
- * =========================================================================
- * `docrender/views.py` emits `.dr-view`. See the ⚠️ note in the file header for
- * why it is in THIS sheet rather than its own: registering a new stylesheet
- * means editing `assets.py`, which is past the write cap.
- *
- * 🔴 THE FRAME NEEDS NO SIZING HELP AND THAT IS THE DIFFERENCE FROM `.dr-form`.
- * ClickUp's embed code for a shared VIEW ships a literal `height="700px"` with
- * `clickup-embed` alone -- no `clickup-dynamic-height`, no CDN script. So the
- * height arrives on the attribute and `views.py` mirrors it into `min-height`;
- * there is nothing here that has to rescue a collapsed frame, which is the whole
- * job of the form's 40rem floor.
- *
- * ⚠️ DELIBERATELY NO `height` DECLARATION BELOW. A CSS height would out-rank the
- * attribute and silently make the frontmatter `height:` key a lie -- and a key
- * that appears to work is worse than one that is absent.
- * ---------------------------------------------------------------------- */
-.dr-view {
-  margin: 1.5rem 0 0;
-}
-
-.dr-view iframe {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  border-radius: 0.25rem;
-}
-
-/* 🔴 THE CAPTION IS NOT DECORATION. An embedded ClickUp view renders ClickUp's own
- * chrome inside a cross-origin iframe -- *Sign up free*, *Login*, and an *Embed
- * ClickUp* logo -- and none of it can be removed from out here (both are open,
- * unresolved requests on ClickUp's own board). Unexplained, that reads as an
- * advertisement dropped into the middle of a policy page.
- *
- * ✅ So one small line does two jobs: it names the frame as live third-party
- * content, which turns the chrome from clutter into provenance, and it tells a
- * reader the table updates without the page being republished. ON by default in
- * `views.py`; `caption: false` opts out.
- *
- * It sits ABOVE the fallback link on purpose -- provenance first, then the
- * escape hatch, which is the order a confused reader needs them in. */
-.dr-view__caption {
-  margin: 0.5rem 0 0;
-  font-size: 0.7rem;
-  letter-spacing: 0.02em;
-  color: var(--md-default-fg-color--light);
-}
-
-/* Same rule and same reason as `.dr-form__fallback`: ALWAYS rendered, never a
- * print-only afterthought, because it is also the answer to "the table did not
- * load." */
-.dr-view__fallback {
-  margin: 0.35rem 0 0;
-  font-size: 0.75rem;
-  color: var(--md-default-fg-color--light);
-}
-
-@media print {
-  /* 🔴 AND THIS IS A REAL LOSS, NOT A TIDY DEGRADATION. For a form, dropping the
-   * iframe costs nothing: the reader was going to click something anyway, so a
-   * printed link is a full substitute. For a VIEW the frame IS the content, so
-   * paper gets a URL where a table belongs.
-   *
-   * 🚫 It is still the right call, and the alternative was considered and
-   * refused: rendering a build-time copy of the same table for print would put
-   * two sources behind one element, and they would disagree the first time
-   * somebody changed a filter in ClickUp. A visible gap with a live link beats a
-   * confident table that is quietly out of date.
-   *
-   * ✅ The caption survives on paper deliberately -- "live from ClickUp" is the
-   * sentence that explains why there is a link here instead of rows. */
+  /* 🔴 A REAL LOSS, NOT A TIDY DEGRADATION. Dropping a FORM's iframe costs
+   * nothing -- the reader was going to click something anyway. For a VIEW the
+   * frame IS the content, so paper gets a URL where a table belongs. 🚫 Still the
+   * right call: a build-time copy for print would put two sources behind one
+   * element and they would disagree the first time a filter changed. The caption
+   * survives deliberately -- it explains why there is a link and not rows. */
   .dr-view iframe {
     display: none;
   }
