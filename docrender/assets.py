@@ -144,6 +144,35 @@ _QR_ASSETS = ("qr.css",)
 #: arbitrary.
 _ALIGN_ASSETS = ("align.css",)
 
+#: THE ROLE GLOSS (BUILD 9, 2026-08-30). The hover box on a marker LINK and the
+#: parenthesis it becomes on paper. See docrender/markerlinks.py, objects/role.yml
+#: and specs/hover-text.md.
+#:
+#: 🔴 ITS OWN GROUP RATHER THAN A `_PRINT_ASSETS` MEMBER, on the `_QR_ASSETS` and
+#: `_ALIGN_ASSETS` precedent: the sheet carries SCREEN and PRINT rules as one
+#: feature, and that group is entirely `@media print` and loads where it does for a
+#: cascade reason. **A group is a claim about WHEN a sheet loads and WHY. Adding a
+#: member that breaks the claim is worse than adding a group.**
+#:
+#: ⭐ AND IT IS ONE FEATURE RATHER THAN TWO, WHICH IS THE POINT OF THE SHEET: the
+#: SAME `::after` is the hover box on screen and the printed parenthesis on paper,
+#: reading a different attribute in each medium. Splitting the two halves across
+#: two sheets would put one element's two states in two files.
+#:
+#: ⚠️ UNCONDITIONAL, FOR THE DATA-TABLE REASON AND NOT THE PRINT ONE (D3). `@role:`
+#: is an inline reference in a page BODY, so the router's frontmatter-scan trick
+#: cannot see it and there is no cheap question to ask. The cost of being wrong is
+#: also low: these are `.dr-gloss` / `[data-role-print]` rules that match nothing
+#: at all on a site with no roles.
+#:
+#: ⭐ POSITION FREE, said out loud so nobody later defends it. The only selector it
+#: shares with any other sheet is `.md-typeset a`, and it sets `position` there
+#: while nothing else does -- so there is no selector-and-property PAIR in either
+#: medium. Its print half needs no group position either: every declaration in it
+#: carries `!important`, because print-flow.css's `display: revert !important` has
+#: already beaten a plain rule twice in this feature family.
+_GLOSS_ASSETS = ("gloss.css",)
+
 
 def hand_written_css() -> tuple[str, ...]:
     """Every HAND-WRITTEN stylesheet this engine ships, in load order.
@@ -157,9 +186,10 @@ def hand_written_css() -> tuple[str, ...]:
     sheets are NOT here -- they have no file on disk and the audit builds them.
 
     🔴 EVERY GROUP IS WALKED. Adding a group and forgetting it here is precisely
-    how that tuple went stale. ⭐ THIS WARNING HAS BEEN OBEYED THREE TIMES --
-    _FLOW_ASSETS (08-19), _QR_ASSETS (08-21), _ALIGN_ASSETS (08-29) each joined
-    this walk in the same commit that created them.
+    how that tuple went stale. ⭐ THIS WARNING HAS BEEN OBEYED FOUR TIMES --
+    _FLOW_ASSETS (08-19), _QR_ASSETS (08-21), _ALIGN_ASSETS (08-29) and
+    _GLOSS_ASSETS (08-30) each joined this walk in the same commit that created
+    them, because whoever added them read this line first.
 
     ⚠️ It guards against a forgotten GROUP. Nothing guards against a forgotten
     FILE, and an unregistered sheet is invisible here whether the omission was
@@ -171,12 +201,16 @@ def hand_written_css() -> tuple[str, ...]:
 
     ⚠️ Expect the print sheets to fill the token audit's metrics section, and
     expect three families of row that look like findings and are not. See D11.
+    🔴 gloss.css adds a fourth: its `min(32ch, 80vw)`, its `em` type sizes and its
+    `rgb(0 0 0 / 22%)` shadow carry no token, because a tooltip's measure is a
+    function of its own text rather than a design vector. The sheet's header says
+    so where somebody would go looking.
     """
     return tuple(
         name
         for name in (
             _DATA_ASSETS + _FEATURE_ASSETS + _PRINT_ASSETS + _FLOW_ASSETS
-            + _QR_ASSETS + _ALIGN_ASSETS
+            + _QR_ASSETS + _ALIGN_ASSETS + _GLOSS_ASSETS
         )
         if name.endswith(".css")
     )
@@ -262,8 +296,8 @@ def _plan(config) -> list[tuple[str, bytes]]:
     ⚠️ THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the only
     thing keeping navtree.js ahead of router.js.
 
-    ⭐ THE FLOW, QR AND ALIGN POSITIONS ARE FREE (D8). Do not infer a rule from
-    where they sit.
+    ⭐ THE FLOW, QR, ALIGN AND GLOSS POSITIONS ARE FREE (D8). Do not infer a rule
+    from where they sit.
 
     ⚠️ `_read` RETURNING None IS WHY A MISSING FILE IS SILENT HERE -- correct for a
     sheet deleted on purpose, and also why an UNREGISTERED sheet was undetectable:
@@ -285,7 +319,7 @@ def _plan(config) -> list[tuple[str, bytes]]:
         if raw is not None:
             plan.append((name, raw))
 
-    for name in _FLOW_ASSETS + _QR_ASSETS + _ALIGN_ASSETS:
+    for name in _FLOW_ASSETS + _QR_ASSETS + _ALIGN_ASSETS + _GLOSS_ASSETS:
         raw = _read(state.ENGINE_ROOT / "assets" / name)
         if raw is not None:
             plan.append((name, raw))
