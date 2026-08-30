@@ -6,6 +6,7 @@
     [the schedule](@data:circuit_schedule) a data table on THIS page
     [ETC](@term:etc)                       a defined term, styled as terminology
     [fkCal](@rel:table-events)             a relationship, styled as schema
+    [the TD](@role:technical-director)     a production role, glossed on hover
     [the front panel](@img:h5-front)       an image anywhere in this site
 
 Moving the file, renaming its folder, or retitling the page cannot break an inbound
@@ -97,6 +98,30 @@ links would describe a site that does not exist, and the broken ones are the rea
 anybody opens the file.
 
 
+THE PAGE MAP CARRIES WHAT OTHER PAGES NEED (extended 2026-08-30, BUILD 9)
+=========================================================================
+
+`on_files` builds `state.PAGES` -- the published map, keyed by page id. It holds
+exactly the facts a DIFFERENT page has to know about this one, which is why `gloss`
+and `print_gloss` are in it as of BUILD 9.
+
+⭐ AND THE ABSENCE OF THAT ROUTE WAS THE WHOLE BUILD. markerlinks resolves an
+`@role:` reference against this map; the frontmatter lives in `state.BY_SRC`, which
+is keyed by `src_uri` and not by page id. So a resolver holding an id had NO path to
+its target's frontmatter at all -- not a slow path, none. Two keys here, at the one
+site where `meta` is already in hand, and the feature exists.
+
+⚠️ SO THE ADMISSION TEST FOR A NEW KEY IS NARROW: does a page OTHER THAN THIS ONE
+need the value? `type` and `status` passed it, `gloss` passes it, and a phone number
+does not -- see objects/role.yml, which refuses exactly that on space.yml's ruling.
+This is not a general-purpose frontmatter cache and must not become one.
+
+🔴 AND READING IT OFF `PAGES` RATHER THAN `BY_SRC` IS LOAD-BEARING. PAGES is built
+AFTER visibility prunes, so a link can never resolve to a page that was not built.
+A consumer reaching into BY_SRC for the same value would reintroduce exactly that
+hole -- a gloss arriving from a page nobody can open.
+
+
 CROSS-SITE, with the honest limit up front. Every site in the family publishes
 /doc-index.json at its root on every build. `@peer:id` resolves against the peer's
 index, fetched at BUILD time and cached to disk in the instance folder. If a sibling
@@ -104,6 +129,12 @@ renames a page, our links stay wrong until we rebuild.
 
 The cache is COMMITTED, not ignored. An unreachable peer then degrades to 'last known
 good, marked stale' instead of taking our build down over somebody else's outage.
+
+⚠️ A PEER'S GLOSS IS NOT AVAILABLE, and that is a real limit rather than an
+oversight: the peer branch resolves against `/doc-index.json`, which docindex.py
+publishes, and that file does not carry frontmatter. So `@oph:some-role` would link
+correctly and carry no hover text. Not fixed here -- it needs a decision about what
+the cross-site index promises, which is a bigger question than one field.
 
 WHAT A BROKEN REFERENCE LOOKS LIKE. A `<span>`: red, struck through, carrying a
 `[broken link]` badge and a tooltip naming what was not found. **It is NOT an anchor**
@@ -171,6 +202,16 @@ def on_files(files, config):
             "title": meta.get("title") or f.name,
             "url": f.url,
             "status": meta.get("status", "public"),
+            # BUILD 9. The hover gloss and its paper override, read by
+            # markerlinks on any page that REFERENCES this one. See the module
+            # docstring: the admission test is whether another page needs it.
+            #
+            # ⚠️ `.get()` WITH NO DEFAULT, SO A MISSING KEY IS None AND AN EMPTY
+            # ONE IS "". Those are different states downstream and collapsing
+            # them here would make one unreachable: absent print_gloss means
+            # "print the gloss", empty means "print nothing". Do not add `or ""`.
+            "gloss": meta.get("gloss"),
+            "print_gloss": meta.get("print_gloss"),
         }
 
     _load_peers()
