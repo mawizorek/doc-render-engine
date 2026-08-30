@@ -1,38 +1,43 @@
 # BUILD 9 · HOVER TEXT AND THE ROLE PAGE
 
-⚠️ **SCOPED, NOT GREENLIT.** Scoped 2026-08-30, **ruled twice the same day** (§0). Indexed from [`next-build-spec.md`](../next-build-spec.md) — 🚩 see [`print-control.md`](print-control.md) §7 on why that row is missing.
+✅ **DECISION-COMPLETE, NOT YET BUILT.** Scoped 2026-08-30, **ruled three times the same day** (§0). **Every ruling is closed.** Indexed from [`next-build-spec.md`](../next-build-spec.md) — 🚩 see [`print-control.md`](print-control.md) §7 on why that row is missing.
 
 <p><br/></p>
 
-📚 **The ARGUMENTS live in [`hover-text-dl.md`](hover-text-dl.md)** — sections A1–A10, the single claimant for all of them. This file holds the decisions and the mechanism. It states conclusions and points; it does not restate reasoning. Decision history: the **doc-render-engine (repo) — Decision Log** subpage in ClickUp.
+📚 **The ARGUMENTS live in [`hover-text-dl.md`](hover-text-dl.md)** — sections A1–A10, the single claimant for all of them. This file holds the decisions and the mechanism. Decision history: the **doc-render-engine (repo) — Decision Log** subpage in ClickUp.
+
+<p><br/></p>
+
+🔴 **TWO BLOCKING DEPENDENCIES, BOTH MECHANICAL, NEITHER A DECISION:** a TSV cell silently drops the gloss today (§15) and a new stylesheet needs a line in a file that is past the write cap (§16). Both have named fixes. **Nothing is waiting on Michael.**
 
 ---
 
-## ✅ §0 — THE RULINGS
+## ✅ §0 — THE RULINGS, ALL CLOSED
 
-**13:0x** — the token is **`.role`**, the form is the **LINK** form, the gloss lives on a new page **TYPE**, it arrives via that page's **frontmatter**, and the page is also a destination worth visiting (*"we'll use that page as a potential actual like 'about this person' for the site anyways"*). 7 to 10, hand-minted. Safety site in scope.
-
-<p><br/></p>
-
-**14:30**, three parts:
-
-> *"for now, no to pasting frontmatter hover field render on the local page anywhere — just for external hovers. also, possible to add an optional second field that is an override for at print so that the default is to print in a defined stylized way the hover text, or to use the override text if its there. BUT THEN on the external satellite page, when using .role, i should be able to say 'never print' for the role hover text at print maybe...."*
+**13:0x** — the token is **`.role`**, the form is the **LINK** form, the gloss lives on a new page **TYPE**, it arrives via that page's **frontmatter**, and the page is also a destination worth visiting. 7 to 10, hand-minted. Safety site in scope.
 
 <p><br/></p>
 
-| # | Ruling | Lands in |
+**14:30** — (1) the gloss **never renders on the role page itself**, external hovers only · (2) an **optional second field** overrides what PRINTS, default is the gloss · (3) **per-instance suppression** at the point of use.
+
+<p><br/></p>
+
+**14:54** — > *"DEFINITELY b, duh … prose only is fine, but tsv tables and other should still count"*
+
+<p><br/></p>
+
+| Ruling | Answer | Lands in |
 |---|---|---|
-| 1 | the gloss **never renders on the role page itself** | §13 |
-| 2 | an **optional second field** overrides what PRINTS; default is the gloss | §9 |
-| 3 | **per-instance suppression** at the point of use | §14 |
+| popup or `title=` | **the styled popup** | §16 |
+| headings | **excluded from v1** | §17 |
+| TSV tables and everything else | **in scope** | §15, §17 |
+| does a role page name its holder | **no field at all** (ruling 2 removed the need) | §12 |
+| own marker class | **no**, a `terminology` row | [dl A7](hover-text-dl.md#a7--why-no-new-marker-class-the-j31-clone-argument-in-full) |
+| a `@person:` prefix | **no** — `@role:`, and the TYPE is the tightening `markerlinks` asked for | §7 |
 
-### ⭐ RULING 2 IS THE ONE THAT CHANGED THE BUILD, AND IT DISSOLVED THE BLOCKER
+### ⭐ THE SECOND HALF OF HIS LAST SENTENCE WAS THE MOST EXPENSIVE FOUR WORDS IN THE BUILD
 
-The opening ask was *"insert the person's name."* **Ruling 2 makes the printed default the GLOSS — the role definition — and a name reaches paper only if he types it into the override on one page, deliberately.**
-
-<p><br/></p>
-
-✅ **So there is no `holder:` field, and §12's PII question drops from STRUCTURAL to OPT-IN PER PAGE.** The previous revision of this spec parked ruling 1 as *"does a role page name its holder"* and called it blocking. **It is answered: no field, because the feature no longer needs one.** ⚑ *A question that was blocking a build stopped being blocking because the mechanism changed underneath it — which is the second time in this feature family that a refusal was answered by an intent rather than argued with, and it is worth checking for before re-raising any parked objection.*
+*"tsv tables and other should still count"* reads like a scope confirmation. **It is a blocking defect report** — see §15. Had the surfaces question been answered as *"prose only, tables later,"* this would have shipped, worked in prose, and been silently dead in every table on the safety site.
 
 ---
 
@@ -52,11 +57,7 @@ optional:
   - print_gloss
 ```
 
-**`extends: _base` inherits `id`, `title`, `status` and `summary`**, so a role page is a real page with a lede, a URL, a revision date and an owner tag.
-
-<p><br/></p>
-
-🚫 **NO `renders:` DIRECTIVE, AND THAT IS RULING 1 EXPRESSED AS AN ABSENCE.** No `spec_table`, no `callout_if_missing`. See §13.
+**`extends: _base` inherits `id`, `title`, `status` and `summary`**, so a role page is a real page with a lede, a URL, a revision date and an owner tag. 🚫 **No `renders:` directive** — that is ruling 1 expressed as an absence (§13).
 
 ### One row in `theme/markers.tsv`
 
@@ -64,7 +65,7 @@ optional:
 role	terminology	Role			role	A defined production role. The page behind it says what the role covers and who to ask.
 ```
 
-🔴 **No new marker class.** A `role` class would be `plain` + `accent-2`, byte-identical to `terminology` in every cell — the J31 clone defect verbatim. Full argument: [dl A7](hover-text-dl.md#a7--why-no-new-marker-class-the-j31-clone-argument-in-full). ⚠️ Its one real cost (the report groups by class, so *"every role"* filters on the marker NAME) is costed there.
+🔴 **No new marker class.** A `role` class would be `plain` + `accent-2`, byte-identical to `terminology` in every cell — the J31 clone defect verbatim. [dl A7](hover-text-dl.md#a7--why-no-new-marker-class-the-j31-clone-argument-in-full).
 
 ### 🔴 The id
 
@@ -72,9 +73,9 @@ role	terminology	Role			role	A defined production role. The page behind it says 
 
 ---
 
-## 🔴 §8 — THE ONE REAL CODE CHANGE: THERE IS NO id → FRONTMATTER PATH TODAY
+## 🔴 §8 — THE CORE CODE CHANGE: THERE IS NO id → FRONTMATTER PATH TODAY
 
-This is the whole build and it is small. `markerlinks._make.resolve` resolves against `state.PAGES`, which `links.on_files` builds:
+`markerlinks._make.resolve` resolves against `state.PAGES`, which `links.on_files` builds:
 
 ```python
 state.PAGES[page_id] = {
@@ -90,46 +91,36 @@ state.PAGES[page_id] = {
 
 <p><br/></p>
 
-✅ **THE FIX IS AT THAT ONE CALL SITE, WHERE `meta` IS ALREADY IN HAND:** add `"gloss"` and `"print_gloss"`. `type` and `status` were added the same way and for the same reason — **a fact the published map needs about a page it already knows.** No second index, no reverse lookup, nothing cached that could go stale. `state.py`'s admission price is paid the way `REFS` pays it: the value is written in the branch that already computed it.
+✅ **THE FIX IS AT THAT ONE CALL SITE, WHERE `meta` IS ALREADY IN HAND:** add `"gloss"` and `"print_gloss"`. `type` and `status` were added the same way and for the same reason — **a fact the published map needs about a page it already knows.** No second index, no reverse lookup, nothing cached that could go stale.
 
 <p><br/></p>
 
-⚠️ **`markerlinks` reads it off `hit`, NEVER off `BY_SRC`.** `PAGES` is built AFTER visibility prunes, which is the property that makes a link unable to resolve to an unbuilt page. Reading frontmatter directly reintroduces exactly that hole.
+⚠️ **`markerlinks` reads it off `hit`, NEVER off `BY_SRC`.** `PAGES` is built AFTER visibility prunes, which is the property that makes a link unable to resolve to an unbuilt page.
 
 <p><br/></p>
 
-⚠️ **AND THE LINK FORM DROPS THE TOOLTIP TODAY — BLOCKING.** `resolve` reads `class` and `shape` off the marker row and nothing else, so `[x]{.role}` has hover text and `[x](@role:y)` does not. **The form Michael ruled is the form with no hover text at all.** ⭐ Fixing it inverts the asymmetry the right way: the link form ends up carrying the RICHER gloss, and the link form is the one that writes an edge into `/doc-refs.json`. Also correct `markerlinks.py`'s docstring, which asserts the opposite in passing (*"colour, label, shape, tooltip — is re-read per build"*: true of the TABLE, false of the OUTPUT).
+⚠️ **The link form drops the tooltip today** — `resolve` reads `class` and `shape` and nothing else. Fixing it inverts the asymmetry the right way, since the link form is the one that writes an edge into `/doc-refs.json`. Also correct `markerlinks.py`'s docstring, which asserts the opposite in passing.
 
 <p><br/></p>
 
-⭐ **THE TYPE CHECK COMES FREE.** `hit["type"]` is already there, so `@role:` landing on a non-role page can be **reported** — the first real answer to `markerlinks`'s open *"`@rel:safety-policy` will happily point at a safety page"* note. 🚩 Report, never refuse: nothing in this family may fail a build.
+⭐ **The type check comes free.** `hit["type"]` is already there, so `@role:` landing on a non-role page can be **reported**. 🚩 Report, never refuse.
 
 ---
 
 ## 🔴 §9 — PRINT INSERTION: THE FIRST ADDITIVE PRINT RULE IN THIS ENGINE
 
-**Every print rule here today SUBTRACTS.** `flow.css` hides the iframe, `print-callout.css` strips the caret, `print-chrome.css` hides the flow strip and the site header, `views.py` hides the summary, the corner stamp dropped its PR number. The governing question has always been *what can a reader not act on with a pen.* **This rule ADDS text to his prose. That is a new category.**
-
-<p><br/></p>
-
-🔴 **AND THE ENGINE DELETED SOMETHING FOR LOOKING LIKE THIS THREE HOURS EARLIER.** PR #202 removed the view-embed caption on sight: *"the caption was the engine putting an editorial sentence in his content, in his voice, unasked."*
-
-<p><br/></p>
-
-✅ **THE TEST THAT LEGALISES THIS ONE, WRITTEN AS A RULE RATHER THAN LEFT A JUDGEMENT:** the caption was **engine prose**; this is **the author's own data**, typed by him, on a page he owns, reached through a reference he wrote. ⚑ **The engine may place a string on paper that it did not compose. It may never compose one.** That is the entire difference, and it generalises past both.
+**Every print rule here today SUBTRACTS.** ⚑ **The engine may place a string on paper that it did not compose. It may never compose one.** That is the whole difference between this and the caption PR #202 deleted, and it generalises past both. [dl A6](hover-text-dl.md#a6--the-struck-paper-section-and-the-test-that-still-governs).
 
 ### The two fields, and the precedence
 
 | Field | Screen (hover) | Paper |
 |---|---|---|
 | **`gloss`** (required) | ✅ the hover text | ✅ printed, **unless overridden** |
-| **`print_gloss`** (optional) | — never rendered on screen | ✅ **wins when present** |
+| **`print_gloss`** (optional) | — never on screen | ✅ **wins when present** |
 
-⭐ **ABSENT IS A REAL STATE AND MUST STAY DISTINGUISHABLE FROM EMPTY.** `print_gloss:` absent means *print the gloss*; `print_gloss: ""` means *print nothing*. 🔴 This is the distinction PR #201 had to retrofit onto `collapsed:` hours ago, where `false` and an omitted key produced identical output and a whole state was unreachable. **Build it in rather than discovering it: test `is None`, never falsiness.**
+⭐ **ABSENT IS A REAL STATE AND MUST STAY DISTINGUISHABLE FROM EMPTY.** Absent means *print the gloss*; `print_gloss: ""` means *print nothing*. 🔴 The distinction PR #201 had to retrofit onto `collapsed:`, where `false` and an omitted key produced identical output and a whole state was unreachable. **Test `is None`, never falsiness.**
 
 ### Mechanism
-
-`markerlinks` emits the resolved string as a data attribute; a print-only rule reveals it:
 
 ```css
 @media print {
@@ -139,147 +130,221 @@ state.PAGES[page_id] = {
 }
 ```
 
-⭐ **ONE ATTRIBUTE, RESOLVED IN PYTHON.** `markerlinks` picks `print_gloss` if present else `gloss` and writes the winner into `data-role-print`. **The CSS never sees two candidates**, so precedence cannot be expressed twice — the shape that killed three manifests. ✅ `attr()` inside `content` is the one universally supported use of `attr()`, and it keeps the string **in the HTML**: greppable, auditable, impossible for a stylesheet to have invented.
+⭐ **ONE ATTRIBUTE, RESOLVED IN PYTHON.** `markerlinks` picks `print_gloss` if present else `gloss` and writes the winner. **The CSS never sees two candidates**, so precedence cannot be expressed twice. ✅ `attr()` in `content` is the one universally supported use of `attr()`, and it keeps the string in the HTML: greppable, auditable, impossible for a stylesheet to have invented.
 
 <p><br/></p>
 
-🔴 **ITS ONE HONEST COST: `data-role-print` IS IN THE DOM ON EVERY PAGE ON EVERY BUILD, ON SCREEN.** *"Print-only" is a VISUAL claim and never a privacy one.* View-source shows it; a scraper gets it. This is why §12 still exists even though ruling 2 defanged it.
+🔴 **ITS ONE HONEST COST: the attribute is in the DOM on every page on every build, on screen.** *"Print-only" is a VISUAL claim and never a privacy one.* §12.
 
 <p><br/></p>
 
-⚠️ Two mechanical traps, named rather than discovered. **`print-flow.css` uses `display: revert !important` and has already beaten a plain declaration twice in this feature family** — so every declaration here carries `!important` and is verified in **Chrome** print preview, never WeasyPrint (which discards `revert`). And a `::after` on an inline run **can break across a line**, so the parenthesis wants the `white-space` treatment `.dr-mark` already carries.
+⚠️ **`print-flow.css` uses `display: revert !important` and has already beaten a plain declaration twice in this feature family**, so every declaration here carries `!important` and is verified in **Chrome** print preview, never WeasyPrint (which discards `revert`). A `::after` on an inline run can break across a line, so the parenthesis wants the `white-space` treatment `.dr-mark` already carries.
 
 ---
 
-## ⭐ §10 — THE FRONTMATTER TEST, AND RULING 1 MAKES IT THE PUREST PASS AVAILABLE
+## ⭐ §10 — THE FRONTMATTER TEST, AND RULING 1 MAKES IT AN EXCLUSIVE PASS
 
-`space.yml`'s standing test, which killed six room fields and four venue fields on 2026-08-03: **"whether a value is needed AWAY from the page it appears on."** Full quotes: [dl A10](hover-text-dl.md#a10--the-frontmatter-test-quoted-in-full-because-it-decides-every-future-field).
+`space.yml`'s standing test, which killed six room fields and four venue fields: **"whether a value is needed AWAY from the page it appears on."** [dl A10](hover-text-dl.md#a10--the-frontmatter-test-quoted-in-full-because-it-decides-every-future-field).
 
 <p><br/></p>
 
 | Field | Read away from its own page? | Verdict |
 |---|---|---|
-| **`gloss`** | ✅ on every referencing page, as the hover **— and NOWHERE ELSE** | **earns frontmatter** |
+| **`gloss`** | ✅ on every referencing page **— and NOWHERE ELSE** | **earns frontmatter** |
 | **`print_gloss`** | ✅ on every referencing page's paper | **earns it** |
 | a phone number, an office, a term of appointment | ❌ only on the role page itself | **body prose** |
 
-⭐ **RULING 1 TURNS A PASS INTO AN EXCLUSIVE PASS.** Before it, `gloss` was read away from its page **and** on it. Now it is read **only** away from it. **The test is not merely satisfied, it is satisfied exclusively** — the strongest form of the argument available, and 🚫 the reason `phone:` will never be legal here.
+⭐ **RULING 1 TURNS A PASS INTO AN EXCLUSIVE PASS**, which is the strongest form of the argument available and 🚫 the reason `phone:` will never be legal here.
 
 ---
 
 ## 🔴 §11 — `gloss` IN `requires`, AND `print_gloss`'s CONSUMER SHIPS WITH IT
 
-`objects._resolve` merges `optional` and **nothing ever reads it**. Three fields have already been found declared-and-unread: `revised:`, `related:` (found because Michael asked whether it rendered) and `data:` in the mirror direction. [dl A9](hover-text-dl.md#a9--the-optional-trap-and-the-three-fields-it-has-already-eaten).
+`objects._resolve` merges `optional` and **nothing ever reads it**. Three fields have already been found declared-and-unread. [dl A9](hover-text-dl.md#a9--the-optional-trap-and-the-three-fields-it-has-already-eaten).
 
 <p><br/></p>
 
-✅ **`gloss` goes in `requires:`**, which is genuinely checked and names the file and the field. **`print_gloss` is legitimately optional** — absence is a real state (§9) — **so its consumer must ship in the same PR as its declaration.** 🔴 Declaring it ahead of the print rule makes it the documented fourth instance, added by the session that read the warning.
+✅ **`gloss` goes in `requires:`.** **`print_gloss` is legitimately optional**, so its consumer must ship in the same PR as its declaration — or it is the documented fourth instance, added by the session that read the warning.
 
 ---
 
 ## ⭐ §13 — THE GLOSS NEVER RENDERS ON ITS OWN PAGE (RULING 1)
 
-> *"no to pasting frontmatter hover field render on the local page anywhere — just for external hovers."*
-
-✅ **Expressed as an absence: `role.yml` declares no `renders:` directive at all.** `objects.on_page_markdown` only draws what a type declares, so a type declaring nothing draws nothing. **Nothing to suppress, no flag, no default to get wrong.** 🚩 And it must be written into `role.yml` as a RULING with the reason, or the next session adds a `spec_table` for tidiness and thinks it is filling a gap.
+✅ **Expressed as an absence: `role.yml` declares no `renders:` directive.** `objects.on_page_markdown` only draws what a type declares. **Nothing to suppress, no flag, no default to get wrong.** 🚩 Write it into `role.yml` as a RULING with the reason, or the next session adds a `spec_table` for tidiness and thinks it is filling a gap.
 
 <p><br/></p>
 
-⭐ **THE REASON IT IS RIGHT, WHICH IS SHARPER THAN THE INSTRUCTION.** `_base` already requires `summary:`, the lede — *"what this is and who needs it"*, rendered under the H1. **A gloss rendered on the role page would be a SECOND sentence answering the SAME question, six lines apart, from two fields nothing reconciles.** That is the two-claimants defect at the smallest possible scale, and 🔴 it is the one the `danger` callout, `roster.json` and `contrast.tsv` all died of.
+⭐ **THE REASON IS SHARPER THAN THE INSTRUCTION.** `_base` already requires `summary:`, the lede. **A gloss rendered on the role page would be a SECOND sentence answering the SAME question, six lines apart, from two fields nothing reconciles.** The two-claimants defect at the smallest possible scale.
 
 <p><br/></p>
 
-⭐ **So the two fields have two AUDIENCES and that is the whole design:** `summary` is written for somebody **on** the page; `gloss` is written for somebody **who never arrives**, reading a sentence on a different page about keys. *Two strings about one subject are safe exactly when they are answering different questions, and unsafe the moment they answer the same one.* ⚑ Which is why the on-page render was the right thing to refuse and the hover was the right thing to keep.
+⭐ **The two fields have two AUDIENCES and that is the design:** `summary` is for somebody **on** the page; `gloss` is for somebody **who never arrives**. *Two strings about one subject are safe exactly when they answer different questions, and unsafe the moment they answer the same one.*
 
 ---
 
 ## 🔴 §14 — PER-INSTANCE `never print` (RULING 3), AND THE SYNTAX DOES NOT EXIST YET
 
-> *"on the external satellite page, when using .role, i should be able to say 'never print' for the role hover text at print maybe...."*
-
-### ✅ First: this does NOT reopen the per-instance refusal, and the distinction is load-bearing
-
-[dl A3](hover-text-dl.md#a3--the-three-gloss-scopes-and-why-per-instance-content-is-refused) refuses a per-instance **gloss**, because a per-instance string is a second COPY of a fact and the day the role changes every page is wrong.
+✅ **This does NOT reopen the per-instance refusal.** [dl A3](hover-text-dl.md#a3--the-three-gloss-scopes-and-why-per-instance-content-is-refused) refuses a per-instance **gloss** because a per-instance string is a second COPY. ⚑ **A `never print` flag carries no copy of the fact, so it has nothing to drift FROM. A second claimant is a second COPY; a switch is not a claimant.** Four existing precedents: `indexed: false`, `contents: false`, `reload: false`, `print=true`.
 
 <p><br/></p>
 
-⚑ **A `never print` flag carries no copy of the fact, so it has nothing to drift FROM. A second claimant is a second COPY; a switch is not a claimant.** Per-instance **content** stays refused; per-instance **visibility** is legitimate and always was — `indexed: false`, `contents: false`, `reload: false` and `print=true` are four existing per-instance visibility switches in this engine, none of which duplicate anything.
+🔴 **BLOCKING: there is no legal place for an option on an inline link.** `links._LINK` stops at the closing paren, and `markerlinks.resolve` already returns a brace of its own — so `[x](@role:y){.no-print}` yields **two adjacent attr_list blocks and the author's option is the one that loses**, silently, **with no report line because nothing matched to report on.** Same shape as the `align=center` failure earlier today.
 
 <p><br/></p>
-🔴 **And there is a REASON to want it that argues for building it rather than merely permitting it:** a page that says *"go get your keys from the Theatre Administrator"* three times prints three identical parentheses. **The gloss is worth printing ONCE per sheet**, and only the author knows which mention is the one that matters.
-
-### 🔴 BLOCKING: there is no legal place to put an option on an inline link
-
-Read off the regexes, not assumed. `links._LINK` is:
-
-```python
-r"\[(?P<label>[^\]]*)\]\(@(?P<token>[A-Za-z0-9_.:-]+)(?P<anchor>#[A-Za-z0-9_-]+)?\)"
-```
-
-**It stops at the closing paren.** And `markerlinks.resolve` already returns a brace of its own:
-
-```python
-return "[" + label + "](" + target + anchor + "){ ." + " .".join(css) + " }"
-```
-
-🔴 **So `[x](@role:y){.no-print}` produces `[x](url){ .dr-mark--link … }{.no-print}` — two adjacent attr_list blocks.** attr_list consumes one. **The author's option is the one that loses**, and this is the same shape as the `align=center` failure three hours ago: an option written in good faith, silently doing nothing, **with no report line because nothing matched to report on.**
-
-### Three mechanisms, costed
 
 | | How | Cost |
 |---|---|---|
-| **A** widen `_LINK` to capture a trailing brace and merge it | ✅ general: any marker link could then take any class, a real gap today | 🔴 **touches every `@`-link on every site.** All FIVE branches of `replace()` must re-emit the captured brace or they silently eat author classes |
-| **B** a second `markers.tsv` row with its own prefix (`@role-np:`) | ✅ **zero code, zero risk, data-only, reversible.** Same page, same gloss, same class | ⚠️ two prefixes for one idea, brushing `markers.tsv`'s own two-names warning |
-| **C** a `print: false` on the ROLE page | ✅ cheapest of all | 🚫 **answers a different question** — per-entity, not per-instance. Does not give him what he asked for |
+| **A** widen `_LINK` to capture and merge a trailing brace | ✅ general: any marker link could take any class | 🔴 **touches every `@`-link on every site.** All five branches of `replace()` must re-emit it or they silently eat author classes |
+| **B** a second `markers.tsv` row with its own prefix (`@role-np:`) | ✅ **zero code, zero risk, data-only, reversible** | ⚠️ two prefixes for one idea |
+| **C** `print: false` on the ROLE page | ✅ cheapest | 🚫 **answers a different question** — per-entity, not per-instance |
 
-✅ **RECOMMEND B FOR v1** and 🚫 **refuse A as part of this build.** A is worth doing on its own merits and must not be smuggled in behind one boolean: *a five-branch change to the most-used regex in the engine, shipped for a flag, is how a feature takes down a site it had nothing to do with.*
-
-<p><br/></p>
-
-⚠️ **TWO THINGS I CANNOT VERIFY FROM HERE, STATED RATHER THAN REASONED PAST.** Whether attr_list eats one brace or both is **Python-Markdown's** behaviour, and it is **not installed and there is no network** — the same wall that stopped the markerlinks tooltip fix shipping on PR #197. And **hook 03b's `_MARK` pattern is unread**; `markerlinks`'s docstring says it *"matches a single-class attr_list block"* and would hand a miss back untouched, but a two-brace output is exactly the input nobody has tested it against. 🔴 **Two "tidy" mechanisms already failed a render test in this repo this week** (`var()` in `background-image`, `aspect-ratio`), both caught only by rasterising. **This wants one `mkdocs serve` before a line is written.** Option B needs neither check, which is a third argument for it.
+✅ **RECOMMEND B FOR v1**, 🚫 **refuse A as part of this build**: *a five-branch change to the most-used regex in the engine, shipped for a flag, is how a feature takes down a site it had nothing to do with.* ⭐ **And §15 raises B's value: option B needs no attribute at all in a cell**, so it is the only one of the three that works in a table without §15's fix.
 
 ---
 
-## 🚩 §12 — PII: DOWNGRADED FROM BLOCKING TO OPT-IN, NOT RESOLVED
+## 🔴 §15 — A TSV CELL SILENTLY DROPS THE GLOSS. THIS IS THE BUILD'S REAL BLOCKER.
 
-🔴 `mawizorek/uritp-docs` is **PRIVATE**; the safety site publishes **PUBLICLY**. Visibility is per-repo and **never carried between them** — they are the two most-confused repos in the fleet and their visibility is opposite.
+> *"tsv tables and other should still count"*
+
+**They do not, and the reason is four lines of `cells.py`.** A cell is rendered at stage **01b** by `cells.render`, which delegates to `links` and `markers` and then finishes the inline markdown itself. Its link handler keeps only CLASSES:
+
+```python
+_CLASS = re.compile(r"\.([A-Za-z][\w-]*)")
+
+def _classes(attrs: str) -> str:
+    """`{ .dr-term .dr-mark--cls-terminology }` -> a class attribute."""
+    found = _CLASS.findall(attrs or "")
+    if not found:
+        return ""
+    return ' class="' + html.escape(" ".join(found), quote=True) + '"'
+```
+
+🔴 **SO EVERY NON-CLASS ATTRIBUTE IS DROPPED INSIDE A CELL.** `data-role-print` (§9) and the popup's own text (§16) both vanish. **The link still renders, still resolves, still lands in the build report** — only the gloss disappears, and only in tables. ⚠️ **On the safety site the tables are the surface most likely to name a role**, and a table full of correct-looking links with no hover is indistinguishable from a feature nobody enabled.
 
 <p><br/></p>
 
-✅ **Ruling 2 removed the structural version of this problem.** There is no `holder:` field, and the printed default is the role definition. **A human's name enters the repo only when Michael types it into `print_gloss` on one page** — a deliberate act on a single file, not a schema that invites one.
+⚑ **AND THE SHAPE IS THIS REPO'S OLDEST ONE, ONE LAYER FURTHER OUT THAN USUAL: a helper NAMED for the one attribute it was written to carry, standing in a position where any attribute now has to pass.** `_classes` is not wrong and was never wrong — **it is NARROWER THAN ITS POSITION**, and its docstring and its name both describe the narrow job so convincingly that nothing invites you to check. Same family as the eyebrow welded to a TYPE, `:first-child` assuming an identifier, and `tr:not(:has(td.dr-detail))` against an emitter that always emits. ⭐ *The tell, available in advance and cheap: when a NEW kind of value starts flowing through an old pipe, read the pipe rather than the value.*
 
 <p><br/></p>
 
-⚠️ **What remains, and it is real:** the moment he does that, **the name is in the DOM of every page referencing that role** (§9), on a public site, in search, in `/doc-index.json`. And **the assignment is a ClickUp fact** — URITP PEOPLE owns who holds a role, with a term attached — so a name in `print_gloss` is a snapshot `dead_links` cannot see rot.
+✅ **THE FIX, IN `cells.py` (9,660 B, room):** an **allowlisted** attribute pass-through beside `_classes` — `data-role-print` and the gloss attribute, named explicitly.
 
 <p><br/></p>
 
-🚩 **Mitigation available and free:** `revised:` is already inherited from `_base` and already renders as the last line of the page. **A stale name with a visible date is a different object from a stale name with none.** Recommend it as a convention on role pages, not a required field — requiring it would put a second gate on the type for a problem only one optional field can create.
+🚫 **REFUSED: a wildcard pass-through of every attribute.** `cells.py`'s own docstring states the posture it would break: *"RAW HTML IN A CELL IS TRUSTED … This module escapes the literal text it finds between constructs; it does not sanitise."* Trusting **typed HTML tags** is the bargain the content tree already makes; **silently forwarding arbitrary key-value pairs out of a TSV** is a different one, and the TSVs on a public site are the least-reviewed content in the tree. **Allowlist, escaped with `quote=True`, exactly as `_classes` already does.**
+
+<p><br/></p>
+
+✅ **Sorting is unaffected and verified: `plain()` strips `{…}` blocks entirely and keeps a link's LABEL**, so a glossed role in a cell still sorts as its own text and `number()` still refuses it as non-numeric. **The one constraint Michael called non-negotiable** (*"we absolutely cannot lose the number functionality"*) **is untouched by this build.**
 
 ---
 
-## ⏳ Rulings left — down from four to two
+## ✅ §16 — THE POPUP (RULING: "DEFINITELY B"), AND WHERE IT MAY AND MAY NOT LAND
 
-1. 🔴 **Popup or `title=`?** ✅ **Recommend the popup, and retire `title=` from `markers.py` in the same pass**, ending the three-verdict contradiction ([dl A2](hover-text-dl.md#a2--the-title-contradiction-one-engine-one-attribute-three-verdicts)). ⚠️ Cost: a real rewrite of the span renderer's output, and `markers.py` is **21,561 B** against a 22,528 ceiling with a history of taking every site down. **Measure at the moment you act; the rationale goes in a sidecar, never in the module.**
-2. **Headings?** He asked for *"prose or header."* ⚠️ A heading is also a nav label, a TOC entry and an anchor target: four surfaces, one string. ✅ **Recommend prose and table cells in v1**, headings named as deliberately excluded rather than forgotten.
+The mechanism is already built and proven in `buildstamp.py`: hidden with **`opacity`**, not `display`, plus `pointer-events: none`, absolutely positioned, and a `tabindex="0"` host revealed on `:focus-visible`. **The accessibility argument is quoted in full in [dl A2](hover-text-dl.md#a2--the-title-contradiction-one-engine-one-attribute-three-verdicts)** — `display: none` and `visibility: hidden` drop the text out of the accessibility tree, so a hover-only fact becomes invisible to anybody not hovering.
+
+### 🚫 THE `markers.py` SPAN REWRITE IS OUT OF SCOPE FOR v1, AND THE REASON IS MEASURED
+
+The previous revision recommended retiring `title=` from `markers.py` in the same pass to end the three-verdict contradiction. ⚠️ **Deferring that, on numbers rather than caution:**
+
+- `markers.py` is **21,561 B** against a 22,528 ceiling — **967 B.**
+- A popup is not an attribute swap. It is a **nested-element rewrite** of the span renderer's output, plus escaping, plus the `tabindex` host.
+- 🔴 **That module's history includes taking every site down at config-load time** (2026-08-05, the `_token_sets` ImportError), and it is imported by `blocks.py`, `markerlinks.py` and `cells.py`.
+
+✅ **THE LINK FORM IS NET-NEW CODE IN `markerlinks.py` (13,047 B, room) AND GETS THE POPUP WITH NO CEILING PROBLEM.** That is the form Michael ruled and the only form that can carry an entity gloss (§4).
 
 <p><br/></p>
 
-🪦 **ANSWERED, no longer open:** *does a role page name its holder* (ruling 2 removed the field) · *own marker class or a `terminology` row* (the row — dl A7) · *is there a `@person:` prefix* (no: `@role:`, and the type IS the tightening `markerlinks` asked for).
+🚩 **THE COST, NAMED IN BOTH FILES RATHER THAN LEFT FOR A COLD SESSION:** the span form keeps `title=` and the link form gets a popup, so **one engine will have two hover mechanisms** until the span rewrite ships. ⚑ *That is a KNOWN divergence with a written owner, which is a different object from the unknown divergence [dl A2] describes — where two files disagreed and neither mentioned the other.* Write the pointer in `markers.py`'s docstring and in `markerlinks.py`'s, both directions, in the same PR.
+
+### 🔴 THE CSS HAS NOWHERE LEGAL TO GO YET, AND THIS IS THE SECOND BLOCKER
+
+**Measured this pass, from a HEAD directory listing:**
+
+| Sheet | Now | Verdict |
+|---|---|---|
+| `base.css` | **21,190 B** | 🔴 ~1.3KB headroom; the popup is more than that. ⚠️ **The last revision of this spec said 20,335 B — it moved.** |
+| `flow.css` | **23,163 B** | 🔴 already past the ceiling |
+| `type.css` | 5,937 B | ⚠️ wrong owner — it is the type ramp |
+| **NEW** `assets/gloss.css` | — | ✅ **correct home** |
+
+🔴 **A new sheet needs a tuple line in `assets.py`, which is 32,684 B and PAST THE 30KB WRITE CAP.** This is **the same debt that blocked the reload button this morning**, named for the fourth time today, and it is now blocking a ruled feature rather than an offered one. ✅ **`assets.py` must be split first** — that is not tidiness, it is the dependency.
+
+<p><br/></p>
+
+⚠️ **PRINT PARITY IS PART OF THE POPUP, NOT A FOLLOW-UP.** The popup must be **hidden on paper** — §9 already prints the gloss inline, so a visible popup would print the same fact twice. 🔴 And `print-flow.css`'s `display: revert !important` has beaten a plain `display: none` **twice in this feature family this week**, so the rule carries `!important` and both selector spellings, gated on a popup actually being **emitted**.
+
+---
+
+## ✅ §17 — THE SURFACES: "AND OTHER SHOULD STILL COUNT", ANSWERED STRUCTURALLY
+
+⭐ **The right answer is not a list, because `markerlinks` does not emit HTML — it emits MARKDOWN back into the stream.** So it works **wherever inline markdown works**, and that is a property rather than a feature set. Free, with no per-surface code:
+
+<p><br/></p>
+
+✅ prose · **TSV table cells** (once §15 lands) · markdown table cells · list items · callout bodies · blockquotes · the `summary:` lede · a `related:` entry · inside `**bold**` or `*emphasis*`
+
+<p><br/></p>
+
+**The exclusions, and each is a real mechanism rather than an omission:**
+
+<p><br/></p>
+
+| Surface | Why not |
+|---|---|
+| **code fences and backticks** | 🚫 `util.sub_outside_code` skips them **by design** — a page documenting `[x](@role:y)` has not referenced a role, and reading its example as real would corrupt the reference graph |
+| **headings** | ✅ **his ruling.** A heading is also a nav label, a TOC entry and an anchor target: four surfaces, one string |
+| **figure captions** | ⚠️ `figure.py`'s regex allows only `caption="…"` in the brace, so there is **no authoring path**. Logged 2026-08-29 as a pre-existing gap; **not caused by this build and not fixed by it** |
+
+⚠️ **ONE HONEST NOTE ON TABLES:** `data.css` gives a cell `white-space: nowrap`, and 🔴 a marker note clipping at a cell edge has already been logged twice in this repo (J25 defect 4, J26). **A popup is absolutely positioned so it escapes the cell box — but it can escape a horizontally-scrolling grid too**, and that is the one thing in §16 that cannot be reasoned about from source. Verify in a real table before calling the popup done.
+
+---
+
+## 🚩 §12 — PII: OPT-IN, NOT RESOLVED
+
+🔴 `mawizorek/uritp-docs` is **PRIVATE**; the safety site publishes **PUBLICLY**. Visibility is per-repo and **never carried between them.**
+
+<p><br/></p>
+
+✅ **Ruling 2 removed the structural version of this problem.** No `holder:` field, and the printed default is the role definition. **A human's name enters the repo only when Michael types it into `print_gloss` on one page** — a deliberate act on a single file, not a schema that invites one.
+
+<p><br/></p>
+
+⚠️ **What remains:** the moment he does, the name is in the DOM of every page referencing that role (§9), on a public site, in search, in `/doc-index.json`. And **the assignment is a ClickUp fact** — URITP PEOPLE owns it, with a term attached — so a name in `print_gloss` is a snapshot `dead_links` cannot see rot.
+
+<p><br/></p>
+
+🚩 **Free mitigation:** `revised:` is already inherited and already renders as the last line. **A stale name with a visible date is a different object from a stale name with none.** A convention on role pages, not a required field.
+
+---
+
+## ✅ Build order
+
+1. **Split `assets.py`** (32,684 B, past the write cap). 🔴 Blocks §16 and has now blocked three features. Not tidiness — the dependency.
+2. **`links.py`** — two dict keys (§8). The unlock, and independently harmless.
+3. **`cells.py`** — the allowlisted attribute pass-through (§15). 🔴 **Before any table is authored**, or the first table teaches him the feature is broken.
+4. **`objects/role.yml`** + the `markers.tsv` row (§7), with the §13 ruling written in.
+5. **`markerlinks.py`** — read the gloss off `hit`, resolve the print precedence, emit the popup, fix the docstring, add the divergence pointer (§16).
+6. **NEW `assets/gloss.css`** — popup, focus-visible, print suppression (§16).
+7. **One `mkdocs serve`** — §14's two-brace behaviour, and the popup inside a scrolling table (§17).
+8. **Chrome print preview** — §9's parenthesis and §16's suppression. ⚠️ WeasyPrint cannot verify either.
 
 ---
 
 ## Files and sizes
 
-**Measured from a directory listing at HEAD, 2026-08-30. ⚠️ Every number below will be wrong within days — `flow.css` moved 2,365 B in one morning and a PR shipped "three bytes under" against a file already 957 B over. Read it back at the moment you act.**
+**Measured from HEAD directory listings, 2026-08-30 14:5x. ⚠️ `base.css` and `flow.css` had both MOVED since the previous revision of this table quoted them — which is why it is re-measured every pass rather than carried.**
 
 | File | Now | Change |
 |---|---|---|
-| `docrender/links.py` | 16,596 B | **+2 dict keys** in `on_files`. §8, and it is the whole unlock |
-| `docrender/markerlinks.py` | 13,047 B | reads the gloss off `hit`, resolves the print precedence, emits the attributes, corrects its own docstring. Room |
+| `docrender/links.py` | 16,596 B | **+2 dict keys**. §8 |
+| `docrender/markerlinks.py` | 13,047 B | the gloss, the precedence, the popup, the docstring. Room |
+| `docrender/cells.py` | **9,660 B** | 🔴 the allowlist. §15. Plenty of room |
 | **NEW** `objects/role.yml` | — | ~12 lines incl. the §13 ruling |
 | `theme/markers.tsv` | — | one row (two under §14 option B) |
-| `docrender/markers.py` | **21,561 B** | 🔴 967 B of headroom. **Ruling 1 lands here or nowhere**, and only with a sidecar |
-| `docrender/objects.py` | **22,423 B** | 🔴 **105 B of headroom. Nothing may be added here.** A role-page check belongs in `markerlinks` |
-| `assets/print-*.css` | — | §9's block. 🚩 `print-type.css` had **239 B** headroom on 08-29 and its own note says the next edit must SPLIT it first |
+| **NEW** `assets/gloss.css` | — | 🔴 blocked on the `assets.py` split |
+| `docrender/assets.py` | **32,684 B** | 🔴 **PAST THE WRITE CAP. Split first.** Blocker for §16 |
+| `assets/base.css` | **21,190 B** | 🚫 ~1.3KB. Not the popup's home |
+| `docrender/markers.py` | **21,561 B** | 🚫 967 B. **Span rewrite deferred, §16** |
+| `docrender/objects.py` | **22,423 B** | 🔴 **105 B. Nothing may be added here** |
 | `specs/hover-text-dl.md` | 15,490 B | the arguments. Single claimant |
