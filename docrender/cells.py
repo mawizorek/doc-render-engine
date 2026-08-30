@@ -5,11 +5,13 @@ argument lives there; this file states the contract.
 
     Grid height	[18'-0"]{.est}		measured off the old plot
     Console	[QL5](@term:yamaha-ql5)	1	**do not** repatch
+    Keys	[Theatre Administrator](@role:theatre-administrator)		sign out at the desk
 
 Everything a page body can say inline, a cell can say: confidence markers, `@` page
-and peer references, `@term:` and `@data:` references, `**bold**`, `*emphasis*` and
-`code`. What renders in prose renders in a cell, and it renders IDENTICALLY, because
-this module hands the cell to the same two hooks the page body goes through.
+and peer references, `@term:`, `@role:` and `@data:` references, `**bold**`,
+`*emphasis*` and `code`. What renders in prose renders in a cell, and it renders
+IDENTICALLY, because this module hands the cell to the same two hooks the page body
+goes through.
 
 
 WHY THIS EXISTS AT ALL -- IT WAS ALREADY HAPPENING, BADLY
@@ -28,7 +30,7 @@ so any cell containing a quote came out as visible entity gibberish:
 which is precisely the feet-and-inches value markers exist for. And `@` references were
 worse: `03_links` resolved them correctly into markdown, then nothing converted that
 markdown, because the `dr-data` div carries no `markdown="1"` -- so the reader saw literal
-`[ETC](../etc/)` in the cell. ⭐ `dr-spec` DOES carry `markdown="1"`; the engine already
+`[ETC](../etc/)` in the cell. dr-spec DOES carry `markdown="1"`; the engine already
 knew about this trap one module over.
 
 **So the choice was never "add a feature" -- it was between a half-working accident and
@@ -46,7 +48,7 @@ so they are reusable as-is on any fragment. That matters more than tidiness:
   * a marker resolves through the same class table, so a cell and a sentence cannot
     disagree about what `{.est}` looks like;
   * `@term:` and `@data:` resolve through the same reserved-prefix registry;
-  * ⭐ **every marker used in a cell lands in the build report already**, because
+  * every marker used in a cell lands in the build report already, because
     `markers.py` records as it renders. "Which terms still have no page" and "what is
     unconfirmed sitewide" stay answerable without this module knowing they exist.
 
@@ -60,17 +62,43 @@ After the two hooks run, the cell holds real HTML (marker spans), markdown link 
 and literal text. Nothing downstream will convert that markdown, so this module finishes
 the job -- links, code, strong, emphasis -- and escapes every literal run around them.
 
-🚫 NOT BLOCK MARKDOWN. No headings, lists, tables or fences in a cell. A table cell is
+NOT BLOCK MARKDOWN. No headings, lists, tables or fences in a cell. A table cell is
 one line by construction, `white-space: nowrap` is load-bearing in the stylesheet, and a
 `<ul>` inside a `<td>` in a horizontally-scrolling grid is not a thing anybody wants.
 Unsupported block syntax renders as its own literal characters, which is legible and
 wrong in an obvious way rather than silently.
 
-⚠️ RAW HTML IN A CELL IS TRUSTED, exactly as it is in a markdown page body. This module
+RAW HTML IN A CELL IS TRUSTED, exactly as it is in a markdown page body. This module
 escapes the literal text it finds between constructs; it does not sanitise. A cell
 containing `<b>x</b>` renders bold, and a cell containing a stray `<` will eat the rest
 of itself. Same bargain the rest of the content tree makes, stated so nobody discovers it
 from a broken table.
+
+
+AND THAT BARGAIN IS EXACTLY WHY THE ATTRIBUTE PASS-THROUGH IS AN ALLOWLIST
+==========================================================================
+
+Added 2026-08-30 for BUILD 9. `_classes()` read ONLY `.class` tokens out of an
+attr_list block, so every NON-CLASS attribute an upstream hook emitted was silently
+dropped INSIDE A CELL and nowhere else. The role gloss is carried in exactly such an
+attribute, so `[the TD](@role:technical-director)` rendered a correct-looking link
+with no hover text -- in tables, the surface most likely to name a role.
+
+THE SHAPE IS WORTH MORE THAN THE FIX: `_classes` was never wrong, it was NARROWER
+THAN ITS POSITION. It was named for the one kind of value that existed when it was
+written, and it stands where any attribute now has to pass. Its name and its docstring
+both describe the narrow job so convincingly that nothing invites you to check it. Same
+family as the eyebrow welded to a TYPE, `:first-child` assuming an identifier, and
+`tr:not(:has(td.dr-detail))` written against an emitter that always emits.
+The tell, cheap and available in advance: WHEN A NEW KIND OF VALUE STARTS FLOWING
+THROUGH AN OLD PIPE, READ THE PIPE RATHER THAN THE VALUE.
+
+A WILDCARD PASS-THROUGH WAS REFUSED, and the reason is the paragraph above this
+one. Trusting HTML a person TYPED into a cell is the bargain the content tree already
+makes. Forwarding arbitrary key-value pairs out of a TSV -- the least-reviewed content
+in the tree, on sites that publish publicly -- is a different bargain, and this module
+is not the place to make it. `_ATTR_ALLOW` is the whole list, and adding to it should
+feel like a decision.
 
 
 THE NUMBERS SURVIVE, WHICH WAS THE HARD CONSTRAINT
@@ -81,7 +109,12 @@ sorting or summing digits."* So `plain()` strips every construct back to bare te
 that -- never the marked-up cell -- is what `sort:` orders on. `[18'-0"]{.est}` sorts as
 `18'-0"`, and a marked number sorts among unmarked ones.
 
-⚠️ AND THE HONEST LIMIT, because it cannot be fixed here: a spreadsheet cannot do this.
+AND THE ATTRIBUTE PASS-THROUGH DOES NOT TOUCH THAT, verified rather than assumed:
+`plain()` deletes the whole brace block before anything reads it, so a gloss attribute
+is stripped for sorting exactly as a class always was, and `number()` still refuses
+`[the TD](@role:x)` as non-numeric because it keeps only the LABEL.
+
+AND THE HONEST LIMIT, because it cannot be fixed here: a spreadsheet cannot do this.
 Any non-digit in a cell makes it TEXT to Excel and Numbers, so a marked value stops being
 a number to everything that is not this renderer. That is the whole reason a separate
 confidence COLUMN was the better answer (J17) and remains the end state. This ships
@@ -110,7 +143,7 @@ _EM = re.compile(r"(?<![*\w])\*(?P<text>[^*\n]+)\*(?![*\w])")
 #: author. Protected from escaping, not validated.
 _TAG = re.compile(r"</?[A-Za-z][^>]*>")
 
-#: A construct parked while the literal text around it is escaped. \x00 cannot occur in
+#: A construct parked while the literal text around it is escaped. NUL cannot occur in
 #: the source -- a TSV is read as text and split on tabs, so a NUL would already have
 #: broken the read.
 _SLOT = "\x00{}\x00"
@@ -118,13 +151,53 @@ _SLOT_BACK = re.compile(r"\x00(\d+)\x00")
 
 _CLASS = re.compile(r"\.([A-Za-z][\w-]*)")
 
+#: `key="value"` inside an attr_list block. Double quotes only, because that is the
+#: one spelling any hook in this engine emits -- a looser pattern would invite a
+#: second spelling and then have to pick between them.
+_ATTR = re.compile(r'([A-Za-z][\w-]*)="([^"]*)"')
+
+#: THE COMPLETE LIST OF NON-CLASS ATTRIBUTES A CELL MAY CARRY. See the docstring
+#: for why this is an allowlist and not a pass-through. Every entry is emitted by a
+#: hook in this engine, never typed by an author:
+#:
+#:   data-gloss       the role's hover text, from the target page's frontmatter
+#:   data-role-print  what that role prints on paper
+#:
+#: ADDING A NAME HERE IS A DECISION, not a formality. The question to answer first
+#: is whether the value can ever originate in the TSV rather than in a hook -- if it
+#: can, it does not belong in this list.
+_ATTR_ALLOW = ("data-gloss", "data-role-print")
+
 
 def _classes(attrs: str) -> str:
-    """`{ .dr-term .dr-mark--cls-terminology }` -> a class attribute."""
+    """`{ .dr-term .dr-mark--cls-terminology }` -> a class attribute.
+
+    CLASSES ONLY, AND THAT IS NOW A STATED SCOPE RATHER THAN AN ASSUMPTION. This
+    function silently dropped everything else for as long as everything else did not
+    exist. `_allowed_attrs` is the other half; a caller needs both.
+    """
     found = _CLASS.findall(attrs or "")
     if not found:
         return ""
     return ' class="' + html.escape(" ".join(found), quote=True) + '"'
+
+
+def _allowed_attrs(attrs: str) -> str:
+    """The allowlisted key="value" pairs from an attr_list block, re-escaped.
+
+    Escaped with `quote=True` exactly as `_classes` does, so a value carrying a
+    quote cannot close the attribute it is sitting in.
+
+    NOT A VALIDATOR. An unknown key is dropped in silence, which is correct: an
+    attr_list block on a cell link is written by a hook, so an unrecognised key means
+    a hook changed and this list did not, and the visible symptom is the feature not
+    working rather than a broken table.
+    """
+    out = []
+    for key, value in _ATTR.findall(attrs or ""):
+        if key in _ATTR_ALLOW:
+            out.append(" " + key + '="' + html.escape(value, quote=True) + '"')
+    return "".join(out)
 
 
 def _inline(text: str) -> str:
@@ -151,8 +224,9 @@ def _inline(text: str) -> str:
     def link(match):
         label = _inline(match.group("text"))
         url = html.escape(match.group("url"), quote=True)
-        return park('<a href="' + url + '"' + _classes(match.group("attrs")) + ">"
-                    + label + "</a>")
+        attrs = match.group("attrs")
+        return park('<a href="' + url + '"' + _classes(attrs)
+                    + _allowed_attrs(attrs) + ">" + label + "</a>")
 
     text = _LINK.sub(link, text)
     text = _STRONG.sub(
@@ -167,7 +241,7 @@ def _inline(text: str) -> str:
 def render(cell: str, page, config=None, files=None) -> str:
     """One TSV cell as finished HTML.
 
-    ⚠️ Runs at stage 01b, BEFORE links (03) and markers (03b) see the page. That is why
+    Runs at stage 01b, BEFORE links (03) and markers (03b) see the page. That is why
     the output must be finished rather than half-converted: those hooks will scan this
     HTML afterwards, and anything left unresolved gets resolved a second time -- which is
     exactly the double-escape this module was built to end.
@@ -188,6 +262,10 @@ def plain(cell: str) -> str:
     This is what `sort:` compares and what a future `total:` would add up. A marked value
     has to sort as its value or the marking has broken the sheet -- see the module
     docstring on the one constraint that was not negotiable.
+
+    THE BRACE STRIP IS WHAT KEEPS THAT TRUE FOR ATTRIBUTES TOO, and it needed no
+    change for BUILD 9: the whole block goes, so a gloss attribute never reaches a
+    comparison, exactly as a class never did.
     """
     text = str(cell)
     # Marker and attr blocks go entirely; a link or emphasis keeps its LABEL.
