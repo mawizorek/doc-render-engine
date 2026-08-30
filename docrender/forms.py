@@ -93,32 +93,23 @@ is read-only furniture. ⚠️ It orphans the CDN script's listener, so the relo
 frame falls back to `_FORM_MIN_HEIGHT`. Argument: `forms-dl.md`.
 
 =============================================================================
-🔴 `height="100%"` COLLAPSES TO NOTHING WITHOUT THEIR SCRIPT
+🔴 THE OTHER THREE STANDING TRAPS (full versions in `forms-dl.md`)
 =============================================================================
-An iframe with `height="100%"` and no sized parent is ~0px tall, so if that CDN
-asset is slow, blocked or moved the form is not BROKEN, it is INVISIBLE -- a
-blank gap on a compliance page with nothing in the build report, because an
-external script's runtime behaviour cannot be observed at build time.
-`_FORM_MIN_HEIGHT` turns that into a short form instead of a hole.
+🔴 `height="100%"` WITH NO SIZED PARENT IS ~0px TALL, so a slow, blocked or moved
+CDN asset makes the form INVISIBLE rather than broken -- a blank gap with nothing
+in the build report. `_FORM_MIN_HEIGHT` turns that into a short form, not a hole.
+🔴 FORM-ONLY: a shared VIEW's embed code ships a literal height and no script.
+⚠️ The fallback link is ALWAYS rendered -- an iframe prints blank, and on screen
+it answers "the form did not load."
 
-🔴 AND THE WHOLE PROBLEM IS FORM-ONLY. ClickUp's embed code for a shared VIEW
-ships `clickup-embed` alone with a literal `height="700px"`: no dynamic-height
-class, no helper script, nothing to fail. `views.py` states the consequence.
+🔴 A BROKEN SLOT RENDERS A MARKER, NOT NOTHING. `_html` used to return `""` and
+`swap` returns `""` on falsy, so a typo'd directive line VANISHED. It now renders
+the struck-through `docrender-dead` span `qr.py` and `links.py` already used.
 
-⚠️ AND THE FALLBACK LINK IS ALWAYS RENDERED, not only for print: an iframe prints
-as a blank rectangle, and on screen it answers "the form did not load."
-
-=============================================================================
-🔴 A BROKEN SLOT RENDERS A MARKER, NOT NOTHING · 🔴 THE PREFILL PARAM IS THE RECORD
-=============================================================================
-`_html` used to return `""` for an unknown slot and `swap` returns `""` on falsy,
-so a typo'd directive line VANISHED. It now renders the struck-through
-`docrender-dead` span `qr.py` and `links.py` already used.
-
-`?Program_ID=` on the src is what makes a submission attributable to a program. A
-form embedded WITHOUT it collects rows nobody can match -- a compliance failure
-that looks like a working page, so it is reported. ⚠️ UNVERIFIABLE AT BUILD TIME:
-host and scheme are checked, nothing proves the form is active or still exists.
+🔴 `?Program_ID=` IS THE RECORD. A form embedded without it collects rows nobody
+can match to a program -- a compliance failure that looks like a working page, so
+it is reported. ⚠️ Host and scheme are checked; nothing here can prove the form is
+active or still exists.
 """
 
 from __future__ import annotations
