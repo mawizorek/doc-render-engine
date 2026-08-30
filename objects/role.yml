@@ -1,0 +1,137 @@
+# A ROLE. Not a person -- a JOB somebody holds.
+#
+#   Theatre Administrator · Production Manager · Technical Director
+#
+# ===========================================================================
+# MAKING ONE. Copy this, change four values, save it anywhere in the tree.
+# ===========================================================================
+#
+#     ---
+#     id: theatre-administrator
+#     type: role
+#     title: Theatre Administrator
+#     status: public
+#     summary: Who to see about building access, keys and the master calendar.
+#     gloss: Holds the master key set and issues building access.
+#     ---
+#
+#     The Theatre Administrator manages building access, room bookings and the
+#     master calendar. Come to this office for a key, a swipe card, or to book
+#     a space outside production hours.
+#
+# `id` is the only value another page ever types, so pick it once and never
+# change it -- that promise is what makes moving or renaming the file safe.
+#
+# ---------------------------------------------------------------------------
+# REFERENCING IT, which is the whole point of the type:
+#
+#     Go get your keys from the [Theatre Administrator](@role:theatre-administrator).
+#
+# The link text is yours -- write whatever the sentence needs. All of these are
+# the same reference:
+#
+#     ...ask the [Theatre Administrator](@role:theatre-administrator)
+#     ...ask the [administrator](@role:theatre-administrator)
+#     ...the [TA](@role:theatre-administrator) signs those out
+#
+# On SCREEN it renders as a terminology-coloured underlined link, and hovering
+# (or tabbing to it) shows the `gloss` in a small box. On PAPER, where hovering
+# does not exist, the gloss prints inline instead:
+#
+#     Go get your keys from the Theatre Administrator (Holds the master key set
+#     and issues building access).
+#
+# Add `print_gloss:` to change what paper shows. See the block near the bottom.
+#
+# ⚠️ NO `role-` PREFIX ON THE ID. `@role:` already says what it is, so
+# `@role:role-theatre-administrator` says it twice -- and two names for one thing
+# is the defect that retired three manifests in brain-config.
+#
+# ⚠️ WORKS ANYWHERE INLINE MARKDOWN WORKS: prose, TSV table cells, markdown table
+# cells, list items, callout bodies, blockquotes, a `summary:` lede. NOT inside a
+# code fence (deliberately -- a page documenting the syntax has not referenced a
+# role) and NOT in a heading (ruled out of v1: a heading is also a nav label, a
+# TOC entry and an anchor target, which is four surfaces for one string).
+#
+# ---------------------------------------------------------------------------
+# ⭐ `gloss` IS THE ONLY FIELD THIS TYPE ADDS, AND IT IS THE FIRST SUBJECT FIELD
+# TO EARN FRONTMATTER SINCE THE 2026-08-03 PURGE.
+#
+# space.yml deleted six room fields and venue.yml four building fields on one
+# test: *"whether a value is needed AWAY from the page it appears on."* A grid
+# height is read only on the page it sits on, so it was prose wearing a header's
+# clothes.
+#
+# `gloss` passes that test for the one reason those fields never could: its
+# ENTIRE PURPOSE is to appear somewhere else. It is read on every page that
+# references this role and -- per the ruling below -- nowhere else at all.
+#
+# 🚫 SO DO NOT ADD A FACTS-ABOUT-THE-SUBJECT FIELD HERE. No `phone:`, no
+# `office:`, no `email:`, no `term:`. Every one of those is read only on this
+# page, which means space.yml has already refused it. Write it in the BODY.
+#
+# ⚠️ KEEP THE GLOSS TO ONE SENTENCE. It renders in a hover box about 32
+# characters wide and it prints inside parentheses mid-sentence; a paragraph will
+# be technically correct and unreadable in both places.
+#
+# ⚠️ NO BRACES OR LINE BREAKS IN IT. `{` and `}` cannot survive the attr_list
+# block that carries the value, so markerlinks drops the gloss for that reference
+# and says so in the build report. Quotes and apostrophes are fine.
+# ---------------------------------------------------------------------------
+# 🔴 RULING (Michael, 2026-08-30): THE GLOSS NEVER RENDERS ON THIS PAGE.
+#
+#   *"no to pasting frontmatter hover field render on the local page anywhere --
+#   just for external hovers."*
+#
+# That is why there is NO `renders:` block below. objects.on_page_markdown draws
+# only what a type declares, so a type declaring nothing draws nothing: there is
+# no flag to set, nothing to suppress, and no default to get wrong.
+#
+# ⭐ AND THE REASON IS SHARPER THAN THE INSTRUCTION. `_base` already requires
+# `summary:` -- the lede, *"what this is and who needs it"*, rendered under the
+# H1. A gloss drawn on this page would be a SECOND SENTENCE ANSWERING THE SAME
+# QUESTION, six lines apart, from two fields nothing reconciles. That is the
+# two-claimants defect at the smallest possible scale, and it is what killed
+# roster.json, registry.json and app-index.md.
+#
+# So the two fields have two AUDIENCES, and that IS the design:
+#
+#   summary   for somebody standing ON this page
+#   gloss     for somebody who NEVER ARRIVES -- reading a sentence on a different
+#             page that happens to name this role
+#
+# ⚑ Two strings about one subject are safe exactly when they answer different
+# questions, and unsafe the moment they answer the same one.
+#
+# 🚫 DO NOT ADD `spec_table: [gloss]` HERE. It looks like a gap and it is a
+# ruling.
+# ---------------------------------------------------------------------------
+# `print_gloss` -- OPTIONAL, and what PAPER shows instead of the gloss.
+#
+# ⚠️ ABSENT AND EMPTY ARE DIFFERENT STATES AND BOTH ARE REAL:
+#
+#   print_gloss absent      paper prints the `gloss`
+#   print_gloss: ""         paper prints NOTHING for this role
+#   print_gloss: Sara P.    paper prints " (Sara P.)"
+#
+# markerlinks tests `is None`, never falsiness -- `collapsed:` had to be
+# retrofitted for exactly this on 2026-08-30 (PR #201), where `false` and an
+# omitted key produced identical output and one whole state was unreachable.
+#
+# 🔴 IF YOU PUT A HUMAN'S NAME IN HERE, READ THIS FIRST. The string is written
+# into a `data-role-print` attribute on EVERY page that references the role, in
+# the DOM, on screen, in view-source -- "print-only" is a VISUAL claim and never
+# a privacy one. On a PUBLIC site that publishes a named person. And the
+# assignment is a ClickUp fact (URITP PEOPLE owns it, with a term attached), so
+# a name here is a snapshot nothing can see rot. If you do it anyway, set
+# `revised:` -- a stale name with a visible date is a different object from a
+# stale name with none.
+# ---------------------------------------------------------------------------
+
+type: role
+label: Role
+extends: _base
+requires:
+  - gloss
+optional:
+  - print_gloss
