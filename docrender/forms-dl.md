@@ -135,6 +135,129 @@ touched.** Named as debt rather than fixed; it goes with the split.
 
 ---
 
+## 🔴 THE SCROLL WINDOW — THE WRAPPER IS THE BOX, NOT THE FRAME (2026-08-30)
+
+> Michael: *"it does still have to scroll."*
+
+🔴 **A READER CANNOT SCROLL A CAPPED FORM IFRAME, AND THAT IS THE WHOLE ARGUMENT.**
+ClickUp's form app expects the PARENT to size it — the entire job of
+`clickup-dynamic-height` plus their helper script. So putting `max-height` on the
+`<iframe>` does **not** give the inner document a scrollbar; it CLIPS it. The fields
+below the cut become unreachable, and the page looks deliberate while being broken.
+
+✅ **So the frame stays free and `.dr-form__scroll` owns the scrolling:** `max-height`
+plus `overflow: auto` on a wrapper, with the iframe growing to its content inside it.
+`height:` therefore names the **WINDOW**, never the form — a distinction worth keeping
+in the key's documentation, because an author reading `height: 40rem` will assume it
+sizes the form and it does not.
+
+⚠️ **`-webkit-overflow-scrolling: touch` IS LOAD-BEARING, NOT TIDINESS.** A scrollable
+box containing an iframe is the exact shape iOS Safari refuses to scroll without it,
+and these pages are read on an iPad — which is the device the request came from.
+
+⚠️ **A PERCENTAGE HEIGHT AGAINST A `max-height`-ONLY PARENT IS INDEFINITE**, so the
+frame's `height="100%"` resolves to auto and `min-height` governs until the CDN script
+writes a real one. ⭐ Useful consequence: a window SHORTER than `_FORM_MIN_HEIGHT`
+scrolls **even if that script never fires.**
+
+🔴 **AND THE HONEST LIMIT: at the DEFAULT they are equal (both 40rem), so a script
+failure degrades to a clipped 40rem form.** That is the pre-existing failure rather
+than a new one — said plainly, because "the window scrolls" is true of a declared
+shorter window and not true of the default, and a feature described by its best case
+is a feature somebody will trust in its worst one.
+
+---
+
+## 🔴 `align=` — AND THE DOC THAT SAID THE RULE WAS WRITTEN EVERYWHERE (2026-08-30)
+
+> Michael, after a review turned up three dead directives: *"Teach form and view the
+> option parser."*
+
+He had written `!!! form "form" align=center` on the rehearsal report page, copying a
+spelling that works on `!!! qr`. **All three of his form and view directives were dead.**
+
+### 🔴 The failure mode was the worst one available: silence
+
+`_FORM` anchored `"([^"\n]+)"[ \t]*$` — end-of-line immediately after the closing
+quote. A trailing option means the pattern **does not match at all**, so:
+
+- the directive is never replaced, and the raw `!!! form "form" align=center` line
+  stays in the page as literal text;
+- **nothing appears in the build report**, because a regex that does not match has
+  nothing to report on. Every other failure in this module is a `dead_links` line with
+  a named slot; this one had no surface anywhere.
+
+⚑ **A NON-MATCH IS NOT AN ERROR STATE, AND THAT IS WHY IT ESCAPED EVERY GUARD IN THIS
+FILE.** `forms.py` had already been taught, that same day, that a broken slot must
+render a visible marker rather than nothing. That fix lives INSIDE `_html` — which is
+only ever called on a match. **A guard placed after the gate cannot see what the gate
+turned away.**
+
+### 🔴 `align.css` claimed this rule was already stated in both files. It was not.
+
+The sheet's own header read: *"Two vocabularies, one parser, and the seam is written in
+every file."* True of `qr.py` and `table.py`. **`forms.py` and `views.py` had never
+mentioned `align` at all**, because neither could accept an option.
+
+⚑ **A CLAIM THAT A RULE IS "STATED EVERYWHERE" IS THE MOST EXPENSIVE KIND OF
+DOCUMENTATION ERROR, BECAUSE IT STOPS ANYBODY CHECKING.** It reads as a completed audit
+and is actually a description of two files out of four. ⚠️ Same family as this file's
+own entry above — *"the cause was already documented at the other end of the same
+file"* — and as `align.css`'s image correction, where a file that carefully explained
+one instance of a limit was believed about instances nobody had tested. **Three of the
+same shape in two days, all in this feature.**
+
+### ✅ The parser moved to `util.directive_options` rather than being copied
+
+One function, called by both modules, returning `(options, problems)`. 🔴 **It reports
+rather than logs**, because importing `state` into `util.py` would break that file's
+header promise to stay framework-free and independently runnable — so the caller owns
+the bucket and the helper stays pure enough for a linter.
+
+🚩 **`qr.py` STILL HAS ITS OWN COPY and is not converted.** It is 29,915 B, at the
+`create_or_update_file` write cap, so it cannot be rewritten safely — the same reason
+`flow.css` could not take the print rules above. **Recorded as a live second claimant
+rather than left invisible:** when `qr.py` is split, delete its `_OPT`, `_ALIGN_KEY` and
+`_ALIGNS` and pass `legal=("display", "print")`.
+
+### 🔴 What alignment can actually do to an embed, which is less than it sounds
+
+**The iframe is `width: 100%`, so it cannot be moved.** `align.css`'s own rasterised
+measurement is the proof: a sized box moves by MARGINS and by nothing else, and a box
+that already fills the column has zero slack for a margin to consume.
+
+✅ What DOES move is the inline furniture: the disclosure's `<summary>` label, the
+Reload button, and the fallback link — all inline content inside full-width blocks,
+which is exactly what `text-align` is for. One declaration on the wrapper does all
+three.
+
+⚠️ **So `align=center` on an embed is a REAL but PARTIAL effect and is documented that
+way.** 🚫 The alternative — inventing a `width:` on the frame so alignment would have
+something to move — was refused: that is a different feature, and adding it to make
+this one look complete would be the engine deciding a page's layout again, which is the
+exact correction that deleted the caption a day earlier.
+
+### ⚠️ The one sharp edge, named because it will surprise somebody
+
+`text-align` **inherits**. On these embeds the inherited set is precisely the furniture
+above, so it is correct today. If a future embed grows a paragraph of prose that must
+stay flush left, this becomes three scoped selectors instead of one inherited
+declaration — cheap then, premature now.
+
+### ⭐ Paying for the feature in prose, which is this module's own instruction
+
+`forms.py` was **22,489 B against its own 22,528 B ceiling: 39 bytes of headroom.** The
+feature could not land until prose left. 🔴 **The first attempt made it WORSE** — 23,095
+B — because the condensing was explained inside the file being condensed. Corrected in
+the same pass to **20,819 B**, a net 1,670 B smaller *while gaining a feature*, by
+compressing three sections to their warnings and moving the arguments here.
+
+⚑ *Writing about a trim is not a trim.* Third instance of that shape this week: the
+caption deletion grew `views.py`, and a memory rotation once documented itself into a
+44% growth. **The tell is a section whose subject is the file it sits in.**
+
+---
+
 ## ✅ THE RELOAD BUTTON (2026-08-30)
 
 > Michael: *"i want to be able to reload the embedded form without having to reload the
@@ -225,6 +348,11 @@ the message that already existed, on a second SURFACE.**
 ✅ **And it reaches paper for free.** `base.css` gives `.docrender-dead` a `--dr-dead`
 dotted underline unscoped to any medium. Verified live 2026-08-19.
 
+🔴 **AND ONE CLASS OF BREAKAGE STILL ESCAPES IT** — see the `align=` entry above. This
+marker lives inside `_html`, which only runs on a match, so a directive the REGEX
+rejects produces no marker and no report. Fixed for options; **any future syntax the
+pattern cannot parse fails the same silent way.**
+
 ---
 
 ## ⭐ SPLIT OUT OF `program.py` THE SAME DAY IT SHIPPED
@@ -251,3 +379,7 @@ editorial decision that must be declared. `reload:` defaults to **on** because
 offering a reload button is not. ⭐ The asymmetry is the point: a key whose default
 changes what a reader can SEE has to be explicit; a key whose default adds a harmless
 affordance does not.
+
+⚠️ **`align:` joins the first group by omission** — there is no default alignment,
+because left is what a block already does and a class producing the current rendering
+is a dead control. `align.css` opens by refusing exactly that.
