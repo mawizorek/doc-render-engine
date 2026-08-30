@@ -101,6 +101,15 @@ aliases: [safety, uritp-safety-docs, "URITP Safety"]
 # KIND of thing everywhere: this site's name, this site's period, this site's
 # mark.
 #
+# 🔴 AND THE `owner:` BLOCK BELOW IS THE SECOND ENTRY IN THAT SAME LEDGER, so read
+# the distinction above before deciding it contradicts the rule (2026-08-30). A
+# NAME AND AN ADDRESS ARE IDENTITY, exactly like the mark: they say whose sheet
+# this is. The engine still owns the WORDS -- `Posted by` is supplied by
+# `docrender/lede.py` and is byte-identical on every site that declares an owner,
+# which is what the header/footer-content rule actually protects. ⚠️ A future
+# session wanting a per-site LABEL is where this genuinely would break, and that
+# is the line to hold.
+#
 # =============================================================================
 # 🔴 WHAT THE REVERT COSTS, AND IT IS A REAL ACCESSIBILITY REGRESSION
 # =============================================================================
@@ -124,6 +133,12 @@ aliases: [safety, uritp-safety-docs, "URITP Safety"]
 # and clears the floor, which is what both sides of this argument actually
 # wanted. 🚩 FLAGGED FOR MICHAEL, not done here: maw-themes is canonical and this
 # is an engine instance file.
+#
+# 🔴 AND AS OF 2026-08-30 IT HAS ONE MORE READER: the `owner:` block below puts a
+# `mailto:` ANCHOR at the foot of every page on this site, so the failing link
+# colour now paints the one line a curious reader is most likely to want to act
+# on. It does not change the fix or its priority; it removes the last excuse for
+# treating this as cosmetic.
 #
 # ⚠️ STILL OPEN AS OF 2026-08-29 and it does NOT touch the letterhead either way:
 # a link colour is a SCREEN defect on this site, and the print layer strips link
@@ -201,6 +216,57 @@ print:
   logo: logo-horizontal
 
 
+# =============================================================================
+# ⭐ THE OWNERSHIP TAG (2026-08-30)
+# =============================================================================
+# > Michael: *"I'm thinking of something more general and global so I don't have
+# > to worry about adding it to every page. Right now, if someone sees this
+# > printed on a desk and is curious about it, they need to know where it came
+# > from and who to contact."*
+#
+# Renders as the second-to-last line of every page on this site:
+#
+#     Posted by Michael A Wizorek · michael.wizorek@rochester.edu
+#     Revised Aug 2026
+#
+# `docrender/lede.py` `owner()` draws it; `assets/base.css` styles it as the
+# revision line's twin. It sits directly ABOVE `revised:`, which leaves Michael's
+# 2026-08-07 ruling that the revision date is "the very last thing on any page"
+# intact rather than superseded.
+#
+# 🔴 WHY IT IS HERE AND NOT IN FRONTMATTER, WHICH IS THE ENTIRE REQUEST. Every
+# other foot line on a page is a per-page field. This one is authored ONCE, here,
+# and lands on every page of this site with NO page edit anywhere -- and the
+# content repo is one agents may never commit to, so a per-page key would have
+# meant Michael hand-editing every file in the tree forever. ⭐ ABSENT MEANS NO
+# TAG, same polarity as `print:` and `routes.yml`.
+#
+# 🔴 THE ENGINE OWNS THE WORD `Posted by`. This block holds a name and an address
+# and nothing else. That is deliberate and it is what keeps every sheet in a
+# printed packet phrased identically -- the reason for making the tag global
+# rather than typed. 🚩 Do NOT add a label key here without reading the
+# header/footer-content rule above; a per-site LABEL is the thing it forbids.
+#
+# ⚠️ THE ADDRESS IS THE WORK ONE, ON PURPOSE. `mawizorek@gmail.com` is Michael's
+# personal account and was explicitly refused for this surface: a personal gmail
+# on posted student-facing safety signage reads as unofficial and routes incident
+# traffic into an inbox with no records retention. 🔴 AND THE SPELLING IS
+# `wizorek`, matching the surname. A dictated `michael.wazorek@rochester.edu` was
+# caught and corrected before this shipped -- a wrong contact address baked into
+# a global footer is the exact failure the tag exists to prevent, and it would be
+# wrong on every printed sheet in the building at once.
+#
+# ⚠️ WHAT THIS TAG DOES NOT DO, said out loud because it looks like it does. It
+# claims MAINTENANCE without proving any: it renders unconditionally while
+# `revised:` stays optional, so a page with no date carries a named owner and no
+# evidence anyone has looked at it since. Hawthorne raised it, Michael deferred
+# it to the revision-log / update-cycle conversation. Not fixed here, and not to
+# be read as fixed.
+owner:
+  name: Michael A Wizorek
+  email: michael.wizorek@rochester.edu
+
+
 # THE LAST DOOR BACK TO THE SOURCE, DELIBERATELY SHUT (2026-08-16).
 #
 # `true` puts one quiet "Edit this page on GitHub" line at the foot of every
@@ -225,6 +291,13 @@ print:
 # ⚠️ AND IT WAS NEVER A PRINT SETTING. `assets/print-chrome.css` hides
 # `.pagefoot` and `.pagefoot__rule` in its chrome-off list with `!important`,
 # so this line has never reached paper on ANY site. This key governs the SCREEN.
+#
+# ⚠️ THE OWNERSHIP TAG IS NOT AFFECTED BY THIS KEY AND MUST NOT BE FOLDED INTO
+# IT (2026-08-30). They look like the same idea -- two foot lines about where a
+# page came from -- and they are opposites. The edit line is SCAFFOLDING for a
+# builder, hidden on paper and switched off here. The tag is CONTENT for a
+# reader, and paper is the surface it was built for. `.dr-owner` is deliberately
+# absent from print-chrome.css's chrome-off list.
 #
 # WARNING: PRIVATE REPO IS NOT A PRIVATE SITE. The repo being private stops
 # somebody swapping `github.io` for `github.com` and reading the source tree.
