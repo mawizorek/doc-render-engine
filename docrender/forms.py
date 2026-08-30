@@ -9,12 +9,19 @@
         reload: false        # optional; the Reload button is ON by default
 
     !!! form "completion"
+    !!! form "completion" align=center
 
 🔴 **EVERY ARGUMENT LIVES IN `docrender/forms-dl.md`.** This file has crossed the
 22,528 B read ceiling FOUR times while reasoning was being written into it.
 **The steps and the warnings stay here; why a step exists is one file over.**
 ⚠️ And every overrun was predicted by a size ESTIMATED rather than measured. If
 you are adding to this docstring, write the section in the sibling first.
+
+🔴 IT WAS AT **22,489 B** ON 2026-08-30 -- **39 BYTES OF HEADROOM** -- so adding
+`align=` support REQUIRED paying for it in prose first. Three sections were
+condensed to their warnings and their arguments moved to `forms-dl.md` §B. ⭐ That
+is this docstring's own instruction executed against itself, and it is the only
+reason a feature could land here at all.
 
 🚫 THE CONTENT REPO NEVER HOLDS THE IFRAME. An `<iframe>` and a CDN `<script>`
 are machinery, and machinery is the one thing the content tree may not contain.
@@ -39,62 +46,35 @@ hook of its own: `on_page_markdown` below calls it, and it imports `_esc` and
 key: two booleans give four states and one is unsatisfiable.
 
 =============================================================================
-🔴 THE SCROLL WINDOW -- THE WRAPPER IS THE BOX, NOT THE FRAME (2026-08-30)
+🔴 THE STANDING TRAPS -- warnings only. Arguments: `forms-dl.md` §B.
 =============================================================================
-🔴 A READER CANNOT SCROLL A CAPPED FORM IFRAME. ClickUp's form app expects the
-PARENT to size it -- the whole job of `clickup-dynamic-height` + their helper
-script -- so capping the frame does not give the inner document a scrollbar, it
-CLIPS it. Michael, 2026-08-30: *"it does still have to scroll."*
+🔴 **THE SCROLL WINDOW IS THE WRAPPER, NEVER THE FRAME.** ClickUp's form app
+expects the PARENT to size it, so capping the iframe CLIPS the form instead of
+giving it a scrollbar. `.dr-form__scroll` owns `max-height` + `overflow: auto`
+and the frame stays free to grow. `height:` names the WINDOW, not the form.
+⚠️ `-webkit-overflow-scrolling: touch` is load-bearing -- a scroll box holding an
+iframe is exactly what iOS Safari refuses to scroll without it, and these pages
+are read on an iPad. ⚠️ A window shorter than `_FORM_MIN_HEIGHT` scrolls even if
+the CDN script never fires; at the default they are equal, so a script failure
+degrades to a clipped 40rem form -- the pre-existing failure, not a new one.
 
-✅ SO THE FRAME STAYS FREE AND `.dr-form__scroll` OWNS THE SCROLL: `max-height` +
-`overflow: auto`, the iframe grows to its content inside it. `height:` names the
-WINDOW, never the form.
+🔴 **NO FORM IFRAME PRINTS, AND EVERY PRINT `display` RULE MUST BE `!important`.**
+`print-flow.css` sets `display: revert !important` on every direct child of a
+`<details>`, and importance beats specificity -- so a plain `display: none` loses
+and a folded form printed its whole frame. 🔴 **WeasyPrint CANNOT SEE THIS BUG:**
+it discards `display: revert` as invalid, so the harness drops the declaration
+that causes the failure and passes while Chrome prints the form. Reproduce with
+`display: block !important`. ⚠️ The scroll wrapper is RELEASED on paper
+(`max-height: none`) or a capped window clips the sheet as it clips the screen.
 
-⚠️ `-webkit-overflow-scrolling: touch` IS LOAD-BEARING, not tidiness -- a
-scrollable box holding an iframe is the exact shape iOS Safari refuses to scroll
-without it, and these pages are read on an iPad.
+🔴 **THE RELOAD BUTTON REPLACES THE NODE:** `cloneNode` + `replaceWith`, NEVER
+`iframe.src = src`, which NAVIGATES the browsing context and pushes a
+session-history entry -- after three reloads Back walks iframe states instead of
+leaving the page. 🔴 It discards whatever was typed, with no confirmation, BY
+REQUEST: **the label is the safety mechanism.** 🚫 Not on a `views:` embed -- a
+shared view is read-only furniture. ⚠️ It orphans the CDN script's listener, so
+the reloaded frame falls back to `_FORM_MIN_HEIGHT`.
 
-⚠️ A PERCENTAGE HEIGHT AGAINST A `max-height`-ONLY PARENT IS INDEFINITE, so the
-frame's `height="100%"` resolves to auto and `min-height` governs until the CDN
-script writes a real one. Useful consequence: a window SHORTER than
-`_FORM_MIN_HEIGHT` scrolls **even if that script never fires.** 🔴 At the default
-they are equal, so a script failure degrades to a clipped 40rem form -- the same
-failure as before this change, not a new one. Full argument: `forms-dl.md`.
-
-=============================================================================
-🔴 NO FORM IFRAME PRINTS -- AND IT LOSES TO AN `!important` NEXT DOOR
-=============================================================================
-`print-flow.css` sets `.md-typeset details > *:not(summary) { display: revert
-!important }` so a collapsed `???` cannot silently lose its content on paper. A
-form's frame, wrapper, button and fallback are all DIRECT CHILDREN of the
-`<details>` this module emits, so that rule reaches them -- and importance beats
-specificity, so every non-important `display: none` loses, including `flow.css`'s
-own `.dr-form iframe`. That is why a folded form printed its whole frame.
-
-🔴 AND WEASYPRINT CANNOT SEE THIS BUG -- it discards `display: revert` as invalid,
-so the harness drops the very declaration that causes the failure and every
-earlier verification passed while Chrome printed the form. ⚠️ **A harness that
-silently discards a declaration reports the cascade it wishes it had.** Reproduce
-by substituting `display: block !important`.
-
-⚠️ The scroll wrapper is RELEASED on paper (`max-height: none`), or a capped
-window would clip the sheet the way it clips the screen.
-
-=============================================================================
-🔴 THE RELOAD BUTTON REPLACES THE NODE (2026-08-30)
-=============================================================================
-`cloneNode` + `replaceWith`, NEVER `iframe.src = src`: assigning `src` NAVIGATES
-the browsing context and pushes a session-history entry, so after three reloads
-the Back button walks iframe states instead of leaving the page.
-
-🔴 IT DISCARDS WHATEVER WAS TYPED, WITH NO CONFIRMATION, AND THAT IS THE ASK.
-**The label is the safety mechanism.** 🚫 Not on a `views:` embed -- a shared view
-is read-only furniture. ⚠️ It orphans the CDN script's listener, so the reloaded
-frame falls back to `_FORM_MIN_HEIGHT`. Argument: `forms-dl.md`.
-
-=============================================================================
-🔴 THE OTHER THREE STANDING TRAPS (full versions in `forms-dl.md`)
-=============================================================================
 🔴 `height="100%"` WITH NO SIZED PARENT IS ~0px TALL, so a slow, blocked or moved
 CDN asset makes the form INVISIBLE rather than broken -- a blank gap with nothing
 in the build report. `_FORM_MIN_HEIGHT` turns that into a short form, not a hole.
@@ -110,6 +90,10 @@ the struck-through `docrender-dead` span `qr.py` and `links.py` already used.
 can match to a program -- a compliance failure that looks like a working page, so
 it is reported. ⚠️ Host and scheme are checked; nothing here can prove the form is
 active or still exists.
+
+🔴 `align=` MOVES THE FURNITURE, NOT THE FRAME. The iframe is `width: 100%`, so it
+has no slack to be moved within; what aligns is the summary label, the Reload
+button and the fallback link. `forms-dl.md` §B.
 """
 
 from __future__ import annotations
@@ -118,12 +102,23 @@ import html
 import re
 
 from . import state
-from .util import sub_outside_code
+from .util import directive_options, sub_outside_code
 
-#: `!!! form "slot"` alone on its line. Deliberately the same shape as the
-#: `!!! data "slot"` directive datatable.py owns, so the body vocabulary stays
-#: one pattern rather than two spellings of one idea.
-_FORM = re.compile(r'(?m)^[ \t]*!!![ \t]+form[ \t]+"([^"\n]+)"[ \t]*$')
+#: `!!! form "slot"` plus optional trailing `key=value` options.
+#:
+#: 🔴 THE TRAILING GROUP IS THE 2026-08-30 BUG FIX AND IT WAS A SILENT ONE. This
+#: anchored `"[ \t]*$` straight after the closing quote, so `!!! form "x"
+#: align=center` did not match AT ALL -- the directive stayed on the page as
+#: literal text with NOTHING in the build report, because nothing had matched to
+#: report on. Same shape as `qr._QR`, which has accepted options since 08-21.
+_FORM = re.compile(
+    r'(?m)^[ \t]*!!![ \t]+form[ \t]+"([^"\n]+)"(?P<opts>[^\n]*)$'
+)
+
+#: 🚫 NO MEDIA VOCABULARY. `qr.py` has `display=`/`print=` because a code can
+#: legitimately exist in one medium only; a form embed always appears on screen
+#: and never on paper, so there is nothing to declare. `align` is the only option.
+_LEGAL_OPTS: tuple = ()
 
 #: The one host an embedded form may come from. An allow-list rather than a
 #: scheme check: this element executes a third-party script in the reader's
@@ -142,7 +137,7 @@ _FORM_MIN_HEIGHT = "40rem"
 
 #: The default SCROLL WINDOW -- how much of the form a reader sees at once. Equal
 #: to the floor above by design, so the default LOOK is unchanged and only the
-#: overflow behaviour is new. See THE SCROLL WINDOW.
+#: overflow behaviour is new. See THE STANDING TRAPS.
 _FORM_WINDOW = "40rem"
 
 #: A CSS length, loosely. Enough to catch a bare number or a unit typo before it
@@ -342,7 +337,8 @@ def _entry(src, slot):
     return ("", "", "", True, "")
 
 
-def _html(src, slot) -> str:
+def _html(src, slot, opts=None) -> str:
+    opts = opts or {}
     entry = _entry(src, slot)
     if entry is None:
         known = _declared(src)
@@ -412,8 +408,16 @@ def _html(src, slot) -> str:
         + _esc(label) + "</a></p>"
     )
 
+    # ⭐ THE ALIGNMENT IS A CLASS ON THE WRAPPER and `assets/align.css` owns what it
+    # means -- the same seam `qr.py` uses for `dr-qr--align-*`. An inline style
+    # here would be unoverridable by a site's own sheet, which every other surface
+    # in this engine allows.
+    classes = "dr-form"
+    if opts.get("align"):
+        classes += " dr-form--align-" + opts["align"]
+
     if not fold:
-        return '<div class="dr-form">' + window + tools + fallback + "</div>"
+        return '<div class="' + classes + '">' + window + tools + fallback + "</div>"
 
     # 🔴 THE ANCHOR SITS ON THE <summary>, NOT ON THE <details>. A fragment must
     # target something INSIDE the disclosure for the auto-expand behaviour to
@@ -422,7 +426,7 @@ def _html(src, slot) -> str:
     # ⭐ `open` IS AN ATTRIBUTE ON THE SAME ELEMENT, so "expanded" and "closed" are
     # ONE markup shape with one character of difference -- not two branches.
     return (
-        '<div class="dr-form">'
+        '<div class="' + classes + '">'
         '<details class="dr-form__open"' + (" open" if fold == "open" else "")
         + '><summary id="' + _esc(slot_anchor(slot)) + '">'
         + _esc(text or _DEFAULT_LABEL) + "</summary>"
@@ -448,6 +452,10 @@ def on_page_markdown(markdown, page, config, files):
     needs. The LISTENER alone is gated on a button -- one with nothing to click is
     pure cost. Frames and buttons are different facts.
 
+    ⚠️ EVERY OPTION PROBLEM IS REPORTED, NEVER DROPPED. `directive_options` is a
+    pure function that hands back sentences rather than logging them, so this is
+    where they become findings.
+
     ⭐ THE `views:` PASS RUNS HERE TOO, LAST, because one hook keeps this feature
     out of `mkdocs.yml`. 🔴 The import is local to this function ON PURPOSE --
     `views.py` imports from here at its module top, and top-level imports in both
@@ -462,7 +470,14 @@ def on_page_markdown(markdown, page, config, files):
     reloadable = []
 
     def swap(match):
-        html_out = _html(src, match.group(1).strip())
+        slot = match.group(1).strip()
+        opts, problems = directive_options(match.group("opts"), _LEGAL_OPTS)
+        for problem in problems:
+            state.note(
+                "notes",
+                src + ': `!!! form "' + slot + '"` carries ' + problem,
+            )
+        html_out = _html(src, slot, opts)
         if not html_out:
             return ""
         if "<iframe" in html_out:
