@@ -13,7 +13,11 @@ other signal that has happened.
 2026-08-29 at 21,149 B against a 22,528 B read limit: ~70% narrative over ~40 lines
 of mechanism, which is the point where the file that must stay editable stops being
 editable. Read that sibling before changing anything here -- every rule below was
-paid for by an incident recorded there.
+paid for by an incident recorded there. 🔴 THE RUNNING FURNITURE IS WRITTEN UP THERE
+TOO (§ THE RUNNING FURNITURE), including the capability reversal that allowed it, the
+WeasyPrint-vs-Chromium split, and the margin trap it introduces. **This file went to
+27,760 B on the first attempt at keeping that narrative here.** Same extraction, one
+feature later.
 
 The number in the popup is parsed from the head commit SUBJECT:
 
@@ -25,66 +29,14 @@ GitHub UI and never see a branch. Only the subject line is read -- a commit body
 mentioning another issue number must not win.
 
 =============================================================================
-🔴 THE RUNNING FURNITURE (2026-08-30) -- AND IT REVERSES THIS FILE'S OWN REASON
-=============================================================================
-> Michael, 2026-08-30: *"i DOOO want to see the header repeated on every printed
-> page now, and the footer that says 'revised' and my name now, also repeated as a
-> footer on each page. so once printed, locking those two elements to true page
-> headers and footers. this is a change from what i've said in the past."*
-
-🔴 THE BLOCKER THIS FILE DOCUMENTED WAS TRUE AND IS NOW FALSE. The paragraph below
-still explains why the corner copy is FIRST IN FLOW, and its stated reason was that
-repeating it *"needs knowledge of where the page boundary falls, which is what
-`@page` margin boxes do and no major browser implements."* **Chrome 131 shipped all
-16 margin boxes in Nov 2024 and Safari 18.2 in Dec 2024**, with `counter(page)`,
-`counter(pages)` and `content: url()`. ⚑ *A sentence asserting that a capability
-does not exist is a fact with an expiry date, and nothing fails when it passes* --
-third instance of that shape found in one session, so it is now a named class.
-
-⭐ THE DESIGN TURN THAT MAKES THIS CHEAP. A margin box cannot read document content,
-and `string-set` (the spec's answer) is unimplemented in Chrome. That normally kills
-a running header carrying per-document values. **It does not bite here, because
-`revised:` is per-DOCUMENT and every MkDocs page IS exactly one document** -- so the
-engine writes that page's own values into that page's own `@page` rule at build
-time. No named strings, no polyfill, no reader-time anything.
-
-🔴 THE BLOCK AXIS IS OURS AND THE INLINE AXIS IS NOT. `print.css` sets
-`@page { margin: 12mm }` and calls the inline half *"the load-bearing half"* because
-the printed column is a container and the data table flips to list mode under 640px;
-that same file states *"the BLOCK axis is free to change."* So `_page_css` below sets
-ONLY `margin-top` / `margin-bottom` -- a margin box's height IS the page margin, so
-the furniture needs the room -- and never touches left or right. ✅ Disjoint property
-sets, exactly the argument `print-space.css` already makes for `h1` living in two
-files: two rules on `@page`, no shared property, no cascade fight.
-
-⚠️ AND IT IS EMITTED PER PAGE AS A `<style>` RATHER THAN LIVING IN A SHEET, which
-looks wrong and is the only option. A stylesheet is shared by every page; the
-revision date is not. This is the same reason the letterhead URL is written inline
-by `_corner` instead of as a custom property.
-
-🚩 FIREFOX PRINTS NO FURNITURE AT ALL and that is accepted, not overlooked (Michael,
-2026-08-30). It supports `@page` margins but no margin boxes, so a Firefox printout
-gets the wider margins and an empty band. Chrome and Safari only. ⚠️ The in-flow
-corner copy is NOT kept as a Firefox fallback: it would double the header on every
-Chrome sheet, and there is no CSS test for margin-box support. One or the other.
-
-🚩 THE MARGIN TRAP, FLAGGED HERE BECAUSE IT IS A REGRESSION THIS FEATURE CREATES.
-A margin box's height is the page margin, so **a reader who picks "None" in the
-print dialog deletes the footer.** Measured: 40/32pt, 20pt and 10pt all render; at
-2pt and 0 the posted-by line and the page number are GONE while the header survives.
-Chrome's own docs add a worse quirk -- if page ONE has no room, later pages lose
-their margin content too. Today's in-flow stamp survives any margin; this does not.
-`specs/print-control.md` §8 carries it as the standing item.
-
-=============================================================================
 🚫 THE HARD RULES, WITH THEIR REASONS ONE FILE OVER
 =============================================================================
 🚫 **TWO FACTS ON THE PRINTED LINE. NOT THREE.** It has refused the PR number
 (08-19) and a program name (08-28). A line carrying two facts is a stamp; three is
-a header. § *The corner mark is SITE + DATE* in the sibling. ⚠️ THE FOOTER BAND IS
-NOT GOVERNED BY THIS AND THE DISTINCTION IS MICHAEL'S: that rule was about ONE
-line. The footer is three SEPARATE margin boxes -- left, centre, right -- each
-carrying one fact, which is the opposite of crowding three onto one line.
+a header. § *The corner mark is SITE + DATE* in the sibling. ⚠️ **THE FOOTER BAND IS
+NOT GOVERNED BY THIS, and the distinction is the one that let 08-30 ship:** that
+rule was about ONE line. The footer is three SEPARATE margin boxes -- left, centre,
+right -- each carrying one fact, which is the opposite of crowding three onto one.
 
 ✅ **A LOGO IS NOT A THIRD CLAUSE, IT IS A MARK** -- which is why the letterhead was
 allowed on 2026-08-29 where two text additions were not. § *THE LETTERHEAD*.
@@ -92,36 +44,46 @@ allowed on 2026-08-29 where two text additions were not. § *THE LETTERHEAD*.
 🔴 **THE BUILD IDENTIFIER IS SCREEN-ONLY.** Provenance for the BUILDER is noise for
 the READER, and print is the surface where the reader is not the builder.
 
+🔴 **THE BLOCK AXIS IS OURS AND THE INLINE AXIS IS NOT.** `print.css` sets
+`@page { margin: 12mm }` and calls the inline half *"the load-bearing half"* -- the
+printed column is a container and the data table flips to list mode under 640px --
+while stating *"the BLOCK axis is free to change."* `_page_css` sets ONLY
+`margin-top`/`margin-bottom`, because a margin box's height IS the page margin.
+✅ Disjoint property sets on one selector, the same argument `print-space.css` makes
+for `h1` living in two files. 🚫 Never add left or right here.
+
 🔴 **THE `hidden` ATTRIBUTE IS DOING REAL WORK.** The corner copy ships with
 `hidden` (UA `display: none`); any AUTHOR `display` beats a UA one, so
 `print-chrome.css`'s `@media print { display: block }` reveals it on paper and
 nothing reveals it on screen. 🪦 **AS OF 2026-08-30 `print-identity.css` HIDES IT
-AGAIN ON PAPER**, because the margin box replaced it. The mechanism is left intact
-rather than deleted: it is one rule away from being the revert path.
+AGAIN ON PAPER**, because the margin boxes replaced it. The mechanism is left
+intact rather than deleted: it is one rule away from being the revert path.
 
 ⭐ **WHY THE CORNER COPY IS FIRST IN THE FLOW.** An element appended at the END of
 the content cannot be moved to the TOP of sheet one by CSS: that needs knowledge of
 where the page boundary falls, which is what `@page` margin boxes do -- and as of
-2026-08-30 we USE them. First in flow IS the top of sheet one, for free, and that
-is still why this element is shaped the way it is.
+2026-08-30 we USE them, so this sentence's own premise is what changed. First in
+flow IS the top of sheet one, for free, and that is still why the element is shaped
+this way.
 
 🚫 **`config.copyright` STAYS UNSET.** Material renders it inside the footer region,
 which is the place this hook exists to have escaped.
 
 =============================================================================
-⭐ ONE COMPUTED VALUE PER FACT, TWO PRESENTATIONS -- NOT TWO CLAIMANTS
+⭐ ONE COMPUTED VALUE PER FACT, THREE PRESENTATIONS -- NOT THREE CLAIMANTS
 =============================================================================
-`_label()`, the clock and the site name are each read exactly once per build; the
-two nodes SELECT from those values rather than recomputing them, and the mutually
+`_label()`, the clock and the site name are each read exactly once per build; every
+node SELECTS from those values rather than recomputing them, and the mutually
 exclusive media scoping means a reader always sees exactly one stamp.
 
 ⚠️ **THE SEASON STRING IS STILL BUILT ONCE AT `on_config`** -- a build spanning a
 boundary must not stamp two different periods onto one site. **What is per page is
-the logo URL only**, because `util.relative_url` needs the consuming page and a
-letterhead renders at every depth in the tree. One computed fact, one resolution per
-page: still one claimant. § *The date is still built ONCE*. 🔴 THE RUNNING FURNITURE
-READS THE SAME THREE VALUES and adds only the page's own `revised:` and the site's
-`owner:` -- both drawn from where they already live, never re-derived here.
+the logo URL and the revision date only.** § *The date is still built ONCE*.
+
+⚠️ **`_NAME` AND `_PERIOD` ARE KEPT RAW ALONGSIDE THE ESCAPED MARKUP**, because the
+running header needs them as CSS strings and an HTML-escaped `&amp;` inside a CSS
+string prints literally. One computed fact, two encodings, neither derived from the
+other.
 
 =============================================================================
 ⚠️ THE STYLING IS SPLIT ACROSS TWO SHEETS ON PURPOSE
@@ -185,21 +147,17 @@ _ICON = (
     'l1.1 1.1L7.6 7.5ZM8 10.2h4.2v1.5H8Z"/></svg>'
 )
 
-#: Built once at `on_config`. `_CORNER_TEXT` is the two-fact line as markup;
-#: `_FOOT` is the whole screen node; `_NAME` and `_PERIOD` are the raw values the
-#: running header needs as CSS strings rather than as HTML.
+#: Built once at `on_config`.
 _CORNER_TEXT = ""
 _FOOT = ""
 _NAME = ""
 _PERIOD = ""
 
-#: The block-axis room the margin boxes need. 🔴 BLOCK AXIS ONLY -- see the module
-#: docstring. `print.css`'s `@page { margin: 12mm }` keeps the inline axis, which is
-#: the half that decides whether a data table is still a table.
+#: The block-axis room the margin boxes need.
 #:
-#: ⚠️ 16mm rather than 12: the letterhead mark is 8.46mm tall and the footer's right
-#: box is TWO lines at 8.5pt (~6mm). 12mm fits neither with air. Measured from the
-#: shipped `print-identity.css` values, not chosen.
+#: ⚠️ 16mm RATHER THAN 12, AND IT IS MEASURED FROM SHIPPED VALUES rather than
+#: chosen: the letterhead mark is 8.46mm tall (`print-identity.css`) and the
+#: footer's right box is TWO lines at 8.5pt (~6mm). 12mm fits neither with air.
 _BAND = "16mm"
 
 
@@ -243,18 +201,23 @@ def _period(when) -> str:
 
 
 def _css(text) -> str:
-    """A CSS string literal, quoted and escaped.
+    """One CSS string literal, quoted and escaped.
 
     🔴 A BACKSLASH AND A DOUBLE QUOTE ARE THE WHOLE ATTACK SURFACE, and both are
-    escaped rather than stripped. These values come from a config file and from
-    frontmatter -- `revised:` is authored on every page in the content repo, which
-    is a tree agents may not commit to and therefore may not sanitise either. An
-    unescaped quote would not "look wrong": it would terminate the string, make the
-    whole `@page` rule invalid, and drop the ENTIRE header and footer from every
-    page of that document silently. Cheap guard, expensive failure.
+    escaped rather than stripped. These values come from config and from frontmatter
+    -- `revised:` is authored on every page of a content repo agents may not commit
+    to, and therefore may not sanitise either. An unescaped quote would not "look
+    wrong": it would terminate the string, invalidate the whole `@page` rule, and
+    drop the ENTIRE header and footer from every page of that document, silently.
 
-    ⚠️ Newlines are collapsed for the same reason -- a raw newline inside a CSS
-    string is a parse error, and YAML block scalars make one easy to write.
+    🔴 IT COLLAPSES WHITESPACE, WHICH IS WHY A MULTI-LINE VALUE MUST NOT BE PASSED
+    THROUGH IT. `" ".join(s.split())` splits on newlines too, so the first version of
+    the footer built `"line one\nline two"`, handed it here, and got one flat line --
+    the `\\A` substitution that followed had nothing left to match. Caught by reading
+    the code back, not by a render, because the output looked plausible. ⚑ *A helper
+    that normalises input silently defeats any caller that encodes meaning in the
+    characters it normalises.* Two-line content is built as TWO calls joined by an
+    escaped line feed -- see `_page_css`.
     """
     s = " ".join(str(text or "").split())
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
@@ -320,10 +283,12 @@ def _corner(page) -> str:
     """The printed letterhead: an optional mark, then the two-fact line.
 
     🪦 RETIRED FROM PAPER 2026-08-30 by `print-identity.css`, which now hides it --
-    the `@top-*` margin boxes carry the header on every page instead. Still emitted,
-    and that is deliberate: the element, its `hidden` trick and its stylesheet rules
-    are the revert path, and deleting them would make going back a rebuild rather
-    than a one-line change. ⚠️ It is NOT a Firefox fallback -- see the docstring.
+    the `@top-*` margin boxes carry the header on EVERY page instead. Still emitted,
+    deliberately: the element, its `hidden` trick and its stylesheet rules are the
+    revert path, and deleting them would make going back a rebuild rather than a
+    one-line change. ⚠️ It is NOT a Firefox fallback -- Firefox has no margin boxes,
+    but there is no CSS test for that, so keeping this visible would double the
+    header on every Chrome sheet. One or the other; § the sibling.
 
     ⚠️ THE MARK SPAN IS OMITTED ENTIRELY WHEN NO LOGO RESOLVES rather than emitted
     empty. `print-identity.css` gives it a 5.5mm height, so an empty box would spend
@@ -332,11 +297,10 @@ def _corner(page) -> str:
     🔴 THE URL IS AN INLINE `background-image`, AND IT WAS A `var()` UNTIL A RENDER
     PROVED THAT BLANK. A custom property read as `background-image: var(--dr-print-logo)`
     is the tidier shape and it produced an EMPTY BOX in WeasyPrint every way it was
-    tried -- inline, and declared in the sheet itself. Browsers do substitute custom
-    properties into `background-image`, so the tidy version is probably fine in
-    Chrome; **"probably fine" is not a standard this element can be held to**, because
-    its failure mode is a blank corner that reports nothing. The URL therefore lands
-    in the one form that rendered in the engine available to test. § the sibling.
+    tried. Browsers do substitute custom properties into `background-image`, so the
+    tidy version is probably fine in Chrome; **"probably fine" is not a standard this
+    element can be held to**, because its failure mode is a blank corner that reports
+    nothing.
 
     ⚠️ AND IT IS STILL NOT FETCHED ON SCREEN, which is the whole reason this is a
     background rather than an `<img>`. The `<p>` carries `hidden`, so on screen the
@@ -368,87 +332,79 @@ def _corner(page) -> str:
 def _page_css(page) -> str:
     """The `@page` rule for THIS page: running header, running footer, page number.
 
-    Emitted as a `<style>` in the page body, which is the only place a PER-PAGE
-    declaration can live -- a stylesheet is shared by every page and the revision
-    date is not. Full argument in the module docstring.
-
         @top-left      the mark          @top-right      site · period
-        @bottom-left   Revised <date>    @bottom-centre  Page N of M
+        @bottom-left   Revised <date>    @bottom-center  Page N of M
                                          @bottom-right   Posted by <name>
                                                          <email>
 
+    ⭐ EMITTED AS A PER-PAGE `<style>`, WHICH LOOKS WRONG AND IS THE ONLY OPTION. A
+    margin box cannot read document content and `string-set` is unimplemented in
+    Chrome -- but `revised:` is per-DOCUMENT and every MkDocs page IS exactly one
+    document, so the engine writes that page's own values into that page's own rule
+    at build time. No named strings, no polyfill, nothing at read time. § the sibling.
+
     ⭐ THE LAYOUT MIRRORS WHAT THE SCREEN ALREADY DOES, which is why it needed no
-    design pass: `revised` has held the left of the screen footer since 08-07 and
-    the ownership tag has held the right since 08-30. The page number takes the
-    centre because it is the one fact that belongs to the SHEET rather than to the
-    document -- Michael's call, 2026-08-30: *"i like center for page No."*
+    design pass: `revised` has held the left of the screen footer since 08-07 and the
+    ownership tag the right since 08-30. The page number takes the centre because it
+    is the one fact belonging to the SHEET rather than to the document -- Michael,
+    2026-08-30: *"i like center for page No."*
 
-    ✅ `Page N of M` USES `counter(pages)` FOR THE TOTAL, which is the entire reason
-    it is worth having on a safety sheet: a stapled packet found on a desk announces
-    that it is incomplete. A bare page number cannot do that.
+    ✅ `counter(pages)` GIVES THE TOTAL, and that is the whole safety argument for
+    having it: a stapled packet found on a desk announces that it is incomplete. A
+    bare page number cannot.
 
-    ⚠️ THE EMAIL IS A SECOND LINE VIA `\\A` + `white-space: pre`, not a `<br>`: a
-    margin box takes generated CONTENT, so there is no markup to put a break tag in.
-    Same two-line shape the screen tag renders, reached a different way.
+    ⚠️ THE EMAIL IS A SECOND LINE VIA TWO STRINGS JOINED BY `\\A` PLUS
+    `white-space: pre`, not a `<br>`: a margin box takes generated CONTENT, so there
+    is no markup to put a break tag in. 🔴 AND IT IS TWO SEPARATE `_css()` CALLS ON
+    PURPOSE -- passing one `\\n`-joined string through that helper collapsed the
+    newline and printed one flat line. See `_css`.
 
-    🔴 EVERY VALUE IS OPTIONAL AND EACH BOX IS OMITTED RATHER THAN EMITTED EMPTY.
-    A margin box with no `content` is not generated at all (`content: normal`
-    computes to `none`), so an omitted box costs nothing -- but an emitted empty
-    string still reserves the box. A site with no `owner:` therefore prints a header
-    and a page number and no name, which is exactly the absent-means-off polarity
+    🔴 EVERY VALUE IS OPTIONAL AND EACH BOX IS OMITTED RATHER THAN EMITTED EMPTY. A
+    margin box with no `content` is not generated at all, so an omitted box costs
+    nothing -- an emitted empty string still reserves it. A site with no `owner:`
+    prints a header and a page number and no name: the absent-means-off polarity
     `print:` and `routes.yml` already have.
 
-    ⚠️ AND IT RETURNS `""` WHEN THERE IS NOTHING TO SAY, so the block-axis margin
-    change never lands on a page that has no furniture to make room for. A page that
-    would print two empty bands instead prints exactly as it did before.
+    ⚠️ AND IT RETURNS `""` WHEN THE PAGE COUNTER WOULD BE THE ONLY OCCUPANT, so the
+    block-axis margin change never lands on a page with no furniture to make room
+    for. Such a page prints exactly as it did before this feature existed.
     """
     boxes = []
 
     url = _logo_url(page)
     if url:
-        # 🚩 CHROMIUM-ONLY AND NOT VERIFIED HERE. `content: url()` in a margin box is
-        # supported in Chrome 131+ and Safari 18.2+; WeasyPrint 69 renders NOTHING
-        # for it, proven against a working control (a body `<img>` rasterised 11,711
-        # red pixels, the margin box zero, on three pages). ⚑ *The engine that could
-        # be tested is not the engine that prints* -- Michael prints from Chrome, so
-        # WeasyPrint is the proxy here and Chromium is the page. Stated rather than
-        # implied, because every other measurement in this feature ran the other way.
-        # If the mark is missing from a Chrome printout, this line is the suspect and
-        # the revert is `print-identity.css`'s in-flow rules.
+        # 🚩 CHROMIUM-ONLY AND UNVERIFIED HERE. `content: url()` in a margin box is
+        # supported in Chrome 131+ / Safari 18.2+; WeasyPrint 69 renders NOTHING for
+        # it, proven against a working control. ⚑ *The engine that could be tested is
+        # not the engine that prints.* If the mark is missing from a Chrome printout,
+        # this line is the suspect and print-identity.css holds the revert.
         boxes.append("@top-left{content:url(" + _css(url) + ")}")
 
     if _NAME and _PERIOD:
         boxes.append(
-            "@top-right{content:" + _css(_NAME) + '" \\00B7 "' + _css(_PERIOD) + "}"
+            "@top-right{content:" + _css(_NAME) + ' " \\00B7 " ' + _css(_PERIOD) + "}"
         )
 
     meta = state.BY_SRC.get(page.file.src_uri, {})
-    revised = " ".join(str(meta.get("revised") or "").split())
+    revised = str(meta.get("revised") or "").strip()
     if revised:
-        # The LABEL is engine-supplied here exactly as it is in `lede.revised()`.
-        # Two emitters, one wording, and neither reformats the value -- see that
-        # function for why a human's provenance string is passed through verbatim.
+        # The LABEL is engine-supplied here exactly as in `lede.revised()`. Two
+        # emitters, one wording, and neither reformats the value -- that function
+        # carries why a human's provenance string is passed through verbatim.
         boxes.append("@bottom-left{content:" + _css("Revised " + revised) + "}")
 
     boxes.append('@bottom-center{content:"Page " counter(page) " of " counter(pages)}')
 
     owner = state.INSTANCE.get("owner") or {}
-    if isinstance(owner, str):
-        name, email = owner, ""
-    else:
-        name, email = owner.get("name") or "", owner.get("email") or ""
-    if name:
-        line = "Posted by " + " ".join(str(name).split())
-        if email:
-            line += "\n" + " ".join(str(email).split())
-        boxes.append(
-            "@bottom-right{content:"
-            + _css(line).replace("\\n", "\\A ")
-            + ";white-space:pre}"
-        )
+    name = owner if isinstance(owner, str) else (owner.get("name") or "")
+    email = "" if isinstance(owner, str) else (owner.get("email") or "")
+    if str(name).strip():
+        content = _css("Posted by " + str(name))
+        if str(email).strip():
+            content += ' "\\A " ' + _css(email)
+        boxes.append("@bottom-right{content:" + content + ";white-space:pre}")
 
     if len(boxes) <= 1:
-        # Only the page counter -- not worth widening the sheet's margins for.
         return ""
 
     return (
@@ -473,9 +429,8 @@ def on_config(config):
     name = str(getattr(config, "site_name", "") or "").strip()
     period = _period(when)
 
-    # 🔴 THE RAW VALUES ARE KEPT so the running header can quote them as CSS strings.
-    # `_CORNER_TEXT` below is HTML-escaped markup and cannot be reused -- an escaped
-    # `&amp;` inside a CSS string prints literally. One computed fact, two encodings.
+    # Raw, for the running header. See the module docstring: escaped markup cannot
+    # be reused inside a CSS string.
     _NAME, _PERIOD = name, period
 
     # 🔴 PAPER GETS THE PERIOD AND NOT THE BUILD, and it gets TWO FACTS. The name is
@@ -522,10 +477,10 @@ def on_page_content(html_body, page, config, files):
     ⚠️ THE `<style>` GOES AHEAD OF EVERYTHING, and its position is not a style
     choice: `print.css` zeroes the top margin of `.md-content__inner > :first-child`,
     so whatever lands first absorbs that rule. A `<style>` element generates no box,
-    which makes it the one thing that can be first WITHOUT taking a margin reset
+    which makes it the one thing that can be first WITHOUT taking the margin reset
     away from the element that needs it. 🚩 If a future change moves it after the
-    corner, check that reset -- this is the third element to be first in this flow
-    and the first two both mattered.
+    corner, re-check that reset -- this is the third element to be first in this
+    flow and both previous ones mattered.
 
     ⚠️ AND IT LANDS AHEAD OF `program.py`'s ARRIVAL MARKERS, which is safe: those
     promotion rules need the marker and `.dr-flows` to be SIBLINGS, and another
