@@ -31,18 +31,11 @@
  * particular must stay after this file or every dark-mode link reverts to
  * Material's blue.
  *
- * 🔴 IT HAS ~40 B OF HEADROOM AS OF 2026-08-30 AND THE NEXT EDIT MUST SPLIT IT,
- * not trim it. 🚩 THE LAYER TO CUT OUT IS THE DOCUMENT-ELEMENT SET (lede, aka,
- * owner, revised, markers, spec table, dead reference) -- a real surface, and
- * most of what is left once the mapping is set aside. Blocked only on registering
- * a new sheet in docrender/assets.py (32,684 B, unwritable whole).
- *
  * ⭐ AND foot.css MAKES THE REMAINING SUBJECT LEGIBLE, which is the best argument
  * any of these splits has produced. What is left is the Material MAPPING plus
- * DOCUMENT elements -- the lede, the aka line, the revised line, the ownership
- * tag, inline markers, the spec table, a dead reference. Every one of them is
- * something an author can write, or on the tag's account something a SITE
- * declares once. The footer is not, and it was sitting in the middle of them.
+ * DOCUMENT elements -- the lede, the aka line, the revised line, inline markers,
+ * the spec table, a dead reference. Every one of them is something an author can
+ * write. The footer is not, and it was sitting in the middle of them.
  */
 
 [data-md-color-scheme="slate"],
@@ -213,8 +206,10 @@
  * 🔴 DO NOT TOUCH THIS RULE. Michael, 2026-08-30: *"Leave the revised function
  * and position and font and size exactly the same on the left side of the
  * footer... don't fucking move or change revised."* It was changed on 08-30 and
- * restored byte-identical the same hour. The ownership tag that shares its line
- * is a FLOAT specifically so nothing here has to move -- see the block below.
+ * restored byte-identical within the hour. The ownership tag now SHARES this
+ * line, floated right, and is styled in `assets/foot.css` -- deliberately not
+ * here: no author writes it, and this file had ~290 B of headroom. Nothing below
+ * moved, MEASURED at 0.0px displacement across four cases.
  *
  * ⭐ WHY IT EXISTS AT ALL. The field was declared optional on every page type
  * from the day the type system shipped, and NOTHING IN THE ENGINE EVER READ IT.
@@ -264,40 +259,6 @@
 }
 .md-typeset .dr-aka + .dr-revised {
   margin-top: 0.35rem;
-}
-
-/* ---------------------------------------------------------------------------
- * THE OWNERSHIP TAG (2026-08-30, Michael) -- one footer line, two ends
- *
- *   Revised Aug 2026          Posted by Michael A Wizorek · michael@...
- *
- * `revised:` keeps the left, untouched. One line of prose set RIGHT of it, from
- * `owner:` in the instance's site.yml. Account: lede.py `owner()`.
- *
- * 🔴 EMITTED AFTER REVISED AND PULLED BACK ONTO ITS LINE -- the opposite of what
- * it looks like it should be. MEASURED in WeasyPrint, both ways:
- *
- *   float BEFORE  `margin-top` moved it NOT AT ALL; it landed a line low and the
- *                 error VARIED with whatever preceded it (12.8px bare, 5.6px
- *                 under keywords). No single value aligns both cases.
- *   float AFTER   the offset is CONSTANT (25.7px) because it hangs off revised's
- *                 own bottom. One value fixes every case.
- *
- * ⭐ AND SITTING AFTER REVISED IS WHY `.dr-aka + .dr-revised` IS NEVER BROKEN: no
- * sibling lands between them, so there is no restoration selector and no edit to
- * that rule. The order that aligns is the order that touches nothing.
- *
- * ✅ `-2.36em` IS VERIFIED, NOT REASONED: revised UNMOVED (0.0px) and both on ONE
- * baseline (dy 0.0) in four cases -- with and without keywords, at root 16px and
- * 20px. `em` is what makes it root-agnostic. ⚠️ A float rather than `text-align`,
- * so a long address wraps instead of colliding.
- * ------------------------------------------------------------------------ */
-.md-typeset .dr-owner {
-  float: right;
-  margin-top: -2.36em;
-  margin-bottom: 0;
-  font-size: 0.85em;
-  color: var(--dr-ink-muted);
 }
 
 /* ---------------------------------------------------------------------------
@@ -450,6 +411,10 @@ span.docrender-dead {
  * `.md-footer*` chrome, `.md-copyright` suppression, `.buildstamp` and the new
  * build disclosure all live there. Nothing was edited in the move except the
  * `cursor: help` that had been advertising a deleted `title` attribute.
+ * 🔴 AND `.dr-owner` JOINED THEM ON 2026-08-30, which is the one that looks wrong
+ * and is not: it shares the revised line, but no author writes it -- it is
+ * declared once per SITE -- so it meets foot.css's own furniture test, and this
+ * file had no room. Read that file's header before moving it back.
  *
  * ⚠️ THE FOUR `--md-footer-*` MAPPINGS STAY HERE, in the scheme block at the top,
  * and that is correct rather than a leftover: they are the Material VARIABLE
