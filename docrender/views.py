@@ -8,7 +8,6 @@ calls in. See THE DELEGATION below.
       recently-created:
         src: https://sharing.clickup.com/36074068/l/h/12cwjm-61513/486ae60bf886d69
         text: Recently created notes
-        caption: true
         height: 700px
 
     !!! view "recently-created"
@@ -31,9 +30,37 @@ shape, after `links:`, `data:` and `forms:`.
 first real paste did exactly that, which is the predictable mistake, so the
 allow-list message below says so by name.
 
-🚫 AND IT DOES NOT DECIDE WHAT BELONGS ON A PAGE. Every constraint recorded here
-is a property of the MECHANISM. Which view, on which page, showing what, is the
-author's call -- the filters travel with the share, so the control is in ClickUp.
+=============================================================================
+🚫 THE ENGINE WRITES NO PROSE ONTO A PAGE. DELETED 2026-08-30, SAME DAY.
+=============================================================================
+> Michael, on seeing the rendered caption: *"WHAT THE FUCK IS THIS SLOP. DELETE
+> IT IMMEDIATELY."*
+
+v1 of this module emitted a caption under every frame reading *"Live from ClickUp
+— updates automatically."* It is gone: no key, no constant, no CSS, no default.
+
+🔴 THE DEFECT WAS NOT THE WORDING, IT WAS THE CATEGORY. Every other thing this
+registry emits is STRUCTURE -- a frame, a link, a failure marker. The caption was
+the engine deciding an editorial sentence belonged in Michael's content, in his
+voice, on his page, unasked. ⚠️ It was reasoned into existence from a real
+constraint (ClickUp's unremovable *Sign up free* chrome) and the reasoning was
+sound, which is exactly what made it hard to see: **a good argument for WHY a
+reader might want an explanation is not an argument for the ENGINE writing it.**
+If a page wants that sentence, the author types it above the directive.
+
+🔴 AND IT SHIPPED AN EM DASH INTO RENDERED OUTPUT, against a standing, absolute
+house rule. That is the tell that should have caught it earlier: the rule exists
+for prose, so a module emitting text that can VIOLATE a prose rule is a module
+writing prose, which this one has no business doing.
+
+✅ THE FALLBACK LINK IS NOT THE SAME THING AND STAYS. It is a control with a
+function -- the answer to "the table did not load" and the only content on paper.
+Its label is the author's `text:`. **Function stays, narration goes.**
+
+⚠️ A LEFTOVER `caption:` KEY IS REPORTED, NOT SILENTLY EATEN. Pages written
+against v1 still carry it, and a key that quietly does nothing is this repo's
+least favourite shape (PR #197, one day earlier, same feature). One `notes` line
+says it was removed and can be deleted.
 
 =============================================================================
 ⭐ THE DELEGATION -- WHY THIS IS ITS OWN MODULE WITH NO HOOK
@@ -43,9 +70,10 @@ validate a URL and emit an element, and a second module would be a second
 implementation of one idea.
 
 🔴 THE FOLD DIED ON A MEASUREMENT. `forms.py` was 11,740 B when that was written
-and is ~17.4KB at HEAD -- PR #197 added the dead-reference marker on 08-30.
-Folding a second registry in lands ~21KB, past the 18KB warn line and into the
-~22KB read ceiling, and a file that cannot be read whole cannot be safely edited.
+and ~17.4KB when this was built -- PR #197 added the dead-reference marker on
+08-30. Folding a second registry in lands ~21KB, past the 18KB warn line and into
+the ~22KB read ceiling, and a file that cannot be read whole cannot be safely
+edited.
 
 ⚠️ SO THE SEAM MOVED, BUT THE COHESION ARGUMENT DID NOT LOSE. Both halves still
 hold, and the shape that honours both is DELEGATION:
@@ -148,24 +176,15 @@ a stylesheet that overrides the attribute cannot collapse the frame to nothing.
 Cheap, and it is the one failure mode `forms.py` calls unobservable at build time.
 
 =============================================================================
-⚠️ WHAT THE READER GETS THAT A FORM READER DOES NOT: A CAPTION
+⚠️ PRINT: A REAL LOSS, STATED RATHER THAN SOLVED
 =============================================================================
-An embedded view carries ClickUp's own chrome -- *Sign up free* / *Login* and an
-*Embed ClickUp* logo -- inside a cross-origin iframe, so it cannot be removed.
-(Both are open, unresolved feature requests on ClickUp's board.)
-
-⭐ So the caption is not decoration, it is the cheapest available answer to "why
-is there a signup button in the middle of a policy page": it names the frame as
-live ClickUp content, which turns the chrome from clutter into provenance. ON by
-default, `caption: false` to suppress.
-
-⚠️ AND THE FALLBACK LINK IS ALWAYS RENDERED, `forms.py`'s rule inherited whole.
-An iframe prints as a blank rectangle. 🔴 IT IS A WORSE LOSS HERE THAN FOR A FORM,
-and that is stated rather than solved: a printed form-link is a fine substitute
-because the reader was going to click something anyway, but for a table the
-frame IS the content, so paper gets a link where information belongs. A second,
-build-time copy of the same table was considered and refused -- it would be a
-mirror that disagrees with the live one the first time a filter changes.
+An iframe prints as a blank rectangle, so the fallback link is ALWAYS rendered --
+`forms.py`'s rule inherited whole. 🔴 IT IS A WORSE LOSS HERE THAN FOR A FORM: a
+printed form-link is a fine substitute because the reader was going to click
+something anyway, but for a table the frame IS the content, so paper gets a link
+where information belongs. A second, build-time copy of the same table was
+considered and refused -- it would be a mirror that disagrees with the live one
+the first time a filter changes.
 """
 
 from __future__ import annotations
@@ -193,8 +212,6 @@ _DEFAULT_HEIGHT = "700px"
 #: A CSS length, loosely. Enough to catch a bare number or a stray unit typo
 #: before it reaches an attribute, not a full CSS parser.
 _LENGTH = re.compile(r"^\d+(\.\d+)?(px|rem|em|vh|%)$")
-
-_DEFAULT_CAPTION = "Live from ClickUp \u2014 updates automatically."
 
 _DEAD_LABEL = "View"
 
@@ -242,11 +259,7 @@ def _entry(src, slot):
     """One entry out of a page's `views:` map, or None.
 
     Two spellings, matching `links:` and `forms:`: a bare string is the src, a
-    mapping carries `src:`, `text:`, `caption:` and `height:`.
-
-    ⚠️ `caption` DEFAULTS TRUE, which is the one place this differs from every
-    other optional key in the engine. Deliberate: the chrome it explains is
-    always present, so the explanation should be too. `caption: false` opts out.
+    mapping carries `src:`, `text:` and `height:`.
     """
     block = (state.BY_SRC.get(src, {}) or {}).get("views")
     if not isinstance(block, dict):
@@ -255,15 +268,15 @@ def _entry(src, slot):
     if raw is None:
         return None
     if isinstance(raw, str):
-        return (raw.strip(), "", True, "")
+        return (raw.strip(), "", "", False)
     if isinstance(raw, dict):
         return (
             str(raw.get("src", "")).strip(),
             str(raw.get("text", "")).strip(),
-            raw.get("caption") is not False,
             str(raw.get("height", "")).strip(),
+            "caption" in raw,
         )
-    return ("", "", True, "")
+    return ("", "", "", False)
 
 
 def _height(src, slot, declared) -> str:
@@ -306,7 +319,7 @@ def _html(src, slot) -> str:
             _DEAD_LABEL,
         )
 
-    url, text, caption, raw_height = entry
+    url, text, raw_height, had_caption = entry
     hosts = _hosts()
 
     if not any(url.startswith(host) for host in hosts):
@@ -325,6 +338,17 @@ def _html(src, slot) -> str:
             _DEAD_LABEL,
         )
 
+    # ⚠️ REPORTED RATHER THAN SILENTLY EATEN. `caption:` was removed 2026-08-30;
+    # a key that quietly does nothing is the shape PR #197 fixed one day earlier.
+    if had_caption:
+        state.note(
+            "notes",
+            src + ": `views: " + slot + "` declares `caption:`, which was REMOVED "
+            "on 2026-08-30 and does nothing. Delete the line. The engine does not "
+            "write prose onto a page; if a note belongs there, type it above the "
+            "directive.",
+        )
+
     height = _height(src, slot, raw_height)
     label = text or "Open this view in a new tab"
 
@@ -337,17 +361,14 @@ def _html(src, slot) -> str:
         + '" style="background: transparent; border: 1px solid #ccc; '
         "min-height: " + _esc(height) + ';"></iframe>'
     )
-    caption_html = (
-        '<p class="dr-view__caption">' + _esc(_DEFAULT_CAPTION) + "</p>"
-        if caption else ""
-    )
-    # ⚠️ ALWAYS RENDERED, not only for print. An iframe prints blank, and on
-    # screen this is the answer to "the table did not load."
+    # ✅ A CONTROL, NOT NARRATION. Always rendered: an iframe prints blank, and on
+    # screen this is the answer to "the table did not load." Its words are the
+    # author's `text:`, never the engine's.
     fallback = (
         '<p class="dr-view__fallback"><a href="' + _esc(url) + '">'
         + _esc(label) + "</a></p>"
     )
-    return '<div class="dr-view">' + frame + caption_html + fallback + "</div>"
+    return '<div class="dr-view">' + frame + fallback + "</div>"
 
 
 def on_page_markdown(markdown, page, config, files):
