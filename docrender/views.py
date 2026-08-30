@@ -14,7 +14,7 @@
 
 🔴 WHY ANY OF THIS IS THE WAY IT IS: `docrender/views-dl.md`. Read it before
 changing behaviour here -- every rule below traces to a specific correction, and
-four of them were Michael correcting this module in its first three days.
+five of them were Michael correcting this module in its first three days.
 The standing law that came out of them:
 
     THE ENGINE EMITS STRUCTURE. THE AUTHOR DECIDES CONTENT.
@@ -33,6 +33,14 @@ cycle, and not tidy-able in either direction. views-dl.md D2.
 shared, still exists, or shows what its author thinks. A revoked share renders an
 empty frame with NO build finding -- the fallback link is the only thing that
 distinguishes "loading" from "gone."
+
+🔴 NO VIEW IFRAME PRINTS, AND EVERY PRINT `display` RULE MUST BE `!important`.
+`print-flow.css` sets `.md-typeset details > *:not(summary) { display: revert
+!important }` so a collapsed `???` cannot lose its content on paper -- and a
+collapsed view's frame is a DIRECT CHILD of that `<details>`, so importance beats
+specificity and any plain `display: none` loses. ⚠️ WeasyPrint cannot reproduce
+this: it discards `display: revert` as invalid, so a harness passes while Chrome
+prints the frame. **Verify in Chrome print preview.** views-dl.md D9.
 
 🔴 `align=` MOVES THE FURNITURE, NOT THE FRAME, AND THAT IS PHYSICS RATHER THAN A
 CHOICE: the iframe is `width: 100%`, so it has no slack to be moved within. What
@@ -82,6 +90,41 @@ _LENGTH = re.compile(r"^\d+(\.\d+)?(px|rem|em|vh|%)$")
 _LEGAL_OPTS: tuple = ()
 
 _DEAD_LABEL = "View"
+
+#: Inline, once per page, and ONLY because `assets/flow.css` -- which owns
+#: `.dr-view*` -- is past the read ceiling and cannot be rewritten safely. 🚩 These
+#: move there after the split that file's own header prescribes. Precedent:
+#: `forms._RESET_CSS`, for the identical reason on the identical day.
+#:
+#: 🔴 EVERY `display` DECLARATION IS `!important` ON PURPOSE -- see the docstring.
+#: `print-flow.css` wins any specificity fight with `display: revert !important`,
+#: so a plain `display: none` is silently overridden on a COLLAPSED embed and the
+#: frame prints. 🚫 DO NOT tidy these to plain `display: none`; that is the exact
+#: regression forms.py hit and documented hours earlier.
+#:
+#: ⚠️ BOTH SPELLINGS OF EVERY SELECTOR (`.dr-view x` and `.md-typeset .dr-view x`)
+#: on `blocks.css`'s documented arithmetic: a selector matching nothing costs
+#: bytes, a missing one costs the bug back.
+#:
+#: ✅ THE SUMMARY IS HIDDEN AND THAT IS PARITY, NOT LOSS. A `<summary>` is a
+#: CONTROL and paper has none (`print.css`'s pen test), and its text is the slot's
+#: own `text:` -- which the fallback link already carries verbatim, because this
+#: module refuses to invent a label. So a collapsed and an uncollapsed view print
+#: as the SAME one line naming the view. 🔴 That parity is the whole point: the
+#: forms defect was two embeds differing only in a SCREEN key printing as two
+#: different KINDS of object.
+_PRINT_CSS = (
+    "<style>@media print{"
+    ".dr-view iframe,.md-typeset .dr-view iframe,"
+    ".dr-view__open>iframe,.md-typeset .dr-view__open>iframe"
+    "{display:none !important}"
+    ".dr-view__open,.md-typeset .dr-view__open{margin:0;padding:0;"
+    "border:0 !important;background:transparent;box-shadow:none}"
+    ".dr-view__open>summary,.md-typeset .dr-view__open>summary"
+    "{display:none !important}"
+    ".dr-view__fallback{font-size:.85rem}"
+    "}</style>"
+)
 
 
 def _hosts() -> list:
@@ -256,9 +299,9 @@ def _html(src, slot, opts=None) -> str:
         + '" style="background: transparent; border: 1px solid #ccc; '
         "min-height: " + _esc(height) + ';"></iframe>'
     )
-    # ✅ A CONTROL, NOT NARRATION. Always rendered: an iframe prints blank, and on
-    # screen this is the answer to "the table did not load." Its words are the
-    # author's `text:`, never the engine's.
+    # ✅ A CONTROL, NOT NARRATION, AND THE ONLY THING THAT REACHES PAPER. Always
+    # rendered: the frame is hidden on print, and on screen this answers "the
+    # table did not load." Its words are the author's `text:`, never the engine's.
     fallback = (
         '<p class="dr-view__fallback"><a href="' + _esc(url) + '">'
         + _esc(label) + "</a></p>"
@@ -303,11 +346,18 @@ def on_page_markdown(markdown, page, config, files):
     an author staring at an unmoved block with no signal, which is the failure this
     whole change exists to end.
 
-    🚫 NO SCRIPT APPEND, unlike the forms pass. Nothing to size.
+    🔴 THE PRINT BLOCK IS GATED ON A FRAME BEING EMITTED, NOT ON THE DIRECTIVE
+    MATCHING, and that distinction is inherited from the forms regression rather
+    than re-learned: a page whose only view is BROKEN renders a dead marker and no
+    iframe, so it needs no print rules and must not pay for them. ⚠️ Counting
+    matches instead would ship a `<style>` block to a page with nothing to hide.
+
+    🚫 STILL NO SCRIPT APPEND, unlike the forms pass. Nothing to size.
     """
     if "!!!" not in markdown:
         return markdown
     src = getattr(page.file, "src_uri", "")
+    embedded = []
 
     def swap(match):
         slot = match.group(1).strip()
@@ -318,6 +368,13 @@ def on_page_markdown(markdown, page, config, files):
                 src + ': `!!! view "' + slot + '"` carries ' + problem,
             )
         out = _html(src, slot, opts)
-        return "\n\n" + out + "\n\n" if out else ""
+        if not out:
+            return ""
+        if "<iframe" in out:
+            embedded.append(1)
+        return "\n\n" + out + "\n\n"
 
-    return sub_outside_code(_VIEW, swap, markdown)
+    result = sub_outside_code(_VIEW, swap, markdown)
+    if embedded:
+        result += "\n" + _PRINT_CSS + "\n"
+    return result
