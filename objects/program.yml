@@ -86,6 +86,12 @@ optional:
                   # chain says what to read; the FORM says somebody did. A
                   # static site can prove neither, which is what `forms:` is
                   # for and why the record lives in ClickUp.
+                  #
+                  # 🔴 AND SINCE BUILD 10 IT HAS A SECOND CONSUMER: `export:`
+                  # below turns this same list into a printable packet. A chain
+                  # that silently loses a member now costs a DOCUMENT rather
+                  # than a button, which is why packetbuild reports its member
+                  # count against the declared count on every build.
   - forms         # EMBEDDED CLICKUP FORMS, as a map of named slots. The
                   # completion artifact, in the page, so a reader never leaves
                   # the document they were told to read.
@@ -140,6 +146,53 @@ optional:
                   # ⚠️ UNVERIFIABLE AT BUILD TIME, exactly like `@url:`. The
                   # engine checks the scheme and the host and can prove nothing
                   # about whether the form is active, public, or still exists.
+  - export        # WHAT THIS PROGRAM CAN BE HANDED OUT AS. BUILD 10, 2026-08-30.
+                  # See docrender/packet.py and specs/print-packet.md.
+                  #
+                  #     export: [packet]
+                  #
+                  # One kind exists: `packet` -- the whole chain concatenated
+                  # into ONE generated page, cover first, one policy per sheet,
+                  # printed with an ordinary Ctrl+P.
+                  #
+                  # ⭐ DECLARED, NEVER AUTOMATIC, RULED BY MICHAEL: "it should be
+                  # front matter defined on any type: program to say like
+                  # export: available to render a button." The automatic-with-
+                  # opt-out alternative was overruled and correctly -- a program
+                  # that should not be handed out is a real case, and silence is
+                  # the safe default for a DISTRIBUTABLE artifact.
+                  #
+                  # ⚠️ A LIST OF KINDS RATHER THAN HIS FLOATED `available`, and
+                  # the objection was mechanical rather than aesthetic. There are
+                  # exactly two states -- there is a packet or there is not -- so
+                  # a status WORD is a boolean in a status costume, and it invites
+                  # `pending` / `soon` / `unavailable`, none of which anything
+                  # would validate. It would also read as a second `status:` axis
+                  # sitting inches away in the same block: two vocabularies for
+                  # one idea, which is what retired three manifests here.
+                  # `export: true` and a bare `export: packet` are BOTH accepted,
+                  # because a truthy value that silently did nothing would be the
+                  # dead-control shape this repo keeps finding.
+                  #
+                  # 🔴 THIS DECLARATION IS NOT THE CHECK, AND THAT IS WHY THE
+                  # VALIDATION LIVES IN PYTHON. `objects._resolve` merges every
+                  # type's `optional:` list and NOTHING EVER READS IT -- three
+                  # fields (`revised`, `related`, `data`) were each found
+                  # declared-and-unread that way. So an unknown kind is caught and
+                  # REPORTED by `packet.kinds()`, never by this file. A typo like
+                  # `export: pakcet` has to be a finding: nothing downstream can
+                  # tell it from a program that simply has no packet, and both
+                  # render as no button.
+                  #
+                  # 🚫 IT REQUIRES A LIVE `chain:` AND REFUSES TO GUESS ONE. A
+                  # cover page with nothing behind it is a VALID document nobody
+                  # would question, which is the worst artifact this feature could
+                  # produce -- so no chain means no packet and a report saying so.
+                  #
+                  # 🔴 AND IT IS AN AGGREGATOR, SO IT IS A LEAK SURFACE. A member
+                  # that is not `public` is refused and named: `nav: hidden` and
+                  # `status: unlisted` are curtains for somebody BROWSING, and a
+                  # packet is a PDF that leaves the site.
   - contents      # `false` draws nothing. `auto` opts IN from any other type.
                   # Inherited behaviour from the index renderer; a program
                   # folder's landing page is still an index, and a program is
