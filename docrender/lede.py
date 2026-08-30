@@ -85,7 +85,8 @@ line and nothing else. Do not tidy the `<em>` away into a rule.
 =============================================================================
 🔴 THE OWNERSHIP TAG (2026-08-30, Michael) -- ONE FOOTER LINE, TWO ENDS
 =============================================================================
-    Revised Aug 2026              Posted by Michael A Wizorek · michael@...
+    Revised Fall 2026                      Posted by Michael A Wizorek
+                                        michael.wizorek@rochester.edu
 
 > Michael: *"something more general and global so I don't have to worry about
 > adding it to every page ... if someone sees this printed on a desk and is
@@ -97,12 +98,19 @@ exactly the same on the left side of the footer ... No stacking ... don't
 fucking move or change revised."* ⚑ *A request to ADD a line was executed as a
 redesign of the line already there.*
 
+⭐ TWO LINES, NAME OVER ADDRESS, BOTH FLUSH RIGHT (v3, matched to Michael's own
+mock-up rather than inferred). The `·` separator is GONE and a `<br>` replaces
+it: with the pair set right, a middot left hanging at the end of the first line
+is exactly the fussiness a provenance stamp should not have. `foot.css` carries
+the `text-align: right` that keeps the second line flush.
+
 🔴 EMITTED **AFTER** THE REVISION LINE, WHICH IS THE OPPOSITE OF WHAT IT LOOKS
 LIKE IT SHOULD BE. It renders ON that line, floated right and pulled up by a
 negative margin, and the pull is CONSTANT only when it hangs off revised's own
 bottom -- so `objects.py` writes it last. Swapping those two statements makes it
 stack again. **STYLING AND THE FULL MEASURED ARGUMENT LIVE IN `assets/foot.css`**
-§ THE OWNERSHIP TAG, including why the rule is there rather than in base.css.
+§ THE OWNERSHIP TAG, including why the rule is there rather than in base.css and
+which single value to adjust if the browser disagrees with the print engine.
 This function only makes the element.
 
 🔴 IT IS DRAWN FROM THE INSTANCE, NOT FROM FRONTMATTER, AND THAT IS THE OTHER
@@ -127,18 +135,16 @@ unwritable whole). Debt, stated.
 ⚠️ THE LABEL IS ENGINE-SUPPLIED, exactly as `Revised` and `Keywords:` are. The
 config holds a name and an address; it does not hold the word "Posted". That is
 what keeps the phrasing identical across every sheet in a printed packet, which
-was the point of making the tag global rather than typed. The separator is `·`
-(U+00B7), matching the printed corner stamp -- one convention for provenance
-furniture, so a reader who has seen the top of the sheet recognises the bottom.
+was the point of making the tag global rather than typed.
 
 ⚠️ THE ADDRESS IS A REAL `mailto:` ANCHOR AND THAT IS A DELIBERATE ASYMMETRY.
 On screen it is a live control; on paper it renders as plain text, because
 `print-type.css` §5 strips link colour and paper has no click. A contact line
 you cannot contact from the screen is the DEAD CONTROL shape this engine kills
-on sight. 🚩 NOT VERIFIED against `urllinks.py` / `links.py`: those resolve
-markdown link syntax and `@id` tokens, not raw anchors, so a decoration here is
-unlikely rather than proven. **If a stray external-link mark appears beside the
-address, the fallback is one line -- drop the anchor, emit the address as text.**
+on sight. ✅ AND IT IS NOW VERIFIED RATHER THAN ASSUMED: the built HTML on
+`gh-pages` carries `<a href="mailto:...">` intact with no decoration, so
+`urllinks.py` and `links.py` leave a raw anchor alone. The v2 fallback (drop the
+anchor, emit text) is therefore retired, not merely unused.
 
 ⚠️ NO HTML-ESCAPING OF THE ADDRESS, AND IT IS A JUDGEMENT NOT AN OVERSIGHT. The
 value comes from a config file only Michael writes. If this ever reads from
@@ -373,13 +379,18 @@ def keywords(value) -> str:
 
 
 def owner(value) -> str:
-    """The ownership tag: ONE line of prose, rendered right of `revised`.
+    """The ownership tag: name over address, flush right of `revised`.
 
     Takes the `owner:` mapping off the INSTANCE -- `{name, email}` -- and not a
     frontmatter field. The caller reads `state.INSTANCE`; this function stays
     pure, same bargain as `keywords` and `revised`, so it can be reasoned about
     without a build. Layout is `assets/foot.css`; the emit-order rule it depends
     on is in the module docstring and in objects.py beside the call.
+
+    ⭐ THE `<br>` IS THE SHAPE, NOT A FALLBACK FOR WRAPPING. Two deliberate lines
+    (v3, from Michael's mock-up), so the break does not move with the viewport
+    and the address always starts a line of its own. A `·` separator was v1/v2
+    and is retired: set flush right, it left a middot dangling at a line end.
 
     THE NAME IS THE ONLY REQUIRED HALF. A site declaring an address and no name
     renders nothing rather than `Posted by · someone@x` -- a label with no
@@ -404,7 +415,7 @@ def owner(value) -> str:
     line = "Posted by " + name
     if email:
         line += (
-            " \u00b7 " + '<a href="mailto:' + email + '">' + email + "</a>"
+            "<br>" + '<a href="mailto:' + email + '">' + email + "</a>"
         )
     return '<p class="dr-owner">' + line + "</p>"
 
