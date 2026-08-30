@@ -31,12 +31,6 @@
  * particular must stay after this file or every dark-mode link reverts to
  * Material's blue.
  *
- * 🔴 AND IT WENT OVER THE CEILING TWICE ON 2026-08-30, both times on PROSE about
- * one float: 22,909 B then 23,946 B against 22,528 B. Trimmed in place, same
- * hour, twice. 🚩 THE NEXT LAYER TO LEAVE IS THE DOCUMENT-ELEMENT SET (lede, aka,
- * owner, revised, markers, spec table, dead reference) -- a real surface and most
- * of what is left. Split it before the next feature rather than trimming again.
- *
  * ⭐ AND foot.css MAKES THE REMAINING SUBJECT LEGIBLE, which is the best argument
  * any of these splits has produced. What is left is the Material MAPPING plus
  * DOCUMENT elements -- the lede, the aka line, the revised line, the ownership
@@ -267,31 +261,23 @@
 }
 
 /* ---------------------------------------------------------------------------
- * THE OWNERSHIP TAG (2026-08-30, Michael)
+ * THE OWNERSHIP TAG (2026-08-30, Michael) -- one line, two ends
  *
  *   Revised Aug 2026          Posted by Michael A Wizorek · michael@...
  *
- * ONE LINE, TWO ENDS. `revised:` keeps the left at its own position, font and
- * size; this is one line of prose set RIGHT of it, from `owner:` in the
- * instance's site.yml. Account and refusals: docrender/lede.py `owner()`.
+ * `revised:` keeps the left, untouched. This is one line of prose set RIGHT of
+ * it, from `owner:` in the instance's site.yml. THE ACCOUNT IS IN
+ * docrender/lede.py `owner()` -- this file is at its read ceiling, so only what
+ * a reader of these three rules cannot derive is written here:
  *
- * 🔴 A FLOAT, WHICH IS WHY THE RULE ABOVE IS UNTOUCHED. Two blocks cannot share a
- * line; a flex wrapper, or emitting this inside the revised paragraph, would each
- * change that line's rule, markup or context. A float is OUT of flow, so
- * `.dr-revised` lays out as though this element did not exist. ⚠️ IT MUST PRECEDE
- * REVISED IN SOURCE (a float after a block starts below it), so objects.py emits
- * owner then revised and that order is load-bearing rather than cosmetic.
+ * 🔴 A FLOAT, WHICH IS WHY THE REVISED RULE IS UNTOUCHED. Two blocks cannot share
+ * a line, and both alternatives (a flex wrapper, or emitting this inside the
+ * revised paragraph) change that line's rule, markup or context. A float is out
+ * of flow, so `.dr-revised` lays out as though this did not exist. ⚠️ IT MUST
+ * PRECEDE REVISED IN SOURCE -- a float after a block starts below it.
  *
- * ⚠️ Mirrors revised's top margin in both cases so the two share a baseline. A
- * float does not collapse margins with siblings, so a hairline is possible.
- *
- * 🔴 THE THIRD SELECTOR KEEPS REVISED WHERE IT WAS: a DOM sibling between aka and
- * revised breaks the byte-identical adjacency rule above (still live on the five
- * sites declaring no owner), so the same value is restated through the new one.
- *
- * ⚠️ The address is a real anchor, so on screen it reads `--md-typeset-a-color`,
- * and `uritp-safety.link` FAILS AA at 2.30:1 -- logged in that site.yml, open
- * upstream. Print strips link colour (print-type.css §5).
+ * 🔴 THE THIRD SELECTOR ONLY KEEPS REVISED WHERE IT WAS: a sibling between aka
+ * and revised breaks the adjacency rule above, so the value is restated.
  * ------------------------------------------------------------------------ */
 .md-typeset .dr-owner {
   float: right;
