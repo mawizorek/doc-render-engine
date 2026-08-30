@@ -47,6 +47,23 @@
  * nothing. `[data-role-print]` is the guard.
  *
  * ==========================================================================
+ * NO CONTAINER QUERY HERE, AND THE ABSENCE IS DELIBERATE
+ * ==========================================================================
+ * The narrow-screen clamp was first written as `@container (max-width: 40em)` and
+ * removed before this sheet ever shipped. AN UNNAMED CONTAINER QUERY BINDS TO THE
+ * NEAREST ANCESTOR DECLARING `container-type`, and nothing in this engine declares
+ * one around ordinary prose -- data.css declares exactly one, named `dr-table`, on
+ * the table wrapper.
+ *
+ * So the query would have matched inside a data table and matched NOTHING in a
+ * sentence, which is where most roles will be written. A rule that works in the
+ * place you happen to test and silently does nothing everywhere else is the
+ * dead-control shape this repo logs more than any other.
+ *
+ * `max-width: min(32ch, 80vw)` replaces it in one declaration with no ancestor
+ * dependency: the measure where there is room, the viewport where there is not.
+ *
+ * ==========================================================================
  * EVERY TOKEN CARRIES A MATERIAL FALLBACK, WHICH IS NOT DECORATION
  * ==========================================================================
  * Tokens are generated per site from theme/canonical/*.tsv, so a token that
@@ -73,9 +90,9 @@
 
 /* THE BOX. Hidden by default, revealed on hover and on keyboard focus.
  *
- * `max-width` is in `ch` rather than a viewport unit so the box is sized by the
- * TEXT it holds rather than by the window -- a gloss is a sentence, and a
- * sentence has a comfortable measure regardless of screen. */
+ * `max-width` is in `ch` first because a gloss is a SENTENCE and a sentence has a
+ * comfortable measure regardless of screen; the `vw` half is the floor for a
+ * phone. See the header on why this is not a container query. */
 .md-typeset a.dr-gloss::after {
   content: attr(data-gloss);
 
@@ -85,7 +102,7 @@
   z-index: 5;
 
   width: max-content;
-  max-width: 32ch;
+  max-width: min(32ch, 80vw);
   padding: 0.4em 0.6em;
 
   /* Prose, not a value: it WRAPS, and it must, because base.css gives `.dr-mark`
@@ -125,20 +142,6 @@
   }
 }
 
-/* NARROW SCREENS: PIN THE BOX TO THE LEFT MARGIN OF THE MEASURE.
- *
- * A gloss on the last word of a line would otherwise start its box at that word
- * and run off the right edge. `left: 0` is relative to the ANCHOR, so on a phone
- * that is not enough. This is a container query rather than a media query for
- * the same reason data.css uses one: what matters is how wide the CONTENT COLUMN
- * is, not how wide the device is -- a desktop with the sidebar open is narrower
- * than a tablet without it. */
-@container (max-width: 40em) {
-  .md-typeset a.dr-gloss::after {
-    max-width: min(32ch, 80vw);
-  }
-}
-
 /* ==========================================================================
  * PAPER
  * ==========================================================================
@@ -157,8 +160,8 @@
  * paper string is a real state meaning print nothing, and an ungated `attr()`
  * would render " ()" instead. */
 @media print {
-  /* The screen box, off. Both halves: the pseudo-element is reused below, so
-   * this resets what made it a floating box rather than hiding it. */
+  /* The screen box, off. The pseudo-element is REUSED below rather than hidden,
+   * so this resets what made it a floating box. */
   .md-typeset a.dr-gloss::after {
     content: none !important;
     position: static !important;
@@ -189,8 +192,6 @@
     border: 0 !important;
     box-shadow: none !important;
     padding: 0 !important;
-    /* Keeps the closing bracket with the last word rather than orphaning it on
-     * the next line. The gloss itself may wrap; the punctuation may not. */
     white-space: normal !important;
   }
 }
