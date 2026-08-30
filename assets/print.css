@@ -262,6 +262,11 @@
     box-shadow: none !important;
   }
 
+  /* 🚩 A FIFTH GROUND LIVES IN `print-ink.css`, NOT HERE: the plain markdown
+   * table's fill (2026-08-30, third instance of the mechanism above). Forced --
+   * this file had 296 B free and a new sheet needs `assets.py`, past the write
+   * cap. Pointer, so printed grounds keep ONE index. Comes back on the split. */
+
   /* -------------------------------------------------------------------------
    * THE CONTENT COLUMN COMES OFF ITS RAILS
    *
