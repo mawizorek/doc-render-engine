@@ -31,12 +31,11 @@
  * particular must stay after this file or every dark-mode link reverts to
  * Material's blue.
  *
- * 🔴 AND IT WENT OVER THE LINE ON 2026-08-30, TWICE IN ONE HOUR. The ownership
- * tag's first version took this file to 22,909 B -- 381 B past the 22,528 B read
- * ceiling -- and both overruns were PROSE about one float, not rules. 🚩 THE NEXT
- * LAYER TO LEAVE IS THE DOCUMENT-ELEMENT SET (lede, aka, owner, revised, markers,
- * spec table, dead reference): it is a real surface and it is most of what is
- * left. Split it BEFORE the next feature rather than trimming a comment again.
+ * 🔴 AND IT WENT OVER THE CEILING TWICE ON 2026-08-30, both times on PROSE about
+ * one float: 22,909 B then 23,946 B against 22,528 B. Trimmed in place, same
+ * hour, twice. 🚩 THE NEXT LAYER TO LEAVE IS THE DOCUMENT-ELEMENT SET (lede, aka,
+ * owner, revised, markers, spec table, dead reference) -- a real surface and most
+ * of what is left. Split it before the next feature rather than trimming again.
  *
  * ⭐ AND foot.css MAKES THE REMAINING SUBJECT LEGIBLE, which is the best argument
  * any of these splits has produced. What is left is the Material MAPPING plus
@@ -215,8 +214,7 @@
  * and position and font and size exactly the same on the left side of the
  * footer... don't fucking move or change revised."* It was changed on 08-30 and
  * restored byte-identical the same hour. The ownership tag that shares its line
- * is a FLOAT specifically so that nothing here has to move -- see the block
- * below, which carries the mechanism and the one selector that protects this.
+ * is a FLOAT specifically so nothing here has to move -- see the block below.
  *
  * ⭐ WHY IT EXISTS AT ALL. The field was declared optional on every page type
  * from the day the type system shipped, and NOTHING IN THE ENGINE EVER READ IT.
@@ -271,38 +269,29 @@
 /* ---------------------------------------------------------------------------
  * THE OWNERSHIP TAG (2026-08-30, Michael)
  *
- *   Revised Aug 2026              Posted by Michael A Wizorek · michael@...
+ *   Revised Aug 2026          Posted by Michael A Wizorek · michael@...
  *
- * ONE LINE, TWO ENDS. `revised:` keeps the left, at its own position, font and
- * size. This is one line of prose set to the RIGHT of it, from `owner:` in the
- * instance's site.yml -- declared once per SITE, no page edit anywhere. Mechanism
- * and refusals: docrender/lede.py `owner()`.
+ * ONE LINE, TWO ENDS. `revised:` keeps the left at its own position, font and
+ * size; this is one line of prose set RIGHT of it, from `owner:` in the
+ * instance's site.yml. Account and refusals: docrender/lede.py `owner()`.
  *
- * 🔴 A FLOAT, AND THAT IS THE WHOLE REASON THE REVISED RULE ABOVE IS UNTOUCHED.
- * Two block siblings cannot share a line, so the alternatives were a flex wrapper
- * around both or emitting this inside the revised paragraph -- and each of those
- * changes the revised line's rule, its markup or its context. A float is OUT of
- * flow, so `.dr-revised` lays out exactly as if this element did not exist and
- * its text flows beside it. ⚠️ THE FLOAT MUST PRECEDE IT IN SOURCE (a float after
- * a block starts below that block), so objects.py emits owner then revised, and
- * that order is load-bearing rather than cosmetic.
+ * 🔴 A FLOAT, WHICH IS WHY THE RULE ABOVE IS UNTOUCHED. Two blocks cannot share a
+ * line; a flex wrapper, or emitting this inside the revised paragraph, would each
+ * change that line's rule, markup or context. A float is OUT of flow, so
+ * `.dr-revised` lays out as though this element did not exist. ⚠️ IT MUST PRECEDE
+ * REVISED IN SOURCE (a float after a block starts below it), so objects.py emits
+ * owner then revised and that order is load-bearing rather than cosmetic.
  *
- * ⚠️ IT MIRRORS THE REVISED LINE'S TOP MARGIN IN BOTH CASES so the two share one
- * baseline: `gap-lg` normally, `0.35rem` under a keywords line. A float does not
- * collapse margins with its siblings, so a hairline of difference is possible
- * where a collapse happens -- this is one line of prose, not a grid.
+ * ⚠️ Mirrors revised's top margin in both cases so the two share a baseline. A
+ * float does not collapse margins with siblings, so a hairline is possible.
  *
- * 🔴 THE THIRD SELECTOR EXISTS ONLY TO KEEP REVISED WHERE IT WAS. `.dr-aka +
- * .dr-revised` above is byte-identical and still live for the five sites that
- * declare no owner -- but a DOM sibling between them breaks that adjacency, so
- * the same value is restated through the new one. Not a change to the revised
- * line: the thing that stops this being one.
+ * 🔴 THE THIRD SELECTOR KEEPS REVISED WHERE IT WAS: a DOM sibling between aka and
+ * revised breaks the byte-identical adjacency rule above (still live on the five
+ * sites declaring no owner), so the same value is restated through the new one.
  *
- * ⚠️ THE ADDRESS IS A REAL ANCHOR, so on screen it takes `--md-typeset-a-color`
- * from the mapping at the top of this file -- and `uritp-safety.link` is 2.30:1
- * on that site's parchment and FAILS AA, logged in its own site.yml and open
- * upstream. On paper print-type.css §5 strips link colour, so it prints as one
- * unbroken line of provenance, which is the surface it was built for.
+ * ⚠️ The address is a real anchor, so on screen it reads `--md-typeset-a-color`,
+ * and `uritp-safety.link` FAILS AA at 2.30:1 -- logged in that site.yml, open
+ * upstream. Print strips link colour (print-type.css §5).
  * ------------------------------------------------------------------------ */
 .md-typeset .dr-owner {
   float: right;
