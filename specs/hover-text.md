@@ -1,6 +1,6 @@
 # BUILD 9 · HOVER TEXT AND THE ROLE PAGE
 
-✅ **DECISION-COMPLETE, NOT YET BUILT.** Scoped 2026-08-30, **ruled three times the same day** (§0). **Every ruling is closed.** Indexed from [`next-build-spec.md`](../next-build-spec.md) — 🚩 see [`print-control.md`](print-control.md) §7 on why that row is missing.
+✅ **DECISION-COMPLETE, NOT YET BUILT.** Scoped 2026-08-30, **ruled four times the same day** (§0). **Every ruling is closed.** Indexed from [`next-build-spec.md`](../next-build-spec.md) — 🚩 see [`print-control.md`](print-control.md) §7 on why that row is missing.
 
 <p><br/></p>
 
@@ -8,7 +8,7 @@
 
 <p><br/></p>
 
-🔴 **TWO BLOCKING DEPENDENCIES, BOTH MECHANICAL, NEITHER A DECISION:** a TSV cell silently drops the gloss today (§15) and a new stylesheet needs a line in a file that is past the write cap (§16). Both have named fixes. **Nothing is waiting on Michael.**
+🔴 **ONE BLOCKING DEPENDENCY LEFT, mechanical, not a decision:** a TSV cell silently drops the gloss today (§15). ✅ The `assets.py` blocker is **CLEARED** (§16). **Nothing is waiting on Michael.**
 
 ---
 
@@ -22,7 +22,11 @@
 
 <p><br/></p>
 
-**14:54** — > *"DEFINITELY b, duh … prose only is fine, but tsv tables and other should still count"*
+**14:54** — *"DEFINITELY b, duh … prose only is fine, but tsv tables and other should still count"*
+
+<p><br/></p>
+
+**15:00** — *"just pick an existing marker style, like layout or link … but know that I'll want to swap it easily or edit it later. don't suggest adding new color vector though."* Plus: **do the `assets.py` split.**
 
 <p><br/></p>
 
@@ -31,11 +35,12 @@
 | popup or `title=` | **the styled popup** | §16 |
 | headings | **excluded from v1** | §17 |
 | TSV tables and everything else | **in scope** | §15, §17 |
+| **which existing style** | **`terminology`** — `layout` refused on REPORTING grounds | **§18** |
 | does a role page name its holder | **no field at all** (ruling 2 removed the need) | §12 |
 | own marker class | **no**, a `terminology` row | [dl A7](hover-text-dl.md#a7--why-no-new-marker-class-the-j31-clone-argument-in-full) |
 | a `@person:` prefix | **no** — `@role:`, and the TYPE is the tightening `markerlinks` asked for | §7 |
 
-### ⭐ THE SECOND HALF OF HIS LAST SENTENCE WAS THE MOST EXPENSIVE FOUR WORDS IN THE BUILD
+### ⭐ THE SECOND HALF OF HIS 14:54 SENTENCE WAS THE MOST EXPENSIVE FOUR WORDS IN THE BUILD
 
 *"tsv tables and other should still count"* reads like a scope confirmation. **It is a blocking defect report** — see §15. Had the surfaces question been answered as *"prose only, tables later,"* this would have shipped, worked in prose, and been silently dead in every table on the safety site.
 
@@ -65,7 +70,7 @@ optional:
 role	terminology	Role			role	A defined production role. The page behind it says what the role covers and who to ask.
 ```
 
-🔴 **No new marker class.** A `role` class would be `plain` + `accent-2`, byte-identical to `terminology` in every cell — the J31 clone defect verbatim. [dl A7](hover-text-dl.md#a7--why-no-new-marker-class-the-j31-clone-argument-in-full).
+🔴 **No new marker class**, and the class it takes is ruled in §18. [dl A7](hover-text-dl.md#a7--why-no-new-marker-class-the-j31-clone-argument-in-full).
 
 ### 🔴 The id
 
@@ -202,7 +207,7 @@ state.PAGES[page_id] = {
 
 ---
 
-## 🔴 §15 — A TSV CELL SILENTLY DROPS THE GLOSS. THIS IS THE BUILD'S REAL BLOCKER.
+## 🔴 §15 — A TSV CELL SILENTLY DROPS THE GLOSS. THE LAST REAL BLOCKER.
 
 > *"tsv tables and other should still count"*
 
@@ -239,36 +244,35 @@ def _classes(attrs: str) -> str:
 
 ---
 
-## ✅ §16 — THE POPUP (RULING: "DEFINITELY B"), AND WHERE IT MAY AND MAY NOT LAND
+## ✅ §16 — THE POPUP (RULING: "DEFINITELY B")
 
-The mechanism is already built and proven in `buildstamp.py`: hidden with **`opacity`**, not `display`, plus `pointer-events: none`, absolutely positioned, and a `tabindex="0"` host revealed on `:focus-visible`. **The accessibility argument is quoted in full in [dl A2](hover-text-dl.md#a2--the-title-contradiction-one-engine-one-attribute-three-verdicts)** — `display: none` and `visibility: hidden` drop the text out of the accessibility tree, so a hover-only fact becomes invisible to anybody not hovering.
+The mechanism is already built and proven in `buildstamp.py`: hidden with **`opacity`**, not `display`, plus `pointer-events: none`, absolutely positioned, and a `tabindex="0"` host revealed on `:focus-visible`. **The accessibility argument is quoted in full in [dl A2](hover-text-dl.md#a2--the-title-contradiction-one-engine-one-attribute-three-verdicts).**
 
 ### 🚫 THE `markers.py` SPAN REWRITE IS OUT OF SCOPE FOR v1, AND THE REASON IS MEASURED
-
-The previous revision recommended retiring `title=` from `markers.py` in the same pass to end the three-verdict contradiction. ⚠️ **Deferring that, on numbers rather than caution:**
 
 - `markers.py` is **21,561 B** against a 22,528 ceiling — **967 B.**
 - A popup is not an attribute swap. It is a **nested-element rewrite** of the span renderer's output, plus escaping, plus the `tabindex` host.
 - 🔴 **That module's history includes taking every site down at config-load time** (2026-08-05, the `_token_sets` ImportError), and it is imported by `blocks.py`, `markerlinks.py` and `cells.py`.
 
-✅ **THE LINK FORM IS NET-NEW CODE IN `markerlinks.py` (13,047 B, room) AND GETS THE POPUP WITH NO CEILING PROBLEM.** That is the form Michael ruled and the only form that can carry an entity gloss (§4).
+✅ **THE LINK FORM IS NET-NEW CODE IN `markerlinks.py` (13,047 B, room) AND GETS THE POPUP WITH NO CEILING PROBLEM.** That is the form Michael ruled and the only form that can carry an entity gloss.
 
 <p><br/></p>
 
-🚩 **THE COST, NAMED IN BOTH FILES RATHER THAN LEFT FOR A COLD SESSION:** the span form keeps `title=` and the link form gets a popup, so **one engine will have two hover mechanisms** until the span rewrite ships. ⚑ *That is a KNOWN divergence with a written owner, which is a different object from the unknown divergence [dl A2] describes — where two files disagreed and neither mentioned the other.* Write the pointer in `markers.py`'s docstring and in `markerlinks.py`'s, both directions, in the same PR.
+🚩 **THE COST, NAMED IN BOTH FILES RATHER THAN LEFT FOR A COLD SESSION:** the span form keeps `title=` and the link form gets a popup, so **one engine will have two hover mechanisms** until the span rewrite ships. ⚑ *That is a KNOWN divergence with a written owner, which is a different object from the unknown divergence [dl A2] describes — where two files disagreed and neither mentioned the other.* Write the pointer in both directions, in the same PR.
 
-### 🔴 THE CSS HAS NOWHERE LEGAL TO GO YET, AND THIS IS THE SECOND BLOCKER
+### ✅ THE CSS NOW HAS A LEGAL HOME — BLOCKER CLEARED 2026-08-30
 
-**Measured this pass, from a HEAD directory listing:**
+**Re-measured this pass:**
 
 | Sheet | Now | Verdict |
 |---|---|---|
-| `base.css` | **21,190 B** | 🔴 ~1.3KB headroom; the popup is more than that. ⚠️ **The last revision of this spec said 20,335 B — it moved.** |
-| `flow.css` | **23,163 B** | 🔴 already past the ceiling |
-| `type.css` | 5,937 B | ⚠️ wrong owner — it is the type ramp |
-| **NEW** `assets/gloss.css` | — | ✅ **correct home** |
+| `docrender/assets.py` | ✅ **13,943 B** | **SPLIT, PR #216.** Was 32,684 B and past the write cap. History moved to `assets-dl.md`; every function byte-identical; read back whole |
+| `assets/base.css` | **21,190 B** | 🚫 ~1.3KB headroom. Not the popup's home |
+| `assets/flow.css` | **23,163 B** | 🔴 already past the ceiling |
+| `assets/type.css` | 5,937 B | ⚠️ wrong owner — it is the type ramp |
+| **NEW** `assets/gloss.css` | — | ✅ **correct home, and now registerable** |
 
-🔴 **A new sheet needs a tuple line in `assets.py`, which is 32,684 B and PAST THE 30KB WRITE CAP.** This is **the same debt that blocked the reload button this morning**, named for the fourth time today, and it is now blocking a ruled feature rather than an offered one. ✅ **`assets.py` must be split first** — that is not tidiness, it is the dependency.
+🚫 **`gloss.css` WAS DELIBERATELY NOT PRE-REGISTERED IN THE SPLIT PR.** It would have been one line and it is the wrong line: the sheet does not exist, and `assets.py`'s own standing rule is that **a sheet is registered in the same PR as the sheet itself** — the 08-21 `print-chrome.css` omission is the whole argument against a two-step. See [`assets-dl.md`](../docrender/assets-dl.md) D6.
 
 <p><br/></p>
 
@@ -286,17 +290,71 @@ The previous revision recommended retiring `title=` from `markers.py` in the sam
 
 <p><br/></p>
 
-**The exclusions, and each is a real mechanism rather than an omission:**
-
-<p><br/></p>
-
 | Surface | Why not |
 |---|---|
 | **code fences and backticks** | 🚫 `util.sub_outside_code` skips them **by design** — a page documenting `[x](@role:y)` has not referenced a role, and reading its example as real would corrupt the reference graph |
 | **headings** | ✅ **his ruling.** A heading is also a nav label, a TOC entry and an anchor target: four surfaces, one string |
 | **figure captions** | ⚠️ `figure.py`'s regex allows only `caption="…"` in the brace, so there is **no authoring path**. Logged 2026-08-29 as a pre-existing gap; **not caused by this build and not fixed by it** |
 
-⚠️ **ONE HONEST NOTE ON TABLES:** `data.css` gives a cell `white-space: nowrap`, and 🔴 a marker note clipping at a cell edge has already been logged twice in this repo (J25 defect 4, J26). **A popup is absolutely positioned so it escapes the cell box — but it can escape a horizontally-scrolling grid too**, and that is the one thing in §16 that cannot be reasoned about from source. Verify in a real table before calling the popup done.
+⚠️ **ONE HONEST NOTE ON TABLES:** `data.css` gives a cell `white-space: nowrap`, and 🔴 a marker note clipping at a cell edge has already been logged twice in this repo (J25 defect 4, J26). **A popup is absolutely positioned so it escapes the cell box — but it can escape a horizontally-scrolling grid too**, and that is the one thing in §16 that cannot be reasoned about from source. Verify in a real table.
+
+---
+
+## ✅ §18 — THE STYLE: `.role` TAKES THE `terminology` CLASS
+
+> *"just pick an existing marker style, like layout or link … but know that I'll want to swap it easently or edit it later. don't suggest adding new color vector though."*
+
+✅ **`terminology`** — `shape: plain`, `color: accent-2`. Coloured text, no chrome, no new token, no CSS. **Its own label in `marker-classes.tsv` already reads *"a defined term, with or without a page behind it,"* which is what a role is**, so the class needs no amendment to accept it.
+
+### 🔴 `layout` REFUSED ON REPORTING GROUNDS, NOT ON LOOKS — and that is the half worth recording
+
+On looks it would have been fine. **`layout` is the FileMaker LAYOUT MODE family** (owner: FMP Fiona): a button, a field, a portal, *"something you place on a screen."*
+
+<p><br/></p>
+
+⚑ **THE ENTIRE RETURN OF THE CLASS SYSTEM IS THAT EACH CLASS ANSWERS ONE QUESTION.** `marker-classes.tsv` says so outright: two families exist rather than one `fmp` because *"one family answers 'show me the FileMaker things,' which nobody needs. Two answer 'every relationship' and 'every control' separately, and the report is only worth reading while each class answers ONE question."* **Putting roles in `layout` makes *every control on this FileMaker layout* return theatre staff.** 🔴 A **colour** collision is explicitly permitted in this engine by Michael's own 08-09 ruling; a **REPORT** collision is the exact thing classes were invented to prevent. *Those are not the same kind of collision and the file only forgave one of them.*
+
+<p><br/></p>
+
+⚠️ **Second, independent reason: `layout` is `box`.** The `schema` family is `plain` precisely because *"a boxed chip in every cell of a .tsv is a wall"* — and §15/§17 just put roles **into table cells**. `terminology` being `plain` is not a coincidence; it is the same decision already made for the same reason.
+
+### ⚠️ `link` IS NOT A CLASS. IT IS A FORM, AND HE ALREADY HAS IT.
+
+`.dr-mark--link` is what `markerlinks` adds to **every** marker link for the underline, **regardless of family** — `markers.py` calls that underline *"the only difference a reader sees"* between the two forms.
+
+<p><br/></p>
+
+✅ **So there was nothing to pick there: every `@role:` reference gets the link styling by construction.** Named rather than quietly answered, because the sentence offered two options and one of them was a category error — *answering only the half that parsed is how a misunderstanding survives into a build.*
+
+### ⭐ SWAPPABILITY NEEDS NOTHING BUILT. IT IS ALREADY THREE CELLS.
+
+His *"I'll want to swap it easily or edit it later"* is **the existing design**, not a requirement to engineer. Three independent levers, every one **a single cell in `theme/markers.tsv`**, zero Python and zero CSS:
+
+<p><br/></p>
+
+| Lever | Cell | Effect |
+|---|---|---|
+| **whole family** | `class` | `terminology` → any other row in `marker-classes.tsv`. Inherits that family's shape AND colour |
+| **shape only** | `shape` | overrides the family per row: `box` · `plain` · `strike` · `soft`. **Four, because a reader can distinguish four at a glance and cannot distinguish nine** |
+| **colour only** | `color` | overrides the family per row. ⚠️ **Prefer inheriting, then a TOKEN, and only then a hex** — a token follows the theme into light mode and onto every other site; a hex is frozen where you typed it and will be wrong on the scheme you were not looking at |
+
+✅ **And his constraint is already honoured: none of the three adds a colour vector.** Every value above is a token that exists.
+
+### 🔴 THE ONE TRAP HE WILL ACTUALLY HIT, WHICH IS WHY THIS SECTION IS NOT A ONE-LINE CONFIRMATION
+
+**`accent-1` DOES NOT EXIST.** The canonical palette is **`accent`**, **`accent-deep`**, **`accent-2`**, **`accent-soft`** — there is no `-1` anywhere in it.
+
+<p><br/></p>
+
+⚠️ **It validates as a legal token NAME, resolves to NOTHING, is reported once per build, and paints in the body colour** — so the marker silently stops looking marked, on a page that looks otherwise fine. `markers.tsv` already calls it *"the natural thing to type once `accent-2` exists."* ⚑ **A man who has just said he will edit the colour cell later is the exact person that trap is set for**, which is the whole reason it belongs in this spec and not only in the TSV header.
+
+<p><br/></p>
+
+🔴 **Same family, one row over: `accent-soft` is a tinted GROUND, not a text colour** — it measures **1.4:1** on the eos dark canvas. It was in the `terminology` cell for two days, the validator refused it, everyone read the report line as *"not vendored yet,"* and **the graceful fallback to body colour is the only reason nobody noticed the cell was also wrong.** ⚑ *A broken reference that degrades gracefully can hide a second, worse mistake underneath it.*
+
+### ⚠️ The one cost of sharing a class, restated so a swap is an informed choice
+
+**The build report groups by CLASS**, so *"every role on this site"* is a filter on the marker NAME rather than its own group. The report line is `class · name · page · label → target`, so the name is present and the question stays answerable. **That is the only argument for a class of its own**, and it costs a colour decision plus a chip contrast measurement — measured against the chip's **own wash**, never against the page. [dl A7](hover-text-dl.md#a7--why-no-new-marker-class-the-j31-clone-argument-in-full).
 
 ---
 
@@ -314,18 +372,18 @@ The previous revision recommended retiring `title=` from `markers.py` in the sam
 
 <p><br/></p>
 
-🚩 **Free mitigation:** `revised:` is already inherited and already renders as the last line. **A stale name with a visible date is a different object from a stale name with none.** A convention on role pages, not a required field.
+🚩 **Free mitigation:** `revised:` is already inherited and already renders as the last line. **A stale name with a visible date is a different object from a stale name with none.**
 
 ---
 
 ## ✅ Build order
 
-1. **Split `assets.py`** (32,684 B, past the write cap). 🔴 Blocks §16 and has now blocked three features. Not tidiness — the dependency.
+1. ✅ ~~Split `assets.py`~~ **DONE, PR #216.** 32,684 → 13,943 B, zero behaviour change, read back whole.
 2. **`links.py`** — two dict keys (§8). The unlock, and independently harmless.
 3. **`cells.py`** — the allowlisted attribute pass-through (§15). 🔴 **Before any table is authored**, or the first table teaches him the feature is broken.
-4. **`objects/role.yml`** + the `markers.tsv` row (§7), with the §13 ruling written in.
+4. **`objects/role.yml`** + the `markers.tsv` row (§7, §18), with the §13 ruling written in.
 5. **`markerlinks.py`** — read the gloss off `hit`, resolve the print precedence, emit the popup, fix the docstring, add the divergence pointer (§16).
-6. **NEW `assets/gloss.css`** — popup, focus-visible, print suppression (§16).
+6. **NEW `assets/gloss.css`** — popup, focus-visible, print suppression. ✅ **Registered in `assets.py` in the SAME PR** (§16).
 7. **One `mkdocs serve`** — §14's two-brace behaviour, and the popup inside a scrolling table (§17).
 8. **Chrome print preview** — §9's parenthesis and §16's suppression. ⚠️ WeasyPrint cannot verify either.
 
@@ -333,18 +391,19 @@ The previous revision recommended retiring `title=` from `markers.py` in the sam
 
 ## Files and sizes
 
-**Measured from HEAD directory listings, 2026-08-30 14:5x. ⚠️ `base.css` and `flow.css` had both MOVED since the previous revision of this table quoted them — which is why it is re-measured every pass rather than carried.**
+**Re-measured from HEAD, 2026-08-30 15:0x. ⚠️ Re-measured rather than carried, because a previous revision of this very table quoted `base.css` at 20,335 B when it was 21,190 — it had moved.**
 
 | File | Now | Change |
 |---|---|---|
+| `docrender/assets.py` | ✅ **13,943 B** | **split, PR #216.** `gloss.css` is now registerable |
 | `docrender/links.py` | 16,596 B | **+2 dict keys**. §8 |
 | `docrender/markerlinks.py` | 13,047 B | the gloss, the precedence, the popup, the docstring. Room |
 | `docrender/cells.py` | **9,660 B** | 🔴 the allowlist. §15. Plenty of room |
 | **NEW** `objects/role.yml` | — | ~12 lines incl. the §13 ruling |
-| `theme/markers.tsv` | — | one row (two under §14 option B) |
-| **NEW** `assets/gloss.css` | — | 🔴 blocked on the `assets.py` split |
-| `docrender/assets.py` | **32,684 B** | 🔴 **PAST THE WRITE CAP. Split first.** Blocker for §16 |
+| `theme/markers.tsv` | — | one row, class `terminology` (§18). Two rows under §14 option B |
+| **NEW** `assets/gloss.css` | — | ✅ unblocked |
 | `assets/base.css` | **21,190 B** | 🚫 ~1.3KB. Not the popup's home |
 | `docrender/markers.py` | **21,561 B** | 🚫 967 B. **Span rewrite deferred, §16** |
 | `docrender/objects.py` | **22,423 B** | 🔴 **105 B. Nothing may be added here** |
+| `docrender/assets-dl.md` | 21,151 B | the assets history. Single claimant |
 | `specs/hover-text-dl.md` | 15,490 B | the arguments. Single claimant |
