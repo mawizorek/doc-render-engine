@@ -227,8 +227,9 @@ print:
 #
 #     Revised Aug 2026        Posted by Michael A Wizorek · michael.wizorek@...
 #
-# `docrender/lede.py` `owner()` draws it; `assets/base.css` FLOATS it to the right
-# of the revision line, which keeps its own left position, font, size and colour.
+# `docrender/lede.py` `owner()` draws it; **`assets/foot.css`** floats it to the
+# right of the revision line, which keeps its own left position, font, size and
+# colour. Verified at 0.0px displacement of the revised line, four cases.
 #
 # 🔴 v1 STACKED IT ABOVE THE DATE AND REWROTE THE REVISED RULE TO MATCH. Michael,
 # 2026-08-30: *"Leave the revised function and position and font and size exactly
@@ -299,11 +300,11 @@ owner:
 # so this line has never reached paper on ANY site. This key governs the SCREEN.
 #
 # ⚠️ THE OWNERSHIP TAG IS NOT AFFECTED BY THIS KEY AND MUST NOT BE FOLDED INTO
-# IT (2026-08-30). They look like the same idea -- two foot lines about where a
-# page came from -- and they are opposites. The edit line is SCAFFOLDING for a
-# builder, hidden on paper and switched off here. The tag is CONTENT for a
-# reader, and paper is the surface it was built for. `.dr-owner` is deliberately
-# absent from print-chrome.css's chrome-off list.
+# IT (2026-08-30). They now live in the same stylesheet and look like the same
+# idea -- two foot lines about where a page came from -- and they are opposites.
+# The edit line is SCAFFOLDING for a builder, hidden on paper and switched off
+# here. The tag is CONTENT for a reader, and paper is the surface it was built
+# for. `.dr-owner` is deliberately absent from print-chrome.css's chrome-off list.
 #
 # WARNING: PRIVATE REPO IS NOT A PRIVATE SITE. The repo being private stops
 # somebody swapping `github.io` for `github.com` and reading the source tree.
