@@ -22,6 +22,12 @@ The page NAMES a form; the engine builds the element. Exactly the split `data:`
 slots and the `links:` registry already use, and the reason the body directive
 is `!!! form` rather than pasted HTML.
 
+⭐ THIS MODULE ALSO DRIVES `docrender/views.py` (the `views:` registry). It has no
+hook of its own: `on_page_markdown` below calls it, and it imports `_esc` and
+`_dead` from here rather than re-declaring them. 🔴 The full argument for one hook
+and two files -- and the measurement that killed the fold -- lives in THE
+DELEGATION in `views.py`, not here. This file is at the warn line already.
+
 =============================================================================
 🔴 A BROKEN SLOT USED TO RENDER **NOTHING**. FIXED 2026-08-30.
 =============================================================================
@@ -90,6 +96,11 @@ instance -- orphans the CDN script's listener, so the frame falls back to exactl
 this value instead of collapsing. Stated here because the floor reads like
 defensive tidiness and is load-bearing for a feature nobody has built yet.
 
+🔴 AND THE WHOLE PROBLEM IS FORM-ONLY -- read this before copying the machinery.
+ClickUp's embed code for a shared VIEW ships `clickup-embed` alone with a literal
+`height="700px"`: no dynamic-height class, no helper script, nothing to fail.
+`views.py` states the consequence.
+
 ⚠️ AND THE FALLBACK LINK IS ALWAYS RENDERED, not only for print. An iframe
 prints as a blank rectangle and this engine has a print identity spec, so a
 printed program packet would otherwise carry a hole where the completion form
@@ -155,6 +166,9 @@ _FORM = re.compile(r'(?m)^[ \t]*!!![ \t]+form[ \t]+"([^"\n]+)"[ \t]*$')
 #: scheme check: this element executes a third-party script in the reader's
 #: browser on a page that carries a compliance instruction, so "any https URL"
 #: is not a good enough answer.
+#:
+#: ⚠️ A LITERAL BECAUSE A FORM HAS ONE HOME. A shared VIEW does not, so
+#: `views.py` reads its allow-list from the instance config. Do not unify these.
 _FORM_HOST = "https://forms.clickup.com/"
 
 #: ClickUp's own embed helper. What `clickup-dynamic-height` needs.
@@ -181,7 +195,7 @@ def _esc(text: str) -> str:
     )
 
 
-def _dead(reason: str) -> str:
+def _dead(reason: str, label: str = _DEAD_LABEL) -> str:
     """The same struck-through span `links.py` and `qr.py` render.
 
     🚫 DELIBERATELY NOT AN ANCHOR. A form that failed to resolve must not offer a
@@ -193,11 +207,15 @@ def _dead(reason: str) -> str:
     dotted underline unscoped to any medium; `print.css` has a whole block
     arguing against re-declaring it. So a printed sheet shows the failure too,
     which matters on a compliance page more than on screen.
+
+    ⭐ `label` IS A PARAMETER SO `views.py` SHARES THIS SPAN. Two directives with
+    two copies of a failure vocabulary is how they start disagreeing about what
+    broken looks like. Callers pass their own noun; nobody re-implements it.
     """
     return (
         '<span class="docrender-dead" title="'
         + html.escape(reason, quote=True) + '">'
-        + html.escape(_DEAD_LABEL) + "</span>"
+        + html.escape(label) + "</span>"
     )
 
 
@@ -357,6 +375,12 @@ def on_page_markdown(markdown, page, config, files):
     request would be pure cost. ⚠️ Before 2026-08-30 the two were the same
     question, because a broken slot returned "" and could not be told apart from
     no directive at all.
+
+    ⭐ THE `views:` PASS RUNS HERE TOO, LAST, because one hook is what keeps this
+    feature out of `mkdocs.yml`. 🔴 The import is local to this function ON PURPOSE
+    -- `views.py` imports from here at its module top, and top-level imports in
+    both directions would be a cycle. ⚠️ Order is arbitrary, not load-bearing:
+    the patterns are disjoint and neither pass reads the other's output.
     """
     if "!!!" not in markdown:
         return markdown
@@ -375,4 +399,7 @@ def on_page_markdown(markdown, page, config, files):
     out = sub_outside_code(_FORM, swap, markdown)
     if embedded:
         out += '\n\n<script async src="' + _FORM_SCRIPT + '"></script>\n'
-    return out
+
+    from . import views
+
+    return views.on_page_markdown(out, page, config, files)
