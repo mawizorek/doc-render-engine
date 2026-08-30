@@ -1,4 +1,4 @@
-"""Hook 07 -- the build stamp, the printed letterhead, and the RUNNING FURNITURE.
+"""Hook 07 -- the build stamp and the printed letterhead. Two placements, one fact.
 
 Answers one question from any page without opening Actions: is what I am looking at
 the latest push? When a build fails, GitHub Pages keeps serving the previous commit
@@ -7,7 +7,6 @@ other signal that has happened.
 
     .buildstamp--corner   FIRST in flow, PRINT ONLY.   [logo]  URITP Safety - Fall 2026
     .buildstamp--foot     LAST in flow, SCREEN ONLY.   URITP Safety + a disclosure
-    @page margin boxes    EVERY PRINTED PAGE.          header + footer + page number
 
 🔴 **RATIONALE AND POST-MORTEMS LIVE IN `docrender/buildstamp-dl.md`.** Extracted
 2026-08-29 at 21,149 B against a 22,528 B read limit: ~70% narrative over ~40 lines
@@ -15,13 +14,16 @@ of mechanism, which is the point where the file that must stay editable stops be
 editable. Read that sibling before changing anything here -- every rule below was
 paid for by an incident recorded there.
 
-🔴 **AND THE SAME EXTRACTION HAPPENED AGAIN ON 2026-08-30, ONE FEATURE LATER.** The
-running furniture's account -- the capability reversal that allowed it, the
-WeasyPrint-vs-Chromium split, the collapsed-newline bug, the margin trap it
-introduces -- is in that sibling under § THE RUNNING FURNITURE. Keeping it here took
-this file to **27,760 B, then 24,641 B after a first trim.** ⚑ *A file that has
-already been split once will need splitting again at the same rate; the second time
-is not a surprise and should not be treated as one.*
+🔴 **AND THE RUNNING HEADER/FOOTER IS `docrender/runfoot.py`, NOT THIS FILE**
+(2026-08-30). This hook CALLS it from `on_page_content` and passes it three values it
+has already computed; that module owns the `@page` margin boxes, the page counter, the
+block-axis margin, and the whole account of why any of it is possible. ⚠️ **Keeping it
+here took this file to 27,760 B, then 24,641, then 23,062 against the 22,528 ceiling
+-- three trims, each shaving narrative written to explain a real defect.** ⚑ *A file
+that cannot absorb a feature's reasoning is telling you the feature has its own
+subject.* The split also dissolved a blocker nobody had questioned: a helper imported
+by an already-registered hook needs no `mkdocs.yml` edit, and that file has been
+unwritable for weeks.
 
 The number in the popup is parsed from the head commit SUBJECT:
 
@@ -37,10 +39,9 @@ mentioning another issue number must not win.
 =============================================================================
 🚫 **TWO FACTS ON THE PRINTED LINE. NOT THREE.** It has refused the PR number
 (08-19) and a program name (08-28). A line carrying two facts is a stamp; three is
-a header. ⚠️ **THE FOOTER BAND IS NOT GOVERNED BY THIS, and that distinction is what
-let 08-30 ship:** the rule was about ONE line. The footer is three SEPARATE margin
-boxes -- left, centre, right -- each carrying one fact, which is the opposite of
-crowding three onto one line.
+a header. § *The corner mark is SITE + DATE* in the sibling. ⚠️ `runfoot.py`'s footer
+band is THREE boxes and does not break this: the rule governs one LINE, and left,
+centre and right each carry one fact.
 
 ✅ **A LOGO IS NOT A THIRD CLAUSE, IT IS A MARK** -- which is why the letterhead was
 allowed on 2026-08-29 where two text additions were not. § *THE LETTERHEAD*.
@@ -48,42 +49,46 @@ allowed on 2026-08-29 where two text additions were not. § *THE LETTERHEAD*.
 🔴 **THE BUILD IDENTIFIER IS SCREEN-ONLY.** Provenance for the BUILDER is noise for
 the READER, and print is the surface where the reader is not the builder.
 
-🔴 **THE BLOCK AXIS IS OURS AND THE INLINE AXIS IS NOT.** `print.css` sets
-`@page { margin: 12mm }` and calls the inline half *"the load-bearing half"* -- the
-printed column is a container and the data table flips to list mode under 640px --
-while stating *"the BLOCK axis is free to change."* `_page_css` sets ONLY
-`margin-top`/`margin-bottom`, because a margin box's height IS the page margin.
-✅ Disjoint property sets on one selector, the same argument `print-space.css` makes
-for `h1` living in two files. 🚫 Never add left or right here.
-
 🔴 **THE `hidden` ATTRIBUTE IS DOING REAL WORK.** The corner copy ships with
 `hidden` (UA `display: none`); any AUTHOR `display` beats a UA one, so
 `print-chrome.css`'s `@media print { display: block }` reveals it on paper and
-nothing reveals it on screen. 🪦 **AS OF 2026-08-30 `print-identity.css` HIDES IT
-AGAIN ON PAPER**, because the margin boxes replaced it. The mechanism is left
-intact rather than deleted: it is one rule away from being the revert path.
+nothing reveals it on screen. That is what keeps this feature from touching a single
+screen stylesheet. It also drops the corner copy from the accessibility tree, which
+is correct -- the foot copy is the one a screen reader should find.
+
+🪦 **AND AS OF 2026-08-30 `print-identity.css` HIDES THE CORNER ON PAPER TOO**, because
+`runfoot.py`'s `@top-*` boxes carry the header on every page instead. `_corner` is
+still emitted deliberately: the element, the `hidden` trick and its stylesheet rules
+are the revert path, and deleting them would make going back a rebuild rather than a
+one-line change. ⚠️ It is NOT a Firefox fallback -- see `runfoot.py`.
 
 ⭐ **WHY THE CORNER COPY IS FIRST IN THE FLOW.** An element appended at the END of
 the content cannot be moved to the TOP of sheet one by CSS: that needs knowledge of
-where the page boundary falls, which is what `@page` margin boxes do -- and as of
-2026-08-30 we USE them, so this sentence's own premise is what changed. First in
-flow IS the top of sheet one, for free, and that is still why the element is shaped
-this way.
+where the page boundary falls, which is what `@page` margin boxes do and no major
+browser implemented when this was written. 🔴 **THAT PREMISE EXPIRED -- Chrome 131 and
+Safari 18.2 ship them, and `runfoot.py` uses them.** The sentence is kept because it
+is still why THIS element is shaped this way, and struck rather than deleted because
+⚑ *a capability claim is the one kind of comment that rots with nothing edited.*
 
 🚫 **`config.copyright` STAYS UNSET.** Material renders it inside the footer region,
 which is the place this hook exists to have escaped.
 
 =============================================================================
-⭐ ONE COMPUTED VALUE PER FACT, THREE PRESENTATIONS -- NOT THREE CLAIMANTS
+⭐ ONE COMPUTED VALUE PER FACT, TWO PRESENTATIONS -- NOT TWO CLAIMANTS
 =============================================================================
-`_label()`, the clock and the site name are each read exactly once per build; every
-node SELECTS from those values rather than recomputing them, and the mutually
-exclusive media scoping means a reader always sees exactly one stamp. **What is per
-page is the logo URL and the revision date only.**
+`_label()`, the clock and the site name are each read exactly once per build; the
+two nodes SELECT from those values rather than recomputing them, and the mutually
+exclusive media scoping means a reader always sees exactly one stamp.
 
-⚠️ `_NAME` and `_PERIOD` are kept RAW beside the escaped markup, because a CSS
-string cannot reuse HTML-escaped text -- an `&amp;` would print literally. One
-computed fact, two encodings, neither derived from the other.
+⚠️ **THE SEASON STRING IS STILL BUILT ONCE AT `on_config`** -- a build spanning a
+boundary must not stamp two different periods onto one site. **What is per page is
+the logo URL only**, because `util.relative_url` needs the consuming page and a
+letterhead renders at every depth in the tree. One computed fact, one resolution per
+page: still one claimant. § *The date is still built ONCE*.
+
+⚠️ **`_NAME` AND `_PERIOD` ARE KEPT RAW BESIDE THE ESCAPED MARKUP** so `runfoot` can
+quote them as CSS strings: an HTML-escaped `&amp;` inside a CSS string prints
+literally. One computed fact, two encodings, neither derived from the other.
 
 =============================================================================
 ⚠️ THE STYLING IS SPLIT ACROSS TWO SHEETS ON PURPOSE
@@ -91,9 +96,9 @@ computed fact, two encodings, neither derived from the other.
     print-chrome.css    the stamp's own BOX -- and `display: block`, which is what
                         overrides `hidden`. Delete it there and the letterhead
                         renders nothing, with nothing reporting it.
-    print-identity.css  the LETTERHEAD ROW -- flex, the mark, the two weights --
-                        and, as of 08-30, the rules that retire the in-flow copies
-                        on paper now that the margin boxes carry them.
+    print-identity.css  the LETTERHEAD ROW -- flex, the mark, the two weights -- and,
+                        as of 08-30, the rules that retire the in-flow copies on
+                        paper now that the margin boxes carry them.
 
 🔴 Every selector in `print-identity.css` is net-new **specifically so the print
 group's "no two sheets share a selector-and-property pair" invariant stays true.**
@@ -109,7 +114,7 @@ import html
 import os
 import re
 
-from . import images, state
+from . import images, runfoot, state
 from .util import relative_url
 
 _PR = re.compile(r"#(\d+)")
@@ -147,18 +152,13 @@ _ICON = (
     'l1.1 1.1L7.6 7.5ZM8 10.2h4.2v1.5H8Z"/></svg>'
 )
 
-#: Built once at `on_config`.
+#: Built once at `on_config`. `_CORNER_TEXT` is the two-fact line as markup;
+#: `_FOOT` is the whole screen node; `_NAME`/`_PERIOD` are the raw values `runfoot`
+#: needs as CSS strings rather than as HTML.
 _CORNER_TEXT = ""
 _FOOT = ""
 _NAME = ""
 _PERIOD = ""
-
-#: The block-axis room the margin boxes need.
-#:
-#: ⚠️ 16mm RATHER THAN 12, MEASURED FROM SHIPPED VALUES rather than chosen: the
-#: letterhead mark is 8.46mm tall (`print-identity.css`) and the footer's right box
-#: is TWO lines at 8.5pt (~6mm). 12mm fits neither with air.
-_BAND = "16mm"
 
 
 def _label() -> str:
@@ -200,24 +200,6 @@ def _period(when) -> str:
     return str(when.year)
 
 
-def _css(text) -> str:
-    """ONE CSS string literal, quoted and escaped.
-
-    🔴 A BACKSLASH AND A DOUBLE QUOTE ARE THE WHOLE ATTACK SURFACE, and both are
-    escaped rather than stripped. `revised:` is authored on every page of a content
-    repo agents may not commit to and therefore may not sanitise either. An
-    unescaped quote would not "look wrong": it would terminate the string,
-    invalidate the whole `@page` rule, and drop the ENTIRE header and footer from
-    every page of that document, silently.
-
-    🔴 IT COLLAPSES WHITESPACE, SO NEVER PASS IT A MULTI-LINE VALUE -- `split()`
-    splits on newlines too. That cost a real bug on 08-30; § the sibling. Multi-line
-    content is built as SEPARATE calls joined by an escaped line feed.
-    """
-    s = " ".join(str(text or "").split())
-    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
-
-
 def _logo_url(page) -> str:
     """The declared letterhead mark, resolved for THIS page. `""` for none.
 
@@ -238,7 +220,9 @@ def _logo_url(page) -> str:
 
     ⚠️ Resolved through `util.relative_url` and never by counting separators: this
     element renders at every depth in the tree, so it is maximally exposed to the
-    `../` arithmetic that shipped wrong three separate times.
+    `../` arithmetic that shipped wrong three separate times. 🔴 AND IT NOW FEEDS TWO
+    CONSUMERS -- the in-flow corner and `runfoot`'s `@top-left` box -- so a change
+    here reaches paper twice. Still ONE resolution per page; two readers of it.
     """
     stem = str((state.INSTANCE.get("print") or {}).get("logo") or "").strip().lower()
     if not stem:
@@ -277,22 +261,21 @@ def _logo_url(page) -> str:
 def _corner(page) -> str:
     """The printed letterhead: an optional mark, then the two-fact line.
 
-    🪦 RETIRED FROM PAPER 2026-08-30 by `print-identity.css`, which now hides it --
-    the `@top-*` margin boxes carry the header on EVERY page instead. Still emitted,
-    deliberately: the element, its `hidden` trick and its stylesheet rules are the
-    revert path, and deleting them would make going back a rebuild rather than a
-    one-line change. ⚠️ It is NOT a Firefox fallback -- Firefox has no margin boxes,
-    but there is no CSS test for that, so keeping this visible would double the
-    header on every Chrome sheet. One or the other; § the sibling.
+    🪦 HIDDEN ON PAPER SINCE 2026-08-30 -- `runfoot.py` carries the header on every
+    page now. Kept as the revert path; see the module docstring.
 
     ⚠️ THE MARK SPAN IS OMITTED ENTIRELY WHEN NO LOGO RESOLVES rather than emitted
     empty. `print-identity.css` gives it a 5.5mm height, so an empty box would spend
     the whole of Michael's 140% height budget on nothing.
 
-    🔴 THE URL IS AN INLINE `background-image` AND WAS A `var()` UNTIL A RENDER PROVED
-    THAT BLANK in WeasyPrint every way it was tried. "Probably fine in Chrome" is not
-    a standard an element can be held to when its failure mode is a blank corner that
-    reports nothing. § the sibling.
+    🔴 THE URL IS AN INLINE `background-image`, AND IT WAS A `var()` UNTIL A RENDER
+    PROVED THAT BLANK. A custom property read as `background-image: var(--dr-print-logo)`
+    is the tidier shape and it produced an EMPTY BOX in WeasyPrint every way it was
+    tried -- inline, and declared in the sheet itself. Browsers do substitute custom
+    properties into `background-image`, so the tidy version is probably fine in
+    Chrome; **"probably fine" is not a standard this element can be held to**, because
+    its failure mode is a blank corner that reports nothing. The URL therefore lands
+    in the one form that rendered in the engine available to test. § the sibling.
 
     ⚠️ AND IT IS STILL NOT FETCHED ON SCREEN, which is the whole reason this is a
     background rather than an `<img>`. The `<p>` carries `hidden`, so on screen the
@@ -321,79 +304,6 @@ def _corner(page) -> str:
     )
 
 
-def _page_css(page) -> str:
-    """The `@page` rule for THIS page: running header, running footer, page number.
-
-        @top-left      the mark          @top-right      site · period
-        @bottom-left   Revised <date>    @bottom-center  Page N of M
-                                         @bottom-right   Posted by <name>
-                                                         <email>
-
-    ⭐ A PER-PAGE `<style>` LOOKS WRONG AND IS THE ONLY OPTION: a margin box cannot
-    read document content, `string-set` is unimplemented in Chrome, and a stylesheet
-    is shared by every page while the revision date is not. § the sibling for why
-    that does not bite here.
-
-    ✅ `counter(pages)` gives the TOTAL, which is the safety argument for having it: a
-    stapled packet found on a desk announces that it is incomplete.
-
-    🔴 EVERY VALUE IS OPTIONAL AND EACH BOX IS OMITTED RATHER THAN EMITTED EMPTY. A
-    margin box with no `content` is not generated at all, so an omitted box costs
-    nothing -- an emitted empty string still reserves it. A site with no `owner:`
-    prints a header and a page number and no name: the absent-means-off polarity
-    `print:` and `routes.yml` already have.
-
-    ⚠️ AND IT RETURNS `""` WHEN THE PAGE COUNTER WOULD BE THE ONLY OCCUPANT, so the
-    block-axis margin change never lands on a page with no furniture to make room
-    for. Such a page prints exactly as it did before this feature existed.
-    """
-    boxes = []
-
-    url = _logo_url(page)
-    if url:
-        # 🚩 CHROMIUM-ONLY AND UNVERIFIED HERE. `content: url()` in a margin box is
-        # supported in Chrome 131+ / Safari 18.2+; WeasyPrint 69 renders NOTHING for
-        # it, proven against a working control. ⚑ *The engine that could be tested is
-        # not the engine that prints.* If the mark is missing from a Chrome printout,
-        # this line is the suspect and print-identity.css holds the revert.
-        boxes.append("@top-left{content:url(" + _css(url) + ")}")
-
-    if _NAME and _PERIOD:
-        boxes.append(
-            "@top-right{content:" + _css(_NAME) + ' " \\00B7 " ' + _css(_PERIOD) + "}"
-        )
-
-    meta = state.BY_SRC.get(page.file.src_uri, {})
-    revised = str(meta.get("revised") or "").strip()
-    if revised:
-        # The LABEL is engine-supplied here exactly as in `lede.revised()`. Two
-        # emitters, one wording, and neither reformats the value.
-        boxes.append("@bottom-left{content:" + _css("Revised " + revised) + "}")
-
-    boxes.append('@bottom-center{content:"Page " counter(page) " of " counter(pages)}')
-
-    owner = state.INSTANCE.get("owner") or {}
-    name = owner if isinstance(owner, str) else (owner.get("name") or "")
-    email = "" if isinstance(owner, str) else (owner.get("email") or "")
-    if str(name).strip():
-        # 🔴 TWO SEPARATE `_css()` CALLS, NOT ONE JOINED STRING. That helper collapses
-        # whitespace, so a `\n` handed to it vanishes before any substitution -- the
-        # 08-30 bug. An escaped line feed between two literals cannot be normalised.
-        content = _css("Posted by " + str(name))
-        if str(email).strip():
-            content += ' "\\A " ' + _css(email)
-        boxes.append("@bottom-right{content:" + content + ";white-space:pre}")
-
-    if len(boxes) <= 1:
-        return ""
-
-    return (
-        "<style>@page{margin-top:" + _BAND + ";margin-bottom:" + _BAND + ";"
-        + "".join(boxes)
-        + "}</style>"
-    )
-
-
 def on_config(config):
     global _CORNER_TEXT, _FOOT, _NAME, _PERIOD
 
@@ -409,7 +319,8 @@ def on_config(config):
     name = str(getattr(config, "site_name", "") or "").strip()
     period = _period(when)
 
-    # Raw, for the running header. See the module docstring.
+    # Raw, for `runfoot`. See the module docstring: escaped markup cannot be reused
+    # inside a CSS string.
     _NAME, _PERIOD = name, period
 
     # 🔴 PAPER GETS THE PERIOD AND NOT THE BUILD, and it gets TWO FACTS. The name is
@@ -453,17 +364,21 @@ def on_page_content(html_body, page, config, files):
     `.md-content__inner > :first-child` for a margin reset, which the corner mark
     now satisfies instead of the heading.
 
-    ⚠️ THE `<style>` GOES AHEAD OF EVERYTHING, and its position is not a style
+    ⚠️ `runfoot`'s `<style>` GOES AHEAD OF EVEN THAT, and its position is not a style
     choice: `print.css` zeroes the top margin of `.md-content__inner > :first-child`,
-    so whatever lands first absorbs that rule. A `<style>` element generates no box,
-    which makes it the one thing that can be first WITHOUT taking the margin reset
-    away from the element that needs it. 🚩 If a future change moves it after the
-    corner, re-check that reset -- this is the third element to be first in this
-    flow and both previous ones mattered.
+    so whatever lands first absorbs that rule. **A `<style>` element generates no
+    box**, which makes it the one thing that can be first WITHOUT taking the margin
+    reset away from the element that needs it. 🚩 If a future change moves it after the
+    corner, re-check that reset -- this is the third element to be first in this flow
+    and both previous ones mattered.
 
     ⚠️ AND IT LANDS AHEAD OF `program.py`'s ARRIVAL MARKERS, which is safe: those
     promotion rules need the marker and `.dr-flows` to be SIBLINGS, and another
     sibling in front of both changes nothing.
+
+    ⚠️ THE LOGO IS RESOLVED ONCE AND PASSED TO BOTH, rather than each resolving it.
+    `_logo_url` reports a collision once per BUILD, so two independent calls would be
+    fine functionally and would still be two claimants on one fact.
 
     Unconditional on purpose. `pagefoot.py` skips generated pages because there is
     no source file to offer an edit link for; a build stamp has no such dependency,
@@ -471,4 +386,10 @@ def on_page_content(html_body, page, config, files):
     """
     if not _FOOT:
         return html_body
-    return _page_css(page) + _corner(page) + html_body + _FOOT
+    url = _logo_url(page)
+    return (
+        runfoot.page_css(page, url, _NAME, _PERIOD)
+        + _corner(page)
+        + html_body
+        + _FOOT
+    )
