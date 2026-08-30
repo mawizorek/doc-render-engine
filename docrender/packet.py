@@ -88,6 +88,49 @@ looks resolvable.
               `buildstamp.py` (`buildstamp__icon`, `buildstamp__mark`), never
               guessed.
 
+🔴 TWO MORE JOINED THE LIST ON 2026-08-30, BOTH FROM A LIVE DEFECT IN A REAL PRINT
+=============================================================================
+The RUNNING FURNITURE (`docrender/runfoot.py`) shipped the same day as this build
+and the two features collided in Michael's first packet printout. Both entries below
+are the same shape as the `buildstamp*` row above -- **a per-page element that is
+correct once and wrong N times** -- and neither was caught by review, only by paper.
+
+`dr-runfoot`  🔴 **THE RIVAL `@page` RULES, AND THIS IS THE SERIOUS ONE.** `runfoot`
+              emits a per-page `<style>` carrying that page's own `@page` margin
+              boxes -- its founding premise is *"every MkDocs page IS exactly one
+              document"*, and **a packet is the one page in this engine where that
+              is false.** N members means N `@page` rules in ONE document and **the
+              LAST one wins on every sheet**: a nine-policy packet stamped section
+              nine's revision date across all nine sheets while section one looked
+              correct. ⚑ *Exactly the half-works signature this module's anchor
+              namespacing exists to prevent, arriving through a mechanism that had
+              no anchors in it.* Reproduced against `_cut`: three sections, three
+              surviving rules, `@bottom-left` resolving to the last date.
+              ⚠️ IT NEEDED A CLASS BEFORE IT COULD BE CUT. A `<style>` needs no
+              styling, so it shipped unclassed and was invisible to every
+              class-based transform here. `runfoot.STYLE_CLASS` is now the one
+              place that token is written; **this tuple must carry it.**
+`dr-owner`    the ownership tag. Site-level identity, byte-identical on every
+              member, so N copies is pure duplication -- and the packet's own
+              running footer already carries it on every sheet. This is the line
+              Michael saw at the foot of section 1, mid-document, with no page
+              number beside it.
+
+✅ **AND `.dr-revised` IS DELIBERATELY *NOT* STRIPPED, WHICH IS THE ONE JUDGEMENT
+CALL IN THIS FIX.** It looks like the same duplication and it is the opposite: the
+ownership tag is one fact repeated, while a revision date is **per-document data that
+DIFFERS between members** -- nine policies revised in five different months. Cutting
+it would delete information that exists nowhere else in the packet. ⚑ *Two elements
+that sit side by side and look identical can have opposite claims on an aggregate:
+ask whether the value varies, not whether the element repeats.*
+
+⚠️ CONSEQUENCE, STATED RATHER THAN LEFT TO BE FOUND: the generated packet page has
+no `revised:` of its own, so **a packet's running footer prints no revision date** --
+header, page number and posted-by only. That is honest (twenty-seven sheets from nine
+policies have no single revision date) and it is a content decision. 🚩 OWED TO
+MICHAEL: whether a packet declares its own `revised:`, or its footer should read
+something like "see each section".
+
 🚫 NOTHING ELSE IS STRIPPED. In particular semantic colour STAYS: `print.css`
 applies `print-color-adjust: exact` narrowly, to elements "whose MEANING is
 carried by a colour". The ask said "all the theming stripped" and that is not what
@@ -116,6 +159,20 @@ A packet brings it to them, stapled to a cover, in a file that leaves the site.
 never silently dropped. ⚠️ uritp-safety's content repo is PRIVATE while this
 engine is PUBLIC, so a visibility judgement can never be carried across from the
 repo being rendered.
+
+=============================================================================
+⚑ THE STANDING LESSON FROM THE 08-30 COLLISION, FOR WHOEVER ADDS THE NEXT ONE
+=============================================================================
+This module strips by CLASS. So **any per-page element added anywhere in the engine
+is silently duplicated into every packet unless somebody remembers this tuple** --
+and the author of that element has no reason to be reading a stage-05b file.
+
+🚩 THE HONEST STATE: there is no check for this. A `_STRIP` entry is a hand-
+maintained cross-reference, which is the shape this repo has retired three manifests
+over. The cheap improvement is a build-report line counting how many `<style>`
+elements and `.dr-*` furniture classes survive into an assembled packet -- one
+number, and the 08-30 defect would have announced itself instead of reaching paper.
+Not built here; this pass is the fix, not the guard.
 """
 
 from __future__ import annotations
@@ -124,7 +181,7 @@ import html as _html
 import re
 from urllib.parse import urljoin, urlsplit
 
-from . import nav, state
+from . import nav, runfoot, state
 from .util import relative_url
 
 #: The splice point, written into the generated markdown and replaced at
@@ -158,8 +215,18 @@ _ID = re.compile(r"""\bid=(?P<q>["'])(.*?)(?P=q)""")
 _HREF = re.compile(r"""\bhref=(?P<q>["'])(.*?)(?P=q)""")
 _ABSOLUTE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|//)", re.I)
 
-#: Class blocks removed from every section. See the removals block above.
-_STRIP = ("dr-flow", "buildstamp")
+#: Class blocks removed from every section. See the removals block above -- every
+#: entry is a per-page element that is correct ONCE and wrong N times.
+#:
+#: 🔴 `runfoot.STYLE_CLASS` IS IMPORTED RATHER THAN TYPED. That token also appears
+#: in the emitter, and a hand-copied string in the second place is exactly the drift
+#: this repo has retired three manifests over. The import costs a stage-05b module
+#: one dependency on a hook-07 helper, which is the cheaper of the two evils and is
+#: stated in both files.
+#:
+#: ⚠️ `dr-revised` IS ABSENT ON PURPOSE. A revision date VARIES between members and
+#: exists nowhere else in the packet; the ownership tag does not vary. See above.
+_STRIP = ("dr-flow", "buildstamp", runfoot.STYLE_CLASS, "dr-owner")
 
 
 def _esc(text) -> str:
@@ -265,6 +332,12 @@ def _cut(text: str, prefix: str) -> str:
     element of the same tag name, and a non-greedy match would close on the first
     inner `</nav>` and leave the tail of one strip in the document -- half an
     element, which renders as plausible garbage rather than as an error.
+
+    ✅ AND IT HANDLES `<style>` CORRECTLY, WHICH IS WHY THE 08-30 FIX IS ONE
+    ATTRIBUTE RATHER THAN A NEW FUNCTION: the depth scan is tag-agnostic, so a
+    classed `<style>` is cut like any other element. **The gap was never the
+    cutter, it was that the target had no class to match.** Verified against the
+    real assembled output, three sections, before and after.
     """
     pat = re.compile(
         r"""<(?P<tag>[a-zA-Z][\w-]*)\b[^>]*\bclass=(?P<q>["'])[^"']*\b"""
@@ -349,17 +422,31 @@ def namespace(inner: str, n: int, own_url: str, sections: dict,
 
 
 def _cover(program_src: str, rows: list) -> str:
-    """The contents list. It is the packet's ONLY navigation and its outline.
+    """The contents list. It is the packet's PRIMARY navigation and its outline.
 
-    🔴 BLINK EMITS NO PDF BOOKMARK PANE AND HAS NEVER IMPLEMENTED `@page` margin
-    boxes, so there is no page number and no outline to be had from CSS. This
-    list is the whole answer, which is why it is markdown-free HTML built here
-    rather than left to an author.
+    🪦 **THE CLAIM THAT JUSTIFIED THIS ELEMENT HAS EXPIRED (corrected 2026-08-30).**
+    It read: *"BLINK EMITS NO PDF BOOKMARK PANE AND HAS NEVER IMPLEMENTED `@page`
+    margin boxes, so there is no page number and no outline to be had from CSS."*
+    The bookmark half stands. **The margin-box half was already false when it was
+    written** -- Chrome 131 shipped all sixteen boxes in November 2024, Safari 18.2
+    in December 2024, and `docrender/runfoot.py` was using them, on this site, the
+    same day this file was authored. A packet DOES now carry `Page N of M` on every
+    sheet.
 
-    ⚠️ Whether these become CLICKABLE annotations in a printed PDF is the one
-    OPEN ruling on this build (spec §4, Ruling 1). If they do not, this is still
-    a correct printed contents list -- the element does not change, only the
-    claim about it does.
+    ⚑ *A capability claim is the one kind of comment that rots with nothing edited,
+    because the WORLD moves instead of the code* -- and no doc-rot sweep against HEAD
+    can catch it, since HEAD still agrees with itself. Fourth instance found in one
+    session; struck rather than deleted, because the reasoning it produced is sound
+    and only its premise was stale.
+
+    ✅ THE ELEMENT SURVIVES THE CORRECTION UNCHANGED, which is the useful part: a
+    printed contents list with section numbers is worth having whether or not the
+    sheets carry page numbers, and it is the only thing that tells a reader what the
+    packet CONTAINS. The claim about it is narrower now -- primary navigation rather
+    than the whole of it.
+
+    ⚠️ Whether these become CLICKABLE annotations in a printed PDF is still the one
+    OPEN ruling on this build (spec §4, Ruling 1).
     """
     items = "".join(
         '<li><a href="#s' + str(n) + '"><span class="dr-packet__n">'
