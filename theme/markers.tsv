@@ -62,6 +62,29 @@
 # that retired three manifests in brain-config.
 #
 # ---------------------------------------------------------------------------
+# ⚠️ THE `tooltip` CELL IS A FALLBACK ON `role`, NOT THE TEXT A READER SEES
+# (2026-08-30, BUILD 9)
+#
+# For every other row, `tooltip` IS the hover text: one string per marker TYPE,
+# shared by every occurrence, which is right for a vocabulary.
+#
+# `role` is the first row whose hover text is PER ENTITY. `[Theatre
+# Administrator](@role:theatre-administrator)` reveals the `gloss:` frontmatter
+# of the page it points at, so the hover differs per role while the ROW stays one
+# row. The cell below is what a reader gets when there is nothing better:
+#
+#   the SPAN form `[x]{.role}`        -> this cell (no page, so no gloss)
+#   the LINK form with a gloss        -> the target page's `gloss:`
+#   the LINK form, target has none    -> this cell, and the build reports it
+#
+# 🚫 SO DO NOT WRITE A SPECIFIC ROLE'S DESCRIPTION IN THIS CELL. It would be one
+# string claiming to describe every role, and it would win on any page whose
+# target is missing its gloss -- a wrong answer that looks like a right one. Keep
+# it generic enough to be true of every role.
+#
+# See objects/role.yml and specs/hover-text.md.
+#
+# ---------------------------------------------------------------------------
 # SHAPE AND COLOUR ARE SEPARATE AXES, and that split is the whole flexibility.
 # There are only FOUR shapes because a reader can distinguish four at a glance
 # and cannot distinguish nine. Colour is free.
@@ -124,6 +147,7 @@ conf	confidence	Confirmed		good		Double-checked against the real thing. Trust it
 est	confidence	Estimate	soft	ink-muted		Approximate. Close enough to plan with, not close enough to cut to.
 was	confidence	Superseded	strike	ink-muted		The old VALUE, kept so paperwork quoting it can still be matched up. For an old NAME, use alias.
 term	terminology				term	House terminology. Where it is also a link there is a page defining it.
+role	terminology	Role			role	A defined production role. The page behind it says what the role covers and who to ask.
 hi	highlight	Highlight				Flagged as worth your attention. This says nothing about whether the value is correct -- if you want that, the confidence markers are the ones that mean it.
 button	layout	Button				A button on a FileMaker layout. The marked text is what the button SAYS, so it can be found by reading the label the way a user would.
 field	layout	Field				A field placed on a layout. Names the object the user types into, not the underlying schema field -- for that, look the table up.
