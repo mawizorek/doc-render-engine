@@ -14,6 +14,17 @@ of mechanism, which is the point where the file that must stay editable stops be
 editable. Read that sibling before changing anything here -- every rule below was
 paid for by an incident recorded there.
 
+🔴 **AND THE RUNNING HEADER/FOOTER IS `docrender/runfoot.py`, NOT THIS FILE**
+(2026-08-30). This hook CALLS it from `on_page_content` and passes it three values it
+has already computed; that module owns the `@page` margin boxes, the page counter, the
+block-axis margin, and the whole account of why any of it is possible. ⚠️ **Keeping it
+here took this file to 27,760 B, then 24,641, then 23,062 against the 22,528 ceiling
+-- three trims, each shaving narrative written to explain a real defect.** ⚑ *A file
+that cannot absorb a feature's reasoning is telling you the feature has its own
+subject.* The split also dissolved a blocker nobody had questioned: a helper imported
+by an already-registered hook needs no `mkdocs.yml` edit, and that file has been
+unwritable for weeks.
+
 The number in the popup is parsed from the head commit SUBJECT:
 
     squash merge   'fix: repair the venue links (#16)'   -> PR #16
@@ -28,7 +39,9 @@ mentioning another issue number must not win.
 =============================================================================
 🚫 **TWO FACTS ON THE PRINTED LINE. NOT THREE.** It has refused the PR number
 (08-19) and a program name (08-28). A line carrying two facts is a stamp; three is
-a header. § *The corner mark is SITE + DATE* in the sibling.
+a header. § *The corner mark is SITE + DATE* in the sibling. ⚠️ `runfoot.py`'s footer
+band is THREE boxes and does not break this: the rule governs one LINE, and left,
+centre and right each carry one fact.
 
 ✅ **A LOGO IS NOT A THIRD CLAUSE, IT IS A MARK** -- which is why the letterhead was
 allowed on 2026-08-29 where two text additions were not. § *THE LETTERHEAD*.
@@ -43,10 +56,19 @@ nothing reveals it on screen. That is what keeps this feature from touching a si
 screen stylesheet. It also drops the corner copy from the accessibility tree, which
 is correct -- the foot copy is the one a screen reader should find.
 
+🪦 **AND AS OF 2026-08-30 `print-identity.css` HIDES THE CORNER ON PAPER TOO**, because
+`runfoot.py`'s `@top-*` boxes carry the header on every page instead. `_corner` is
+still emitted deliberately: the element, the `hidden` trick and its stylesheet rules
+are the revert path, and deleting them would make going back a rebuild rather than a
+one-line change. ⚠️ It is NOT a Firefox fallback -- see `runfoot.py`.
+
 ⭐ **WHY THE CORNER COPY IS FIRST IN THE FLOW.** An element appended at the END of
 the content cannot be moved to the TOP of sheet one by CSS: that needs knowledge of
 where the page boundary falls, which is what `@page` margin boxes do and no major
-browser implements. First in flow IS the top of sheet one, for free.
+browser implemented when this was written. 🔴 **THAT PREMISE EXPIRED -- Chrome 131 and
+Safari 18.2 ship them, and `runfoot.py` uses them.** The sentence is kept because it
+is still why THIS element is shaped this way, and struck rather than deleted because
+⚑ *a capability claim is the one kind of comment that rots with nothing edited.*
 
 🚫 **`config.copyright` STAYS UNSET.** Material renders it inside the footer region,
 which is the place this hook exists to have escaped.
@@ -64,13 +86,19 @@ the logo URL only**, because `util.relative_url` needs the consuming page and a
 letterhead renders at every depth in the tree. One computed fact, one resolution per
 page: still one claimant. § *The date is still built ONCE*.
 
+⚠️ **`_NAME` AND `_PERIOD` ARE KEPT RAW BESIDE THE ESCAPED MARKUP** so `runfoot` can
+quote them as CSS strings: an HTML-escaped `&amp;` inside a CSS string prints
+literally. One computed fact, two encodings, neither derived from the other.
+
 =============================================================================
 ⚠️ THE STYLING IS SPLIT ACROSS TWO SHEETS ON PURPOSE
 =============================================================================
     print-chrome.css    the stamp's own BOX -- and `display: block`, which is what
                         overrides `hidden`. Delete it there and the letterhead
                         renders nothing, with nothing reporting it.
-    print-identity.css  the LETTERHEAD ROW -- flex, the mark, the two weights.
+    print-identity.css  the LETTERHEAD ROW -- flex, the mark, the two weights -- and,
+                        as of 08-30, the rules that retire the in-flow copies on
+                        paper now that the margin boxes carry them.
 
 🔴 Every selector in `print-identity.css` is net-new **specifically so the print
 group's "no two sheets share a selector-and-property pair" invariant stays true.**
@@ -86,7 +114,7 @@ import html
 import os
 import re
 
-from . import images, state
+from . import images, runfoot, state
 from .util import relative_url
 
 _PR = re.compile(r"#(\d+)")
@@ -125,9 +153,12 @@ _ICON = (
 )
 
 #: Built once at `on_config`. `_CORNER_TEXT` is the two-fact line as markup;
-#: `_FOOT` is the whole screen node.
+#: `_FOOT` is the whole screen node; `_NAME`/`_PERIOD` are the raw values `runfoot`
+#: needs as CSS strings rather than as HTML.
 _CORNER_TEXT = ""
 _FOOT = ""
+_NAME = ""
+_PERIOD = ""
 
 
 def _label() -> str:
@@ -189,7 +220,9 @@ def _logo_url(page) -> str:
 
     ⚠️ Resolved through `util.relative_url` and never by counting separators: this
     element renders at every depth in the tree, so it is maximally exposed to the
-    `../` arithmetic that shipped wrong three separate times.
+    `../` arithmetic that shipped wrong three separate times. 🔴 AND IT NOW FEEDS TWO
+    CONSUMERS -- the in-flow corner and `runfoot`'s `@top-left` box -- so a change
+    here reaches paper twice. Still ONE resolution per page; two readers of it.
     """
     stem = str((state.INSTANCE.get("print") or {}).get("logo") or "").strip().lower()
     if not stem:
@@ -227,6 +260,9 @@ def _logo_url(page) -> str:
 
 def _corner(page) -> str:
     """The printed letterhead: an optional mark, then the two-fact line.
+
+    🪦 HIDDEN ON PAPER SINCE 2026-08-30 -- `runfoot.py` carries the header on every
+    page now. Kept as the revert path; see the module docstring.
 
     ⚠️ THE MARK SPAN IS OMITTED ENTIRELY WHEN NO LOGO RESOLVES rather than emitted
     empty. `print-identity.css` gives it a 5.5mm height, so an empty box would spend
@@ -269,7 +305,7 @@ def _corner(page) -> str:
 
 
 def on_config(config):
-    global _CORNER_TEXT, _FOOT
+    global _CORNER_TEXT, _FOOT, _NAME, _PERIOD
 
     label = _label()
 
@@ -282,6 +318,10 @@ def on_config(config):
     # the system entirely and a bare period names nothing a reader can place.
     name = str(getattr(config, "site_name", "") or "").strip()
     period = _period(when)
+
+    # Raw, for `runfoot`. See the module docstring: escaped markup cannot be reused
+    # inside a CSS string.
+    _NAME, _PERIOD = name, period
 
     # 🔴 PAPER GETS THE PERIOD AND NOT THE BUILD, and it gets TWO FACTS. The name is
     # bold and the period is not (`print-identity.css`) -- weight separates them
@@ -315,7 +355,7 @@ def on_config(config):
 
 
 def on_page_content(html_body, page, config, files):
-    """Wrap the page body: letterhead first, foot line last.
+    """Wrap the page body: the `@page` rule, letterhead first, foot line last.
 
     ⚠️ THE CORNER IS PREPENDED, WHICH IS NET-NEW IN THIS ENGINE. Every other
     `on_page_content` consumer appends -- `pagefoot.py` (06), `router.py` (04b) and
@@ -324,9 +364,21 @@ def on_page_content(html_body, page, config, files):
     `.md-content__inner > :first-child` for a margin reset, which the corner mark
     now satisfies instead of the heading.
 
+    ⚠️ `runfoot`'s `<style>` GOES AHEAD OF EVEN THAT, and its position is not a style
+    choice: `print.css` zeroes the top margin of `.md-content__inner > :first-child`,
+    so whatever lands first absorbs that rule. **A `<style>` element generates no
+    box**, which makes it the one thing that can be first WITHOUT taking the margin
+    reset away from the element that needs it. 🚩 If a future change moves it after the
+    corner, re-check that reset -- this is the third element to be first in this flow
+    and both previous ones mattered.
+
     ⚠️ AND IT LANDS AHEAD OF `program.py`'s ARRIVAL MARKERS, which is safe: those
     promotion rules need the marker and `.dr-flows` to be SIBLINGS, and another
     sibling in front of both changes nothing.
+
+    ⚠️ THE LOGO IS RESOLVED ONCE AND PASSED TO BOTH, rather than each resolving it.
+    `_logo_url` reports a collision once per BUILD, so two independent calls would be
+    fine functionally and would still be two claimants on one fact.
 
     Unconditional on purpose. `pagefoot.py` skips generated pages because there is
     no source file to offer an edit link for; a build stamp has no such dependency,
@@ -334,4 +386,10 @@ def on_page_content(html_body, page, config, files):
     """
     if not _FOOT:
         return html_body
-    return _corner(page) + html_body + _FOOT
+    url = _logo_url(page)
+    return (
+        runfoot.page_css(page, url, _NAME, _PERIOD)
+        + _corner(page)
+        + html_body
+        + _FOOT
+    )
