@@ -217,26 +217,31 @@ print:
 
 
 # =============================================================================
-# ⭐ THE OWNERSHIP TAG (2026-08-30)
+# ⭐ THE OWNERSHIP TAG (2026-08-30) -- ONE FOOTER LINE, TWO ENDS
 # =============================================================================
-# > Michael: *"I'm thinking of something more general and global so I don't have
-# > to worry about adding it to every page. Right now, if someone sees this
-# > printed on a desk and is curious about it, they need to know where it came
-# > from and who to contact."*
+# > Michael: *"something more general and global so I don't have to worry about
+# > adding it to every page ... if someone sees this printed on a desk and is
+# > curious about it, they need to know where it came from and who to contact."*
 #
-# Renders as the second-to-last line of every page on this site:
+# On every page of this site:
 #
-#     Posted by Michael A Wizorek · michael.wizorek@rochester.edu
-#     Revised Aug 2026
+#     Revised Aug 2026        Posted by Michael A Wizorek · michael.wizorek@...
 #
-# `docrender/lede.py` `owner()` draws it; `assets/base.css` styles it as the
-# revision line's twin. It sits directly ABOVE `revised:`, which leaves Michael's
-# 2026-08-07 ruling that the revision date is "the very last thing on any page"
-# intact rather than superseded.
+# `docrender/lede.py` `owner()` draws it; `assets/base.css` FLOATS it to the right
+# of the revision line, which keeps its own left position, font, size and colour.
 #
-# 🔴 WHY IT IS HERE AND NOT IN FRONTMATTER, WHICH IS THE ENTIRE REQUEST. Every
-# other foot line on a page is a per-page field. This one is authored ONCE, here,
-# and lands on every page of this site with NO page edit anywhere -- and the
+# 🔴 v1 STACKED IT ABOVE THE DATE AND REWROTE THE REVISED RULE TO MATCH. Michael,
+# 2026-08-30: *"Leave the revised function and position and font and size exactly
+# the same on the left side of the footer. Add POSTED BY aligned right in the same
+# line of the footer. No stacking, don't overthink the date. You are adding a
+# single line of prose text with my email link ... don't fucking move or change
+# revised. Not your job right now."* Reverted inside the hour; the revised rule is
+# byte-identical to what it was before this feature existed. ⚑ **A request to ADD
+# a line was executed as a redesign of the line already there.**
+#
+# 🔴 WHY IT IS HERE AND NOT IN FRONTMATTER, WHICH IS THE OTHER HALF OF THE REQUEST.
+# Every other foot line on a page is a per-page field. This one is authored ONCE,
+# here, and lands on every page of this site with NO page edit anywhere -- and the
 # content repo is one agents may never commit to, so a per-page key would have
 # meant Michael hand-editing every file in the tree forever. ⭐ ABSENT MEANS NO
 # TAG, same polarity as `print:` and `routes.yml`.
@@ -259,9 +264,10 @@ print:
 # ⚠️ WHAT THIS TAG DOES NOT DO, said out loud because it looks like it does. It
 # claims MAINTENANCE without proving any: it renders unconditionally while
 # `revised:` stays optional, so a page with no date carries a named owner and no
-# evidence anyone has looked at it since. Hawthorne raised it, Michael deferred
-# it to the revision-log / update-cycle conversation. Not fixed here, and not to
-# be read as fixed.
+# evidence anyone has looked at it since. Raised on 08-30 and DEFERRED BY MICHAEL
+# to the revision-log / update-cycle conversation in the same breath as the
+# instruction above -- explicitly not this feature's job. Not fixed here, and not
+# to be read as fixed.
 owner:
   name: Michael A Wizorek
   email: michael.wizorek@rochester.edu
