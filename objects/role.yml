@@ -1,0 +1,85 @@
+# A ROLE. Not a person -- a JOB somebody holds.
+#
+#   Theatre Administrator · Production Manager · Technical Director
+#
+# Referenced from any other page as `[the words you want](@role:<id>)`, which
+# renders as a terminology-coloured link and reveals `gloss` on hover. See
+# specs/hover-text.md and docrender/markerlinks.py.
+#
+# ---------------------------------------------------------------------------
+# ⭐ `gloss` IS THE ONLY FIELD THIS TYPE ADDS, AND IT IS THE FIRST SUBJECT FIELD
+# TO EARN FRONTMATTER SINCE THE 2026-08-03 PURGE.
+#
+# space.yml deleted six room fields and venue.yml four building fields on one
+# test: *"whether a value is needed AWAY from the page it appears on."* A grid
+# height is read only on the page it sits on, so it was prose wearing a header's
+# clothes.
+#
+# `gloss` passes that test for the one reason those fields never could: its
+# ENTIRE PURPOSE is to appear somewhere else. It is read on every page that
+# references this role and -- per the ruling below -- nowhere else at all.
+#
+# 🚫 SO DO NOT ADD A FACTS-ABOUT-THE-SUBJECT FIELD HERE. No `phone:`, no
+# `office:`, no `email:`, no `term:`. Every one of those is read only on this
+# page, which means space.yml has already refused it. Write it in the BODY.
+# ---------------------------------------------------------------------------
+# 🔴 RULING (Michael, 2026-08-30): THE GLOSS NEVER RENDERS ON THIS PAGE.
+#
+#   *"no to pasting frontmatter hover field render on the local page anywhere --
+#   just for external hovers."*
+#
+# That is why there is NO `renders:` block below. objects.on_page_markdown draws
+# only what a type declares, so a type declaring nothing draws nothing: there is
+# no flag to set, nothing to suppress, and no default to get wrong.
+#
+# ⭐ AND THE REASON IS SHARPER THAN THE INSTRUCTION. `_base` already requires
+# `summary:` -- the lede, *"what this is and who needs it"*, rendered under the
+# H1. A gloss drawn on this page would be a SECOND SENTENCE ANSWERING THE SAME
+# QUESTION, six lines apart, from two fields nothing reconciles. That is the
+# two-claimants defect at the smallest possible scale, and it is what killed
+# roster.json, registry.json and app-index.md.
+#
+# So the two fields have two AUDIENCES, and that IS the design:
+#
+#   summary   for somebody standing ON this page
+#   gloss     for somebody who NEVER ARRIVES -- reading a sentence on a different
+#             page that happens to name this role
+#
+# ⚑ Two strings about one subject are safe exactly when they answer different
+# questions, and unsafe the moment they answer the same one.
+#
+# 🚫 DO NOT ADD `spec_table: [gloss]` HERE. It looks like a gap and it is a
+# ruling.
+# ---------------------------------------------------------------------------
+# `print_gloss` -- OPTIONAL, and what PAPER shows instead of the gloss.
+#
+# Hover does not exist on paper, so markerlinks prints the gloss inline in
+# parentheses after the link text. This key overrides that string for this role.
+#
+# ⚠️ ABSENT AND EMPTY ARE DIFFERENT STATES AND BOTH ARE REAL:
+#
+#   print_gloss absent      paper prints the `gloss`
+#   print_gloss: ""         paper prints NOTHING for this role
+#   print_gloss: "Sara P."  paper prints " (Sara P.)"
+#
+# markerlinks tests `is None`, never falsiness -- `collapsed:` had to be
+# retrofitted for exactly this on 2026-08-30 (PR #201), where `false` and an
+# omitted key produced identical output and one whole state was unreachable.
+#
+# 🔴 IF YOU PUT A HUMAN'S NAME IN HERE, READ THIS FIRST. The string is written
+# into a `data-role-print` attribute on EVERY page that references the role, in
+# the DOM, on screen, in view-source -- "print-only" is a VISUAL claim and never
+# a privacy one. On a PUBLIC site that publishes a named person. And the
+# assignment is a ClickUp fact (URITP PEOPLE owns it, with a term attached), so
+# a name here is a snapshot nothing can see rot. If you do it anyway, set
+# `revised:` -- a stale name with a visible date is a different object from a
+# stale name with none.
+# ---------------------------------------------------------------------------
+
+type: role
+label: Role
+extends: _base
+requires:
+  - gloss
+optional:
+  - print_gloss
