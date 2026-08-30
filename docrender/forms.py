@@ -9,12 +9,12 @@
 
     !!! form "completion"
 
-🔴 **EVERY ARGUMENT LIVES IN `docrender/forms-dl.md`.** This file has now crossed
-the 22,528 B read ceiling TWICE in one day (24,664 B, then 24,030 B) while
-reasoning was being written into it. **The steps and the warnings stay here; why a
-step exists at all is one file over.** Same standard `buildstamp-dl.md` set.
+🔴 **EVERY ARGUMENT LIVES IN `docrender/forms-dl.md`.** This file has crossed the
+22,528 B read ceiling THREE times while reasoning was being written into it.
+**The steps and the warnings stay here; why a step exists at all is one file
+over.** Same standard `buildstamp-dl.md` set.
 
-⚠️ AND BOTH OVERRUNS WERE PREDICTED BY A SIZE I ESTIMATED RATHER THAN MEASURED.
+⚠️ AND EVERY OVERRUN WAS PREDICTED BY A SIZE I ESTIMATED RATHER THAN MEASURED.
 If you are adding to this docstring, write the section in the sibling first.
 
 Michael, 2026-08-19: *"can i embed an actual clickup form as content in the
@@ -50,6 +50,28 @@ names the live pages that reaches. 🚫 NOT a second `collapsible:` key -- two
 booleans give four states and one of them is unsatisfiable.
 
 =============================================================================
+🔴 NO FORM IFRAME PRINTS -- AND IT LOSES TO AN `!important` NEXT DOOR
+=============================================================================
+`print-flow.css` sets `.md-typeset details > *:not(summary) { display: revert
+!important }` so a collapsed `???` cannot silently lose its content on paper. A
+form's iframe, Reload button and fallback are all DIRECT CHILDREN of the
+`<details>` this module emits, so that rule reaches them -- and importance beats
+specificity, so every non-important `display:none` loses, including `flow.css`'s
+own `.dr-form iframe`. That is why a folded form printed its whole frame.
+
+🔴 SO THE PRINT `display` RULES BELOW CARRY `!important` DELIBERATELY, against
+this repo's preference for winning on specificity. There is no specificity high
+enough to beat an important declaration.
+
+🔴 AND WEASYPRINT CANNOT SEE THIS BUG -- it discards `display: revert` as an
+invalid value, so the harness drops the very declaration that causes the
+failure. ⚠️ **A harness that silently discards a declaration reports the cascade
+it wishes it had.** Reproduce by substituting `display: block !important`.
+
+⚠️ The summary is hidden on paper too -- a control, whose text the fallback link
+already carries. Full argument + the lossy edge case: `forms-dl.md`.
+
+=============================================================================
 🔴 THE RELOAD BUTTON, AND WHY IT REPLACES THE NODE (2026-08-30)
 =============================================================================
 `cloneNode` + `replaceWith`, NEVER `iframe.src = src`: assigning `src` NAVIGATES
@@ -59,18 +81,6 @@ the reader's Back button walks iframe states instead of leaving the page.
 🔴 IT DISCARDS WHATEVER WAS TYPED, WITH NO CONFIRMATION, AND THAT IS THE ASK.
 **The label is the safety mechanism.** 🚫 Not on a `views:` embed -- a shared view
 is read-only furniture. Argument: `forms-dl.md`.
-
-=============================================================================
-🔴 A COLLAPSED EMBED PRINTED AS A CALLOUT. FIXED 2026-08-30.
-=============================================================================
-Material `@extend`s `.admonition` onto EVERY `<details>`, so `print-callout.css`
-gave a collapsed embed a 2pt band and an indent its uncollapsed sibling never
-got. ⚑ **Two embeds declared the same way, differing in one SCREEN-only key,
-printed as two different KINDS of object.** `flow.css` fixed exactly this for
-`.dr-flows__others` and nobody pointed the same fix at the form.
-
-⚠️ The summary is hidden on paper -- a control, whose text the fallback link
-already carries. 🚩 One lossy edge case, in `forms-dl.md`.
 
 =============================================================================
 🔴 `height="100%"` COLLAPSES TO NOTHING WITHOUT THEIR SCRIPT
@@ -88,14 +98,8 @@ scrollable form rather than a hole.
 ⚠️ AND THAT FLOOR IS THE ONLY REASON A RE-BINDING FAILURE IS SURVIVABLE. Anything
 that replaces or re-creates this element at runtime -- a refresh control, for
 instance -- orphans the CDN script's listener, so the frame falls back to exactly
-this value instead of collapsing. Stated here because the floor reads like
-defensive tidiness and is load-bearing for a feature nobody has built yet.
-
-⭐ THAT FEATURE ARRIVED ON 2026-08-30 AND THE PARAGRAPH ABOVE IS UNCHANGED. It
-named *"a refresh control, for instance"* before one existed, and the floor is now
-its second consumer. **A guard written for a CDN outage is what made a later
-feature safe** -- kept visible because the usual version of this note is written
-after the damage.
+this value instead of collapsing. ⭐ That feature arrived on 2026-08-30 and the
+paragraph above is UNCHANGED: it named the consumer before one existed.
 
 🔴 AND THE WHOLE PROBLEM IS FORM-ONLY -- read this before copying the machinery.
 ClickUp's embed code for a shared VIEW ships `clickup-embed` alone with a literal
@@ -186,19 +190,14 @@ _RESET_JS = (
 )
 
 #: Inline, once per page, because `assets/flow.css` -- which owns `.dr-form*` -- is
-#: **23,485 B and already 957 B PAST the read ceiling**, having grown 2,365 B the
-#: same morning when the `.dr-view*` rules landed. 🚩 These move there after the
-#: split its own header prescribes.
+#: past the read ceiling and cannot be rewritten safely. 🚩 These move there after
+#: the split its own header prescribes.
 #:
-#: ⚠️ THE PRINT HALF IS THE FIX FOR MICHAEL'S 08-30 PREVIEW, not decoration. Rule
-#: two strips the callout costume Material puts on every `<details>`; rule three
-#: hides the summary, a control whose text the fallback link already carries.
-#: The new first print rule is the real bug fix: a CLOSED fold keeps its iframe
-#: hidden on paper even when the page disabled the reload button, which was the
-#: accidental gate on the previous pass.
-#:
-#: ⚠️ AND THE BUTTON GOES TOO -- a button on paper is a lie, the same pen test
-#: `print.css` applies to its whole chrome-off list.
+#: 🔴 EVERY PRINT `display` DECLARATION IS `!important` ON PURPOSE. See the
+#: docstring: `print-flow.css` sets `display: revert !important` on every direct
+#: child of a `<details>`, and importance beats any specificity. 🚫 DO NOT tidy
+#: these back to plain `display: none` -- that is the exact regression reported
+#: twice on 2026-08-30, and WeasyPrint cannot see it.
 _RESET_CSS = (
     "<style>.dr-form__tools{margin:.6rem 0 0}"
     ".dr-form__reset{display:inline-block;padding:.3rem .7rem;"
@@ -208,12 +207,18 @@ _RESET_CSS = (
     "font-weight:600;cursor:pointer}"
     ".dr-form__reset:hover{border-color:var(--dr-accent,var(--md-typeset-a-color));"
     "color:var(--dr-accent,var(--md-typeset-a-color))}"
-    "@media print{.dr-form__tools{display:none}"
-    ".dr-form__open:not([open]) iframe,.md-typeset .dr-form__open:not([open]) iframe{display:none}"
+    "@media print{"
+    ".dr-form iframe,.md-typeset .dr-form iframe,"
+    ".dr-form__open>iframe,.md-typeset .dr-form__open>iframe"
+    "{display:none !important}"
+    ".dr-form__tools,.md-typeset .dr-form__tools,"
+    ".dr-form__open>.dr-form__tools,.md-typeset .dr-form__open>.dr-form__tools"
+    "{display:none !important}"
     ".dr-form__open,.md-typeset .dr-form__open{margin:0;padding:0;"
     "border:0 !important;background:transparent}"
-    ".dr-form__open>summary,.md-typeset .dr-form__open>summary{display:none}}"
-    "</style>"
+    ".dr-form__open>summary,.md-typeset .dr-form__open>summary"
+    "{display:none !important}"
+    "}</style>"
 )
 
 
@@ -399,9 +404,7 @@ def _html(src, slot) -> str:
     # scrolls correctly and stays shut.
     #
     # ⭐ `open` IS AN ATTRIBUTE ON THE SAME ELEMENT, so "expanded" and "closed" are
-    # ONE markup shape with one character of difference -- not two branches. That
-    # is what keeps the print rules, the anchor and the styles from needing to know
-    # which state a slot asked for.
+    # ONE markup shape with one character of difference -- not two branches.
     return (
         '<div class="dr-form">'
         '<details class="dr-form__open"' + (" open" if fold == "open" else "")
@@ -423,13 +426,11 @@ def on_page_markdown(markdown, page, config, files):
     ⭐ THE HELPER SCRIPT IS APPENDED ONCE PER PAGE, NOT ONCE PER FORM. Two forms
     on a page would otherwise fetch and execute the same CDN asset twice.
 
-    🔴 THREE COUNTERS, BECAUSE THESE ARE THREE DIFFERENT FACTS AND COLLAPSING ANY
-    TWO OF THEM IS WHAT CAUSED THE LAST BUG: *a directive matched* · *a frame
-    exists* · *a button exists*. The CDN script is gated on the second, because a
-    page whose only form is broken has no frame for it to size and the request
-    would be pure cost. The style/listener block is gated on the second too now,
-    because the print fix belongs to folded embeds whether or not the reload button
-    is present.
+    🔴 THE STYLE BLOCK IS GATED ON A FRAME EXISTING, NOT ON A BUTTON EXISTING, and
+    that distinction WAS the first 2026-08-30 regression: the print rules rode in
+    the reload-button block, so a page setting `reload: false` printed its whole
+    iframe. The listener alone is gated on a button, because a listener with
+    nothing to click is pure cost. Frames and buttons are different facts.
 
     ⭐ THE `views:` PASS RUNS HERE TOO, LAST, because one hook is what keeps this
     feature out of `mkdocs.yml`. 🔴 The import is local to this function ON PURPOSE
