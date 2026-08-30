@@ -412,7 +412,8 @@ def on_page_markdown(markdown, page, config, files):
     FOUR fields are drawn here that no type declares, because they belong to
     every page: `summary:` (the lede, into the slot after the H1), `related:`,
     `keywords:` and `revised:` (the last line of the document), in that order at
-    the foot. See docrender/lede.py and docrender/related.py.
+    the foot. The ownership tag joins them from CONFIG rather than from a field.
+    See docrender/lede.py and docrender/related.py.
     """
     meta = state.BY_SRC.get(page.file.src_uri, {})
     spec = meta.get("_spec") or {}
@@ -459,6 +460,7 @@ def on_page_markdown(markdown, page, config, files):
     #
     #   related   places to go next        -- a reader's business
     #   keywords  search terms             -- a searcher's business
+    #   owner     who posted it, who to ask -- a reader's business again
     #   revised   provenance               -- "the very last thing on any page"
     #
     # ⚠️ `related` EMITS `@id` TOKENS, so it must be written here in the markdown
@@ -472,6 +474,15 @@ def on_page_markdown(markdown, page, config, files):
     words = lede.keywords(meta.get("keywords"))
     if words:
         markdown = markdown.rstrip() + "\n\n" + words + "\n"
+
+    # THE OWNERSHIP TAG (2026-08-30), and it is the one foot line NOT drawn from
+    # frontmatter: `owner:` in the instance's site.yml, so it lands on every page
+    # of a site with no page edit anywhere. It sits directly ABOVE the revision
+    # line, which leaves the 08-07 ruling below intact. lede.owner() carries the
+    # whole account, including why it lives in that module.
+    tag = lede.owner(state.INSTANCE.get("owner"))
+    if tag:
+        markdown = markdown.rstrip() + "\n\n" + tag + "\n"
 
     # LAST, and below the keywords line. Michael, 2026-08-07: the revision date
     # is "the very last thing on any page".
