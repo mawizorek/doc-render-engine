@@ -28,16 +28,18 @@ implements."* That was correct when written.
 in December 2024** -- including `counter(page)`, `counter(pages)` and `content: url()`.
 
 ⚑ **A SENTENCE ASSERTING THAT A CAPABILITY DOES NOT EXIST IS A FACT WITH AN EXPIRY
-DATE, AND NOTHING FAILS WHEN IT PASSES.** Third instance of that shape found in one
-session -- the others were `instances/uritp/site.yml` claiming the letterhead was
-"NOT BUILT" the day after it shipped, and `foot.css` predicting the browser was the
-unverified half when the browser was the half that worked. 🚩 The class is now named:
-**a capability claim is the one kind of comment that rots without anybody editing it,
-because the world moves instead of the code.** It cannot be caught by a doc-rot sweep
-against HEAD, because HEAD still agrees with itself.
+DATE, AND NOTHING FAILS WHEN IT PASSES.** Four instances found in one session -- this
+one, `instances/uritp/site.yml` calling the letterhead "NOT BUILT" the day after it
+shipped, `foot.css` predicting the wrong half was unverified, and 🔴 `packet.py`
+`_cover` stating *"BLINK ... HAS NEVER IMPLEMENTED `@page` margin boxes"* -- written
+while this module was using them. 🚩 The class is now named: **a capability claim is
+the one kind of comment that rots with nothing edited, because the WORLD moves
+instead of the code.** No doc-rot sweep against HEAD can catch it; HEAD still agrees
+with itself. The check has to be "is this still true of the platform", and nothing in
+this repo performs it.
 
 =============================================================================
-⭐ THE DESIGN TURN THAT MAKES THIS CHEAP
+⭐ THE DESIGN TURN THAT MAKES THIS CHEAP -- AND ITS ONE EXCEPTION
 =============================================================================
 A margin box cannot read document content. The spec's answer is `string-set` /
 `string()`, and **no browser implements it** -- normally that kills a running header
@@ -48,10 +50,25 @@ carrying per-document values, and it is why every guide on this reaches for Page
 the engine writes that page's own values into that page's own `@page` rule at build
 time. No named strings, no polyfill, nothing at read time, no new dependency.
 
-⚠️ WHICH IS WHY THIS IS EMITTED AS A PER-PAGE `<style>` RATHER THAN LIVING IN A
-SHEET. A stylesheet is shared by every page; the revision date is not. Same reason
-`buildstamp._corner` writes the letterhead URL inline instead of as a custom
-property -- one computed fact per page, resolved for that page.
+🔴 **AND THAT PREMISE IS FALSE FOR EXACTLY ONE PAGE IN THIS ENGINE, WHICH SHIPPED THE
+SAME DAY (2026-08-30).** A BUILD 10 program PACKET splices N members' article HTML
+into ONE document, so N `@page` rules land in one page and **the last one wins on
+every sheet** -- a nine-policy packet stamped section nine's revision date across all
+nine sheets, and section one looked correct, which is the half-works shape
+`packet.py` was written to prevent. Reproduced against the real `_cut`: three
+sections, three surviving `@page` rules, `@bottom-left` resolving to the LAST date.
+
+✅ THE FIX IS ONE ATTRIBUTE, AND IT IS THE ONE BELOW: the `<style>` carries
+`class="dr-runfoot"` so `packet._STRIP` can remove it per section, leaving the
+PACKET's own rule as the only claimant. ⚑ *An element with no class is invisible to
+every class-based transform in the pipeline -- and "it has no class because it needs
+no styling" is exactly the reasoning that makes it unreachable.*
+
+⚠️ A PACKET THEREFORE PRINTS NO REVISION DATE IN ITS FOOTER, because the generated
+packet page has no `revised:` of its own. That is honest -- twenty-seven sheets
+collected from nine policies have no single revision date -- and it is Michael's
+ruling to make, not this module's. 🚩 Owed: whether a packet declares its own
+`revised:`, or its footer says something like "see each section".
 
 =============================================================================
 🔴 WHY THIS IS NOT A HOOK, AND WHY THAT IS THE POINT
@@ -71,8 +88,7 @@ whether the feature needed to be a hook at all.
 in `buildstamp.py` took that file to **27,760 B**, then 24,641 B, then 23,062 B
 against a **22,528 B** read ceiling -- three trims, each one shaving narrative that
 had been written to explain a real defect. ⚑ *A file that cannot absorb a feature's
-reasoning is telling you the feature has its own subject.* `buildstamp.py` is back
-to near its pre-feature size and keeps only a pointer.
+reasoning is telling you the feature has its own subject.*
 
 =============================================================================
 🔴 THE BLOCK AXIS IS OURS. THE INLINE AXIS IS NOT. DO NOT TOUCH IT.
@@ -139,6 +155,11 @@ document and extracted text PER PAGE: header, `Revised <date>`, `Page N of M` wi
 the right N, `Posted by <name>` and the email on its own line, on every page, with
 the in-flow copies suppressed and no value duplicated.
 
+✅ **AND THE PACKET COLLISION IS VERIFIED BOTH WAYS** (2026-08-30), against the real
+`packet._cut` rather than a description of it: three surviving `@page` rules before
+the class was added, zero after, with every section body and heading intact and the
+packet's own rule left as the only claimant.
+
 🔴 **THE LOGO IN A MARGIN BOX: NOT VERIFIED, AND THE ENGINE THAT FAILS IT IS NOT THE
 ENGINE THAT MATTERS.** WeasyPrint 69 renders NOTHING for `content: url()` in a margin
 box -- proven against a working control (a body `<img>` rasterised 11,711 red pixels;
@@ -164,6 +185,18 @@ from . import state
 #: letterhead mark is 8.46mm tall (`print-identity.css`) and the footer's right box is
 #: TWO lines at 8.5pt (~6mm). 12mm fits neither with air.
 BAND = "16mm"
+
+#: 🔴 THE CLASS ON THE `<style>` ELEMENT, AND IT IS LOAD-BEARING RATHER THAN COSMETIC.
+#: A `<style>` needs no styling, so it shipped unclassed on 2026-08-30 -- which made
+#: it **invisible to `packet._cut`**, the class-based transform that strips per-section
+#: furniture, and let N members' `@page` rules survive into one packet. Named here as
+#: a constant so the emitter and `packet._STRIP` cannot drift apart silently.
+#:
+#: ⚠️ `packet.py` MUST CARRY THIS TOKEN IN `_STRIP`. Two files, one string, and the
+#: coupling is stated in both -- the alternative was `packet.py` importing this module
+#: for one constant, which would put a stage-05b file behind a hook-07 helper for no
+#: other reason. 🚩 If a third consumer appears, that import becomes the right answer.
+STYLE_CLASS = "dr-runfoot"
 
 
 def css_string(text) -> str:
@@ -211,6 +244,10 @@ def page_css(page, logo_url: str, site: str, period: str) -> str:
     program name (08-28) because *"a line carrying two facts is a stamp; three is a
     header."* That rule governs ONE line. Left, centre and right each carry one fact,
     which is the opposite of crowding.
+
+    🔴 THE `<style>` CARRIES `STYLE_CLASS` SO A PACKET CAN STRIP IT. See that constant:
+    unclassed, it survived into a spliced packet N times and the last rule won. This
+    is the only reason a `<style>` element in this engine has a class at all.
 
     🔴 EVERY VALUE IS OPTIONAL AND EACH BOX IS OMITTED RATHER THAN EMITTED EMPTY. A
     margin box whose `content` computes to `none` is not generated at all, so an
@@ -269,7 +306,8 @@ def page_css(page, logo_url: str, site: str, period: str) -> str:
         return ""
 
     return (
-        "<style>@page{margin-top:" + BAND + ";margin-bottom:" + BAND + ";"
+        '<style class="' + STYLE_CLASS + '">@page{margin-top:' + BAND
+        + ";margin-bottom:" + BAND + ";"
         + "".join(boxes)
         + "}</style>"
     )
