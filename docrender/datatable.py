@@ -1,4 +1,4 @@
-"""Stage 01b -- render a TSV sitting next to a page as a table.
+"""Stage 01b -- render a TSV as a table. Beside the page, or by name from anywhere.
 
 Decision history: doc-render-engine (repo) Decision Log in ClickUp, blocks J4/J5/J7/J17
 and J20/J21. **The argument lives THERE; this file states the contract.** That split is
@@ -10,7 +10,7 @@ FOUR MODULES, ONE FEATURE:
     sheet.py    reading and shaping a TSV. Rows, header, sections, options, order, kind.
     cells.py    one cell as prose. Markers, @refs, inline markdown, escaping.
     table.py    shaped rows -> markup. Column classes, roles, labels, money, the shell.
-    this file   the frontmatter contract and the `!!! data` block.
+    this file   the frontmatter contract, the `!!! data` block, and WHERE THE FILE IS.
 
 
 WHY DATA FILES ARE ALLOWED IN THE CONTENT TREE
@@ -29,8 +29,8 @@ THE CONTRACT
     type: reference
     data:
       inventory_table:
-        file: audio-inventory.tsv
-        caption: Audio inventory          # optional
+        file: audio-inventory.tsv       beside the page, OR anywhere -- see FINDING
+        caption: Audio inventory        # optional
     ---
 
     !!! data "inventory_table"            EMBED. Block level. Draws it here.
@@ -58,6 +58,48 @@ consequence, and the warning about adding a FIRST slot to a type are all in
 reported by name, because an ignored key looks exactly like the feature never having
 worked. ⚠️ The embed carries NO label; the mention carries one because a sentence needs
 words. `data` is a reserved admonition type.
+
+
+🔴 FINDING THE FILE -- SIBLING, RELATIVE, OR BY NAME (2026-08-31)
+===============================================================
+> Michael, having just made a `../../production/info-dates/...` path work: *"not a huge
+> fan of it but it worked"*, then, choosing between a `site.yml` registry and a tree
+> search: *"i just be sure to never name tsv that same. that's my pref for now."*
+
+Three forms, tried in this order, and the ORDER is the compatibility guarantee:
+
+    file: audio-inventory.tsv                  1. beside the page      ← unchanged
+    file: ../../production/x/dates.tsv         2. relative to the page ← unchanged
+    file: dates-big-love-run-crew.tsv          3. anywhere in the tree ← new
+
+✅ 1 AND 2 ARE ONE TEST AND ARE BYTE-IDENTICAL TO WHAT SHIPPED. `Path` resolves `..`
+itself, so a declared path that names a real file wins before the index is ever consulted.
+His two live pages keep working with no edit, and a page can still force a specific file
+by path when two names collide.
+
+⚠️ A REGISTRY WAS THE OTHER CANDIDATE AND WAS REFUSED BY HIM, on the honest objection:
+*"so i still have to register the tsv somewhere else then?"* A `site.yml` map trades
+counting separators for bookkeeping and **removes no step** -- it makes a new TSV a
+two-file edit. The search removes the step entirely.
+
+🔴 THE COST HE ACCEPTED, SO IT MUST FAIL LOUD: two TSVs with the same basename in
+different folders. `_by_name` reports EVERY path it found and refuses -- it does not pick
+the shallowest, the first, or the nearest. **A silent choice between two files is the one
+outcome that could publish the wrong dates on a call sheet**, and this engine's standing
+polarity is that an ambiguous reference reports rather than guesses (`sheet.apply_options`
+carries the long-form argument).
+
+⭐ IT NEEDED NO NEW HOOK EVENT AND NO `mkdocs.yml` EDIT, which is the whole reason it is
+cheap: `on_page_markdown` **already receives `files`**. The index is built from a
+parameter that was there all along. ⚑ Same shape as `runfoot.py`'s finding hours earlier
+-- *the blocker was on the shape I assumed, not on the outcome I wanted* -- and it matters
+because `mkdocs.yml` is 28,158 B and past the write cap, so a new hook has been an
+unavailable write for weeks.
+
+⚠️ THE INDEX IS CACHED AGAINST THE `files` OBJECT ITSELF, NOT ITS `id()`. `mkdocs serve`
+rebuilds in-process, so a grow-only module dict would carry a deleted page's TSV into the
+next build -- the trap `qr.PENDING` documents and clears at `on_config`. Holding the
+reference makes the identity check true rather than probable; `id()` can be recycled.
 
 
 🔴 `align:` IS A LAYOUT OPTION AND IS POPPED BEFORE `sheet.apply_options` EVER SEES IT
@@ -127,6 +169,12 @@ beside it asserted a bare filename was correct: under `use_directory_urls` a pag
 `util.relative_url` now -- the helper that fixed the same class of bug in links.py,
 router.py and revlog.py. Do not go back to a bare filename, and do not count separators.
 
+🔴 AND THAT TRAP IS WHY RESOLUTION RETURNS A **SITE PATH** RATHER THAN A FILENAME. A TSV
+found elsewhere in the tree downloads from ITS OWN folder, not the page's -- so the href
+must be built from where the file IS. Handing `href_for` a bare name would have made every
+by-name download a 404 while the table on the page rendered perfectly: the same
+looks-fine-reads-broken shape as the 2026-08-04 bug, one resolution step further out.
+
 *(The two `sticky` traps moved to `table.py` with the code that carries them. A trap
 described in one file and implemented in another is the two-homes defect with extra
 steps.)*
@@ -157,6 +205,35 @@ _ALIGNS = ("right", "center")
 #: `href` is resolved RELATIVE TO THE PAGE, not a bare filename -- links.py hands it
 #: straight to a reader, so a wrong value here is a 404 in two places rather than one.
 PLACED: dict[str, dict[str, dict]] = {}
+
+#: The by-name index: `basename.tsv` -> [site path, ...]. A LIST, never a single value,
+#: because the duplicate case has to be reportable rather than silently resolved.
+#:
+#: ⚠️ `_INDEX_FOR` HOLDS THE `files` OBJECT, NOT ITS `id()`. See FINDING in the docstring:
+#: `mkdocs serve` rebuilds in-process, and holding the reference makes the identity test
+#: true rather than probable.
+_INDEX: dict[str, list[str]] = {}
+_INDEX_FOR = None
+
+
+def _index(files) -> dict[str, list[str]]:
+    """Every `.tsv` in the docs tree, keyed by basename. Built once per build.
+
+    ⚠️ BUILT FROM THE `files` PARAMETER RATHER THAN BY WALKING `docs_dir`. MkDocs' own
+    collection is what the build actually knows about -- it honours `exclude_docs` and
+    anything else that pruned a file, so a TSV MkDocs is not shipping cannot be resolved
+    into a download that would 404.
+    """
+    global _INDEX, _INDEX_FOR
+    if _INDEX_FOR is files:
+        return _INDEX
+    found: dict[str, list[str]] = {}
+    for item in files:
+        src = str(getattr(item, "src_uri", "") or "")
+        if src.lower().endswith(".tsv"):
+            found.setdefault(posixpath.basename(src), []).append(src)
+    _INDEX, _INDEX_FOR = found, files
+    return _INDEX
 
 
 def _slots_for_type(type_name: str) -> list[str]:
@@ -244,6 +321,71 @@ def _declared(meta: dict, src: str, note) -> dict[str, dict]:
             "caption": str(value.get("caption") or ""),
         }
     return out
+
+
+def _locate(declared_file: str, folder: str, files, src: str, slot: str):
+    """Where the TSV actually is, as a SITE path. `""` means it was not resolved.
+
+    Three forms, in order -- see FINDING in the module docstring:
+
+      1/2. `beside.tsv` or `../../elsewhere/x.tsv`  -- ONE test, unchanged behaviour.
+      3.   `x.tsv` found anywhere in the tree       -- new, and only reached when the
+           declared path names nothing.
+
+    🔴 THE DECLARED PATH WINS AND THAT IS THE COMPATIBILITY GUARANTEE. Every page written
+    before 2026-08-31 resolves exactly as it did, and a page CAN still pin one specific
+    file by path when two share a basename.
+
+    🔴 A DUPLICATE BASENAME IS REPORTED WITH EVERY PATH AND REFUSED. Not the shallowest,
+    not the first, not the nearest -- Michael accepted unique naming as the cost of this
+    feature, so the moment that assumption breaks he has to be told rather than served a
+    coin flip. On a call sheet the wrong file is the wrong dates.
+
+    ⚠️ RETURNS A SITE PATH, NEVER A FILENAME. The caller builds both the read path and the
+    download href from it, so the table and its download cannot disagree about which file
+    they mean -- the failure the 2026-08-04 trap in this module's docstring records.
+    """
+    declared_file = declared_file.strip()
+    if not declared_file:
+        return ""
+
+    # 1 + 2: relative to the page. `posixpath.normpath` collapses `..` the same way
+    # `Path` does, so the site path and the on-disk read cannot drift apart.
+    joined = posixpath.join(folder, declared_file) if folder else declared_file
+    site_path = posixpath.normpath(joined).lstrip("/")
+    if not site_path.startswith("..") and (Path(state.DOCS_DIR) / site_path).is_file():
+        return site_path
+
+    # 3: by name, anywhere. Only a BARE filename may search -- a declared path that
+    # missed is an authoring mistake with a specific answer, and quietly finding a
+    # same-named file somewhere else would hide the typo rather than report it.
+    if "/" in declared_file:
+        state.note(
+            "missing_required",
+            src + ": data slot '" + slot + "' declares path '" + declared_file
+            + "' which does not resolve to a file. A path is taken literally; drop to "
+            + "just the filename to search the tree by name instead.",
+        )
+        return ""
+
+    hits = _index(files).get(declared_file) or []
+    if len(hits) == 1:
+        return hits[0]
+    if not hits:
+        state.note(
+            "missing_required",
+            src + ": data slot '" + slot + "' declares file '" + declared_file
+            + "' which is not beside this page and is nowhere in the docs tree.",
+        )
+        return ""
+    state.note(
+        "missing_required",
+        src + ": data slot '" + slot + "' names '" + declared_file + "', and "
+        + str(len(hits)) + " files share that name: " + ", ".join(sorted(hits))
+        + ". NOT rendered -- this engine will not choose between them. Rename one, or "
+        + "declare the path you mean.",
+    )
+    return ""
 
 
 def _align(options: dict, src: str, slot: str) -> str:
@@ -336,13 +478,21 @@ def on_page_markdown(markdown, page, config, files):
     if not declared and not blocks:
         return markdown
 
-    here = Path(page.file.abs_src_path).parent
+    docs_dir = Path(config["docs_dir"])
     folder = posixpath.dirname(src)
     replacements: list[tuple[int, int, str]] = []
 
-    def href_for(filename: str) -> str:
-        """The TSV's URL as seen FROM THIS PAGE. Never the bare filename."""
-        site_path = posixpath.join(folder, filename) if folder else filename
+    # ⚠️ RESOLVED ONCE PER SLOT, NOT ONCE PER USE. A slot mentioned inline AND embedded
+    # would otherwise report a missing file twice and index the tree twice.
+    located = {
+        slot: _locate(entry["file"], folder, files, src, slot)
+        for slot, entry in declared.items()
+    }
+
+    def href_for(site_path: str) -> str:
+        """The TSV's URL as seen FROM THIS PAGE. Never a bare filename -- see the
+        module docstring's 2026-08-04 trap, and never the PAGE's folder for a file
+        that lives somewhere else."""
         return relative_url(site_path, page.file.url)
 
     # ⚠️ PLACED IS POPULATED BEFORE ANY CELL IS RENDERED, and the order is the point. A
@@ -352,8 +502,8 @@ def on_page_markdown(markdown, page, config, files):
     # bug that reads as a typo.
     embedded = {b[2] for b in blocks}
     placed: dict[str, dict] = {
-        slot: {"href": href_for(entry["file"]), "anchor": slot in embedded}
-        for slot, entry in declared.items()
+        slot: {"href": href_for(site_path), "anchor": slot in embedded}
+        for slot, site_path in located.items() if site_path
     }
     PLACED[src] = placed
 
@@ -373,29 +523,28 @@ def on_page_markdown(markdown, page, config, files):
             ))
             continue
 
-        path = here / entry["file"]
-        if not path.is_file():
-            state.note(
-                "missing_required",
-                src + ": data slot '" + slot + "' declares file '" + entry["file"]
-                + "' which does not exist beside it.",
-            )
+        # ⚠️ `_locate` HAS ALREADY REPORTED WHY. Three different failures land here -- not
+        # beside the page, nowhere in the tree, or an ambiguous name -- and each has its
+        # own report line naming the paths involved. The on-page marker stays generic
+        # because it is read by somebody who then goes to the report.
+        site_path = located.get(slot) or ""
+        if not site_path:
             replacements.append((
                 start, end,
-                '<p class="docrender-dead">Missing data file: '
+                '<p class="docrender-dead">Unresolved data file: '
                 + html.escape(entry["file"]) + "</p>",
             ))
-            placed[slot]["anchor"] = False
             continue
 
-        rows = sheet.trim_columns(sheet.read_rows(path))
+        rows = sheet.trim_columns(sheet.read_rows(docs_dir / site_path))
         if not rows:
             state.note(
                 "notes",
-                src + ": data file " + entry["file"] + " is empty or unreadable.",
+                src + ": data file " + site_path + " is empty or unreadable.",
             )
             replacements.append((start, end, ""))
-            placed[slot]["anchor"] = False
+            if slot in placed:
+                placed[slot]["anchor"] = False
             continue
 
         # 🔴 LAYOUT FIRST, AND IT REMOVES THE KEY. `sheet.apply_options` reports anything
@@ -410,7 +559,8 @@ def on_page_markdown(markdown, page, config, files):
         caption = override if override is not None else entry["caption"]
         replacements.append((
             start, end,
-            table.draw(rows, specs, href_for(entry["file"]), entry["file"], slot,
+            table.draw(rows, specs, href_for(site_path),
+                       posixpath.basename(site_path), slot,
                        caption, pinned, page, align),
         ))
 
