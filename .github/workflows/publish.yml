@@ -106,7 +106,12 @@ jobs:
       cancel-in-progress: false
 
     # Matches build.yml. A hung render holds a runner 6h on the default ceiling.
-    timeout-minutes: 10
+    #
+    # ⚠️ RAISED 10 -> 15 ON 2026-08-30 for the packet print step. Chrome prints one
+    # sheet at a time, so a program with nine policies is ten browser launches on top
+    # of the render. Measured nowhere yet — the first real run is what sets this
+    # number honestly, and 15 is headroom rather than a measurement.
+    timeout-minutes: 15
 
     steps:
       - name: Check out the engine
@@ -247,6 +252,36 @@ jobs:
           export DOCRENDER_COMMIT_SUBJECT="$(git log -1 --pretty=%s)"
           cd "${{ github.workspace }}/engine"
           mkdocs build --config-file mkdocs.yml
+
+      # =====================================================================
+      # THE PROGRAM PACKETS (BUILD 10 v2, 2026-08-30)
+      # =====================================================================
+      # Michael: *"every single policy printed as if I went to that page and printed
+      # it manually, stacked together in a single PDF. That's the baseline."*
+      #
+      # 🔴 IT MUST SIT BETWEEN RENDER AND DEPLOY, AND THAT IS THE WHOLE PLACEMENT
+      # ARGUMENT. It reads the FINISHED site off disk and writes PDFs back into the
+      # same tree, so the deploy step below ships them with everything else. Earlier
+      # and the pages do not exist; later and the files miss the boat.
+      #
+      # ⚠️ NO BROWSER INSTALL STEP, AND THE ABSENCE IS DELIBERATE RATHER THAN AN
+      # OVERSIGHT: `ubuntu-latest` runners ship Google Chrome preinstalled, and the
+      # script hunts `google-chrome` before any `chromium`. 🔴 If GitHub ever drops it
+      # from the image, THIS step fails loudly with the tried binary names — which is
+      # the correct failure, because the alternative is a green publish whose export
+      # buttons all 404. Do not "fix" that by letting it skip.
+      #
+      # ⭐ IT RUNS IN PREVIEW MODE TOO, ON PURPOSE. Nothing deploys from a preview, so
+      # the PDFs are thrown away — but the step summary prints one line per packet
+      # with its SHEET COUNT, which is the only cheap way to see that a policy printed
+      # to nothing before it reaches a live site.
+      #
+      # ⚠️ A SITE WITH NO PACKETS IS A NO-OP, not a skip: the script exits 0 saying
+      # `packets.json` is absent. Five of six sites are untouched by this landing, and
+      # a `if:` guard here would be a second place stating which ones.
+      - name: Print the program packets
+        working-directory: engine
+        run: python bin/print-packets.py "${{ github.workspace }}/site"
 
       - name: Deploy
         if: inputs.mode == 'publish' && inputs.site != 'template'
