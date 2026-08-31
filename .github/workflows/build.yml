@@ -69,6 +69,37 @@ name: Build and deploy doc sites
 # collision on a content repo's `gh-pages` ref. The `concurrency:` block on the
 # job below is what stops that; the full incident is written up there and in
 # publish.yml. Read both before touching either group name.
+#
+# =============================================================================
+# 🔴 A DEPLOY REPLACES THE WHOLE TREE, SO EVERY ARTIFACT MUST BE BUILT IN EVERY
+#    WORKFLOW THAT DEPLOYS (2026-08-30)
+# =============================================================================
+# `peaceiris/actions-gh-pages` with `publish_dir: ./site` clones `gh-pages`,
+# REPLACES its contents and pushes. So a file this workflow does not produce is
+# not merely missing from this deploy -- it is DELETED from the live site.
+#
+# 🔴 THAT IS EXACTLY WHAT HAPPENED TO THE PROGRAM PACKET PDFs, WITHIN MINUTES.
+# `bin/print-packets.py` shipped wired into `publish.yml` only, on the reasoning
+# that a human publish is how the feature would be tested. Correct and
+# insufficient: this routine fires every FIVE MINUTES, renders the same site with
+# no print step, and its deploy took the PDFs off `gh-pages` while leaving
+# `packets.json` in place -- because the manifest is written by `mkdocs build`
+# and the PDFs are not.
+#
+# ⚡ SO THE SITE ADVERTISED FOUR PACKETS AND SERVED NONE, and the missing half
+# was the half that took a browser to produce. Michael printed the HTML packet
+# page instead and reported, correctly, that it comes out terribly.
+#
+# ⚑ GENERALISABLE, AND IT IS THE FILE-LEVEL TWIN OF THE FIVE-MINUTE RACE ABOVE:
+# a periodic full-tree deploy makes every OTHER deploy path's extra artifacts
+# temporary. Wiring a build step into one workflow is not shipping it -- the
+# question is always "which workflows deploy this site," and here the answer has
+# been two since 2026-08-04.
+#
+# ⚠️ AND THE HALF-STATE IS THE DANGEROUS PART, not the absence: a manifest that
+# names artifacts nothing serves is worse than no manifest, because it reads as
+# a working feature. If a future artifact is added to `publish.yml` and not to
+# this file, that is the shape it will take.
 
 on:
   push:
@@ -116,13 +147,20 @@ jobs:
     # matrix with its own status. A per-job timeout is what actually buys the
     # independence the matrix was built for.
     #
-    # TEN MINUTES IS 20x THE OBSERVED CEILING, deliberately loose. Real
+    # TEN MINUTES WAS 20x THE OBSERVED CEILING, deliberately loose. Real
     # numbers on 2026-08-05: whole job ~30s, install ~12s, the slowest healthy
-    # render (uritp) ~7s. This cannot fire on a working build; if it ever does,
-    # something is wrong and the timeout is the messenger, not the cause.
-    # Raise it only against measured evidence, never against a hunch that a
-    # build "might need longer."
-    timeout-minutes: 10
+    # render (uritp) ~7s.
+    #
+    # ⚠️ RAISED 10 -> 15 ON 2026-08-30, and the old paragraph's reasoning is why
+    # this needs saying rather than doing quietly: that number was justified as
+    # unreachable on a working build, and the packet print step makes it
+    # reachable. Chrome prints ONE sheet per launch, so `uritp-safety` with four
+    # packets is a dozen browser launches on top of a 7-second render.
+    # 🔴 MEASURED NOWHERE YET -- 15 is headroom, not evidence, and the first real
+    # run is what should set it. Do not raise it again without reading a duration
+    # off a run; the whole point of the paragraph above is that a timeout raised
+    # on a hunch stops being a messenger.
+    timeout-minutes: 15
 
     strategy:
       fail-fast: false
@@ -348,6 +386,38 @@ jobs:
           export DOCRENDER_COMMIT_SUBJECT="$(git log -1 --pretty=%s)"
           cd "${{ github.workspace }}/engine"
           mkdocs build --config-file mkdocs.yml
+
+      # =====================================================================
+      # THE PROGRAM PACKETS (BUILD 10 v2, added here 2026-08-30)
+      # =====================================================================
+      # 🔴 THIS IS NOT A COPY OF A publish.yml STEP FOR TIDINESS. Without it this
+      # workflow's deploy DELETES every packet PDF off `gh-pages` -- see the
+      # full-tree-replacement note in the header. The manifest survives (mkdocs
+      # writes it) and the PDFs do not, which is the half-state that made a live
+      # site advertise four packets and serve none.
+      #
+      # 🔴 IT MUST SIT BETWEEN RENDER AND DEPLOY. It reads the FINISHED site off
+      # disk and writes PDFs back into the same tree, so the deploy below ships
+      # them. Earlier and the pages do not exist; later and the files miss the
+      # boat.
+      #
+      # ⚠️ NO BROWSER INSTALL STEP, and the absence is deliberate: `ubuntu-latest`
+      # ships Google Chrome, and the script hunts `google-chrome` before any
+      # `chromium` because renderer identity is the entire premise. If GitHub ever
+      # drops it from the image, THIS step fails loudly with the names it tried --
+      # the correct failure, because the alternative is a green deploy that wipes
+      # the PDFs again. 🚫 Do not "fix" that by letting it skip.
+      #
+      # ⚠️ A SITE WITH NO PACKETS IS A NO-OP, not a skip: the script exits 0 saying
+      # `packets.json` is absent. Four of five rows are untouched, and an `if:`
+      # guard here would be a second place stating which ones.
+      #
+      # ⚠️ AND IT RUNS EVEN WHEN THE DEPLOY WILL BE SKIPPED (no PAT, `template`,
+      # a PR). That is deliberate: printing is the check. A PR that would break
+      # the print path should go red here rather than on somebody's next publish.
+      - name: Print the program packets
+        working-directory: engine
+        run: python bin/print-packets.py "${{ github.workspace }}/site"
 
       - name: Deploy to the content repo's gh-pages
         # Three conditions, each a real thing that goes wrong:
