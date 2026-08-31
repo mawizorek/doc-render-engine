@@ -1,228 +1,98 @@
-"""Stage 05b -- THE PROGRAM PACKET: one document, printed once, cover first.
+"""Stage 05b -- THE PROGRAM PACKET: every page printed as itself, then stapled.
 
-BUILD 10. Decisions: `specs/print-packet.md`. Arguments: `specs/print-packet-dl.md`.
+BUILD 10 v3. Decisions: `specs/print-packet.md`. Arguments: `specs/print-packet-dl.md`.
 The `chain:` vocabulary and its resolver belong to docrender/nav.py; the flow strip
-belongs to docrender/program.py; the embedded form to docrender/forms.py. This
-module owns ONE artifact: a generated page that holds a whole program.
+belongs to docrender/program.py; the embedded form to docrender/forms.py. This module
+declares the `export:` key, names the artifacts, and draws the button.
 
 =============================================================================
-🔴 WHY THERE IS NO LOOP, AND WHY THAT IS THE ARCHITECTURE
+🪦 THE HTML PACKET PAGE IS GONE (2026-08-31), AND THE CULL IS THE FEATURE
 =============================================================================
-The ask was a button that visits each policy, prints it, and stacks the results.
-A browser cannot do any of that: `window.print()` prints the current document
-only, a print job is user-mediated, and the PDF never enters JavaScript. Printing
-an iframe prints that document alone -- the same wall wearing a frame.
+> Michael, three times across one evening: *"i thoght we decideed to NOT be using a
+> combined page wiht conatn at top"* / *"How do we make this the most like standing on
+> the progrma page - hitdn cmd+p ... then i step to the foirst polciy in the chain.
+> cmd-p that page just as if i had fomratted and done it by that page itsefl"* /
+> *"lets now cull the unneccsary page you were generating."*
 
-⚑ THE ASK DESCRIBED A READER DOING IT BY HAND. THE ENGINE IS NOT A READER -- it
-already holds every page of the chain in one process. So the aggregation happens
-at BUILD time and the reader gets ONE page, which they print with an ordinary
-Ctrl+P. Michael, 2026-08-30: *"the print should run just like a manual print
-command on the page."* It IS a manual print command on a page.
+v1 minted a generated `-packet.md` per program and spliced every member's finished
+HTML into it. **That page and every mechanism serving it is deleted here:**
 
-⭐ THAT IS WHY THE PACKET IS A REAL MkDocs PAGE AND NOT A HAND-BUILT FILE. Being
-an ordinary page is what buys every print sheet, the chrome-off list and the
-corner stamp for free, with no second print path to keep in step. 🚫 A second
-renderer (WeasyPrint et al) is REFUSED for the same reason and separately by
-`requirements.txt`'s dependency doctrine -- see the spec §5.
+    _MARK / on_post_build splice   the assembly
+    article()                      pulling a member's <article> out
+    _cut() / _STRIP                removing per-page furniture N-1 times
+    namespace()                    re-prefixing every id and href
+    _cover()                       a generated contents list
+    on_files / _prune              minting the page and hiding its nav row
 
-=============================================================================
-⚠️ FOUR EVENTS, AND EACH ONE IS THE ONLY PLACE ITS JOB CAN HAPPEN
-=============================================================================
-    on_files       mint the page. Files are fixed after this.
-    on_nav         capture the PLAN. `files` is in hand and every File already
-                   knows its own url and dest path, so nothing has to be
-                   derived from a url later. Also prunes the packet from the
-                   sidebar.
-    on_page_markdown  `!!! export` -> the button, where an author placed it.
-    on_post_build  assemble. Every member's HTML is FINISHED and on disk; at any
-                   earlier event some of them are not rendered yet, and page
-                   render order is not ours to depend on.
+⭐ **EVERY ONE OF THOSE EXISTED ONLY TO REPAIR DAMAGE THE SPLICE CAUSED.** None of
+them served the ask; they served the mechanism. Printing each page as its own document
+does not need them, which is why this file is a third of its former size and why the
+`packetbuild.py` split it forced is retired with it -- **the reason for the split was
+the transform, and the transform is gone.**
 
-🔴 THE PLAN IS CAPTURED AT on_nav AND NEVER RE-DERIVED. `state.py`'s admission
-price is that a shared value needs a writer and a reader in DIFFERENT hooks --
-this one has both inside this module, so it stays here rather than in `state`.
+🔴 AND THE STRIP LIST IS THE PART WORTH REMEMBERING, BECAUSE IT WAS ALREADY LOSING.
+It took two live defects in four hours (rival `@page` rules stamping section nine's
+date on all nine sheets; a duplicated ownership tag), and the file's own closing note
+admitted the class was unbounded: *"any per-page element added anywhere in the engine
+is silently duplicated into every packet unless somebody remembers this tuple."*
+⚑ *A defence that must be updated by everyone who never reads it is not a defence.
+One document per page makes the whole class impossible rather than managed* -- and
+that is the real argument for the cull, over and above it being what he asked for.
 
-=============================================================================
-🔴 ANCHOR COLLISION IS THE ACTUAL WORK. THE STACKING IS THE EASY HALF
-=============================================================================
-Nine pages in one document is nine sets of heading ids in ONE id namespace. Five
-policies with an `## Overview` give five `#overview` anchors and every link to
-any of them lands on the first.
-
-⚠️ IT HALF-WORKS, WHICH IS WHY IT IS THE DANGEROUS SHAPE: entry one of the cover
-is correct and entries two onward are silently wrong. Nothing reports it and a
-PDF has no console. So every id gets its section prefix (`overview` -> `s3-overview`)
-and every href is CLASSIFIED, never blanket-rewritten:
-
-    #frag                      -> #sN-frag        stayed inside its own section
-    a path INSIDE the packet   -> #sM[-frag]      the internal jump
-    a path OUTSIDE the packet  -> ABSOLUTE url    🔴 see below
-    absolute / mailto / tel    -> untouched
-    anything unresolvable      -> untouched AND REPORTED
-
-🔴 THE OUTSIDE-THE-PACKET ROW IS THE SILENT ONE. A relative href surviving into a
-PDF is not a visibly broken link -- it opens nothing, or resolves against whatever
-folder the file was saved in. A distributed safety packet whose citations do
-nothing is a compliance failure that looks like a working document, which is the
-sentence `objects/program.yml` already writes about a form with no `?Program_ID=`.
-
-⚠️ `site_url` IS THE ONE INPUT THIS MODULE CANNOT VERIFY, and BUILD 6 §1 flagged
-the same source: `publish-default.yml` overrides `base_url` per publishing path.
-A poisoned doc-index is repaired by the next publish; **a poisoned packet is
-repaired by reprinting.** With no `site_url` the rewrite is SKIPPED and reported,
-never guessed -- a wrong absolute link is worse than a relative one, because it
-looks resolvable.
+⚠️ CREDIT WHERE IT IS DUE: another session patched that tuple correctly on 08-30,
+adding `runfoot.STYLE_CLASS` and `dr-owner` while REFUSING to strip `dr-revised`
+because a revision date VARIES between members. **That judgement was right and it is
+deleted here only because the surface it defended no longer exists.**
 
 =============================================================================
-⚠️ WHAT IS REMOVED FROM EACH SECTION, AND WHY EACH REMOVAL IS NOT TIDYING
+⭐ WHAT REPLACES IT: A PLAN, AND CHROME
 =============================================================================
-`.dr-flow*`   the flow strip. THE PACKET IS THE FLOW -- a reader holding all nine
-              sheets has no next step to be told about, and nine strips would each
-              claim to orient somebody who is already past it.
-`buildstamp*` the corner mark. 🔴 NOT because paper does not want provenance --
-              spec §8 makes per-sheet provenance load-bearing -- but because the
-              print stamp is a FIXED element that repeats itself on every sheet
-              from ONE instance. Nine copies is nine overlapping stamps on sheet
-              one. The PACKET's own stamp is the one that prints, on every sheet,
-              which is exactly what §8 asks for. Class block read off
-              `buildstamp.py` (`buildstamp__icon`, `buildstamp__mark`), never
-              guessed.
+`packets.json` names, per program, the ORDERED page URLs to print -- the program page
+first, then the chain. `bin/print-packets.py` drives real Chrome over the finished
+site, one page per launch, and pypdf staples the results.
 
-🔴 TWO MORE JOINED ON 2026-08-30, from a live defect in a real printout. The RUNNING
-FURNITURE (`docrender/runfoot.py`) shipped the same day and collided with this build.
-Both are the `buildstamp*` shape: **a per-page element correct once and wrong N
-times.** Caught by paper, not by review.
+    <program>-packet.pdf     the stapled packet, what the button points at
+    <page>/print.pdf         each page on its own, beside the page itself
 
-`dr-runfoot`  🔴 **THE RIVAL `@page` RULES -- THE SERIOUS ONE.** `runfoot` emits a
-              per-page `<style>` of `@page` margin boxes on the premise that *"every
-              MkDocs page IS exactly one document"*; **a packet is the one page where
-              that is false.** N members = N rules in one document and **the LAST
-              wins on every sheet** -- a nine-policy packet stamped section nine's
-              date across all nine while section one looked right. Reproduced against
-              `_cut`. ⚠️ It needed a CLASS first: a `<style>` needs no styling, so it
-              shipped unclassed and no class-based transform could see it.
-`dr-owner`    the ownership tag. Site-level identity, byte-identical on every member,
-              so N copies is pure duplication -- and the packet's own running footer
-              carries it on every sheet. This is the line Michael saw at the foot of
-              section 1, mid-document, with no page number beside it.
+🔴 THE PER-PAGE PDF IS NOT AN EXTRA FEATURE, IT IS THE INTERMEDIATE FILE KEPT.
+Michael: *"Take allll the pages from eacah of those steps and export them as
+indidivial fiels. fine."* Every member is printed separately regardless, so keeping
+the file costs a `copy` and buys a policy anybody can hand out alone. ⭐ It also
+DEDUPES: a policy in three programs is printed once and stapled three times, which is
+fewer browser launches than v1's own per-program work.
 
-✅ **AND `.dr-revised` IS DELIBERATELY *NOT* STRIPPED -- the one judgement call in
-this fix.** It looks like the same duplication and is the opposite: the ownership tag
-is one fact repeated, a revision date is **per-document data that DIFFERS between
-members.** Cutting it would delete information found nowhere else in the packet.
-⚑ *Two elements side by side and identical in shape can have opposite claims on an
-aggregate: ask whether the VALUE varies, not whether the element repeats.*
-
-⚠️ CONSEQUENCE: the generated packet page has no `revised:`, so **a packet's running
-footer prints no revision date** -- header, page number and posted-by only. Honest
-(nine policies have no single date) and a content decision. 🚩 OWED: whether a packet
-declares its own `revised:`, or the footer reads "see each section".
-
-🚫 NOTHING ELSE IS STRIPPED. In particular semantic colour STAYS: `print.css`
-applies `print-color-adjust: exact` narrowly, to elements "whose MEANING is
-carried by a colour". The ask said "all the theming stripped" and that is not what
-the print layer does -- a `!!! danger` border printing grey is a REGRESSION on a
-photocopied safety sheet, not a target. Do not "finish the job" here.
-
-=============================================================================
-🚫 `{.new-page}` IS IGNORED IN A PACKET, AND IT IS A REFUSAL
-=============================================================================
-`print-type.css` §8 counts hand-placed breaks invalidated by a change to the print
-layer; it stood at eight. This is the ninth and the first where every authored
-break is invalidated BY DEFINITION: a break authored after a page's second heading
-sits at an arbitrary offset inside a 27-sheet document. ⚑ *A page-level break
-instruction is meaningless in a document the page does not know it is in.* Section
-boundaries are the only breaks a packet honours and it owns those.
-
-=============================================================================
-🔴 AN AGGREGATOR IS A LEAK SURFACE
-=============================================================================
-`visibility.py` builds a page when `status in ("unlisted", "public")`, and
-`nav: hidden` is a curtain -- the page is still built and still resolves by id.
-Every previous instance of that shape was a page a reader had to go LOOKING for.
-A packet brings it to them, stapled to a cover, in a file that leaves the site.
-
-✅ SO A NON-`public` MEMBER IS REFUSED AND REPORTED, never silently included and
-never silently dropped. ⚠️ uritp-safety's content repo is PRIVATE while this
-engine is PUBLIC, so a visibility judgement can never be carried across from the
-repo being rendered.
-
-=============================================================================
-⚑ THE STANDING LESSON FROM 08-30, FOR WHOEVER ADDS THE NEXT ELEMENT
-=============================================================================
-This module strips by CLASS, so **any per-page element added anywhere in the engine
-is silently duplicated into every packet unless somebody remembers this tuple** --
-and its author has no reason to read a stage-05b file. 🚩 There is no check for this.
-The cheap guard is a build-report line counting surviving `<style>` and `.dr-*`
-furniture per packet; the 08-30 defect would have announced itself. Not built here.
+🚫 AND THE ENGINE STILL PRODUCES NO PDF. It writes a JSON plan naming pages that
+already exist -- no renderer, no dependency, no bytes. `specs/print-packet.md` §5's
+refusal of a second renderer is untouched; Chrome is the renderer Michael prints from.
 """
 
 from __future__ import annotations
 
 import html as _html
-import re
-from urllib.parse import urljoin, urlsplit
 
-from . import nav, runfoot, state
+from . import nav, state
 from .util import relative_url
-
-#: The splice point, written into the generated markdown and replaced at
-#: on_post_build. An HTML comment survives the markdown pass untouched.
-#:
-#: ⚠️ IT MUST NOT LOOK LIKE A MARKER. `markers.py` owns `{...}` spans and
-#: `links.py` owns `@ref` tokens; a comment is the one payload no other stage
-#: claims. If this ever fails to be replaced it ships as an invisible comment
-#: rather than as visible junk -- which is why the assembler REPORTS a miss
-#: instead of trusting the substitution.
-_MARK = "<!--dr-packet-body-->"
 
 #: The export kinds this engine knows. A CLOSED SET, on the `markers._SHAPES`
 #: precedent, because nothing else can enforce it.
 #:
-#: 🔴 `objects._resolve` MERGES EVERY TYPE'S `optional:` LIST AND NOTHING READS
-#: IT (state.py records three separate live keys found dead that way). So a key
-#: declared in `objects/program.yml` is a promise no code checks, and validation
-#: of both the KEY and its VALUES has to happen right here or nowhere.
+#: 🔴 `objects._resolve` MERGES EVERY TYPE'S `optional:` LIST AND NOTHING READS IT
+#: (state.py records three separate live keys found dead that way). So a key declared
+#: in `objects/program.yml` is a promise no code checks, and validation of both the
+#: KEY and its VALUES has to happen right here or nowhere.
 _KINDS = ("packet",)
-
-_ARTICLE = re.compile(r"<article\b[^>]*>", re.I)
-_ARTICLE_ANY = re.compile(r"</?article\b[^>]*>", re.I)
-#: ⚠️ QUOTE-AGNOSTIC, AND THAT IS NOT DEFENSIVE PADDING. Python-Markdown and
-#: Material both emit double quotes, so a double-only pattern passes every test
-#: built from their output -- and an author's hand-written `<div id='x'>` in a
-#: markdown body then slips through UNNAMESPACED, which is the half-works
-#: collision this whole module exists to prevent. Found by running it, not by
-#: reading it: the first fixture happened to use single quotes.
-_ID = re.compile(r"""\bid=(?P<q>["'])(.*?)(?P=q)""")
-_HREF = re.compile(r"""\bhref=(?P<q>["'])(.*?)(?P=q)""")
-_ABSOLUTE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|//)", re.I)
-
-#: Class blocks removed from every section. See the removals block above -- every
-#: entry is a per-page element that is correct ONCE and wrong N times.
-#:
-#: 🔴 `runfoot.STYLE_CLASS` IS IMPORTED RATHER THAN TYPED. That token also lives in
-#: the emitter, and a hand-copied string in the second place is the drift this repo
-#: has retired three manifests over. The import costs a stage-05b module one
-#: dependency on a hook-07 helper; cheaper than the copy, and stated in both files.
-#:
-#: ⚠️ `dr-revised` IS ABSENT ON PURPOSE -- a revision date VARIES between members.
-_STRIP = ("dr-flow", "buildstamp", runfoot.STYLE_CLASS, "dr-owner")
 
 
 def _esc(text) -> str:
     return _html.escape(str(text), quote=True)
 
 
-def _meta(src) -> dict:
-    return state.BY_SRC.get(src, {}) or {}
-
-
 def kinds(meta: dict, src: str = "", report: bool = False) -> list:
     """The validated `export:` kinds on one page.
 
     Accepts `export: packet`, `export: [packet]` and `export: true` -- the last
-    because Michael floated a boolean and a truthy value that silently did
-    nothing would be the dead-control shape this repo keeps finding.
+    because Michael floated a boolean and a truthy value that silently did nothing
+    would be the dead-control shape this repo keeps finding.
 
     ⚠️ AN UNKNOWN KIND IS REPORTED, NEVER IGNORED. `export: pakcet` has to be a
     finding: nothing downstream can tell a typo from a page that simply has no
@@ -255,26 +125,37 @@ def kinds(meta: dict, src: str = "", report: bool = False) -> list:
     return out
 
 
-def packet_src(program_src: str) -> str:
-    """`30-programs/for-all.md` -> `30-programs/for-all-packet.md`.
+def pdf_uri(program_src: str) -> str:
+    """`30-programs/for-all.md` -> `30-programs/for-all-packet.pdf`.
 
-    ⚠️ A SIBLING FILE, NOT A CHILD PATH, WHICH CORRECTS THE SPEC. §1 proposed
-    `<program-path>/packet/`; a program page is a FILE, so a child path would
-    need a directory that does not exist and MkDocs would put the packet
-    somewhere no reader could predict. A sibling keeps it adjacent in the tree
-    and gives it a url a person can read.
+    🪦 THE `-packet` STEM SURVIVES ITS OWN PAGE. It was shared with the generated
+    `-packet.md` so the two artifacts sat beside each other; the page is gone and the
+    name stays, because it is the URL Michael has already opened and any link he has
+    kept still resolves. **A rename would be a second change riding along in a
+    deletion, and the only thing it would buy is tidiness.**
     """
     stem = program_src[:-3] if program_src.endswith(".md") else program_src
-    return stem + "-packet.md"
+    return stem + "-packet.pdf"
+
+
+def page_pdf_uri(page_url: str) -> str:
+    """`20-policies/fire/` -> `20-policies/fire/print.pdf`.
+
+    ⚠️ KEYED ON THE BUILT URL, NOT THE SOURCE PATH, and that is deliberate: it is what
+    `bin/print-packets.py` navigates and what a reader sees, so the PDF lands exactly
+    beside the page it is a print of. A source path would need `use_directory_urls`
+    arithmetic, which `util.py` records three separate hooks getting wrong invisibly.
+    """
+    return page_url.rstrip("/") + "/print.pdf" if page_url else ""
 
 
 def wanted(report: bool = False) -> dict:
     """`{program_src: [chain ids]}` for every program asking for a packet.
 
-    ⭐ THE CHAIN COMES FROM `nav.declared()`, WHICH IS THE WHOLE POINT: one
-    vocabulary, one resolver, three consumers. A second parse of `chain:` here
-    would be the defect this repo has retired three manifests over, and
-    `nav.py` already refused a program-specific `steps:` on the same ground.
+    ⭐ THE CHAIN COMES FROM `nav.declared()`, WHICH IS THE WHOLE POINT: one vocabulary,
+    one resolver, three consumers. A second parse of `chain:` here would be the defect
+    this repo has retired three manifests over, and `nav.py` already refused a
+    program-specific `steps:` on the same ground.
     """
     chains = nav.declared(report=False)
     out = {}
@@ -296,8 +177,7 @@ def wanted(report: bool = False) -> dict:
                 state.note(
                     "missing_required",
                     src + " asks for `export: packet` and declares no usable"
-                    " `chain:`. NO PACKET BUILT -- a cover page with nothing"
-                    " behind it is worse than no export, because zero sections"
+                    " `chain:`. NO PACKET -- a cover sheet with nothing behind it"
                     " is a valid document nobody would question.",
                 )
             continue
@@ -305,141 +185,235 @@ def wanted(report: bool = False) -> dict:
     return out
 
 
-def _cut(text: str, prefix: str) -> str:
-    """Remove every element whose class carries a `prefix` token, contents and all.
+def button(program_src: str, here: str) -> str:
+    """The export link. It points at the PDF.
 
-    ⚠️ A DEPTH SCAN, NOT A LAZY `.*?`. `<nav class="dr-flow">` can contain another
-    element of the same tag name, and a non-greedy match would close on the first
-    inner `</nav>` and leave the tail of one strip in the document -- half an
-    element, which renders as plausible garbage rather than as an error.
+    🔴 IT USED TO POINT AT THE GENERATED HTML PAGE, and repointing it is the whole
+    visible half of the cull. The link is now a plain file: a reader gets the stapled
+    document with no intermediate stop, which is what Michael asked for on the first
+    message of the feature and again on the last.
 
-    ✅ AND IT HANDLES `<style>` CORRECTLY, which is why the 08-30 fix is one attribute
-    rather than a new function: the depth scan is tag-agnostic, so a classed `<style>`
-    is cut like anything else. **The gap was never the cutter -- the target had no
-    class to match.** Verified on real assembled output, three sections, before/after.
+    🚫 IT DOES NOT PRINT, AND THAT MATTERS MORE NOW THAN IT DID. `assets/flow.css`
+    says why in the right words -- *"A BUTTON ON PAPER IS A LIE"* -- and the program
+    page is now SHEET ONE of the packet, so an unsuppressed button would appear on the
+    cover of the document it produced. The chrome-off rule is `print-packet.css`.
+
+    ⚠️ `download` IS DELIBERATELY ABSENT. It forces a save instead of opening the
+    viewer, and the packet's own navigation is the PDF's internal links -- a reader who
+    cannot see the file cannot check that their whole program is in it, which is the
+    one verification no build can do for them.
     """
-    pat = re.compile(
-        r"""<(?P<tag>[a-zA-Z][\w-]*)\b[^>]*\bclass=(?P<q>["'])[^"']*\b"""
-        + re.escape(prefix) + r"""[\w-]*[^"']*(?P=q)[^>]*>"""
-    )
-    while True:
-        m = pat.search(text)
-        if not m:
-            return text
-        tag = m.group("tag")
-        depth = 0
-        pos = m.start()
-        scan = re.compile(r"</?" + re.escape(tag) + r"\b[^>]*>", re.I)
-        end = None
-        for t in scan.finditer(text, m.start()):
-            depth += -1 if t.group(0).startswith("</") else 1
-            if depth == 0:
-                end = t.end()
-                break
-        if end is None:
-            return text[:pos]
-        text = text[:pos] + text[end:]
-
-
-def article(built: str) -> str:
-    """The inner HTML of a built page's `<article>`, or "" if there is none.
-
-    ⚠️ FIRST OPENING TAG TO LAST CLOSING TAG. Material renders one article per
-    page; taking the LAST close rather than the first is what survives a nested
-    one appearing in content without silently truncating the section.
-    """
-    open_m = _ARTICLE.search(built)
-    if not open_m:
-        return ""
-    close = built.rfind("</article>")
-    if close < open_m.end():
-        return ""
-    inner = built[open_m.end():close]
-    for prefix in _STRIP:
-        inner = _cut(inner, prefix)
-    # A stray tag from an unbalanced cut would nest an article inside ours.
-    return _ARTICLE_ANY.sub("", inner)
-
-
-def _resolve(href: str, own_url: str) -> tuple:
-    """(site-relative path, fragment) for a relative href seen on `own_url`."""
-    joined = urljoin("http://dr.invalid/" + own_url.lstrip("/"), href)
-    bits = urlsplit(joined)
-    return bits.path.lstrip("/"), bits.fragment
-
-
-def namespace(inner: str, n: int, own_url: str, sections: dict,
-              site_url: str, src: str = "") -> str:
-    """Prefix every id, and classify every href. See the module docstring.
-
-    `sections` maps a member's built url -> its section number.
-    """
-    tag = "s" + str(n)
-
-    def _pid(m):
-        return 'id="' + tag + "-" + m.group(2) + '"'
-
-    def _phref(m):
-        href = m.group(2)
-        if not href or _ABSOLUTE.match(href):
-            return m.group(0)
-        if href.startswith("#"):
-            return 'href="#' + tag + "-" + href[1:] + '"'
-        path, frag = _resolve(href, own_url)
-        target = sections.get(path)
-        if target is None and not path.endswith("/"):
-            target = sections.get(path + "/")
-        if target is not None:
-            inner_target = "#s" + str(target) + ("-" + frag if frag else "")
-            return 'href="' + inner_target + '"'
-        if not site_url:
-            # 🔴 NEVER GUESS AN ABSOLUTE. Reported once per build by `assemble`.
-            return m.group(0)
-        return 'href="' + _esc(urljoin(site_url, path + ("#" + frag if frag else ""))) + '"'
-
-    return _HREF.sub(_phref, _ID.sub(_pid, inner))
-
-
-def _cover(program_src: str, rows: list) -> str:
-    """The contents list. It is the packet's PRIMARY navigation and its outline.
-
-    🪦 **THE CLAIM THAT JUSTIFIED THIS HAS EXPIRED (corrected 2026-08-30).** It read
-    *"BLINK ... HAS NEVER IMPLEMENTED `@page` margin boxes, so there is no page number
-    ... to be had from CSS."* The PDF-bookmark half stands; **the margin-box half was
-    already false when written** -- Chrome 131, Nov 2024, and `runfoot.py` was using
-    them on this site the same day. A packet DOES carry `Page N of M` now. ⚑ *A
-    capability claim rots with nothing edited, because the WORLD moves instead of the
-    code, and no sweep against HEAD can catch it.* ✅ The element survives unchanged:
-    a numbered contents list is the only thing that says what the packet CONTAINS.
-
-    ⚠️ Whether these become CLICKABLE annotations in a printed PDF is still the one
-    OPEN ruling on this build (spec §4, Ruling 1).
-    """
-    items = "".join(
-        '<li><a href="#s' + str(n) + '"><span class="dr-packet__n">'
-        + str(n) + '</span> ' + _esc(title) + "</a></li>"
-        for n, title, _url in rows
-    )
-    return (
-        '<nav class="dr-packet__toc" aria-label="Contents of this packet">'
-        '<ol class="dr-packet__list">' + items + "</ol></nav>"
-    )
-
-
-def button(program_src: str, meta: dict, here: str) -> str:
-    """The export link, for `!!! export` or the automatic slot.
-
-    🚫 IT DOES NOT PRINT. `assets/flow.css` already says why, in the right file
-    and in the right words: *"A BUTTON ON PAPER IS A LIE."* The chrome-off rule
-    ships in `assets/print-packet.css` in the same commit as the button.
-
-    🚫 AND IT DOES NOT FIRE `window.print()`. Legal, identical to a manual print,
-    and it would defeat the one check no build can do: a nine-section packet
-    built from a ten-id chain is a VALID document, so the reader's glance at the
-    cover is the last line of defence and an instant dialog spends it.
-    """
-    target = relative_url(packet_src(program_src)[:-3] + "/", here)
+    target = relative_url(pdf_uri(program_src), here)
     return (
         '<p class="dr-packet__cta"><a class="dr-packet__button" href="'
-        + _esc(target) + '">Download the whole program \u2192</a></p>'
+        + _esc(target) + '">Download the whole program (PDF) \u2192</a></p>'
     )
+
+
+# =============================================================================
+# THE EVENTS. Two, where v1 needed five.
+# =============================================================================
+# 🪦 `docrender/packetbuild.py` IS RETIRED INTO THIS FILE BY THIS COMMIT. It existed
+# because `packet.py` hit 18,004 B against a ~22.5 KB read ceiling and had to be cut
+# on the concern (`specs/visibility-split.md` §1): pure transforms one side, MkDocs and
+# disk the other. ⭐ **The transform is deleted, so the reason for the split is
+# deleted.** Both halves together are now smaller than either file was alone, and a
+# two-file feature whose second file holds two functions is a seam nobody needs.
+#
+# ⚠️ v1 HELD on_files, on_nav, on_page_markdown, on_page_content AND on_post_build.
+# `on_files` minted the page; `on_post_build` spliced it. **Both are gone with the
+# page** -- and the splice going is the one to notice, because it was the only place in
+# this feature that WROTE to the built site. The engine now writes one JSON plan and
+# nothing else.
+
+import json  # noqa: E402  -- kept beside its only consumer, `on_post_build`
+from pathlib import Path  # noqa: E402
+
+#: `{program_src: {"pdf", "pages": [urls], "titles": [...]}}`
+#:
+#: 🔴 CAPTURED AT on_nav AND NEVER RE-DERIVED. At that event every File already knows
+#: its own `url`, so nothing downstream reconstructs a path from a source stem --
+#: `util.py` records two hooks that shipped the separator-counting version of that
+#: maths and got it wrong invisibly.
+#:
+#: ⚠️ IT LIVES HERE, NOT IN `state`. `state.py`'s admission price is a writer and a
+#: reader in DIFFERENT hooks; both are in this module.
+_PLAN: dict = {}
+
+
+def _title(src) -> str:
+    meta = state.BY_SRC.get(src, {}) or {}
+    return str(meta.get("title") or src.rsplit("/", 1)[-1][:-3])
+
+
+def on_nav(nav_obj, config, files):
+    """Resolve each program's chain into an ordered list of page URLs.
+
+    🚫 IT NO LONGER PRUNES THE SIDEBAR, because there is no generated page to hide.
+    v1's `_prune` walked the whole nav tree to remove a row it had just created --
+    a cost that existed entirely to undo `on_files`.
+    """
+    _PLAN.clear()
+    programs = wanted(report=True)
+    if not programs:
+        return nav_obj
+
+    by_id, _by_src = nav._built(files)
+    urls = {}
+    for f in files:
+        page = getattr(f, "page", None)
+        if page is not None and getattr(page, "is_page", False):
+            urls[getattr(f, "src_uri", "")] = getattr(f, "url", "")
+
+    for src, ids in programs.items():
+        cover = urls.get(src, "")
+        if not cover:
+            state.note(
+                "missing_required",
+                src + " asks for `export: packet` and has no built URL of its own."
+                " NO PACKET -- the program page IS the cover sheet.",
+            )
+            continue
+        pages, titles = [cover], [_title(src)]
+        for pid in ids:
+            page = by_id.get(pid)
+            if page is None:
+                continue  # nav.py already reported this id as dead.
+            psrc = getattr(getattr(page, "file", None), "src_uri", "")
+            status = str((state.BY_SRC.get(psrc, {}) or {}).get("status")
+                         or "public").strip().lower()
+            if status != "public":
+                # 🔴 THE LEAK REFUSAL, UNCHANGED BY THE CULL. `nav: hidden` and
+                # `unlisted` are curtains for somebody BROWSING; a PDF leaves the
+                # site. Refused and named, never silently included or dropped.
+                state.note(
+                    "missing_required",
+                    src + " packet REFUSES `" + pid + "` (" + psrc + "): status `"
+                    + status + "`. A packet is a distribution channel, not a"
+                    " reader. Make it `public` or take it out of the chain.",
+                )
+                continue
+            url = urls.get(psrc, "")
+            if not url:
+                # A blank URL would print the site ROOT and look like a real sheet.
+                state.note(
+                    "dead_links",
+                    src + " packet member `" + pid + "` has no built URL and is"
+                    " OMITTED. A blank URL prints the site root, which looks like"
+                    " a real sheet and is not one.",
+                )
+                continue
+            pages.append(url)
+            titles.append(_title(psrc) or getattr(page, "title", pid))
+
+        if len(pages) < 2:
+            state.note(
+                "missing_required",
+                src + " packet resolved ZERO of " + str(len(ids)) + " members."
+                " NOT WRITTEN -- a cover sheet alone is a valid document nobody"
+                " would question.",
+            )
+            continue
+        _PLAN[src] = {"pdf": pdf_uri(src), "pages": pages, "titles": titles}
+        # ⚠️ `notes`, NOT A NEW BUCKET. A new one costs two edits in two large files
+        # (`state.reset()` + `report._LABELS`) and a bucket declared in only one of
+        # them is collected all build and SILENTLY DROPPED. Every packet DEFECT above
+        # lands in `missing_required` / `dead_links`, which are annotated per BUILD 2
+        # Piece A. This line is inventory -- same shape as nav.py's reading-order note.
+        state.note(
+            "notes",
+            src + " PACKET: " + str(len(pages) - 1) + " of " + str(len(ids))
+            + " declared member(s) -> " + pdf_uri(src) + ". Printed in chain order"
+            " behind the program page; each member also lands as its own"
+            " `print.pdf` beside itself.",
+        )
+    return nav_obj
+
+
+def on_page_markdown(markdown, page, config, files):
+    """`!!! export` -> the button, exactly where the author put it.
+
+    ⭐ THE `forms:` SPLIT, WHICH IS THE PATTERN MICHAEL ASKED FOR BY NAME: the
+    frontmatter DECLARES (*"love that i can define in frontmatter, well outside of the
+    actual body content"*) and a body directive DRAWS. With no directive the button
+    lands automatically -- see `on_page_content`.
+    """
+    if "!!! export" not in markdown:
+        return markdown
+    src = getattr(getattr(page, "file", None), "src_uri", "")
+    if src not in wanted(report=False):
+        state.note(
+            "dead_links",
+            (src or "a page") + " uses `!!! export` and has no packet to export"
+            " (needs `type: program`, an `export:` kind and a live `chain:`)."
+            " The directive is left as text rather than drawing a dead button.",
+        )
+        return markdown
+    here = getattr(getattr(page, "file", None), "url", "")
+    html = button(src, here)
+    out = []
+    for line in markdown.split("\n"):
+        if line.strip().startswith("!!! export"):
+            out.extend(("", html, ""))
+            page.__dict__["_dr_packet_placed"] = True
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
+def on_page_content(html, page, config, files):
+    """The automatic slot, when no `!!! export` claimed it.
+
+    ⚠️ THE POSITION IS CONSTRAINED, NOT CHOSEN. `hide: footer` makes the flow strip the
+    only navigation on a program page, and a SECOND footer was rejected by name on
+    08-19 -- *"all this other foot matter... is that what I'm supposed to click
+    next?"* So the button rides with the strip. `program.py` appends the strips at this
+    same event and the 05b shim runs this AFTER it.
+    """
+    if page.__dict__.pop("_dr_packet_placed", False):
+        return html
+    src = getattr(getattr(page, "file", None), "src_uri", "")
+    if not src or src not in _PLAN:
+        return html
+    return html + button(src, getattr(getattr(page, "file", None), "url", ""))
+
+
+def on_post_build(config):
+    """Write `packets.json`: what `bin/print-packets.py` should print, in order.
+
+    🔴 URLS, NOT DISK PATHS, AND THAT IS THE INTERFACE. The script serves the built
+    site over loopback HTTP and navigates these, because `file://` breaks absolute
+    asset paths and gives Chrome a different origin per directory.
+
+    ⚠️ WRITTEN ON EVERY BUILD, INCLUDING `dry_run`. It names pages rather than
+    producing artifacts, so a preview that writes it is telling the truth about what a
+    publish would print. **A missing `packets.json` therefore means exactly one thing:
+    no program declares `export:`.**
+
+    ⚠️ THE TITLES ARE CARRIED AND NOTHING READS THEM. They are here so a human can
+    read the manifest and see WHICH policies a PDF claims to contain -- the same
+    falsifiability argument as the script's sheet count. 🚩 If nothing consumes them
+    in a week, cut them: an unread field is the shape this repo retires manifests over.
+    """
+    if not _PLAN:
+        return
+    packets = [
+        {
+            "program": src,
+            "title": plan["titles"][0],
+            "pdf": plan["pdf"],
+            "pages": plan["pages"],
+            "titles": plan["titles"],
+        }
+        for src, plan in sorted(_PLAN.items())
+    ]
+    out = Path(str(config.site_dir)) / "packets.json"
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps({"packets": packets}, indent=2), encoding="utf-8")
+    except OSError:
+        state.note(
+            "missing_required",
+            "packets.json could not be written, so NO packet PDF will be printed by"
+            " this build and every export button will 404.",
+        )
