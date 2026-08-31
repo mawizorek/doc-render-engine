@@ -69,6 +69,12 @@ URLs resolve exactly as they will in production.
 🔴 THE PORT IS NEVER HARDCODED. Port 0 asks the OS for a free one; a fixed port is a
 collision with whatever else a runner is doing, and the failure would look like a
 render bug rather than a port clash.
+
+🔴 AND THE LOOPBACK ADDRESS IS A LEAK RISK ON PAPER, WHICH IS NOT OBVIOUS UNTIL YOU
+SEE IT. Chrome's own print furniture stamps the SOURCE URL on every sheet, so the
+first real run printed `http://127.0.0.1:48683/...` across a safety document. See
+`--no-pdf-header-footer` below: serving locally is correct, and it makes suppressing
+that furniture MANDATORY rather than cosmetic.
 """
 
 from __future__ import annotations
@@ -111,16 +117,48 @@ _CHROME = ("google-chrome", "google-chrome-stable", "chromium-browser", "chromiu
 #:                         silently wrong safety document.
 #:   --run-all-compositor-stages-before-draw  forces layout to finish first.
 #:
-#: 🚫 NO `--no-pdf-header-footer`. Chrome's own dialog furniture is absent from
+#: 🔴 `--no-pdf-header-footer` ADDED 2026-08-31 AFTER THE FIRST REAL RUN, AND THE
+#: COMMENT IT REPLACES WAS AN ASSUMPTION DRESSED AS A REASON. It said: *"NO
+#: `--no-pdf-header-footer`. Chrome's own dialog furniture is absent from
 #: `--print-to-pdf` by default, and our header/footer come from the engine's `@page`
 #: margin boxes. Passing a flag to suppress furniture we do not have risks suppressing
-#: furniture we DO have. ⚠️ UNVERIFIED -- there is no Chrome in the sandbox this was
-#: written in. The first CI run is the proof and it is visible: a doubled page number
-#: or a missing letterhead would say so on sheet one.
+#: furniture we DO have."* **Every clause of that is wrong except the last one, and
+#: the last one is what made the first three sound careful.**
+#:
+#: ⚡ IT IS ON BY DEFAULT, AND IT PRINTED THE LOOPBACK ADDRESS ONTO A SAFETY DOCUMENT.
+#: Michael's first real packet carried, on every sheet:
+#:
+#:     8/31/26, 3:44 AM   Key Access (Todd Union) - URITP Safety
+#:     http://127.0.0.1:48683/30-programs/17-facilities/10-todd/key-access/   1/1
+#:
+#: Four separate defects in one band: a wall-clock timestamp that contradicts the
+#: engine's own `Revised` date, a duplicate title, **a dead localhost URL on a
+#: distributed document**, and a per-DOCUMENT page number (`1/1`, `1/2`) that is a lie
+#: about a stapled packet. `print.css` strips repo references from our own chrome
+#: twice over; this walked one back in through the browser.
+#:
+#: ⚑ **THE FLAG SUPPRESSES CHROME'S BAND ONLY AND CANNOT TOUCH `@page` MARGIN BOXES
+#: -- THEY ARE DIFFERENT MECHANISMS AT DIFFERENT LAYERS.** The old comment's fear was
+#: coherent and simply false, and it was never TESTED because there was no browser in
+#: the sandbox where it was written. ⭐ *A refusal built on an untested premise is not
+#: caution, it is a guess with a justification attached -- and the tell was available:
+#: the comment ended with "UNVERIFIED" and shipped the conclusion anyway.*
+#:
+#: 🔴 SO THE PAGE NUMBER NOW COMES FROM `runfoot.py`'s `@bottom-center`, WHICH IS THE
+#: ONLY PLACE THAT CAN COUNT CORRECTLY -- and this is the second correction the same
+#: run forced. I told Michael that Blink never implemented margin boxes; the printed
+#: packet carries the engine's own `Posted by` line, which is `runfoot`'s
+#: `@bottom-right`. ⚠️ Chrome's band and the engine's boxes were BOTH printing, which
+#: is why the sheets read as doubled furniture. 🚩 One thing this flag cannot fix: each
+#: member is its own document, so `counter(pages)` counts THAT policy's sheets, not the
+#: packet's. A three-policy packet reads `1 of 1`, `1 of 2`, `2 of 2`. Named rather
+#: than hidden -- a packet-wide number needs a post-pass over the stapled PDF and is
+#: Michael's call, not something to invent here.
 _FLAGS = (
     "--headless=new",
     "--disable-gpu",
     "--no-sandbox",
+    "--no-pdf-header-footer",
     "--virtual-time-budget=8000",
     "--run-all-compositor-stages-before-draw",
 )
