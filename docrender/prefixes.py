@@ -44,39 +44,47 @@ and no message would appear anywhere. `audit_peers()` is called by links.py on_f
 and reports the collision.
 
 
-SOME NAMESPACES TAKE AN `#anchor` AND MOST DO NOT (2026-08-09)
-==============================================================
+THREE CALL SHAPES, ONE LADDER, AND THE LADDER IS DELIBERATELY NOT A MATRIX
+==========================================================================
 
-A handler's signature was `(rest, page, label)` with no anchor at all, so
-`@data:x#totals` parsed fine, resolved fine, and lost the fragment on the way out.
-links.py has REPORTED that loss since 2026-08-04 and its docstring called widening
-the signature "a deliberate later change and not a thing to sneak into a feature
-branch." This is that change.
+A resolver's signature grows in rungs, and a handler declares how far up it goes:
 
-It became blocking the moment a CALCULATION wanted to be linked. A calc has no page
-of its own -- it lives at a heading on its table's page -- so
-`@calc:table-workdays#calc-fkCalendar` is the whole address and the fragment is the
-half that matters. Without it the link resolves perfectly and lands at the top of a
-long page, which is this file's own recurring failure: resolution that succeeds while
-quietly discarding half the request.
+    claim(p, owner, fn)                 fn(rest, page, label)
+    claim(p, owner, fn, anchors=True)   fn(rest, page, label, anchor)
+    claim(p, owner, fn, opts=True)      fn(rest, page, label, anchor, opts)
+
+🚨 `opts=True` IMPLIES THE ANCHOR ARGUMENT. That is the whole reason this is a ladder
+rather than two independent booleans: two flags would mean FOUR call shapes in
+links.py, and three of them would exist for one real consumer. A rung costs one
+`elif`; a matrix costs a combinatorial branch nobody exercises.
+
+
+WHY THE FLAGS EXIST AT ALL, WHICH IS THE SAME ARGUMENT TWICE
+============================================================
+
+A handler's signature was `(rest, page, label)` with no anchor, so `@data:x#totals`
+parsed fine, resolved fine, and lost the fragment on the way out. links.py REPORTED
+that loss and its docstring called widening the signature "a deliberate later change."
+The `anchors` flag was that change; `opts` is the identical move for the author's
+attr_list block.
 
 ⚑ THE FLAG IS ON THE CLAIM, NOT ON THE CALL, AND THAT IS THE WHOLE DESIGN. The
-obvious fix is to widen the signature for everybody. Rejected twice over. It rewrites
-`datatable.py`, which is over the safe-edit ceiling, and `images.py`, to accept an
-argument neither can ever use -- and it is the wrong CLAIM: `@data:` addresses a whole
-table and `@img:` a whole picture. Neither has anywhere for a fragment to point, so
-for them the anchor genuinely is meaningless and the existing complaint genuinely is
-correct. Widening them would replace an honest report with a silent no-op.
+obvious fix both times is to widen the signature for everybody. Rejected both times.
+It rewrites `datatable.py`, which is over the safe-edit ceiling, and `images.py`, to
+accept arguments neither can ever use -- and it is the wrong CLAIM: `@data:` addresses
+a whole table and `@img:` a whole picture. Neither has anywhere for a fragment to
+point, and neither has an element an author's class could sensibly decorate. Widening
+them would replace an honest report with a silent no-op.
 
-So the handler that CAN use an anchor says so when it registers, and links.py asks the
+So the handler that CAN use a thing says so when it registers, and links.py asks the
 registry rather than guessing. Handlers that never opted in are called exactly as
-before, byte for byte, and keep the complaint they already emit.
+before, byte for byte, and keep the behaviour they already have.
 
-🚨 DEFAULT IS FALSE AND MUST STAY FALSE. An unwidened handler handed a fourth
+🚨 DEFAULTS ARE FALSE AND MUST STAY FALSE. An unwidened handler handed an extra
 positional argument raises TypeError inside a page render -- a build-killer, reachable
 from a data edit, which is precisely the shape of the ImportError that took all four
 sites down on 2026-08-05. The default keeps the OLD call shape as the fallback rather
-than the new one, so the failure mode of forgetting the flag is a dropped anchor with
+than the new one, so the failure mode of forgetting a flag is a dropped argument with
 a report line, never a dead site.
 """
 
@@ -84,16 +92,22 @@ from __future__ import annotations
 
 from typing import Callable
 
-#: prefix -> (owning module, resolver, takes_anchor).
+#: prefix -> (owning module, resolver, takes_anchor, takes_opts).
 #:
-#: A resolver takes `(token_remainder, page, label)` -- plus a fourth positional
-#: `anchor` argument ONLY if it claimed with `anchors=True` -- and returns either a
-#: replacement markdown/HTML string, or None to mean "I decline, treat this as
+#: A resolver takes `(token_remainder, page, label)`, plus `anchor` if it claimed
+#: with `anchors=True`, plus `opts` if it claimed with `opts=True`. It returns either
+#: a replacement markdown/HTML string, or None to mean "I decline, treat this as
 #: unresolved". It never raises and never fails the build.
-_CLAIMS: dict[str, tuple[str, Callable, bool]] = {}
+_CLAIMS: dict[str, tuple[str, Callable, bool, bool]] = {}
 
 
-def claim(prefix: str, owner: str, resolver: Callable, anchors: bool = False) -> None:
+def claim(
+    prefix: str,
+    owner: str,
+    resolver: Callable,
+    anchors: bool = False,
+    opts: bool = False,
+) -> None:
     """Register a reserved `@<prefix>:` namespace.
 
     Idempotent by design: MkDocs imports hook modules once per build, but `mkdocs
@@ -102,8 +116,14 @@ def claim(prefix: str, owner: str, resolver: Callable, anchors: bool = False) ->
 
     `anchors=True` means the resolver accepts a fourth positional argument -- the
     `#fragment` exactly as written, INCLUDING its hash, or `""` when there is none --
-    and takes responsibility for putting it on the href. Leave it False and links.py
-    calls the three-argument form and reports any anchor as dropped, unchanged.
+    and takes responsibility for putting it on the href.
+
+    `opts=True` means it accepts a FIFTH positional argument: the author's trailing
+    attr_list block exactly as written, braces included (`{.no-print}`), or `""`.
+    ⚠️ IT IMPLIES `anchors` -- see the ladder in the module docstring -- and it also
+    makes the handler RESPONSIBLE for that block. links.py stops re-emitting it, so a
+    handler that opts in and then ignores the value silently eats the author's
+    classes, which is exactly the failure this argument exists to end.
 
     ⚠️ A CALLER THAT RAISES HERE IS A PROGRAMMING ERROR AND A CALLER THAT IS DATA IS
     NOT. `markerlinks.py` builds its claims from a TSV, where a duplicate is a typo
@@ -117,7 +137,9 @@ def claim(prefix: str, owner: str, resolver: Callable, anchors: bool = False) ->
             "@" + prefix + ": is claimed by both " + existing[0] + " and " + owner
             + ". Two handlers cannot own one prefix -- rename one of them."
         )
-    _CLAIMS[prefix] = (owner, resolver, bool(anchors))
+    # `opts` implies `anchors`: the rungs are cumulative, so a handler cannot ask for
+    # the fifth argument while declining the fourth.
+    _CLAIMS[prefix] = (owner, resolver, bool(anchors) or bool(opts), bool(opts))
 
 
 def reserved() -> set[str]:
@@ -138,6 +160,18 @@ def takes_anchor(prefix: str) -> bool:
     """
     entry = _CLAIMS.get(prefix)
     return bool(entry[2]) if entry else False
+
+
+def takes_opts(prefix: str) -> bool:
+    """Did this prefix's owner opt in to receiving the author's attr_list block?
+
+    True implies `takes_anchor` is also True -- `claim()` enforces that rather than
+    trusting the caller, because a handler asking for the fifth argument without the
+    fourth would be called with the anchor in the opts position and would silently
+    put a fragment where classes belong.
+    """
+    entry = _CLAIMS.get(prefix)
+    return bool(entry[3]) if entry else False
 
 
 def owner(prefix: str) -> str:

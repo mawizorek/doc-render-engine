@@ -5,6 +5,7 @@
     [dateFormat](@calc:table-workdays#calc-fmt)      a calculation, at a heading
     [fkCal](@alias:table-workdays#calc-fkCalendar)   a retired name for a live one
     [Theatre Administrator](@role:theatre-administrator)   a role, glossed on hover
+    [the TA](@role:theatre-administrator){.no-print}       ...but not on paper
 
 The SPAN form -- `[text]{.rel}` -- and both TSV tables live in
 docrender/markers.py. This module resolves; it owns no data and paints nothing.
@@ -24,10 +25,6 @@ it resolves, and docindex.py inverts that into /doc-refs.json. So marking a
 relationship with the link form does not merely count it, it puts it in a
 graph -- and nothing new is computed to get there, because the resolution was
 already happening to build the href.
-
-That is the whole reason a FileMaker solution is worth documenting this way.
-FileMaker has no screen that lists every calculation in a file; this does, and
-the link form makes it a dependency list rather than an inventory.
 
 A DEAD REFERENCE NEVER DEGRADES INTO A SPAN. The resolver returns None,
 links.py reports it and renders the broken-reference span -- red, struck, no
@@ -68,8 +65,65 @@ WHY THE GLOSS IS READ OFF `state.PAGES` AND NEVER OFF `state.BY_SRC`. PAGES is
 built AFTER visibility prunes, which is the property that stops a link resolving
 to a page that was not built. Reaching into BY_SRC for the same value would
 reintroduce exactly that hole -- a gloss arriving from a page nobody can open.
-links.py puts both keys on the map at the one call site where the frontmatter is
-already in hand.
+
+
+`{.no-print}` -- PER-INSTANCE SUPPRESSION, AND IT IS AN OMISSION NOT AN OVERRIDE
+===============================================================================
+
+    Ask the [Theatre Administrator](@role:theatre-administrator){.no-print}
+
+Hover unchanged on screen. On paper: just the author's own words, no parenthesis.
+One mention, not the whole role -- a page naming a role three times can print the
+gloss once.
+
+THIS DOES NOT REOPEN THE PER-INSTANCE REFUSAL ABOVE, and the distinction is the
+reason it was safe to build: that refusal is about CONTENT. A per-instance STRING
+is a second copy of a fact and rots the day the fact changes. A per-instance SWITCH
+carries no copy of anything, so it has nothing to drift from. ⚑ A second claimant
+is a second COPY; a switch is not a claimant. Four existing precedents in this
+engine: `indexed: false`, `contents: false`, `reload: false`, `print=true`.
+
+🔴 AND THE SUPPRESSION IS DONE BY NOT EMITTING THE ATTRIBUTE, NEVER BY A CSS
+`:not()` RULE. The obvious build is one selector in gloss.css. Skipping the
+attribute is strictly better on three counts, and the third is the one that decided
+it:
+
+  * gloss.css needs no edit at all, so the feature is one gate in the module that
+    already resolves the value rather than a rule in a second file;
+  * there is no second place stating the precedence, so the two cannot disagree;
+  * 🔴 THE STRING IS NOT IN THE DOM FOR THAT MENTION. "Print-only" was always a
+    VISUAL claim and never a privacy one -- `data-role-print` sits in view-source on
+    every page that carries it. Omitting it means "do not print this here" is also
+    "do not publish this here," which is the stronger promise and the one somebody
+    suppressing a person's name probably meant.
+
+⚠️ THE CLASS IS STILL MERGED ONTO THE ANCHOR even though nothing styles it. It is
+the only record in the built page that a suppression was deliberate, and a reader of
+view-source asking why one mention prints and another does not deserves an answer
+that is not "read the source markdown."
+
+
+AUTHOR CLASSES MERGE INTO ONE BLOCK, WHICH CLOSED A GAP NOBODY HAD REPORTED
+===========================================================================
+
+This module returns markdown carrying its own attr_list block. Before BUILD 9,
+links.py's pattern stopped at the closing paren, so an author's `{.foo}` survived
+as a SECOND block immediately after -- and attr_list consumes one. **No marker link
+could take an author class, on any site, and nothing anywhere said so.**
+
+So `opts=True` on the claim (prefixes.py's third rung) hands the block here and this
+module OWNS it. links.py stops re-emitting, which is what makes one block possible.
+
+🚨 A HANDLER THAT OPTS IN AND IGNORES THE VALUE EATS IT. links.py cannot tell a
+handler that merged the block from one that dropped it, so the responsibility is
+entirely here. Every path below either merges the classes or reports them.
+
+🚫 NON-CLASS CONTENT IS DROPPED AND REPORTED, NOT PASSED THROUGH. attr_list accepts
+`key=value` and `#id` too; this module carries neither. `cells.py` made the identical
+call hours earlier for the identical reason -- what this returns can be fed by a TSV
+cell, which is the least-reviewed content in the tree, and forwarding arbitrary
+key-value pairs out of it is a different posture than carrying a class name. Widening
+this is a decision, not a formality.
 
 
 HOW THE HOVER IS DRAWN, AND WHY IT IS NOT `title=`
@@ -88,12 +142,12 @@ mechanism buildstamp.py already proved: hidden with `opacity` rather than
 DIVERGENCE, NAMED HERE RATHER THAN LEFT FOR A COLD SESSION TO FIND: markers.py's
 SPAN renderer still emits `title=`. So this engine has TWO hover mechanisms right
 now, and the span form is the one carrying the refused attribute. That rewrite is
-deferred on measurement rather than on preference -- markers.py is 21,561 B
-against a 22,528 ceiling, a popup there is a nested-element rewrite rather than
-an attribute swap, and that module's history includes killing every site at
-config-load time. A KNOWN divergence with a written owner is a different object
-from the unknown one this build was scoped to end, where figure.py refused an
-attribute markers.py shipped and neither file mentioned the other.
+deferred on measurement rather than on preference -- markers.py is ~21.5KB against a
+22,528 ceiling, a popup there is a nested-element rewrite rather than an attribute
+swap, and that module's history includes killing every site at config-load time. A
+KNOWN divergence with a written owner is a different object from the unknown one this
+build was scoped to end, where figure.py refused an attribute markers.py shipped and
+neither file mentioned the other.
 
 
 PAPER: THE FIRST ADDITIVE PRINT RULE IN THIS ENGINE
@@ -111,19 +165,15 @@ that: it was engine prose in Michael's voice. This is his own data, typed by him
 on a page he owns, reached through a reference he wrote.
 
 PRECEDENCE RESOLVES HERE, IN PYTHON, AND THE CSS NEVER SEES TWO CANDIDATES.
-`print_gloss` wins when present, `gloss` otherwise, and ONE attribute carries the
-winner -- so precedence cannot be expressed in two places and then disagree.
+`print_gloss` wins when present, `gloss` otherwise, `{.no-print}` beats both, and
+ONE attribute carries the winner -- so precedence cannot be expressed in two places
+and then disagree.
 
 ABSENT AND EMPTY ARE DIFFERENT STATES AND BOTH ARE REAL. No `print_gloss` means
 print the gloss; `print_gloss: ""` means print nothing. The test is `is None`,
 never falsiness -- `collapsed:` had to be retrofitted for this exact reason on
 2026-08-30, where `false` and an omitted key produced identical output and one
 whole state was unreachable.
-
-AND "PRINT-ONLY" IS A VISUAL CLAIM, NEVER A PRIVACY ONE. `data-role-print` sits
-in the DOM of every page that references the role, on every build, on screen, in
-view-source. Anything written into `print_gloss` is published. objects/role.yml
-carries that warning where somebody is about to type a name.
 
 
 THE TYPE CHECK, WHICH COST NOTHING AND CLOSED AN OPEN NOTE
@@ -148,8 +198,7 @@ declares a type beside a marker and stays off for `calc`, `rel` and `term`.
 
 AND IT REPORTS RATHER THAN REFUSING. A mistyped target still renders as a working
 link, because nothing in this family may fail a build and a reader is better
-served by a link to the wrong page than by a broken one. The report is where a
-wrong target gets found.
+served by a link to the wrong page than by a broken one.
 
 
 WHY THIS IS A SEPARATE MODULE, GIVEN THAT markers.py ARGUED IT SHOULD NOT BE
@@ -164,8 +213,7 @@ THAT WAS TRUE OF A PYTHON CONSTANT AND IS NOT TRUE OF A TSV CELL. The family
 is in the `class` column and the namespace is in the `prefix` column, of the SAME
 ROW. Both forms read that row. This file contains no marker name, no family name
 and no prefix -- search it and you will not find the string "rel" or "terminology"
-anywhere outside this docstring. There is nothing left for two modules to
-disagree about.
+anywhere outside this docstring.
 
 AND THE SEAM IS DATA, NEVER BEHAVIOUR. This module imports `table()`,
 `marker_rows()` and `LINK_CLASS`. It does NOT import `markers._colour`, and must
@@ -191,9 +239,7 @@ colour, label, shape, and the class tooltip -- is re-read per build and stays ho
 AND A PROBLEM FOUND AT IMPORT CANNOT BE REPORTED AT IMPORT. `state.reset()`
 runs from the first hook, which is AFTER every module has been imported, so a
 `state.note()` call made during `_install()` is wiped before anything prints.
-Findings are therefore parked in `_CLAIM_NOTES` and drained in `on_files`. This
-is the shape of a check that runs, finds something, and tells nobody -- which
-this repo has shipped more than once -- and the two-step is what avoids it.
+Findings are therefore parked in `_CLAIM_NOTES` and drained in `on_files`.
 
 
 THREE WAYS A `prefix` CELL CAN BE WRONG, AND NONE OF THEM FAIL A BUILD
@@ -233,17 +279,27 @@ _PREFIX = re.compile(r"^[a-z][a-z0-9-]*$")
 #: never disagree about whether a box exists.
 GLOSS_CLASS = "dr-gloss"
 
+#: The author's per-instance print opt-out. A BARE WORD rather than a `dr-` prefixed
+#: one, deliberately: `dr-` names things the engine emits, and this is the one class
+#: in this file's vocabulary that a human TYPES. It matches `{.new-page}`, which
+#: print-flow.css already gives an author for the same kind of reason.
+#:
+#: 🚫 NO CSS ANYWHERE MATCHES IT, and that is the design rather than an omission --
+#: suppression happens by omitting the attribute. See the docstring.
+NO_PRINT_CLASS = "no-print"
+
+#: A `.class` token inside an author's attr_list block.
+_OPT_CLASS = re.compile(r"\.([A-Za-z][\w-]*)")
+
 #: prefix -> the marker name that owns it. Built at import.
 _CLAIMED: dict[str, str] = {}
 
 #: Prefixes deliberately NOT claimed, with a reason already queued. Kept apart from
 #: `_CLAIMED` so the staleness check below can tell "we refused this" from "nobody
-#: has seen this yet" -- reporting a declined prefix twice, once as a fault and
-#: again as a mystery, is how a report teaches people to stop reading it.
+#: has seen this yet".
 _DECLINED: set[str] = set()
 
-#: Findings from `_install()`, drained in on_files. See the note above: a
-#: state.note() made at import is erased by state.reset() before anything prints.
+#: Findings from `_install()`, drained in on_files.
 _CLAIM_NOTES: list[str] = []
 
 
@@ -272,6 +328,30 @@ def _attr_safe(value: str, where: str, field: str) -> str:
     return html.escape(text, quote=True)
 
 
+def _author_classes(opts: str, where: str) -> list[str]:
+    """The `.class` tokens from the author's trailing block, in written order.
+
+    Anything else in the block is DROPPED AND REPORTED -- see the docstring on why
+    this module carries classes and not `key=value` pairs. The report names the
+    offending text rather than saying "unsupported", because an author who wrote
+    `align=center` needs to know THAT is the part that did nothing.
+    """
+    if not opts:
+        return []
+    inner = opts.strip()[1:-1].strip()  # drop the braces
+    found = _OPT_CLASS.findall(inner)
+
+    leftover = _OPT_CLASS.sub("", inner).strip()
+    if leftover:
+        state.note(
+            "notes",
+            where + ": the trailing block carries '" + leftover + "', which a marker "
+            + "link does not accept -- only `.class` tokens are carried. That part "
+            + "was dropped and the rest of the link is fine.",
+        )
+    return found
+
+
 def _make(name: str):
     """Build the resolver for one marker row.
 
@@ -281,7 +361,7 @@ def _make(name: str):
     span form. Closing over the row would have frozen it at import.
     """
 
-    def resolve(rest, page, label, anchor=""):
+    def resolve(rest, page, label, anchor="", opts=""):
         hit = state.PAGES.get(rest)
         if not hit:
             # Declining is what produces the broken-reference span in links.py.
@@ -305,10 +385,14 @@ def _make(name: str):
             # A boxed family's link gets the chip: border, radius, padding and the
             # class wash, all from base.css's `.dr-mark--box`, WITHOUT `.dr-mark`
             # and therefore without its `cursor: help` and `white-space: nowrap`.
-            # No new CSS -- the two classes were always separate rules.
             css.append("dr-mark--box")
 
         where = page.file.src_uri + ": '@" + name + ":" + rest + "'"
+
+        # The author's block, MERGED rather than left beside ours. Read before the
+        # gloss because `.no-print` decides whether the printed half is emitted.
+        authored = _author_classes(opts, where)
+        suppress_print = NO_PRINT_CLASS in authored
 
         # THE TYPE CHECK. Free, because state.PAGES already carries `type` and the
         # house convention is that a marker's name matches its page type's name.
@@ -341,11 +425,13 @@ def _make(name: str):
 
         # PAPER. `print_gloss` wins when present; absent falls back to the gloss;
         # an EMPTY STRING means print nothing, which is why this tests `is None`
-        # and not truthiness. One attribute carries the winner, so the stylesheet
-        # never has to know a precedence rule.
+        # and not truthiness. `{.no-print}` beats both by never emitting the
+        # attribute at all -- so the string is absent from the DOM for this
+        # mention rather than merely hidden by a rule.
         override = hit.get("print_gloss")
-        printed = gloss if override is None else _attr_safe(
-            override, where, "print_gloss"
+        printed = "" if suppress_print else (
+            gloss if override is None
+            else _attr_safe(override, where, "print_gloss")
         )
 
         attrs = ""
@@ -354,6 +440,12 @@ def _make(name: str):
             attrs += ' data-gloss="' + gloss + '"'
         if printed:
             attrs += ' data-role-print="' + printed + '"'
+
+        # Author classes LAST, so a page can never shadow the classes that make the
+        # marker a marker -- and duplicates are dropped rather than emitted twice.
+        for cls in authored:
+            if cls not in css:
+                css.append(cls)
 
         # Same shape as the span entry so ONE sorted list answers "every calc on
         # this site" across both forms. The ` -> target` tail is what makes this
@@ -416,7 +508,9 @@ def _install() -> None:
             continue
 
         try:
-            prefixes.claim(prefix, __name__, _make(name), anchors=True)
+            # opts=True implies anchors -- see prefixes.claim. Both are passed so the
+            # signature this module actually implements is legible at the call site.
+            prefixes.claim(prefix, __name__, _make(name), anchors=True, opts=True)
         except RuntimeError as exc:
             # Belt to the check above's braces. That check depends on the other
             # claimants having been imported first, which is true today (01b_data
