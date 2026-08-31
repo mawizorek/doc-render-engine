@@ -205,6 +205,34 @@ _GLOSS_ASSETS = ("gloss.css",)
 #: feature. The router's scan exists because its assets are 63 KB; these are 10.
 _PACKET_ASSETS = ("packet.css", "print-packet.css")
 
+#: THE TASK-LIST CHECKBOX (2026-08-30). `- [ ]` / `- [x]` on a worksheet page.
+#: See `mkdocs.yml` -> pymdownx.tasklist for the WORKSHEET/RECORD rule that
+#: governs where an author may use one. Position FREE (D8): the only selectors
+#: are `.task-list-*` and the two `--md-tasklist-icon*` variables, and no other
+#: sheet in the tree mentions either (grepped).
+#:
+#: 🔴 IT EXISTS BECAUSE MATERIAL'S OWN DEFAULTS ARE UNUSABLE ON THESE THEMES, and
+#: both defects were read out of `_tasklist.scss` at the pinned version rather
+#: than guessed. (1) The unchecked indicator paints
+#: `--md-default-fg-color--lightest` = `#00000012`, **7% opacity**, measured at
+#: **1.17:1** on the papyrus light row against a 3.0 UI floor -- invisible, which
+#: is exactly how Michael reported it. (2) `--md-tasklist-icon` and
+#: `--md-tasklist-icon--checked` are **THE SAME GLYPH**, so state is carried by
+#: COLOUR ALONE -- `$clr-green-a400` measures 1.35:1 on that same row, and the
+#: distinction dies outright on a greyscale printer.
+#:
+#: ⭐ (2) IS THE ONE THAT MATTERED. This engine's whole reason for a clickable
+#: checkbox is Michael's worksheet: *"whatever isn't checked off is what I need to
+#: order."* A printed sheet whose two states differ only in hue cannot express
+#: that -- and `base.css` had already written the general rule for `docrender-dead`
+#: (*"unclickable is not a cue, it is the ABSENCE of one"*). Same law, second
+#: element.
+#:
+#: ⚠️ UNCONDITIONAL, like every group but the router's (D3). A task list is body
+#: markup, so no frontmatter scan can see it, and the cost of being wrong is a few
+#: `.task-list-*` rules matching nothing.
+_TASKLIST_ASSETS = ("tasklist.css",)
+
 
 def hand_written_css() -> tuple[str, ...]:
     """Every HAND-WRITTEN stylesheet this engine ships, in load order.
@@ -218,11 +246,13 @@ def hand_written_css() -> tuple[str, ...]:
     sheets are NOT here -- they have no file on disk and the audit builds them.
 
     🔴 EVERY GROUP IS WALKED. Adding a group and forgetting it here is precisely
-    how that tuple went stale. ⭐ THIS WARNING HAS BEEN OBEYED FIVE TIMES --
+    how that tuple went stale. ⭐ THIS WARNING HAS BEEN OBEYED SIX TIMES --
     _FLOW_ASSETS (08-19), _QR_ASSETS (08-21), _ALIGN_ASSETS (08-29),
-    _GLOSS_ASSETS and _PACKET_ASSETS (both 08-30) each joined this walk in the
-    same commit that created them, because whoever added them read this line
-    first.
+    _GLOSS_ASSETS, _PACKET_ASSETS and _TASKLIST_ASSETS (all 08-30) each joined
+    this walk in the same commit that created them, because whoever added them
+    read this line first. ⚠️ The number is safe to write ONLY because the list
+    beside it is exhaustive: a bare count here would rot the way every
+    hand-maintained total in this repo has.
 
     ⚠️ It guards against a forgotten GROUP. Nothing guards against a forgotten
     FILE, and an unregistered sheet is invisible here whether the omission was
@@ -244,6 +274,7 @@ def hand_written_css() -> tuple[str, ...]:
         for name in (
             _DATA_ASSETS + _FEATURE_ASSETS + _PRINT_ASSETS + _FLOW_ASSETS
             + _QR_ASSETS + _ALIGN_ASSETS + _GLOSS_ASSETS + _PACKET_ASSETS
+            + _TASKLIST_ASSETS
         )
         if name.endswith(".css")
     )
@@ -329,9 +360,9 @@ def _plan(config) -> list[tuple[str, bytes]]:
     ⚠️ THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the only
     thing keeping navtree.js ahead of router.js.
 
-    ⭐ THE FLOW, QR, ALIGN, GLOSS AND PACKET POSITIONS ARE FREE (D8). Do not infer
-    a rule from where they sit. ⚠️ ONE EXCEPTION, AND IT IS NOT A CASCADE RULE:
-    the packet group must stay AFTER `_PRINT_ASSETS` in this list, because
+    ⭐ THE FLOW, QR, ALIGN, GLOSS, PACKET AND TASKLIST POSITIONS ARE FREE (D8). Do
+    not infer a rule from where they sit. ⚠️ ONE EXCEPTION, AND IT IS NOT A CASCADE
+    RULE: the packet group must stay AFTER `_PRINT_ASSETS` in this list, because
     print-packet.css's `display: none` on the export button competes with
     print-flow.css's `display: revert !important` on details children. It also
     carries `!important` itself, so the order is belt AND braces rather than the
@@ -358,7 +389,7 @@ def _plan(config) -> list[tuple[str, bytes]]:
             plan.append((name, raw))
 
     for name in (_FLOW_ASSETS + _QR_ASSETS + _ALIGN_ASSETS + _GLOSS_ASSETS
-                 + _PACKET_ASSETS):
+                 + _PACKET_ASSETS + _TASKLIST_ASSETS):
         raw = _read(state.ENGINE_ROOT / "assets" / name)
         if raw is not None:
             plan.append((name, raw))
