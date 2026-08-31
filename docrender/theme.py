@@ -26,7 +26,8 @@ ONCE, IN :root (the three scheme-independent vectors):
 ONCE MORE, IN `@media print` (2026-08-19):
 
   9. THE PAPER BLOCK          whichever resolved row declares `mode: light`,
-                              emitted onto BOTH scheme selectors. See below.
+                              emitted UNSCOPED **and** onto both scheme
+                              selectors. See below.
 
 ORDER IS LOAD-BEARING IN BOTH BLOCKS AND ITS FAILURE MODE IS SILENCE. Later
 declarations win at equal specificity, so the aliases and the bridge MUST come
@@ -79,22 +80,52 @@ first whose row declares `mode: light`. On papyrus that is the PRIMARY slot; on
 eos, database and every other join it is the alt slot. **Neither the caller nor
 this file needs to know which, which is the entire point.**
 
-✅ AND IT IS EMITTED ONTO BOTH SCHEME SELECTORS. The first version painted only
-`slate`, on the assumption that a light-mode reader was already correct -- true for
-fifteen joins and FALSE for papyrus, where the light-mode reader is the one
-wearing the dark row. Emitting to both costs one duplicated block in a
-print-only sheet and removes the entire class of question.
+=============================================================================
+🔴 AND ON 2026-08-31 IT GAINED AN UNSCOPED COPY, BECAUSE BOTH SELECTORS CAN MISS
+=============================================================================
+> Michael, printing a program page from a script and getting a near-black sheet
+> with washed-out text, having just printed the SAME page by hand perfectly:
+> *"everything else prints justtt fine - just your version."*
 
-🚫 AND IT REPORTS RATHER THAN GUESSING WHEN NO ROW SAYS `light`. A join is free to
-pair two darks -- `themes.json` states that explicitly -- and for such a theme
-there IS no light palette to print. The old code would have silently emitted a
-dark one. This names the theme and emits nothing, leaving Material's own light
-defaults to carry the page. ⚑ *An honest gap beats a confident wrong colour, and
-this is the third time tonight that distinction has been the difference.*
+🔴 **THE PAPER BLOCK WAS EMITTED ONTO TWO ATTRIBUTE SELECTORS AND NOTHING ELSE, SO
+A DOCUMENT CARRYING NEITHER ATTRIBUTE GOT NO PAPER PALETTE AT ALL.** Not a wrong
+colour -- **no colour**, which is the exact failure this file's own next section
+warns about for a different cause: *"`var(--dr-ink)` with no fallback collapses to
+nothing."* The warning was written about `@media screen` and was true about this.
 
-⚠️ `mode` IS IN `vectors.META`, so it is metadata rather than a token and is never
-emitted as a custom property. Reading it here is exactly what that column was kept
-for after it stopped resolving anything.
+⚡ **AND THE TRIGGER IS A DEFAULT NOBODY THOUGHT OF AS ONE.** `mkdocs.yml` lists
+`- scheme: slate` FIRST and calls it *"the default, and the toggle offers the other
+one."* Material writes `data-md-color-scheme` from **localStorage**, so:
+
+    a reader who has toggled  ->  attribute present  ->  paper block applies
+    a FRESH profile           ->  attribute absent/slate before JS settles
+
+Michael prints from his own browser, where he has chosen light and the attribute is
+written. **A headless print starts from a brand-new profile every single time** --
+`bin/print-packets.py` mints a fresh `--user-data-dir` per page ON PURPOSE -- so it
+is the one reader for whom the toggle has never been touched.
+
+⚑ **THE GENERALISATION, AND IT IS THE THIRD TIME THIS CLASS HAS BITTEN THIS
+FEATURE IN TWO DAYS: A RULE SCOPED TO STATE IS UNREACHABLE FOR A READER WHO HAS NO
+STATE.** `visibility.py`, `qr.py` and this file now all record a version of it. The
+tell available in advance: **both** selectors were attribute selectors, so the
+block had no answer for a document with no attributes, and nothing in the emit
+reported that a `:root` case existed.
+
+✅ THE FIX IS ONE MORE BLOCK AND IT CANNOT REGRESS THE OTHER TWO. `:root` is
+(0,1,0) and an attribute selector is (0,1,0) -- a TIE, broken by source order, and
+the unscoped copy is emitted FIRST. So a document WITH an attribute resolves
+exactly as it did before (identical values, later block wins), and a document
+WITHOUT one now resolves too. ⭐ *It also makes a printed sheet independent of the
+reader's toggle, which is Michael's own 08-21 ruling -- printed content must not
+differ per reader -- finally true in the mechanism rather than by luck.*
+
+🚫 NOT FIXED IN THE PRINT SCRIPT, DELIBERATELY. Forcing a light scheme with a
+Chrome flag would have made the scripted print differ from a manual one, and
+**"identical to Ctrl+P on that page" is the entire premise the packet rests on.**
+The defect was in the engine and it was wrong for hand-printing too: anybody
+printing from a fresh browser, an incognito window or a shared machine got this
+sheet. Fixing the flag would have hidden a live bug from every real reader.
 
 =============================================================================
 ⭐ WHY NOT `@media screen` AROUND THE SLATE BLOCK, WHICH IS WHAT MATERIAL DOES
@@ -105,9 +136,12 @@ with NO COLOUR AT ALL.
 
 The difference is structural. Material declares its light values UNSCOPED, so
 silencing slate on paper leaves the defaults standing. This file declares BOTH
-schemes scoped -- and nothing unscoped. ⚑ **Silencing a scheme on paper would leave
-every `--dr-*` token UNDEFINED for the readers in it**, and `var(--dr-ink)` with no
-fallback collapses to nothing. Not a wrong colour: no colour.
+schemes scoped -- and, until 2026-08-31, nothing unscoped. ⚑ **Silencing a scheme on
+paper would leave every `--dr-*` token UNDEFINED for the readers in it**, and
+`var(--dr-ink)` with no fallback collapses to nothing. Not a wrong colour: no
+colour. 🔴 That is exactly what happened to a no-attribute document, by a different
+route -- see the section above. **The paragraph was right and it was filed against
+the wrong mechanism.**
 
 🪦 AND IT RETIRED `assets/print-scheme.css`, WHICH WAS WORSE THAN BOTH. That sheet
 forced sixteen hardcoded greys with `!important`: it ignored the vector entirely,
@@ -128,7 +162,9 @@ remains the surface where that shows worst. The fix belongs in the light rows of
 ⚠️ THE THREE SCHEME-INDEPENDENT VECTORS ARE UNTOUCHED BY ALL OF THIS. Typography,
 forms and spacing are emitted once in `:root` and are not scheme-scoped, so the
 face, the sizes, the tracking and the spacing on paper are already exactly what
-the vector declares. Only COLOUR ever needed a medium.
+the vector declares. Only COLOUR ever needed a medium. ⭐ *And that is the clue that
+was sitting in this file the whole time: the three vectors that printed correctly
+from a fresh profile were the three emitted UNSCOPED.*
 
 =============================================================================
 🔴 THIS FUNCTION RUNS TWO OR THREE TIMES PER BUILD. DO NOT REPORT FROM IT.
@@ -172,6 +208,14 @@ _SCHEMES = (
     ("dark", '[data-md-color-scheme="slate"]'),
     ("light", '[data-md-color-scheme="default"]'),
 )
+
+#: 🔴 THE PAPER BLOCK'S UNSCOPED SELECTOR. Emitted BEFORE the two attribute
+#: selectors, which is what makes it a safety net rather than an override: `:root`
+#: and `[data-md-color-scheme=...]` are both (0,1,0), so on a document that HAS the
+#: attribute the later block wins with identical values, and on one that has NO
+#: attribute this is the only thing that matches. See the 08-31 section in the
+#: module docstring for the near-black sheet that proved the case exists.
+_PAPER_UNSCOPED = ":root"
 
 #: 🔴 THE `mode` CELL PAPER LOOKS FOR. Paper is always a light ground, so it wants
 #: the row that DECLARES itself light -- never the slot that happens to be called
@@ -418,10 +462,12 @@ def build_css() -> str:
         lines.extend(shared)
         lines.append("}")
 
-    # 🔴 THE PAPER BLOCK. Whichever row DECLARES itself light, painted onto BOTH
-    # scheme selectors so it cannot matter which slot a join put it in. See the
-    # module docstring for the papyrus bug this shape exists to prevent, and for
-    # why this is not `@media screen` around a scheme block.
+    # 🔴 THE PAPER BLOCK. Whichever row DECLARES itself light, painted UNSCOPED and
+    # onto BOTH scheme selectors, so it cannot matter which slot a join put it in
+    # NOR whether the document carries a scheme attribute at all. See the module
+    # docstring for the papyrus bug and the 08-31 no-attribute sheet this shape
+    # exists to prevent, and for why this is not `@media screen` around a scheme
+    # block.
     found = _paper_row(picked)
     if found is None:
         state.note(
@@ -436,6 +482,17 @@ def build_css() -> str:
         paper = _scheme_decls(got, paper_scheme)
         if paper:
             lines.append("@media print {")
+            # 🔴 UNSCOPED FIRST. It is the only block that matches a document with
+            # no `data-md-color-scheme` attribute -- a fresh profile, an incognito
+            # window, or a headless print. Equal specificity to the two below, so
+            # emitting it first means a document that HAS the attribute resolves
+            # exactly as it did before this line existed.
+            for selector in (_PAPER_UNSCOPED,):
+                lines.append("  " + selector + " {")
+                lines.extend(
+                    "    " + name + ": " + value + ";" for name, value in paper
+                )
+                lines.append("  }")
             for _scheme, selector in _SCHEMES:
                 lines.append("  " + selector + " {")
                 lines.extend(
@@ -443,6 +500,14 @@ def build_css() -> str:
                 )
                 lines.append("  }")
             lines.append("}")
+            state.note(
+                "notes",
+                "paper: the light palette is emitted UNSCOPED and on both scheme "
+                "selectors, so a printed sheet is identical whether or not the "
+                "reader has ever touched the theme toggle. A no-attribute "
+                "document (fresh profile, incognito, headless print) used to get "
+                "NO paper palette at all.",
+            )
 
     for scheme, got in picked.items():
         if not got["colorRow"]:
