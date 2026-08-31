@@ -44,6 +44,10 @@ Each sheet comes out of exactly the render a reader would print, one document at
 time, so per-page furniture is per-page by construction. Nothing to strip, no anchor
 namespace to rewrite, and no list for a future feature to forget.
 
+🔴 AND THAT PROPERTY HAS A PRICE MICHAEL HAS NOW PAID DELIBERATELY: page numbers are
+per POLICY, not per packet. See `--no-pdf-header-footer` below -- it is the same fact
+seen from the other side, and it is RULED rather than open.
+
 =============================================================================
 🚫 THIS IS NOT THE WeasyPrint REFUSAL BEING QUIETLY REVERSED
 =============================================================================
@@ -133,9 +137,9 @@ _CHROME = ("google-chrome", "google-chrome-stable", "chromium-browser", "chromiu
 #:
 #: Four separate defects in one band: a wall-clock timestamp that contradicts the
 #: engine's own `Revised` date, a duplicate title, **a dead localhost URL on a
-#: distributed document**, and a per-DOCUMENT page number (`1/1`, `1/2`) that is a lie
-#: about a stapled packet. `print.css` strips repo references from our own chrome
-#: twice over; this walked one back in through the browser.
+#: distributed document**, and a per-DOCUMENT page number. `print.css` strips repo
+#: references from our own chrome twice over; this walked one back in through the
+#: browser.
 #:
 #: ⚑ **THE FLAG SUPPRESSES CHROME'S BAND ONLY AND CANNOT TOUCH `@page` MARGIN BOXES
 #: -- THEY ARE DIFFERENT MECHANISMS AT DIFFERENT LAYERS.** The old comment's fear was
@@ -145,15 +149,22 @@ _CHROME = ("google-chrome", "google-chrome-stable", "chromium-browser", "chromiu
 #: the comment ended with "UNVERIFIED" and shipped the conclusion anyway.*
 #:
 #: 🔴 SO THE PAGE NUMBER NOW COMES FROM `runfoot.py`'s `@bottom-center`, WHICH IS THE
-#: ONLY PLACE THAT CAN COUNT CORRECTLY -- and this is the second correction the same
-#: run forced. I told Michael that Blink never implemented margin boxes; the printed
-#: packet carries the engine's own `Posted by` line, which is `runfoot`'s
-#: `@bottom-right`. ⚠️ Chrome's band and the engine's boxes were BOTH printing, which
-#: is why the sheets read as doubled furniture. 🚩 One thing this flag cannot fix: each
-#: member is its own document, so `counter(pages)` counts THAT policy's sheets, not the
-#: packet's. A three-policy packet reads `1 of 1`, `1 of 2`, `2 of 2`. Named rather
-#: than hidden -- a packet-wide number needs a post-pass over the stapled PDF and is
-#: Michael's call, not something to invent here.
+#: ONLY PLACE THAT CAN COUNT AT ALL -- and this is the second correction the same run
+#: forced. I told Michael that Blink never implemented margin boxes; the printed packet
+#: carries the engine's own `Posted by` line, which is `runfoot`'s `@bottom-right`.
+#: ⚠️ Chrome's band and the engine's boxes were BOTH printing, which is why the sheets
+#: read as doubled furniture.
+#:
+#: ✅ **AND THE NUMBERING IS PER POLICY, WHICH IS RULED CORRECT AND NOT A DEFECT
+#: (Michael, 2026-08-31: "per policy is fine").** Each member is its own print job, so
+#: `counter(pages)` counts THAT policy's sheets: a three-policy packet reads `1 of 1`,
+#: then `1 of 2`, `2 of 2`. 🚫 **DO NOT "FIX" THIS.** It is the visible face of the
+#: property that makes this whole approach work -- one document per policy is what
+#: keeps per-page furniture per-page, and it is also what a reader wants from a packet
+#: that gets photocopied four sheets at a time (`specs/print-packet.md` §8: *a packet is
+#: not a document, it is a BINDING*). ⚑ *A packet-wide counter would require a numbering
+#: post-pass over the stapled PDF -- a SECOND renderer touching the page, which §5
+#: refuses -- so the cheap-looking fix costs the property it would decorate.*
 _FLAGS = (
     "--headless=new",
     "--disable-gpu",
@@ -232,6 +243,10 @@ def staple(parts: list[Path], out: Path) -> int:
     must not be re-laid-out. pypdf is pure Python with no native dependency, so it adds
     no transitive build surface -- the bar `requirements.txt` sets for a new dependency
     and the reason `segno` was acceptable there and Pillow was not.
+
+    🚫 AND IT MUST STAY A CONCATENATOR. Michael ruled per-policy page numbering CORRECT
+    on 2026-08-31, so there is no numbering post-pass to add here -- see the note on
+    `--no-pdf-header-footer`. pypdf never renders, never rasterises, never reflows.
 
     🔴 A PAGE THAT PRINTED TO A ZERO-PAGE PDF IS A HARD FAILURE. Chrome can exit 0
     having produced a file with no pages; appending it silently drops a policy out of a
