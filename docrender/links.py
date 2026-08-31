@@ -76,6 +76,39 @@ a HEADING on its table's page, so `@calc:table-workdays#calc-fkCalendar` is the 
 address and the fragment is the half that carries the meaning.
 
 
+AND SO IS THE AUTHOR'S TRAILING `{...}` (2026-08-30, BUILD 9)
+=============================================================
+
+    Ask the [Theatre Administrator](@role:theatre-administrator){.no-print}
+
+The same mechanism one rung further up the ladder in prefixes.py: a handler that
+claimed `opts=True` receives the block as a FIFTH argument and OWNS it, and every
+other branch of `replace()` re-emits it verbatim.
+
+🔴 RE-EMITTING IS NOT A COURTESY, IT IS THE WHOLE SAFETY ARGUMENT. Before this
+change the regex stopped at the closing paren, so an author's brace was never
+consumed and simply survived into the output -- which is why `[x](@page-id){.foo}`
+puts a class on a plain page link TODAY and has always worked. Widening the pattern
+without re-emitting in every branch would have broken that silently, on live content,
+with no report line. Every branch below therefore ends `+ opts`, and the ONE that
+does not is the one whose handler was handed the value instead.
+
+✅ AND THE REGRESSION SURFACE WAS MEASURED BEFORE THE PATTERN CHANGED, not reasoned
+about: every `.md` under `user:mawizorek` was searched for `](@` and NOTHING anywhere
+writes a brace after an @-link. So "identical to today" is a verified claim about real
+content rather than a hopeful one about the code.
+
+⚠️ A HANDLER THAT OPTS IN AND IGNORES THE VALUE EATS IT. That is stated in
+prefixes.claim's docstring too, because the failure is invisible from here: this file
+cannot tell a handler that merged the block from one that dropped it.
+
+⭐ IT CLOSED A GAP RATHER THAN ONLY SERVING ONE FLAG. No marker link could carry an
+author class on any site before today, and nothing anywhere said so -- the brace
+landed next to the one markerlinks emits, and attr_list takes one block. The feature
+that forced the fix was a print opt-out; what shipped is every marker link becoming
+decoratable.
+
+
 EVERY RESOLUTION IS RECORDED (added 2026-08-06)
 ===============================================
 
@@ -158,8 +191,13 @@ from pathlib import Path
 from . import prefixes, state
 from .util import relative_url, sub_outside_code
 
+#: ⚠️ THE `opts` GROUP IS OPTIONAL AND MUST STAY OPTIONAL. It captures the author's
+#: trailing attr_list block, braces included, so a handler can merge it into its own.
+#: Every branch that does not hand it to a handler re-emits it verbatim -- see the
+#: docstring: not re-emitting is a silent regression on content that works today.
 _LINK = re.compile(
     r"\[(?P<label>[^\]]*)\]\(@(?P<token>[A-Za-z0-9_.:-]+)(?P<anchor>#[A-Za-z0-9_-]+)?\)"
+    r"(?P<opts>\{[ \t]*[^}\n]*\})?"
 )
 
 #: Suffixes that mean somebody named a FILE where a SLOT belongs. Not a security
@@ -281,6 +319,9 @@ def on_page_markdown(markdown, page, config, files):
         label = match.group("label")
         token = match.group("token")
         anchor = match.group("anchor") or ""
+        # Re-emitted by every branch that does not hand it to a handler. See the
+        # docstring -- dropping it is a silent regression, not a cosmetic one.
+        opts = match.group("opts") or ""
 
         lowered = token.lower()
         if lowered.endswith(_DATA_SUFFIXES) or lowered.endswith(_IMAGE_SUFFIXES):
@@ -303,7 +344,9 @@ def on_page_markdown(markdown, page, config, files):
                 )
             state.note("dead_links", src + ": '@" + token + "' " + advice)
             state.ref(src_id, token, "filename", token, False)
-            return _dead(label, "references point at names, not filenames: " + token)
+            return _dead(
+                label, "references point at names, not filenames: " + token
+            ) + opts
 
         if ":" in token:
             prefix, _, rest = token.partition(":")
@@ -315,6 +358,7 @@ def on_page_markdown(markdown, page, config, files):
                 # byte-identically to before 2026-08-09 -- calling it with four
                 # would be a TypeError inside a page render, which is a dead site.
                 takes = prefixes.takes_anchor(prefix)
+                wants_opts = prefixes.takes_opts(prefix)
                 if anchor and not takes:
                     # Still dropped for these, and still said out loud. This is now
                     # a genuine statement about the NAMESPACE rather than a blanket
@@ -327,10 +371,12 @@ def on_page_markdown(markdown, page, config, files):
                         + "-- it takes no anchor, so '" + anchor + "' was ignored. "
                         + "The link itself is fine; it lands at the top.",
                     )
-                resolved = (
-                    handler(rest, page, label, anchor) if takes
-                    else handler(rest, page, label)
-                )
+                if wants_opts:
+                    resolved = handler(rest, page, label, anchor, opts)
+                elif takes:
+                    resolved = handler(rest, page, label, anchor)
+                else:
+                    resolved = handler(rest, page, label)
                 if resolved is None:
                     state.note(
                         "dead_links",
@@ -339,9 +385,12 @@ def on_page_markdown(markdown, page, config, files):
                         + ": namespace and does not know '" + rest + "'.",
                     )
                     state.ref(src_id, token, prefix, rest, False)
-                    return _dead(label, "unknown " + prefix + ": " + rest)
+                    return _dead(label, "unknown " + prefix + ": " + rest) + opts
                 state.ref(src_id, token, prefix, rest, True)
-                return resolved
+                # A handler that took the block OWNS it -- re-emitting here would
+                # put a second brace beside the one it just merged, which is the
+                # exact two-block collision this argument exists to end.
+                return resolved if wants_opts else resolved + opts
 
             peer = state.PEERS.get(prefix)
             if not peer:
@@ -352,7 +401,7 @@ def on_page_markdown(markdown, page, config, files):
                     + (", ".join(sorted(prefixes.reserved())) or "none") + ".",
                 )
                 state.ref(src_id, token, "peer", rest, False)
-                return _dead(label, "unknown peer site: " + prefix)
+                return _dead(label, "unknown peer site: " + prefix) + opts
             hit = next(
                 (c for c in peer.get("pages", []) if c.get("id") == rest), None
             )
@@ -362,24 +411,24 @@ def on_page_markdown(markdown, page, config, files):
                     src + ": '" + rest + "' not found in peer '" + prefix + "'",
                 )
                 state.ref(src_id, token, "peer", rest, False)
-                return _dead(label, "not found in " + prefix + ": " + rest)
+                return _dead(label, "not found in " + prefix + ": " + rest) + opts
             state.ref(src_id, token, "peer", rest, True)
             base = str(peer.get("base_url", "")).rstrip("/")
             return (
                 "[" + label + "](" + base + "/" + str(hit.get("url", "")) + anchor
-                + "){ .docrender-xref }"
+                + "){ .docrender-xref }" + opts
             )
 
         hit = state.PAGES.get(token)
         if not hit:
             state.note("dead_links", src + ": no page with id '" + token + "'")
             state.ref(src_id, token, "page", token, False)
-            return _dead(label, "no page yet with id: " + token)
+            return _dead(label, "no page yet with id: " + token) + opts
 
         state.ref(src_id, token, "page", token, True)
         # Resolved against THIS page, never from a separator count. The root index
         # page reports its url as `./` and broke that arithmetic.
         target = relative_url(str(hit.get("url", "")), page.file.url)
-        return "[" + label + "](" + target + anchor + ")"
+        return "[" + label + "](" + target + anchor + ")" + opts
 
     return sub_outside_code(_LINK, replace, markdown)
