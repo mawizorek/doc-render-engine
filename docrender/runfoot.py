@@ -1,8 +1,12 @@
-"""THE RUNNING FURNITURE -- a real page header and footer on EVERY printed sheet.
+"""THE RUNNING FURNITURE -- a page header and footer on every printed sheet.
 
-Not a hook. A helper module that `buildstamp.py` (hook 07) imports and calls from its
-existing `on_page_content`, which is the whole reason this file can exist at all --
-see § WHY THIS IS NOT A HOOK.
+🔴 **OFF BY DEFAULT SINCE 2026-08-30 ~22:15. OPT IN PER SITE WITH `print: running:
+true`, AND NO INSTANCE DECLARES IT TODAY.** It did not paint in the browser that
+actually prints these documents. § WHY IT IS OFF, which is the first thing to read;
+nothing else in this file matters until that section is resolved.
+
+Not a hook. A helper `buildstamp.py` (hook 07) imports and calls from its existing
+`on_page_content` -- see § WHY THIS IS NOT A HOOK.
 
     @top-left      the mark          @top-right      site · period
     @bottom-left   Revised <date>    @bottom-center  Page N of M
@@ -12,167 +16,132 @@ see § WHY THIS IS NOT A HOOK.
 > Michael, 2026-08-30: *"i DOOO want to see the header repeated on every printed page
 > now, and the footer that says 'revised' and my name now, also repeated as a footer
 > on each page. so once printed, locking those two elements to true page headers and
-> footers. this is a change from what i've said in the past, but looking at this
-> print it's very clear to me what I want to see now."* Page number: *"i like center
-> for page No."*
+> footers."* Page number: *"i like center for page No."*
 
 =============================================================================
-🔴 THE BLOCKER OUR OWN CODE DOCUMENTED WAS TRUE, AND IS NOW FALSE
+🔴 WHY IT IS OFF, AND WHAT WOULD TURN IT BACK ON
 =============================================================================
-`buildstamp.py` explains why the printed letterhead is FIRST IN FLOW rather than
-repeated, and its stated reason was that repeating it *"needs knowledge of where the
-page boundary falls, which is what `@page` margin boxes do and no major browser
-implements."* That was correct when written.
+Michael printed from Chrome with margins at **Default** and got Chrome's own UA
+header (site name, URL) and none of ours. He printed again with **"Headers and
+footers" UNTICKED** and got **nothing at all** -- no letterhead, no name, no page
+number. Two dialog states, neither painted a single margin box.
 
-**Chrome 131 shipped all sixteen margin boxes in November 2024. Safari 18.2 followed
-in December 2024** -- including `counter(page)`, `counter(pages)` and `content: url()`.
+⚠️ SO THE CAUSE IS STILL UNKNOWN, and this file must not pretend otherwise. What is
+RULED OUT: the build (both sites serve the correct bytes and the emitted `@page`
+block is present and well-formed in the built HTML), the packet's `@page` (there
+isn't one), and the UA header stacking on top of ours (unticking removed the UA
+furniture and revealed nothing underneath).
 
-⚑ **A SENTENCE ASSERTING THAT A CAPABILITY DOES NOT EXIST IS A FACT WITH AN EXPIRY
-DATE, AND NOTHING FAILS WHEN IT PASSES.** Four instances found in one session -- this
-one, `instances/uritp/site.yml` calling the letterhead "NOT BUILT" the day after it
-shipped, `foot.css` predicting the wrong half was unverified, and 🔴 `packet.py`
-`_cover` stating *"BLINK ... HAS NEVER IMPLEMENTED `@page` margin boxes"* -- written
-while this module was using them. 🚩 The class is now named: **a capability claim is
-the one kind of comment that rots with nothing edited, because the WORLD moves
-instead of the code.** No doc-rot sweep against HEAD can catch it; HEAD still agrees
-with itself. The check has to be "is this still true of the platform", and nothing in
-this repo performs it.
+🚩 **THE ONE FACT THAT DECIDES IT IS THE CHROME VERSION.** Margin boxes need Chrome
+**131+** (Nov 2024) or Safari **18.2+**; below that every `@page` margin at-rule is
+parsed and discarded in silence. **There is no feature query for it** -- `@supports`
+cannot test an at-rule -- so the engine cannot detect this and cannot fall back.
+That asymmetry is the whole reason the default flipped rather than the code changing.
+
+⚠️ A SECOND CANDIDATE, NOT RULED OUT: 16mm was chosen to fit an 8.46mm mark plus a
+two-line footer, and an independent report puts Chrome's UA-furniture threshold at
+~8mm -- so our band is comfortably inside the range where Chrome wants that space
+for itself. Chrome's own documentation says it adds UA content *"even if you have
+added content"*, which contradicts the third-party guides claiming author boxes
+suppress the UA pair. ⚑ *Two sources disagreeing is not evidence, it is a prompt to
+go look -- and the deciding artifact is the dialog, not the docs.*
 
 =============================================================================
-⭐ THE DESIGN TURN THAT MAKES THIS CHEAP -- AND ITS ONE EXCEPTION
+⚑ THE ARCHITECTURAL LESSON, WHICH OUTLIVES THIS FEATURE
 =============================================================================
-A margin box cannot read document content. The spec's answer is `string-set` /
-`string()`, and **no browser implements it** -- normally that kills a running header
-carrying per-document values, and it is why every guide on this reaches for Paged.js.
+The damage was never the boxes failing. It was that `print-identity.css` hid the
+in-flow letterhead, revision line and ownership tag **on paper**, on the promise
+that these boxes replaced them -- a stylesheet making a promise about a mechanism in
+ANOTHER FILE, with nothing linking the two. When the boxes did not paint, the CSS
+fired anyway and took the fallback with it: **a bare, unsigned safety sheet**,
+strictly worse than what it replaced.
 
-**It does not bite here, and the reason is structural rather than clever:**
-`revised:` is a PER-DOCUMENT fact and every MkDocs page IS exactly one document. So
-the engine writes that page's own values into that page's own `@page` rule at build
-time. No named strings, no polyfill, nothing at read time, no new dependency.
+🔴 **A RULE THAT HIDES A BECAUSE B EXISTS MUST BE EMITTED BY WHATEVER EMITS B.** So
+`page_css` now writes those hide rules into the SAME `<style>` block that creates the
+boxes. No boxes, no hiding -- structurally, not by anyone remembering. ⚠️ The
+equivalent rules in `print-identity.css` are DELETED, not commented: two claimants on
+one behaviour is how this repo loses an afternoon.
 
-🔴 **AND THAT PREMISE IS FALSE FOR EXACTLY ONE PAGE IN THIS ENGINE, WHICH SHIPPED THE
-SAME DAY (2026-08-30).** A BUILD 10 program PACKET splices N members' article HTML
-into ONE document, so N `@page` rules land in one page and **the last one wins on
-every sheet** -- a nine-policy packet stamped section nine's revision date across all
-nine sheets, and section one looked correct, which is the half-works shape
-`packet.py` was written to prevent. Reproduced against the real `_cut`: three
-sections, three surviving `@page` rules, `@bottom-left` resolving to the LAST date.
+✅ AND THAT MAKES THE FEATURE SAFE TO SHIP EVEN WHILE IT IS BROKEN. Worst case on a
+supporting browser is DUPLICATION (letterhead in the corner box and in flow), which a
+reader can see and report. Worst case before was an absence, which nobody can see.
+⚑ *Prefer a failure a reader will notice over one that looks deliberate.*
 
-✅ THE FIX IS ONE ATTRIBUTE, AND IT IS THE ONE BELOW: the `<style>` carries
-`class="dr-runfoot"` so `packet._STRIP` can remove it per section, leaving the
-PACKET's own rule as the only claimant. ⚑ *An element with no class is invisible to
-every class-based transform in the pipeline -- and "it has no class because it needs
-no styling" is exactly the reasoning that makes it unreachable.*
+=============================================================================
+🔴 THE CAPABILITY CLAIM THAT STARTED THIS, AND ITS MIRROR
+=============================================================================
+`buildstamp.py` said the letterhead is first-in-flow because repeating it *"needs
+... `@page` margin boxes ... and no major browser implements"* them. That was true
+when written and false by Nov 2024. ⚑ **A capability claim is the one kind of comment
+that rots with nothing edited, because the WORLD moves instead of the code** -- no
+doc-rot sweep against HEAD can catch it, since HEAD still agrees with itself. Four
+instances in one session, including `packet.py` writing the same claim while this
+module was already using the feature.
 
-⚠️ A PACKET THEREFORE PRINTS NO REVISION DATE IN ITS FOOTER, because the generated
-packet page has no `revised:` of its own. That is honest -- twenty-seven sheets
-collected from nine policies have no single revision date -- and it is Michael's
-ruling to make, not this module's. 🚩 Owed: whether a packet declares its own
-`revised:`, or its footer says something like "see each section".
+🔴 AND THE MIRROR IS THE LESSON THIS FILE ADDS: **the correction can be as wrong as
+the claim.** "No browser implements it" became "Chrome 131 implements it, therefore
+it works here," which is a documented capability standing in for a verified one.
+Michael's browser is the only authority that mattered and it was never asked.
+
+=============================================================================
+⭐ THE DESIGN TURN THAT MADE IT CHEAP -- AND ITS ONE EXCEPTION
+=============================================================================
+A margin box cannot read document content, `string-set` is unimplemented everywhere,
+and that normally forces Paged.js. It does not bite here: `revised:` is PER-DOCUMENT
+and every MkDocs page IS one document, so the engine writes that page's own values
+into that page's own `@page` rule at build time.
+
+🔴 **FALSE FOR EXACTLY ONE PAGE: a BUILD 10 program PACKET**, which splices N members
+into one document -- N `@page` rules, last one wins, section nine's date on every
+sheet. Fixed by `STYLE_CLASS` below plus `packet._STRIP`; § `packet.py`.
 
 =============================================================================
 🔴 WHY THIS IS NOT A HOOK, AND WHY THAT IS THE POINT
 =============================================================================
-The obvious shape is a new hook module. `mkdocs.yml` is **28,158 B** and the GitHub
-MCP standard forbids `create_or_update_file` on files over ~30KB, so a hook
-registration has been an unavailable write for weeks -- it is the debt named in
-`lede.py`, in `specs/print-control.md` §7, and twice in this session's PRs.
+`mkdocs.yml` is **28,158 B** and the GitHub MCP standard forbids
+`create_or_update_file` over ~30KB, so a hook registration has been an unavailable
+write for weeks -- the debt named in `lede.py` and `specs/print-control.md` §7.
 
 ✅ **A PLAIN HELPER IMPORTED BY AN ALREADY-REGISTERED HOOK NEEDS NO REGISTRATION.**
-Only hooks go in `mkdocs.yml`; a module that hook 07 imports is just Python. ⚑ *The
-blocker was on the shape I assumed, not on the outcome I wanted* -- and it went
-unexamined for three size-limit passes on `buildstamp.py` before anybody asked
-whether the feature needed to be a hook at all.
-
-🔴 AND THE SIZE PRESSURE IS THE REASON THIS FILE EXISTS, STATED PLAINLY. Keeping this
-in `buildstamp.py` took that file to **27,760 B**, then 24,641 B, then 23,062 B
-against a **22,528 B** read ceiling -- three trims, each one shaving narrative that
-had been written to explain a real defect. ⚑ *A file that cannot absorb a feature's
-reasoning is telling you the feature has its own subject.*
+⚑ *The blocker was on the shape I assumed, not the outcome I wanted* -- unexamined
+for three size-limit passes on `buildstamp.py` (27,760 → 24,641 → 23,062 against
+22,528) before anybody asked whether this had to be a hook at all.
 
 =============================================================================
-🔴 THE BLOCK AXIS IS OURS. THE INLINE AXIS IS NOT. DO NOT TOUCH IT.
+🔴 THE BLOCK AXIS IS OURS. THE INLINE AXIS IS NOT.
 =============================================================================
-`print.css` sets `@page { margin: 12mm }` and calls the inline half **"the
-load-bearing half"**: the printed column is a container query context, and the data
-table flips to list mode under 640px. That same file states **"the BLOCK axis is free
-to change."**
+`print.css` sets `@page { margin: 12mm }` and calls the inline half *"the
+load-bearing half"*: the printed column is a container query context and the data
+table flips to list mode under 640px. The block axis it calls *"free to change."*
+`page_css` sets ONLY `margin-top`/`margin-bottom`, because a margin box's height IS
+the page margin. 🚫 Never add left or right here: it silently converts every data
+table on the sheet into a key/value stack, at print time, with no report.
 
-A margin box's height IS the page margin, so the furniture needs room. `page_css`
-therefore sets ONLY `margin-top` and `margin-bottom`.
-
-✅ TWO RULES ON `@page`, DISJOINT PROPERTY SETS, NO CASCADE FIGHT -- exactly the
-argument `print-space.css` already makes for `h1` living in two files. 🚫 Adding
-`margin-left` or `margin-right` here silently converts every data table on the sheet
-into a key/value stack, at print time, with no build report to say so.
-
-=============================================================================
-🚩 THE MARGIN TRAP -- A REGRESSION THIS FEATURE INTRODUCES, MEASURED
-=============================================================================
-Because a margin box's height is the page margin, **a reader who picks "None" in the
-print dialog deletes the footer.** Measured in the print engine:
-
-    @page margin   header   posted-by   page number
-    40/32pt          yes       yes         yes
-    20pt             yes       yes         yes
-    10pt             yes       yes         yes
-     2pt             yes      GONE        GONE
-     0               yes      GONE        GONE
-
-Chrome's own documentation adds a worse quirk: **if page ONE has no room, later pages
-lose their margin content too**, even where there is space.
-
-⚠️ TODAY'S IN-FLOW STAMP SURVIVES ANY MARGIN. This does not. A dropdown in a print
-dialog can now erase the author's name and the page numbers off a posted safety
-sheet. `specs/print-control.md` §8 carries it as the standing item, with Michael's
-two real use cases (binder gutter, half-sheet pamphlet) and the computed ceilings.
-
-⚠️ AND THE FIRST MEASUREMENT OF THIS SAID EVERYTHING SURVIVED AT ZERO MARGIN. It
-counted dark pixels in the top and bottom bands of the raster, and the tell that it
-was lying was that the counts went UP as margins shrank -- body text moving into the
-band, not furniture staying in it. Re-run with per-page text extraction for the exact
-strings. ⚑ *A proxy metric that moves in the right direction for the wrong reason is
-worse than no metric: it produces the reassuring answer.*
+🚩 AND THE BLOCK AXIS HAS ITS OWN TRAP, MEASURED: at 2pt and 0 the posted-by line and
+the page number vanish while the header survives, because a margin box's height IS
+the margin. Chrome adds that if page ONE has no room, later pages lose theirs too.
+`specs/print-control.md` §8 carries it with Michael's binder and pamphlet cases.
+⚠️ The first measurement of that said everything survived at zero margin: it counted
+dark pixels in the top and bottom bands, and the tell was the counts going UP as
+margins shrank -- body text moving into the band, not furniture staying in it.
+⚑ *A proxy metric that moves in the right direction for the wrong reason produces
+the reassuring answer.*
 
 =============================================================================
-🚩 FIREFOX PRINTS NO FURNITURE AT ALL, AND IT IS ACCEPTED
+⚠️ WHAT IS VERIFIED, AND IN WHICH ENGINE
 =============================================================================
-Firefox supports `@page` margins but not margin boxes (Mozilla bug 1854974, unshipped
-as of 2026). A Firefox printout therefore gets the wider block margins and an empty
-band -- no header, no footer, no page number. **Michael accepted Chrome and Safari
-only, 2026-08-30**, and he prints from Chrome.
+✅ TEXT, COUNTERS AND THE TWO-LINE FOOTER, in WeasyPrint: per-page extraction found
+the header, `Revised <date>`, `Page N of M` with the right N, and the two-line
+posted-by on every page, with the in-flow copies suppressed and nothing duplicated.
+✅ The packet collision, both ways, against the real `packet._cut`: three surviving
+`@page` rules before `STYLE_CLASS`, zero after, bodies intact.
 
-⚠️ THE IN-FLOW CORNER COPY IS NOT KEPT AS A FALLBACK, and that is a real trade rather
-than an oversight. There is no CSS test for margin-box support, so a visible in-flow
-letterhead would DOUBLE the header on every Chrome sheet. One or the other; the
-engine cannot have both without a feature query that does not exist.
-
-=============================================================================
-⚠️ WHAT IS VERIFIED, AND IN WHICH ENGINE -- READ THIS BEFORE TRUSTING ANY OF IT
-=============================================================================
-✅ **TEXT, COUNTERS AND THE TWO-LINE FOOTER: VERIFIED.** Rendered a multi-page
-document and extracted text PER PAGE: header, `Revised <date>`, `Page N of M` with
-the right N, `Posted by <name>` and the email on its own line, on every page, with
-the in-flow copies suppressed and no value duplicated.
-
-✅ **AND THE PACKET COLLISION IS VERIFIED BOTH WAYS** (2026-08-30), against the real
-`packet._cut` rather than a description of it: three surviving `@page` rules before
-the class was added, zero after, with every section body and heading intact and the
-packet's own rule left as the only claimant.
-
-🔴 **THE LOGO IN A MARGIN BOX: NOT VERIFIED, AND THE ENGINE THAT FAILS IT IS NOT THE
-ENGINE THAT MATTERS.** WeasyPrint 69 renders NOTHING for `content: url()` in a margin
-box -- proven against a working control (a body `<img>` rasterised 11,711 red pixels;
-the margin box zero, on three consecutive pages). Chrome 131+ and Safari 18.2+ both
-document support.
-
-⚑ **THE ENGINE THAT COULD BE TESTED IS NOT THE ENGINE THAT PRINTS.** WeasyPrint is
-the harness; Michael prints from Chrome, and his screenshots are Chrome print
-preview. **That inverts the verification posture every other measurement in this
-feature relied on** -- and it is the same mistake `foot.css` made in the opposite
-direction hours earlier, when it predicted the browser was the risky half and paper
-was the proven one. 🚩 If the mark is missing from a Chrome printout, the `@top-left`
-line below is the only suspect and `print-identity.css` holds the one-rule revert.
+🔴 **AND NONE OF IT REACHED PAPER IN THE BROWSER THAT PRINTS THESE.** The logo in a
+margin box was already known-unverified (WeasyPrint renders nothing for
+`content: url()` there, proven against a working control); the text boxes were
+verified in WeasyPrint and then **failed in Chrome too**. ⚑ *The engine that could be
+tested was not the engine that prints, and a green result in the harness is a
+statement about the harness.*
 """
 
 from __future__ import annotations
@@ -183,20 +152,56 @@ from . import state
 #:
 #: ⚠️ 16mm RATHER THAN 12, MEASURED FROM SHIPPED VALUES rather than chosen: the
 #: letterhead mark is 8.46mm tall (`print-identity.css`) and the footer's right box is
-#: TWO lines at 8.5pt (~6mm). 12mm fits neither with air.
+#: TWO lines at 8.5pt (~6mm). 12mm fits neither with air. 🚩 AND IT IS A SUSPECT IN THE
+#: 08-30 failure -- see § WHY IT IS OFF: Chrome's UA-furniture threshold is reported at
+#: ~8mm, so this band sits inside the range where Chrome wants the space itself.
 BAND = "16mm"
 
-#: 🔴 THE CLASS ON THE `<style>` ELEMENT, AND IT IS LOAD-BEARING RATHER THAN COSMETIC.
-#: A `<style>` needs no styling, so it shipped unclassed on 2026-08-30 -- which made
-#: it **invisible to `packet._cut`**, the class-based transform that strips per-section
-#: furniture, and let N members' `@page` rules survive into one packet. Named here as
-#: a constant so the emitter and `packet._STRIP` cannot drift apart silently.
-#:
-#: ⚠️ `packet.py` MUST CARRY THIS TOKEN IN `_STRIP`. Two files, one string, and the
-#: coupling is stated in both -- the alternative was `packet.py` importing this module
-#: for one constant, which would put a stage-05b file behind a hook-07 helper for no
-#: other reason. 🚩 If a third consumer appears, that import becomes the right answer.
+#: 🔴 THE CLASS ON THE `<style>` ELEMENT, LOAD-BEARING RATHER THAN COSMETIC. A
+#: `<style>` needs no styling, so it shipped unclassed and was **invisible to
+#: `packet._cut`**, the class-based transform that strips per-section furniture --
+#: which let N members' `@page` rules survive into one packet. Named as a constant so
+#: the emitter and `packet._STRIP` cannot drift apart silently; `packet.py` imports it
+#: rather than retyping the string.
 STYLE_CLASS = "dr-runfoot"
+
+#: 🔴 THE HIDE RULES TRAVEL WITH THE BOXES, AND THAT IS THE WHOLE POST-MORTEM OF THE
+#: 08-30 regression. They lived in `print-identity.css` for six hours, hiding the
+#: in-flow furniture on paper on the promise these boxes replaced it -- and when the
+#: boxes did not paint, the promise was still enforced and the sheet came out bare.
+#: Emitted here, they cannot outlive the thing they depend on.
+#:
+#: ⚠️ SPECIFICITY: (0,2,0) beats print-chrome.css's `.buildstamp--corner`
+#: `display: block` at (0,1,0) outright, so source order is never consulted -- and it
+#: creates no selector-and-property PAIR with any print sheet, which is the invariant
+#: `assets.py` and print-chrome.css both assert.
+#:
+#: ⚠️ `.dr-revised` IS CHILD-ONLY AND THE THREE ARE DELIBERATELY NOT ALIKE. On an
+#: ordinary page it is a direct child and hides; inside a packet SECTION it is a
+#: grandchild and STAYS, because a packet's members were revised on different dates
+#: and that per-section date exists nowhere else in the document. ⚑ *The ownership tag
+#: is one fact repeated N times; a revision date is N facts sharing an element. Ask
+#: whether the VALUE varies, not whether the element does.*
+_HIDE_INFLOW = (
+    "@media print{"
+    ".md-typeset .buildstamp--corner,.md-typeset .dr-owner{display:none}"
+    ".md-typeset > .dr-revised{display:none}"
+    "}"
+)
+
+
+def enabled() -> bool:
+    """Does this site opt in to running headers and footers? DEFAULT: NO.
+
+    🔴 ABSENT MEANS OFF, which is the opposite of how this shipped and the whole point
+    of the 08-30 correction. `print: running: true` in `instances/<slug>/site.yml`
+    turns it on for one site; nothing declares it today.
+
+    ⚠️ DO NOT FLIP THE DEFAULT WITHOUT A REAL PRINT PREVIEW. Margin boxes need Chrome
+    131+ / Safari 18.2+, there is no feature query, and a browser below that discards
+    every `@page` margin at-rule in silence. § WHY IT IS OFF.
+    """
+    return bool((state.INSTANCE.get("print") or {}).get("running"))
 
 
 def css_string(text) -> str:
@@ -204,68 +209,63 @@ def css_string(text) -> str:
 
     🔴 A BACKSLASH AND A DOUBLE QUOTE ARE THE WHOLE ATTACK SURFACE, and both are
     escaped rather than stripped. `revised:` is authored on every page of a content
-    repo that agents may not commit to -- and therefore may not sanitise either. An
+    repo agents may not commit to -- and therefore may not sanitise either. An
     unescaped quote would not "look wrong": it would terminate the string, invalidate
     the entire `@page` rule, and drop the header AND footer from every page of that
-    document, silently, with nothing reported.
+    document, silently.
 
     🔴 IT COLLAPSES WHITESPACE, SO NEVER HAND IT A MULTI-LINE VALUE. `" ".join(split())`
-    splits on newlines too. The first version of the footer built `"line one\\nline
-    two"`, passed it through here, and got one flat line -- the `\\A` substitution that
-    followed had nothing left to match. **Caught by reading the code back, not by a
-    render, because the output looked entirely plausible.** ⚑ *A helper that normalises
-    its input silently defeats any caller encoding meaning in the characters it
-    normalises.* Multi-line content is built as SEPARATE calls joined by an escaped
-    line feed -- see `page_css`.
+    splits on newlines too. The first footer built `"line one\\nline two"`, passed it
+    through here, and got one flat line -- the `\\A` substitution had nothing left to
+    match. **Caught by reading the code back, not by a render, because the output
+    looked entirely plausible.** ⚑ *A helper that normalises its input silently
+    defeats any caller encoding meaning in the characters it normalises.* Multi-line
+    content is built as SEPARATE calls joined by an escaped line feed -- see below.
     """
     s = " ".join(str(text or "").split())
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
 def page_css(page, logo_url: str, site: str, period: str) -> str:
-    """The `@page` rule for THIS page. `""` when there is nothing worth saying.
+    """The `@page` rule for THIS page, plus the rules it justifies. `""` when off.
 
     Takes the letterhead URL, site name and period from `buildstamp.py` rather than
     re-deriving them: that module resolves the logo through the image index and builds
-    the season string ONCE at `on_config`, and a second derivation here would be a
+    the season string ONCE at `on_config`, so a second derivation here would be a
     second claimant on facts that already have one.
 
-    ⭐ THE LAYOUT MIRRORS WHAT THE SCREEN ALREADY DOES, which is why it needed no
-    design pass. `revised` has held the left of the screen footer since 2026-08-07 and
-    the ownership tag the right since 2026-08-30. The page number takes the centre
-    because it is the one fact belonging to the SHEET rather than to the document.
+    ⭐ THE LAYOUT MIRRORS THE SCREEN, which is why it needed no design pass: `revised`
+    has held the left of the screen footer since 2026-08-07 and the ownership tag the
+    right since 2026-08-30. The page number takes the centre because it is the one
+    fact belonging to the SHEET rather than to the document.
 
-    ✅ `counter(pages)` GIVES THE TOTAL, and that is the safety argument for having it
+    ✅ `counter(pages)` gives the TOTAL, and that is the safety argument for having it
     rather than a bare number: **a stapled packet found on a desk announces that it is
-    incomplete.** On a safety document that is a real property, not a nicety.
+    incomplete.**
 
-    ⚠️ THE FOOTER IS THREE SEPARATE BOXES, WHICH IS WHY IT DOES NOT BREAK THE
-    TWO-FACTS-ON-A-LINE RULE. `buildstamp.py` refused a PR number (08-19) and a
-    program name (08-28) because *"a line carrying two facts is a stamp; three is a
-    header."* That rule governs ONE line. Left, centre and right each carry one fact,
-    which is the opposite of crowding.
-
-    🔴 THE `<style>` CARRIES `STYLE_CLASS` SO A PACKET CAN STRIP IT. See that constant:
-    unclassed, it survived into a spliced packet N times and the last rule won. This
-    is the only reason a `<style>` element in this engine has a class at all.
+    ⚠️ THE FOOTER IS THREE SEPARATE BOXES, which is why it does not break the
+    two-facts-on-a-line rule `buildstamp.py` enforces. That rule governs ONE line;
+    left, centre and right each carry one fact.
 
     🔴 EVERY VALUE IS OPTIONAL AND EACH BOX IS OMITTED RATHER THAN EMITTED EMPTY. A
     margin box whose `content` computes to `none` is not generated at all, so an
-    omitted box costs nothing -- an emitted empty string still reserves it. A site
-    with no `owner:` prints a header and a page number and no name: the
-    absent-means-off polarity `print:` and `routes.yml` already have.
+    omitted box costs nothing -- an emitted empty string still reserves it.
 
     ⚠️ AND IT RETURNS `""` WHEN THE PAGE COUNTER WOULD BE THE ONLY OCCUPANT, so the
     block-axis margin change never lands on a page with no furniture to make room for.
-    Such a page prints exactly as it did before this feature existed -- which is what
-    keeps five of six sites untouched by this landing.
+    🔴 It also returns `""` when `enabled()` is False, which is every site today -- and
+    because the hide rules ride in the same string, an empty return means the in-flow
+    letterhead and footer print exactly as they did before this feature existed.
     """
+    if not enabled():
+        return ""
+
     boxes = []
 
     if logo_url:
-        # 🚩 CHROMIUM-ONLY AND UNVERIFIED. See § WHAT IS VERIFIED: WeasyPrint 69 renders
-        # nothing for this, proven against a working control; Chrome 131+ documents
-        # support. If the mark is missing from a Chrome printout, this is the suspect.
+        # 🚩 UNVERIFIED IN BOTH ENGINES. WeasyPrint 69 renders nothing for this (proven
+        # against a working control); Chrome 131+ documents support and Michael's
+        # Chrome painted no box at all on 08-30. § WHY IT IS OFF.
         boxes.append("@top-left{content:url(" + css_string(logo_url) + ")}")
 
     if site and period:
@@ -279,8 +279,7 @@ def page_css(page, logo_url: str, site: str, period: str) -> str:
     revised = str(meta.get("revised") or "").strip()
     if revised:
         # The LABEL is engine-supplied exactly as in `lede.revised()`, and neither
-        # emitter reformats the value -- that function carries why a human's
-        # provenance string is passed through verbatim.
+        # emitter reformats the value.
         boxes.append("@bottom-left{content:" + css_string("Revised " + revised) + "}")
 
     boxes.append('@bottom-center{content:"Page " counter(page) " of " counter(pages)}')
@@ -289,14 +288,11 @@ def page_css(page, logo_url: str, site: str, period: str) -> str:
     name = owner if isinstance(owner, str) else (owner.get("name") or "")
     email = "" if isinstance(owner, str) else (owner.get("email") or "")
     if str(name).strip():
-        # 🔴 TWO SEPARATE CALLS, NOT ONE JOINED STRING, and this is the newline bug's
-        # fix rather than a style choice. `css_string` collapses whitespace, so a
-        # `\n` handed to it vanishes before any substitution can see it. An escaped
-        # line feed BETWEEN two literals cannot be normalised away.
-        #
-        # ⚠️ `white-space: pre` is what makes the `\A` a line break rather than a
-        # space. Without it the two literals render on one line and the bug looks
-        # like it came back.
+        # 🔴 TWO SEPARATE CALLS, NOT ONE JOINED STRING -- the newline bug's fix rather
+        # than a style choice. `css_string` collapses whitespace, so a `\n` handed to
+        # it vanishes before any substitution sees it. An escaped line feed BETWEEN
+        # two literals cannot be normalised away. ⚠️ `white-space: pre` is what makes
+        # the `\A` a break rather than a space.
         content = css_string("Posted by " + str(name))
         if str(email).strip():
             content += ' "\\A " ' + css_string(email)
@@ -309,5 +305,7 @@ def page_css(page, logo_url: str, site: str, period: str) -> str:
         '<style class="' + STYLE_CLASS + '">@page{margin-top:' + BAND
         + ";margin-bottom:" + BAND + ";"
         + "".join(boxes)
-        + "}</style>"
+        + "}"
+        + _HIDE_INFLOW
+        + "</style>"
     )
