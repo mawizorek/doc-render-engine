@@ -18,17 +18,49 @@ writer and a reader in DIFFERENT hooks; both of these are here.
 🚨 REMOVING THIS FROM THE 05b SHIM IS NOT A NO-OP: every `!!! export` renders as a
 grey admonition titled "export", no packet page is minted, and any link a reader
 already has to one 404s.
+
+=============================================================================
+⭐ `packets.json` -- THE PRINT PLAN, AND THE ROAD OUT OF THE HTML SPLICE (v2)
+=============================================================================
+Michael, 2026-08-30, on the spliced page: *"that extra page that we navigate to
+doesn't print right. I don't like this implementation so far."* And the baseline,
+restated: *"every single policy printed as if I went to that page and printed it
+manually, stacked together in a single PDF."*
+
+`_manifest()` writes exactly that instruction to disk: for each program, the ORDERED
+list of page URLs to print. `bin/print-packets.py` then drives real Chrome over the
+finished site and staples the results. ⭐ **The engine's job is the PLAN, never the
+PDF** -- no renderer, no dependency, no bytes; a JSON file naming pages that already
+exist.
+
+🔴 THE PROGRAM PAGE IS ENTRY ONE, AND THAT IS HIS COVER ASK ANSWERED FOR FREE. He
+wanted *"the local program thing"* as the cover eventually; printing the program page
+first IS that, with no cover renderer, no contents generator and nothing to keep in
+step with the pages it describes. ⚑ *The splice needed a cover BUILT because it threw
+the program page away; printing it needs the cover only ADDED to a list.*
+
+⚠️ THIS PASS IS PURELY ADDITIVE AND THE BUTTON STILL POINTS AT THE HTML PAGE. The
+manifest and the PDF land first; the button repoints and the splice comes out in ONE
+deletion pass, once a printed PDF has been seen. **A feature whose replacement is
+unproven leaves the old half one deletion away** -- the rule `print-identity.css`
+wrote for the letterhead the same day, and the reason nothing here is removed yet.
+
+⚠️ AND THE MANIFEST IS WRITTEN ON EVERY BUILD, INCLUDING `dry_run`. It names pages
+rather than producing artefacts, so a preview build that writes it is telling the
+truth about what a publish would print. A missing `packets.json` therefore means one
+thing only: no program declares `export:`.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from mkdocs.structure.files import File
 
 from . import nav, packet, state
 
-#: `{program_src: {"uri", "dest", "rows": [(n, id, title, url, dest)]}}`
+#: `{program_src: {"uri", "dest", "cover", "rows": [(n, id, title, url, dest)]}}`
 _PLAN: dict = {}
 
 #: Frontmatter of the generated page. `hide:` mirrors what a program page already
@@ -43,6 +75,16 @@ _HEAD = (
 def _title(src) -> str:
     meta = state.BY_SRC.get(src, {}) or {}
     return str(meta.get("title") or src.rsplit("/", 1)[-1][:-3])
+
+
+def pdf_uri(program_src: str) -> str:
+    """`30-programs/for-all.md` -> `30-programs/for-all-packet.pdf`.
+
+    ⭐ DERIVED FROM `packet.packet_src`, NEVER SPELLED SEPARATELY. The stem is shared
+    with the HTML page on purpose, so the two artifacts sit beside each other with one
+    naming rule between them -- and when the page goes away the rule does not move.
+    """
+    return packet.packet_src(program_src)[:-3] + ".pdf"
 
 
 def on_files(files, config):
@@ -141,7 +183,13 @@ def on_nav(nav_obj, config, files):
             )
             continue
         _PLAN[src] = {
-            "uri": uri, "dest": getattr(mine, "abs_dest_path", ""), "rows": rows,
+            "uri": uri,
+            "dest": getattr(mine, "abs_dest_path", ""),
+            # 🔴 THE PROGRAM PAGE'S OWN URL -- sheet one of the printed packet, and the
+            # whole of the cover. Read off the File here rather than derived later,
+            # for the reason the docstring gives about reconstructing paths.
+            "cover": getattr(dest.get(src), "url", ""),
+            "rows": rows,
         }
         # ⚠️ `notes`, NOT A NEW `packet` BUCKET, AND THE DEVIATION IS DELIBERATE.
         # spec §6 asked for its own bucket; a new one costs TWO edits in TWO large
@@ -154,9 +202,8 @@ def on_nav(nav_obj, config, files):
         state.note(
             "notes",
             src + " PACKET: " + str(len(rows)) + " of " + str(len(ids))
-            + " declared member(s) -> " + uri + ". Sections are numbered in"
-            " chain order; every id and every internal link is namespaced per"
-            " section.",
+            + " declared member(s) -> " + uri + " and " + pdf_uri(src)
+            + ". Print order is the program page, then the chain.",
         )
 
     if _PLAN:
@@ -220,8 +267,64 @@ def on_page_content(html, page, config, files):
     )
 
 
+def _manifest(config) -> None:
+    """Write `packets.json`: what `bin/print-packets.py` should print, in order.
+
+    🔴 URLS, NOT DISK PATHS, AND THAT IS THE INTERFACE. The script serves the built
+    site over loopback HTTP and navigates these URLs, because `file://` breaks
+    absolute asset paths and gives Chrome a different origin per directory. A disk
+    path here would invite the wrong one.
+
+    ⭐ THE PROGRAM PAGE IS FIRST. That is the cover, and it costs one list entry
+    rather than a renderer.
+
+    ⚠️ IT NAMES THE MEMBER TITLES TOO, WHICH NOTHING READS YET. They are here so a
+    human can read the manifest and see WHICH policies a PDF claims to contain -- the
+    same falsifiability argument as the sheet count in the script's own summary. 🚩 If
+    nothing consumes them by the time the HTML page is deleted, cut them: an unread
+    field is the shape this repo retires manifests over.
+    """
+    if not _PLAN:
+        return
+    packets = []
+    for src, plan in sorted(_PLAN.items()):
+        pages = [plan["cover"]] + [row[3] for row in plan["rows"]]
+        if not all(pages):
+            # A blank url would print the site ROOT and look like a real sheet.
+            state.note(
+                "missing_required",
+                src + " packet has a member with no URL, so no print plan was"
+                " written for it. A blank URL prints the site root, which looks"
+                " like a real sheet and is not one.",
+            )
+            continue
+        packets.append({
+            "program": src,
+            "title": _title(src),
+            "pdf": pdf_uri(src),
+            "pages": pages,
+            "sections": [row[2] for row in plan["rows"]],
+        })
+    if not packets:
+        return
+    out = Path(str(config.site_dir)) / "packets.json"
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps({"packets": packets}, indent=2), encoding="utf-8")
+    except OSError:
+        state.note(
+            "missing_required",
+            "packets.json could not be written, so NO packet PDF will be printed"
+            " by this build. The HTML packet pages are unaffected.",
+        )
+
+
 def on_post_build(config):
-    """Splice every packet. All member HTML is finished and on disk by now.
+    """Write the print plan, then splice every HTML packet.
+
+    ⚠️ THE MANIFEST GOES FIRST AND IS INDEPENDENT OF THE SPLICE. They are two
+    artifacts of one plan, and the splice is the half on its way out -- so a failure
+    in the older half must never take the newer one down with it.
 
     🔴 A MISSED SUBSTITUTION IS REPORTED, NEVER ASSUMED AWAY. The marker is an
     HTML comment, so a failure ships as an invisible nothing -- a cover page with
@@ -230,6 +333,8 @@ def on_post_build(config):
     """
     if not _PLAN:
         return
+    _manifest(config)
+
     site_url = str(getattr(config, "site_url", "") or "")
     if not site_url:
         state.note(

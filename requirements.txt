@@ -35,6 +35,15 @@
 #                          `QRCode.save`). docrender/qr.py must never reach for
 #                          an imaging library; if a change here seems to need
 #                          one, that change is wrong.
+#   WeasyPrint          -- REFUSED 2026-08-30, and the reason is not the
+#                          dependency tree (cairo, pango, gdk-pixbuf) but
+#                          RENDERER IDENTITY: a second engine means the printed
+#                          artifact stops being the page anybody previewed.
+#                          `specs/print-packet.md` §5 carries the argument.
+#                          🔴 `bin/print-packets.py` does produce PDFs at build
+#                          time and does NOT reverse this: it drives the SAME
+#                          Chrome Michael prints from, which is why it needs no
+#                          renderer here at all.
 
 mkdocs>=1.6,<2
 mkdocs-material>=9.7,<10
@@ -60,3 +69,21 @@ cryptography>=42
 # docrender/qr.py must override) and `make_qr` are both confirmed present in the
 # 1.6 API. Do not lower it on the assumption an older release has them.
 segno>=1.6,<2
+
+# The stapler for `bin/print-packets.py` (BUILD 10 v2). Pure Python, no native
+# dependency, BSD -- it clears the same bar segno did, which is the only reason a
+# line is being added to a file that argues this hard about them.
+#
+# 🔴 IT IS A CONCATENATOR HERE AND NOTHING ELSE. `PdfWriter.append` preserves each
+# source PDF's own page geometry, so a packet stays a stack of separately-printed
+# documents rather than a re-laid-out one. **pypdf never renders, never rasterises
+# and never reflows** -- if a change here seems to need it to, that change belongs
+# in the print CSS or in Chrome's flags, not in this dependency.
+#
+# ⚠️ BUILD-TIME ONLY, AND NOTHING A READER LOADS DEPENDS ON IT. Same posture as
+# segno: the output is a file in the site, not a runtime.
+#
+# ⚠️ THE UPPER BOUND IS ROUTINE HERE, unlike segno's. A QR's bytes are a contract
+# with a printed code; a concatenation has no such property, so this bound is
+# ordinary caution about a major bump rather than a correctness claim.
+pypdf>=4,<7
