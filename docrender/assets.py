@@ -100,12 +100,21 @@ _FEATURE_ASSETS = ("router.css", "navtree.css", "navtree.js", "router.js")
 #: tombstone is what made it invisible, because a deliberate absence and a mistake
 #: look identical in a list of what IS present. See D6.
 #:
-#: ⭐ EIGHT FILES, EIGHT JOBS, one question each -- the table is D7. The ORDER
+#: ⭐ NINE FILES, NINE JOBS, one question each -- the table is D7. The ORDER
 #: WITHIN this group is free (no two share a selector-and-property pair) with two
 #: proven exceptions, both in D9. What is load-bearing is the GROUP's position.
 #:
+#: ⚠️ `print-md-bridge.css` JOINED 2026-08-31 AND IT IS THE ONE MEMBER THAT
+#: DECLARES A `--md-*` CUSTOM PROPERTY rather than consuming a `--dr-*` one. It
+#: re-points five of Material's own variables at our tokens, UNSCOPED, because
+#: base.css does that mapping ONLY under a `[data-md-color-scheme]` attribute --
+#: and a headless print carries no attribute, so Material painted its own dark
+#: values straight over a correct light palette. 🔴 Its position within the group is
+#: FREE (nothing else declares those names) but its MEMBERSHIP is not decorative:
+#: it has to land after base.css, and every group here does.
+#:
 #: ⚠️ BUILD 10's `print-packet.css` IS DELIBERATELY NOT HERE. It is @media print
-#: and it would look like a ninth member of this group, but it shares no selector
+#: and it would look like a tenth member of this group, but it shares no selector
 #: with any sheet at all, so it has no cascade fight to win and this group's claim
 #: does not describe it. See `_PACKET_ASSETS`.
 _PRINT_ASSETS = (
@@ -117,6 +126,7 @@ _PRINT_ASSETS = (
     "print-callout.css",
     "print-identity.css",
     "print-ink.css",
+    "print-md-bridge.css",
 )
 
 #: THE FLOW STRIP, THE EMBEDDED FORM AND THE VIEW EMBED. See docrender/program.py,
@@ -178,21 +188,19 @@ _ALIGN_ASSETS = ("align.css",)
 #: already beaten a plain rule twice in this feature family.
 _GLOSS_ASSETS = ("gloss.css",)
 
-#: THE PROGRAM PACKET (BUILD 10, 2026-08-30). The export button and the cover on
-#: screen; one policy per sheet on paper. See docrender/packet.py,
-#: docrender/packetbuild.py and specs/print-packet.md.
+#: THE PROGRAM PACKET (BUILD 10, 2026-08-30). The export button on screen; the
+#: one rule that keeps it off paper. See docrender/packet.py and
+#: specs/print-packet.md.
 #:
 #: ⭐ TWO FILES IN ONE GROUP, ON THE `_GLOSS_ASSETS` REASONING APPLIED HONESTLY.
 #: gloss.css kept screen and print in ONE sheet because one `::after` served both
 #: mediums, so splitting would have put one element's two states in two files.
-#: Here the two halves share no element: the screen sheet styles a button and a
-#: contents box, and the print sheet answers a question that only exists on paper
-#: (where does a SHEET begin, in a document built from many pages). Two files, one
-#: group -- the group is the feature, the file split follows the medium.
+#: Here the two halves share no element. Two files, one group -- the group is the
+#: feature, the file split follows the medium.
 #:
 #: 🔴 `print-packet.css` IS NOT IN `_PRINT_ASSETS` AND THAT IS A DECISION. That
-#: group's claim is "must beat the generated sheets at equal specificity." These
-#: rules share no selector with any other sheet, so the claim is false about them,
+#: group's claim is "must beat the generated sheets at equal specificity." Its one
+#: rule shares no selector with any other sheet, so the claim is false about it,
 #: and a member that breaks its group's claim is worse than a new group. ✅ It still
 #: lands AFTER the print group, because this group is appended after it in `_plan`
 #: -- which is what keeps it clear of print-flow.css, the only sheet that has ever
@@ -200,9 +208,9 @@ _GLOSS_ASSETS = ("gloss.css",)
 #:
 #: ⚠️ UNCONDITIONAL, like every group but the router's (D3). `export:` is
 #: frontmatter, so a scan COULD answer "does this site have a packet" cheaply --
-#: and the cost of being wrong is a sheet of `.dr-packet*` rules that match
+#: and the cost of being wrong is a couple of `.dr-packet*` rules that match
 #: nothing, against the cost of a second place stating which sites use the
-#: feature. The router's scan exists because its assets are 63 KB; these are 10.
+#: feature. The router's scan exists because its assets are 63 KB; these are 6.
 _PACKET_ASSETS = ("packet.css", "print-packet.css")
 
 #: THE TASK-LIST CHECKBOX (2026-08-30). `- [ ]` / `- [x]` on a worksheet page.
@@ -252,7 +260,9 @@ def hand_written_css() -> tuple[str, ...]:
     this walk in the same commit that created them, because whoever added them
     read this line first. ⚠️ The number is safe to write ONLY because the list
     beside it is exhaustive: a bare count here would rot the way every
-    hand-maintained total in this repo has.
+    hand-maintained total in this repo has. ⭐ `print-md-bridge.css` (08-31) needed
+    no edit here at all -- it joined an EXISTING group, which is the payoff for
+    walking groups rather than filenames.
 
     ⚠️ It guards against a forgotten GROUP. Nothing guards against a forgotten
     FILE, and an unregistered sheet is invisible here whether the omission was
@@ -355,7 +365,9 @@ def _plan(config) -> list[tuple[str, bytes]]:
 
     ⭐ THE PAPER PALETTE IS THE EXCEPTION and is not in that group -- theme.py
     emits it INSIDE tokens.css, after the scheme block it corrects. An intra-file
-    order is deterministic where a cross-sheet tie is not.
+    order is deterministic where a cross-sheet tie is not. ⚠️ AND IT IS ONLY HALF
+    THE PAPER STORY: that block sets `--dr-*`, and Material paints from `--md-*`.
+    `print-md-bridge.css` is the other half -- see its header.
 
     ⚠️ THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the only
     thing keeping navtree.js ahead of router.js.
