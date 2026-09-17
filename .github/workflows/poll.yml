@@ -37,7 +37,7 @@ name: Publish automatically (the routine)
 #     live gold standard and freezing it is a different decision.
 #
 # ⚠️ FIVE MINUTES IS THE PLATFORM FLOOR -- GitHub rejects tighter. That is a
-# fact about GitHub, NOT our setting: we run every 20 (see below). Read any
+# fact about GitHub, NOT our setting: we run every 5 (see below). Read any
 # scheduled interval as "usually within a quarter hour of the tick": scheduled
 # runs queue under load, drift 5-20 minutes, and are dropped outright during
 # heavy periods. Never build anything that needs this to be punctual.
@@ -65,10 +65,30 @@ name: Publish automatically (the routine)
 # mechanism. */5 meant 288 runs a day across four matrix rows, almost all of
 # them logging "nothing changed" and burying the ones that did. The scheduler's
 # own 5-20 minute drift meant */5 was never really five anyway.
+#
+# ⏱️ AND IT IS */5 AGAIN AS OF 2026-09-17, WHICH DOES NOT REFUTE A WORD ABOVE.
+# Michael, mid-session: *"update the auto publish cycle to be maximum - use
+# every 5min while im working now so i don't have to keep doing it."* The 08-05
+# reasoning was written about the STEADY STATE and is still correct about it;
+# this value is set for an AUTHORING SESSION, where the routine genuinely is the
+# delivery mechanism because the author is watching the page he just committed.
+#
+# 🔴 SO THIS IS A TEMPORARY VALUE AND THE FILE IS SAYING SO ON PURPOSE. The
+# noise cost from 08-05 is real and arrives on a delay: ~288 runs a day, almost
+# all of them "nothing changed," burying the rows that matter -- which is the
+# thing you will not notice until the day you need to read the log. ⭐ THE
+# STEADY-STATE VALUE IS */20. Put it back when the authoring push is done.
+#
+# ⚠️ AND IT DOES NOT MAKE A PUSH PUBLISH ANY FASTER, which is the likelier
+# reason a wait feels long. A commit to a CONTENT repo has no hook here at all
+# -- the routine is the only thing that notices it -- so the honest fast path
+# for one page is still `publish.yml` by hand. This shortens the WORST case
+# from ~20 minutes to ~5, and the scheduler's own drift means the floor is a
+# hope rather than a promise.
 
 on:
   schedule:
-    - cron: "*/20 * * * *"
+    - cron: "*/5 * * * *"
   # Kept so the routine can be fired by hand without waiting for the next tick,
   # and so the workflow has a Run button while disabled-state is being tested.
   workflow_dispatch:
@@ -80,7 +100,7 @@ jobs:
   run:
     # ⚠️ KEEP IN STEP WITH THE CRON ABOVE. This string is what the Actions tab
     # prints on every row, so it is the interval's only visible home.
-    name: every 20 minutes
+    name: every 5 minutes
     uses: ./.github/workflows/build.yml
     # ⚠️ LOAD-BEARING. A called workflow receives NO secrets by default, and
     # DOCRENDER_TOKEN is what both the private content checkout and the
