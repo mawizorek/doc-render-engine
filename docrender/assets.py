@@ -241,6 +241,23 @@ _PACKET_ASSETS = ("packet.css", "print-packet.css")
 #: `.task-list-*` rules matching nothing.
 _TASKLIST_ASSETS = ("tasklist.css",)
 
+#: THE PRINT MENU (BUILD 8 Feature B, 2026-09-28). A screen-only panel that sets
+#: margin presets (Standard / Binder / Sign-form / Custom) and a text-size override
+#: for the print dial. See specs/print-control.md + specs/print-control-dl.md.
+#:
+#: 🔴 printctl.js ENFORCES THE 40mm INLINE BUDGET (left + right) so a printed data
+#: table never crosses the 640px list-mode threshold on A4 or Letter. That is the
+#: fourth place the 640px number is load-bearing -- print.css's `@page` is the third.
+#:
+#: ⭐ ITS OWN GROUP, on the `_PACKET_ASSETS` reasoning: screen chrome plus the one
+#: `@media print` rule that keeps the menu off paper, in one sheet. Position FREE
+#: (D8) -- every selector is a `.dr-printctl*` class no other sheet mentions. The
+#: script writes ONE `<style>` element at runtime and appends it last in <head>, so
+#: its `@page` wins over print.css's on source order no matter where this group sits.
+#:
+#: ⚠️ UNCONDITIONAL (D3). Every page can be printed, so there is no scan to ask.
+_PRINTCTL_ASSETS = ("printctl.css", "printctl.js")
+
 
 def hand_written_css() -> tuple[str, ...]:
     """Every HAND-WRITTEN stylesheet this engine ships, in load order.
@@ -254,9 +271,10 @@ def hand_written_css() -> tuple[str, ...]:
     sheets are NOT here -- they have no file on disk and the audit builds them.
 
     🔴 EVERY GROUP IS WALKED. Adding a group and forgetting it here is precisely
-    how that tuple went stale. ⭐ THIS WARNING HAS BEEN OBEYED SIX TIMES --
+    how that tuple went stale. ⭐ THIS WARNING HAS BEEN OBEYED SEVEN TIMES --
     _FLOW_ASSETS (08-19), _QR_ASSETS (08-21), _ALIGN_ASSETS (08-29),
-    _GLOSS_ASSETS, _PACKET_ASSETS and _TASKLIST_ASSETS (all 08-30) each joined
+    _GLOSS_ASSETS, _PACKET_ASSETS and _TASKLIST_ASSETS (all 08-30), and
+    _PRINTCTL_ASSETS (09-28) each joined
     this walk in the same commit that created them, because whoever added them
     read this line first. ⚠️ The number is safe to write ONLY because the list
     beside it is exhaustive: a bare count here would rot the way every
@@ -284,7 +302,7 @@ def hand_written_css() -> tuple[str, ...]:
         for name in (
             _DATA_ASSETS + _FEATURE_ASSETS + _PRINT_ASSETS + _FLOW_ASSETS
             + _QR_ASSETS + _ALIGN_ASSETS + _GLOSS_ASSETS + _PACKET_ASSETS
-            + _TASKLIST_ASSETS
+            + _TASKLIST_ASSETS + _PRINTCTL_ASSETS
         )
         if name.endswith(".css")
     )
@@ -372,7 +390,7 @@ def _plan(config) -> list[tuple[str, bytes]]:
     ⚠️ THE FEATURE GROUP IS WALKED IN ITS OWN DECLARED ORDER, which is the only
     thing keeping navtree.js ahead of router.js.
 
-    ⭐ THE FLOW, QR, ALIGN, GLOSS, PACKET AND TASKLIST POSITIONS ARE FREE (D8). Do
+    ⭐ THE FLOW, QR, ALIGN, GLOSS, PACKET, TASKLIST AND PRINTCTL POSITIONS ARE FREE (D8). Do
     not infer a rule from where they sit. ⚠️ ONE EXCEPTION, AND IT IS NOT A CASCADE
     RULE: the packet group must stay AFTER `_PRINT_ASSETS` in this list, because
     print-packet.css's `display: none` on the export button competes with
@@ -401,7 +419,7 @@ def _plan(config) -> list[tuple[str, bytes]]:
             plan.append((name, raw))
 
     for name in (_FLOW_ASSETS + _QR_ASSETS + _ALIGN_ASSETS + _GLOSS_ASSETS
-                 + _PACKET_ASSETS + _TASKLIST_ASSETS):
+                 + _PACKET_ASSETS + _TASKLIST_ASSETS + _PRINTCTL_ASSETS):
         raw = _read(state.ENGINE_ROOT / "assets" / name)
         if raw is not None:
             plan.append((name, raw))
