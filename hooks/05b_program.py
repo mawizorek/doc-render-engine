@@ -1,7 +1,7 @@
-"""Stage 05b -- flow strips, embedded completion forms, the chain index, and the
-PROGRAM PACKET.
+"""Stage 05b -- flow strips, embedded completion forms, the chain index, the
+PROGRAM PACKET, and BINDERS.
 
-FOUR MODULES, FOUR EVENTS, ONE REGISTRATION:
+FIVE MODULES, ONE REGISTRATION:
 
     docrender/forms.py       on_page_markdown   `!!! form "slot"` -> the embed
     docrender/chainlist.py   on_page_markdown   `!!! chain` -> an ordered index
@@ -10,13 +10,16 @@ FOUR MODULES, FOUR EVENTS, ONE REGISTRATION:
                              on_page_content    the automatic button slot
                              on_post_build      write `packets.json`
     docrender/program.py     on_page_content    append this page's flow strips
+    docrender/binder.py      on_nav             `binder: true` programs -> presets
+                             on_post_build      write `binders.json` (composer)
 
 🪦 IT WAS FIVE MODULES AND FIVE PACKET EVENTS UNTIL 2026-08-31. `packetbuild.py` is
 retired into `packet.py`, and the packet dropped `on_files` (it minted a generated
 `-packet.md`) and its `on_post_build` SPLICE (it assembled that page out of every
 member's finished HTML). ⭐ **The event it kept at `on_post_build` writes one JSON file
 and touches no page** -- Michael culled the combined page, and what fell out is that
-this stage stopped writing to the built site at all.
+this stage stopped writing to the built site at all. `binder.py` (2026-09-28, BUILD 11
+phase 2) keeps that shape: one more JSON file, no page touched.
 
 ⭐ THE SPLIT IS BY EVENT AND BY CONCERN, NOT BY SIZE ALONE. A body directive that
 rewrites markdown is a different job from appending navigation to finished HTML,
@@ -33,14 +36,15 @@ ran BACKWARDS on 08-31 and it was still the rule: `packet.py` was split from
 function per event name per hook FILE, so two modules handling `on_page_markdown`
 cannot both be imported under that name -- the second import would silently shadow the
 first and one directive would stop working with no error anywhere. The composition
-below is the whole reason this file is not four import lines.
+below is the whole reason this file is not four import lines. ⚠️ `on_nav` and
+`on_post_build` are now composed too, for exactly that reason: packet AND binder.
 
 ⚠️ THE PACKET LIVES HERE RATHER THAN IN A HOOK OF ITS OWN, and the reason is not
 laziness. A new stage means an edit to `mkdocs.yml`, which is past the ~22.5KB read
 ceiling -- so it cannot be read whole and therefore cannot be safely rewritten. The
 packet is a PROGRAM concern and this is the program stage, so the composition below is
 the honest home for it: one more voice in a file that already exists to compose
-several.
+several. A binder is a program page too, so it lives here on the same argument.
 
 ⚠️ ORDER INSIDE THE MARKDOWN COMPOSITION IS FREE TODAY AND IS NOT GUARANTEED TO STAY
 SO. `!!! form`, `!!! chain` and `!!! export` are disjoint patterns and none emits
@@ -86,7 +90,7 @@ written, so **every packet PDF would vanish from the next deploy and every expor
 button would 404.** Same shape as 03c and 03d.
 """
 
-from docrender import chainlist, forms, packet, program
+from docrender import binder, chainlist, forms, packet, program
 
 
 def on_page_markdown(markdown, page, config, files):
@@ -102,5 +106,13 @@ def on_page_content(html, page, config, files):
     return packet.on_page_content(html, page, config, files)
 
 
-on_nav = packet.on_nav
-on_post_build = packet.on_post_build
+def on_nav(nav, config, files):
+    """Packet plan, then binder plan. Independent of each other; order free."""
+    nav = packet.on_nav(nav, config, files)
+    return binder.on_nav(nav, config, files)
+
+
+def on_post_build(config):
+    """`packets.json`, then `binders.json`. Neither reads the other."""
+    packet.on_post_build(config)
+    binder.on_post_build(config)
