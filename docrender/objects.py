@@ -167,7 +167,12 @@ def on_files(files, config):
                     + "feature not working. Rename it.",
                 )
 
+        # CASE AND WHITESPACE ARE NOT MEANING. `status: Public` hid a page on
+        # 2026-09-28 (Michael: "thats a stupid bug"). Folded HERE, the first
+        # reader, and written back so every later reader sees `public`.
         status = meta.get("status")
+        if isinstance(status, str):
+            status = meta["status"] = status.strip().lower()
         if status not in VALID_STATUS:
             detail = (
                 "is '" + str(status) + "', not one of " + str(sorted(VALID_STATUS))
