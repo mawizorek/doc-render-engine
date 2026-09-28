@@ -44,3 +44,22 @@ Parent spec: [`print-control.md`](print-control.md). That file is unedited in th
 🔴 **NOT verified in a real browser or on paper.** No headless Chrome was available. The acceptance test is Michael's: republish, open the pill bottom-right, pick Binder, print to PDF, and check (a) the gutter, (b) a page with a TSV table still prints as a table, (c) the pill is absent from the PDF.
 
 ⚠️ §8 of `print-type.css` (hand-placed page breaks invalidated by every print change) now has an unbounded number of instances at read time, exactly as the parent's §5c predicted. Don't author `{.new-page}`.
+
+---
+
+## v2 · 2026-09-28 afternoon: two field reports, two fixes
+
+**PR #244: margins did not land, size did.** Same `<style>` element, so the printing browser ignored `@page`. Left/right moved to a margin on `.md-content__inner`, written as an offset from print.css's 12mm (`calc(Xin - 12mm)`). Top/bottom stay on `@page` (a content margin only reaches the first and last sheet), so they remain browser-dependent.
+
+**v2: inches, drawn controls, header icon.** Michael: *"make it work in inches now, not mm and actually design the arrows and popups rather than using os defaults ... it also floats over footer content. maybe it belongs next to the light/dark toggle in the header as just the printer icon?"*
+
+| # | Ruling | Supersedes |
+|---|---|---|
+| 9 | **Inches, ⅛ in steps, shown as fractions** (1 ⅜ in). Clamp ¼ to 1 ¼ in per side. | ruling 2/3 units |
+| 10 | **Inline budget 1.5 in** (38.1mm): A4 649.7px, Letter 672px, both tables. | the 40mm figure |
+| 11 | **Presets:** Standard = site default (no override) · Binder 1 in left, ½ in elsewhere · Sign/form ¾ in even · Custom. | ruling 2 |
+| 12 | **No OS controls.** Preset cards, steppers and the size control are all `<button>`s with roles, styled from tokens. | — |
+| 13 | **A printer icon in the header, right after Material's palette toggle** (falls back to before search, then fixed top-right). Panel opens under it with a caret; closes on Esc, outside click, or ×. A dot on the icon means a non-default setting is live. | the floating pill |
+| 14 | Size stepper: 7.5 to 11 pt, plus a Default link. From Site default, − lands on 8 and + on 9 (the dial is 8.5pt today). | ruling 4 control shape |
+
+Storage key bumped to `dr-printctl-v2` so a stale mm session cannot load into an inch UI. Stub-DOM tested; 🔴 still not browser-verified.
