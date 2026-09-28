@@ -241,22 +241,21 @@ _PACKET_ASSETS = ("packet.css", "print-packet.css")
 #: `.task-list-*` rules matching nothing.
 _TASKLIST_ASSETS = ("tasklist.css",)
 
-#: THE PRINT MENU (BUILD 8 Feature B, 2026-09-28). A screen-only panel that sets
-#: margin presets (Standard / Binder / Sign-form / Custom) and a text-size override
-#: for the print dial. See specs/print-control.md + specs/print-control-dl.md.
+#: THE PRINT MENU + THE COMPOSER (BUILD 8 Feature B; BUILD 11 phase 1; 2026-09-28).
+#: The header printer icon's panel (margins in inches, text size) and the
+#: full-screen composer that stitches several pages into one printable document.
+#: Specs: specs/print-control-dl.md, specs/print-compose.md.
 #:
-#: 🔴 printctl.js ENFORCES THE 40mm INLINE BUDGET (left + right) so a printed data
-#: table never crosses the 640px list-mode threshold on A4 or Letter. That is the
-#: fourth place the 640px number is load-bearing -- print.css's `@page` is the third.
+#: 🔴 printctl.js ENFORCES THE 1.5in INLINE BUDGET (left + right) so a printed data
+#: table never crosses the 640px list-mode threshold -- the fourth place that
+#: number is load-bearing (print.css's `@page` is the third).
 #:
-#: ⭐ ITS OWN GROUP, on the `_PACKET_ASSETS` reasoning: screen chrome plus the one
-#: `@media print` rule that keeps the menu off paper, in one sheet. Position FREE
-#: (D8) -- every selector is a `.dr-printctl*` class no other sheet mentions. The
-#: script writes ONE `<style>` element at runtime and appends it last in <head>, so
-#: its `@page` wins over print.css's on source order no matter where this group sits.
-#:
-#: ⚠️ UNCONDITIONAL (D3). Every page can be printed, so there is no scan to ask.
-_PRINTCTL_ASSETS = ("printctl.css", "printctl.js")
+#: Position FREE (D8): every selector is .dr-printctl* / .dr-compose*. The runtime
+#: <style> goes last in <head>. Script order is free: printctl.js looks the
+#: composer up at click time. ⚠️ UNCONDITIONAL (D3): every page can be printed.
+_PRINTCTL_ASSETS = (
+    "printctl.css", "printctl.js", "printcompose.css", "printcompose.js",
+)
 
 
 def hand_written_css() -> tuple[str, ...]:
