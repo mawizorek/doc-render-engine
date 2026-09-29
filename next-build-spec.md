@@ -11,6 +11,7 @@
 | File in [`specs/`](specs/) | claims | Scoped | State |
 |---|---|---|---|
 | [`build-report.md`](specs/build-report.md) | BUILD 2 | 2026-08-06 | 🔴 **PARTLY SHIPPED** — Pieces A and C are live; B unverified |
+| [`cards.md`](specs/cards.md) | 🚫 **none, deliberately** | 2026-09-28 | ✅ BUILT 2026-09-28 · live on the `uritp-docs` `app/` hubs |
 | [`chrome.md`](specs/chrome.md) | BUILD 5 ⚠️ | 2026-08-18 | ⚠️ SCOPED, NOT GREENLIT |
 | [`cols.md`](specs/cols.md) | BUILD 7 ⚠️ | 2026-08-31 | ⚠️ SCOPED, NOT GREENLIT |
 | [`contacts.md`](specs/contacts.md) | BUILD 11 | 2026-08-31 | ⚠️ SCOPED, NOT GREENLIT |
