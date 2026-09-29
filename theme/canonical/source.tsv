@@ -81,6 +81,27 @@
 # with different content, the transposition that made the colour table clueless.
 # That is the only history of this design system's decisions the engine holds.
 #
+# 2026-09-28  DEPARTMENT THEMES, AND ALL FIVE FALLBACKS CAUGHT UP IN ONE PASS.
+#             colors e3819e3 -> 48a0982, 8,433 -> 11,304 B, 41 -> 55 rows.
+#             themes.json 7711cab -> 46d4c2a, 12 -> 21 joins. typography
+#             5f6ec2d -> ef00399, forms 9433b6a -> 5b78645, spacing
+#             a4996d0 -> 7345616. Michael: six per-page department themes,
+#             dept-scenic / -sm / -audio / -video / -admin / -lx (maw-themes
+#             PR #14). Each is the black-ground stage look with ONE accent band
+#             swapped; the colour rows are dept-<x>-dark / -light so that no
+#             new slug is both a join and a colour -- the bare-name ambiguity
+#             this build already warns about for one pre-existing slug is not
+#             multiplied by six. Same pass: that slug's colour rows got
+#             legible text-faint and a black on-accent (was 1.4:1 and 2.3:1).
+#             THE JOIN FALLBACK WAS 54 DAYS STALE AND MISSING TWO LIVE JOINS,
+#             plus a typography, forms and spacing entity each. The 08-19 lesson
+#             one file over: a stale fallback shrinks the legal theme set, and
+#             this one would have dropped a live site's declared theme on the
+#             first failed checkout. It also never matched its own recorded
+#             hash -- somebody had prepended a PROJECTION note in place. Replaced
+#             wholesale; it is now upstream's bytes and nothing else.
+#             VERIFIED BY CONTENT ADDRESS: all five SHAs below were computed
+#             from the bytes pushed here and equal maw-themes main.
 # 2026-08-19  THE FALLBACK WENT FOURTEEN DAYS STALE AND NOBODY NOTICED, WHICH IS
 #             THE ENTRY. colors 003fb9c -> e3819e3, 7,777 -> 8,433 B,
 #             39 -> 41 rows. TWO separate upstream changes arrived in ONE
@@ -191,8 +212,8 @@
 # 2026-08-04  --      -> 4f391aa  Initial vendor. 19 themes x 36 columns.
 # ----------------------------------------------------------------------------
 file	repo	path	blob_sha	bytes	verified	note
-canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	e3819e370c142d16c4566a1d5033cd7535f35331	8433	2026-08-19	41 rows x 25 columns. One row is ONE COMPLETE PALETTE and the table expresses no relationship of any kind -- no identity, no alt- band. `mode` is descriptive only. `link` is now authored on EVERY row; the 08-05 note saying "blank on 37" was true when written and false within days, so do not trust a note in this column over the file. `uritp` and `uritp-light` arrived after the 08-05 vendor -- vectors.known() reads this table, so a stale copy here also shrinks the set of theme names an instance may legally declare.
-canonical/themes.json	mawizorek/maw-themes	registry/_themes.json	7711cab143c8b22913c28e8e9fc1390c1b4173d0	9381	2026-08-05	THE JOIN, schemaVersion 4. 12 themes, FIVE pointers each: color, alt-color, typography, forms, spacing. Pairing lives here and nowhere else. A new COLOUR column moves no pointer, so this file does not change when one is added.
-canonical/typography.tsv	mawizorek/maw-themes	vectors/typography.tsv	5f6ec2dd68d30198638b6602ead9e9a57e534ec4	1629	2026-08-05	6 SHARED entities on their own slugs. Joined by pointer -- editing one moves every theme pointing at it. WARNING the three FONT columns do not render: nothing in this engine fetches a webfont. See assets/type.css.
-canonical/forms.tsv	mawizorek/maw-themes	vectors/forms.tsv	9433b6aeb08da191c3a2567edf24970cf81d945f	1322	2026-08-05	5 SHARED entities. Radii, border weight, gradient angle, shadows, elevation, motion.
-canonical/spacing.tsv	mawizorek/maw-themes	vectors/spacing.tsv	a4996d0e6b3bed56740c9b76c750eed23b75bd65	256	2026-08-05	6 SHARED entities. Touch target, cell and card padding, three gaps.
+canonical/colors.tsv	mawizorek/maw-themes	vectors/colors.tsv	48a09820d64ff60d92307252e3e0cc0b97ef432f	11304	2026-09-28	55 rows x 25 columns. One row is ONE COMPLETE PALETTE and the table expresses no relationship of any kind -- no identity, no alt- band. `mode` is descriptive only. `link` is authored on EVERY row. Twelve dept-<x>-dark/-light rows arrived 09-28 -- vectors.known() reads this table, so a stale copy here also shrinks the set of theme names an instance may legally declare.
+canonical/themes.json	mawizorek/maw-themes	registry/_themes.json	46d4c2a393f9a4492d13be04d9402a7aae64f576	14770	2026-09-28	THE JOIN, schemaVersion 4. 21 themes, FIVE pointers each: color, alt-color, typography, forms, spacing. Pairing lives here and nowhere else. A new COLOUR column moves no pointer, so this file does not change when one is added. Upstream's bytes exactly -- no projection note, which is what broke the hash before 09-28.
+canonical/typography.tsv	mawizorek/maw-themes	vectors/typography.tsv	ef003991bc720f5baea54e7ca4c5abc8cc68d02a	1306	2026-09-28	7 SHARED entities on their own slugs. Joined by pointer -- editing one moves every theme pointing at it. WARNING the three FONT columns do not render: nothing in this engine fetches a webfont. See assets/type.css.
+canonical/forms.tsv	mawizorek/maw-themes	vectors/forms.tsv	5b7864500a1b0717b8f039643f0523d269c6939d	1543	2026-09-28	6 SHARED entities. Radii, border weight, gradient angle, shadows, elevation, motion.
+canonical/spacing.tsv	mawizorek/maw-themes	vectors/spacing.tsv	7345616c726c28c8dd343c15cdc0b998c318f2e7	291	2026-09-28	7 SHARED entities. Touch target, cell and card padding, three gaps.
