@@ -37,6 +37,12 @@ ClickUp shared view scoped to exactly the fields that reader should see.
 guessed at, so a page asking for them renders with full chrome and a human is
 told why. Same for any unknown value.
 
+⚠️ THE FLOW STRIP IS NOT HIDDEN (2026-09-28, docrender/program-dl.md D1). An
+app page that declares or faces a `chain:` shows its Start strip, and program.py
+inlines `CSS` on the member pages of an app face so the reader stays in the app
+all the way through. `CSS` is IMPORTED there: keep it self-contained, all of it
+under html.dr-app.
+
 Also sets the two meta tags that make "Add to Home Screen" on a phone open the
 page standalone, with no browser bar. That is the whole trick of feeling like
 an app, and it costs two lines.
@@ -60,7 +66,7 @@ CSS = """
 @media screen {
 html.dr-app .md-tabs, html.dr-app .md-sidebar, html.dr-app .md-footer,
 html.dr-app .md-content__button, html.dr-app .md-path, html.dr-app .md-top,
-html.dr-app .md-overlay, html.dr-app .md-source-file, html.dr-app .dr-flows,
+html.dr-app .md-overlay, html.dr-app .md-source-file,
 html.dr-app .pagefoot, html.dr-app .pagefoot__rule,
 html.dr-app .buildstamp--foot { display: none !important; }
 html.dr-app .md-header {
