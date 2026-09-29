@@ -112,6 +112,22 @@ commit and would have reported the OTHER PROGRAMS as missing from a program's
 chain while never once mentioning the policies. ⚑ A feature that spans a tree
 and a check that assumes a folder is one defect, not two, and the check is the
 half that lies.
+
+=============================================================================
+⭐ `chain: "@id"` -- A FACE OF ANOTHER PROGRAM, NOT A SECOND LIST (2026-09-28)
+=============================================================================
+> Michael: *"i need a way to have the app version of the binder and the non-app
+> version without having to maintain both chains."*
+
+A STRING `chain:` names another page's chain and walks it. `declared()` returns
+the alias with the target's ids, so every consumer (program, chainlist, binder,
+packet) reads it with no change. `_apply` SKIPS aliases: the target already owns
+those pages' buttons, and a face claiming them second would only produce the
+"in two chains" note 23 times over. `aliases()` says which entries are faces;
+`program.py` uses it to render ONE strip per real flow, carrying its faces.
+Workshop 2026-09-28 (Frank: FOLD-IN, no new key). Spec: `specs/flow-context.md`.
+⚠️ An alias of an alias is refused and reported: one hop, so a face always
+names the list it walks.
 """
 
 from __future__ import annotations
@@ -194,6 +210,29 @@ def _owns_ordering(src, meta) -> bool:
     return str((meta or {}).get("type") or "").strip().lower() in _CHAIN_TYPES
 
 
+def _alias_want(meta) -> str:
+    """The id a STRING `chain:` names, or "" when the key is not a string."""
+    raw = (meta or {}).get("chain")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip().lstrip("@").strip()
+    return ""
+
+
+def aliases() -> dict:
+    """{alias src_uri: target src_uri} for every RESOLVED `chain: "@id"`."""
+    lists = {}
+    for src, meta in state.BY_SRC.items():
+        raw = (meta or {}).get("chain")
+        if isinstance(raw, list) and _owns_ordering(src, meta):
+            lists[str((meta or {}).get("id") or "").strip()] = src
+    out = {}
+    for src, meta in state.BY_SRC.items():
+        want = _alias_want(meta)
+        if want and _owns_ordering(src, meta) and lists.get(want):
+            out[src] = lists[want]
+    return out
+
+
 def declared(report: bool = True) -> dict:
     """Every legal `chain:` block, keyed by the src_uri that declared it.
 
@@ -204,9 +243,20 @@ def declared(report: bool = True) -> dict:
     the decision.
     """
     out: dict = {}
+    pending: dict = {}
     for src, meta in state.BY_SRC.items():
         raw = (meta or {}).get("chain")
         if raw is None:
+            continue
+        if _alias_want(meta):
+            if _owns_ordering(src, meta):
+                pending[src] = _alias_want(meta)
+            elif report:
+                state.note(
+                    "missing_required",
+                    src + " declares `chain: \"@" + _alias_want(meta) + "\"` and "
+                    "does not own an ordering (index / program). IGNORED.",
+                )
             continue
         if not isinstance(raw, list):
             if report:
@@ -230,6 +280,21 @@ def declared(report: bool = True) -> dict:
         ids = [str(i).strip().lstrip("@") for i in raw if str(i).strip()]
         if ids:
             out[src] = ids
+
+    # FACES, resolved once every list is known. See the docstring section.
+    lists = {str(_meta(s).get("id") or "").strip(): s for s in out}
+    for src, want in pending.items():
+        target = lists.get(want)
+        if target is None:
+            if report:
+                state.note(
+                    "dead_links",
+                    src + " declares `chain: \"@" + want + "\"`, and `" + want
+                    + "` is not a page with a LIST `chain:` (an alias of an alias "
+                    "is refused). IGNORED -- this page walks nothing.",
+                )
+            continue
+        out[src] = list(out[target])
     return out
 
 
@@ -284,8 +349,12 @@ def _apply(files):
 
     by_id, by_src = _built(files)
     claimed: dict = {}
+    faces = aliases()
+    first: dict = {}
 
     for src in sorted(decls):
+        if src in faces:
+            continue  # A face walks its target's wiring. See the docstring.
         ids = decls[src]
         hub = by_src.get(src)
         resolved = []
@@ -337,6 +406,7 @@ def _apply(files):
         # The hub donates its Next and keeps its own Previous. See the docstring.
         if hub is not None:
             hub.next_page = resolved[0]
+        first[src] = resolved[0]
 
         state.note(
             "nav_default",
@@ -348,6 +418,12 @@ def _apply(files):
             "flow ends rather than leaking back into the nav.",
         )
         _stragglers(src, ids, set(mine))
+
+    # A face hub donates its Next exactly as its target's hub does.
+    for src, target in faces.items():
+        hub = by_src.get(src)
+        if hub is not None and target in first:
+            hub.next_page = first[target]
 
 
 def on_nav(nav, config, files):
