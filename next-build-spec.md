@@ -23,7 +23,7 @@
 | [`print-packet.md`](specs/print-packet.md) + [`-dl`](specs/print-packet-dl.md) | BUILD 10 | 2026-08-30 | ✅ BUILT |
 | [`qr-codes.md`](specs/qr-codes.md) | BUILD 6 | 2026-08-21 | ⚠️ SCOPED, NOT GREENLIT |
 | [`repo-onboarding.md`](specs/repo-onboarding.md) | 🚫 **none, deliberately** | — | ⚠️ not read this pass |
-| [`scoped-theme.md`](specs/scoped-theme.md) | BUILD 3 | 2026-08-07 | ⚠️ its own rulings table reads CLOSED — state needs confirming |
+| [`scoped-theme.md`](specs/scoped-theme.md) | BUILD 3 | 2026-08-07 | ✅ report page SHIPPED 08-07 · ⭐ **page-level `theme:` BUILT 2026-09-28** in [`docrender/pagetheme.py`](docrender/pagetheme.py), by a DIFFERENT mechanism than the spec's §4 (read the module docstring, not §4, for how it works; §4 stays the price list for a shared-sheet version) · folder inheritance NOT built |
 | [`tally.md`](specs/tally.md) | 🚫 **none, deliberately** | 2026-09-28 | ✅ BUILT 2026-09-28 · one live example (`uritp-docs` `app/app-box-office.md`) |
 | [`view-embed.md`](specs/view-embed.md) | BUILD 7 ⚠️ | 2026-08-28 | ✅ SHIPPED 2026-08-30 |
 | [`visibility-split.md`](specs/visibility-split.md) | BUILD 4 ⚠️ | 2026-08-07 | ⚠️ not read this pass |
