@@ -1,8 +1,9 @@
-"""Stage 05b -- flow strips, embedded completion forms, the chain index, the
-PROGRAM PACKET, and BINDERS.
+"""Stage 05b -- flow strips, embedded completion forms, live worksheets, the chain
+index, the PROGRAM PACKET, and BINDERS.
 
-FIVE MODULES, ONE REGISTRATION:
+SIX MODULES, ONE REGISTRATION:
 
+    docrender/tally.py       on_page_markdown   `!!! tally "name"` -> a worksheet
     docrender/forms.py       on_page_markdown   `!!! form "slot"` -> the embed
     docrender/chainlist.py   on_page_markdown   `!!! chain` -> an ordered index
     docrender/packet.py      on_page_markdown   `!!! export` -> the button
@@ -12,6 +13,11 @@ FIVE MODULES, ONE REGISTRATION:
     docrender/program.py     on_page_content    append this page's flow strips
     docrender/binder.py      on_nav             `binder: true` programs -> presets
                              on_post_build      write `binders.json` (composer)
+
+⭐ `tally.py` (2026-09-28) IS HERE BECAUSE A WORKSHEET HANDS ITS NUMBERS TO A FORM,
+and forms live here. It is the same body-directive job as its neighbours, and a new
+stage would mean editing `mkdocs.yml` (see the packet paragraph below). Its argued
+contract is `specs/tally.md`.
 
 🪦 IT WAS FIVE MODULES AND FIVE PACKET EVENTS UNTIL 2026-08-31. `packetbuild.py` is
 retired into `packet.py`, and the packet dropped `on_files` (it minted a generated
@@ -47,11 +53,12 @@ the honest home for it: one more voice in a file that already exists to compose
 several. A binder is a program page too, so it lives here on the same argument.
 
 ⚠️ ORDER INSIDE THE MARKDOWN COMPOSITION IS FREE TODAY AND IS NOT GUARANTEED TO STAY
-SO. `!!! form`, `!!! chain` and `!!! export` are disjoint patterns and none emits
-another's syntax, so none can consume another's output. 🚨 If any ever emits a `!!!`
-block, this order becomes load-bearing and must be argued here -- exactly the
-relationship 01d/03b already have, where the token audit emits marker syntax that a
-later stage renders.
+SO. `!!! tally`, `!!! form`, `!!! chain` and `!!! export` are disjoint patterns and
+none emits another's syntax, so none can consume another's output. ⭐ A worksheet's
+Send button finds its form IN THE BROWSER, after both have rendered, so tally running
+first is a choice, not a dependency. 🚨 If any ever emits a `!!!` block, this order
+becomes load-bearing and must be argued here -- exactly the relationship 01d/03b
+already have, where the token audit emits marker syntax that a later stage renders.
 
 🔴 ONE ORDER IS ALREADY LOAD-BEARING AND IT IS IN `on_page_content`: program's strips
 are appended FIRST and the packet button SECOND. `hide: footer` makes the strip the
@@ -73,28 +80,31 @@ only control on the page.
 
 ⚠️ THE MARKDOWN HALF IS THEREFORE LATE, AND THAT IS SAFE RATHER THAN LUCKY. One
 registration sets the position of every event a stage handles (mkdocs.yml says so
-about 08b). None of the three directives emits `@` references or marker syntax, so
-nothing between 03 and here had anything to resolve inside them. 🔴 THE CONSEQUENCE IS
-A REAL CONSTRAINT ON chainlist.py: hook 03 resolved every `@id` on this page long ago,
+about 08b). None of the four directives emits `@` references or marker syntax, so
+nothing between 03 and here had anything to resolve inside them. ⭐ It is also what
+lets tally's appended CSS carry `@media` safely. 🔴 THE CONSEQUENCE IS A REAL
+CONSTRAINT ON chainlist.py: hook 03 resolved every `@id` on this page long ago,
 so the index MUST emit finished relative URLs. An `@id` written there would ship to the
 reader as literal text. ⚠️ The same constraint binds the packet button, which is why
 `packet.button` builds its href through `util.relative_url` rather than writing a
 reference.
 
-🚨 REMOVING THIS LINE FROM mkdocs.yml IS NOT A NO-OP. Every `!!! form`, `!!! chain`
-and `!!! export` would render as an ordinary grey admonition titled "form", "chain" or
-"export" -- a box where a compliance form should be -- every flow strip would silently
+🚨 REMOVING THIS LINE FROM mkdocs.yml IS NOT A NO-OP. Every `!!! tally`, `!!! form`,
+`!!! chain` and `!!! export` would render as an ordinary grey admonition titled
+"tally", "form", "chain" or "export" -- a box where a compliance form or a box office
+sheet should be -- every flow strip would silently
 stop rendering while `chain:` kept working perfectly, which now means a program page
 with `hide: footer` would have NO navigation at all, AND no `packets.json` would be
 written, so **every packet PDF would vanish from the next deploy and every export
 button would 404.** Same shape as 03c and 03d.
 """
 
-from docrender import binder, chainlist, forms, packet, program
+from docrender import binder, chainlist, forms, packet, program, tally
 
 
 def on_page_markdown(markdown, page, config, files):
-    """All three body directives, in one registration. See the red block above."""
+    """All four body directives, in one registration. See the red block above."""
+    markdown = tally.on_page_markdown(markdown, page, config, files)
     markdown = forms.on_page_markdown(markdown, page, config, files)
     markdown = chainlist.on_page_markdown(markdown, page, config, files)
     return packet.on_page_markdown(markdown, page, config, files)
