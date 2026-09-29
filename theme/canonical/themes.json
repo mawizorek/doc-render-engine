@@ -1,6 +1,6 @@
 {
   "schemaVersion": 4,
-  "note": "PROJECTION -- NOT THE AUTHORED SOURCE, despite the folder name. CANONICAL IS mawizorek/maw-themes registry/_themes.json (Michael, 2026-08-05): author a theme THERE and re-copy outward, never edit here and expect it to survive. WARNING the enclosing folder is called `canonical` and that is now misleading; renaming it is structural and pending. THE JOIN TABLE. A THEME binds the 4 independent vectors: Color, Typography, Forms, and Spacing -- and as of schemaVersion 4 it declares TWO colours, a primary and an alt, each by explicit slug. Apps reference a THEME slug and the resolver composes everything. An app that names ONE theme gets both of its colours as its light/dark toggle; an app that names a SECOND theme replaces the alt with that theme's primary colour. The app always owns which slot is which.",
+  "note": "THE JOIN TABLE. A THEME binds the 4 independent vectors: Color, Typography, Forms, and Spacing -- and as of schemaVersion 4 it declares TWO colours, a primary and an alt, each by explicit slug. Apps reference a THEME slug and the resolver composes everything. An app that names ONE theme gets both of its colours as its light/dark toggle; an app that names a SECOND theme replaces the alt with that theme's primary colour. The app always owns which slot is which. CANONICAL: this file is the single authored source for the join table (Michael, 2026-08-05). Every other copy in every other repo is a PROJECTION and must point here; author a theme here and re-copy outward, never the reverse.",
   "vocabulary": {
     "color": "entity -- the PRIMARY palette, by slug, from vectors/colors.tsv.",
     "alt-color": "entity -- the palette the other toggle state uses, by slug. Usually the opposite mode, but NOT required to be: two darks or normal-and-party are equally legal, because nothing infers a relationship.",
@@ -14,7 +14,7 @@
     "dangling": "Because the pair is a POINTER it can dangle, which a derived pair could not. A consumer MUST report an unresolvable slug by name and must never fall back silently -- that is the whole price of the expressiveness, paid openly.",
     "mode": "A colour row's `mode` resolves nothing any more. It is descriptive, and it exists so a consumer can warn when a dark palette lands in a light slot. Keep it honest.",
     "typography-forms-spacing": "These do NOT split by toggle state. Type is scheme-independent by design, and a radius or a cell padding has no business changing when a reader flips a switch. One theme supplies all three.",
-    "no-customers-no-sites": "NEVER name a customer, a site or a site slug anywhere in this file, prose included -- and this rule is HARDER here than it is for any .py or .css in this repo. sizecheck.py's leak scan strips comments and string literals before scanning, so that a site name in a COMMENT is documentation and a site name in CODE is a bug. JSON has no comment syntax, so that distinction does not exist: every word in this file is a string literal and the scan reads it raw. An intendedUse sentence naming a site is therefore indistinguishable from engine code depending on that site, and it FAILS that site's build -- which is a HARD failure, the only one in the pipeline. It happened on 2026-08-05. Describe the LOOK, never the client."
+    "no-customers-no-sites": "NEVER name a customer, a site or a site slug anywhere in this file, prose included. A theme is a LOOK and describing it by its client is wrong on its own terms -- but the enforcement is harder than taste: doc-render-engine's portability leak scan strips comments from .py, .css and .yml before scanning and CANNOT do so for JSON, which has no comment syntax. Every word in this file is a string literal to that scan, so a site name in an intendedUse sentence is indistinguishable from engine code depending on a site, and it FAILS that site's build. One build was lost to exactly that on 2026-08-05. Describe the look."
   },
   "themes": [
     {
@@ -27,6 +27,28 @@
       "forms": "sharp",
       "spacing": "tight",
       "intendedUse": "Reference build for F1 apps."
+    },
+    {
+      "slug": "uritp",
+      "name": "URITP",
+      "status": "draft",
+      "color": "uritp",
+      "alt-color": "uritp-light",
+      "typography": "sharp-racing",
+      "forms": "sharp",
+      "spacing": "database",
+      "intendedUse": "URITP doc renders."
+    },
+    {
+      "slug": "uritp-safety",
+      "name": "URITP-Safety",
+      "status": "draft",
+      "color": "uritp-safety",
+      "alt-color": "uritp-safety-dark",
+      "typography": "uritp-safety",
+      "forms": "uritp-safety",
+      "spacing": "uritp-safety",
+      "intendedUse": "URITP Safety doc renders."
     },
     {
       "slug": "mclaren-mobile",
@@ -147,7 +169,73 @@
       "typography": "papyrus",
       "forms": "papyrus",
       "spacing": "tight",
-      "intendedUse": "Warm editorial / parchment -- built for FileMaker-style record renders and natural-light applications. Gabarito display, IBM Plex Mono, zero-radius base, subtle parchment shadows. NOTE this is the one join whose PRIMARY is light and whose alt is dark -- proof the pair carries no assumption about which way round it goes. WARNING this sentence used to name the CUSTOMER the theme was built for, and because that customer's name is also a site slug it failed that site's build every time the engine rendered it. Removed 2026-08-05: see rules.no-customers-no-sites. Do not put it back."
+      "intendedUse": "Warm editorial / parchment -- built for FileMaker-style record renders and natural-light applications. Gabarito display, IBM Plex Mono, zero-radius base, subtle parchment shadows. NOTE this is the one join whose PRIMARY is light and whose alt is dark -- proof the pair carries no assumption about which way round it goes. WARNING this sentence used to name the CUSTOMER the theme was built for. It was removed 2026-08-05 because it broke a build: see rules.no-customers-no-sites. Do not put it back."
+    },
+    {
+      "slug": "dept-scenic",
+      "name": "Department \u00b7 Scenic",
+      "status": "draft",
+      "color": "dept-scenic-dark",
+      "alt-color": "dept-scenic-light",
+      "typography": "sharp-racing",
+      "forms": "sharp",
+      "spacing": "database",
+      "intendedUse": "Production-department page look: orange accent on the black-ground stage palette, gold accent-2. One of six dept-* siblings sharing typography/forms/spacing; they differ only in accent columns, measured together in oklch 2026-09-28. Change a shared pointer on all six or none. Draft until seen rendered."
+    },
+    {
+      "slug": "dept-sm",
+      "name": "Department \u00b7 SM",
+      "status": "draft",
+      "color": "dept-sm-dark",
+      "alt-color": "dept-sm-light",
+      "typography": "sharp-racing",
+      "forms": "sharp",
+      "spacing": "database",
+      "intendedUse": "Production-department page look: phoenix crimson (deliberately near `bad`, deeper than it) accent on the black-ground stage palette, gold accent-2. One of six dept-* siblings sharing typography/forms/spacing; they differ only in accent columns, measured together in oklch 2026-09-28. Change a shared pointer on all six or none. Draft until seen rendered."
+    },
+    {
+      "slug": "dept-audio",
+      "name": "Department \u00b7 Audio",
+      "status": "draft",
+      "color": "dept-audio-dark",
+      "alt-color": "dept-audio-light",
+      "typography": "sharp-racing",
+      "forms": "sharp",
+      "spacing": "database",
+      "intendedUse": "Production-department page look: green accent on the black-ground stage palette, gold accent-2. One of six dept-* siblings sharing typography/forms/spacing; they differ only in accent columns, measured together in oklch 2026-09-28. Change a shared pointer on all six or none. Draft until seen rendered."
+    },
+    {
+      "slug": "dept-video",
+      "name": "Department \u00b7 Video",
+      "status": "draft",
+      "color": "dept-video-dark",
+      "alt-color": "dept-video-light",
+      "typography": "sharp-racing",
+      "forms": "sharp",
+      "spacing": "database",
+      "intendedUse": "Production-department page look: violet accent on the black-ground stage palette, gold accent-2. One of six dept-* siblings sharing typography/forms/spacing; they differ only in accent columns, measured together in oklch 2026-09-28. Change a shared pointer on all six or none. Draft until seen rendered."
+    },
+    {
+      "slug": "dept-admin",
+      "name": "Department \u00b7 Admin",
+      "status": "draft",
+      "color": "dept-admin-dark",
+      "alt-color": "dept-admin-light",
+      "typography": "sharp-racing",
+      "forms": "sharp",
+      "spacing": "database",
+      "intendedUse": "Production-department page look: warm brown-grey (scenic hue family, split by chroma) accent on the black-ground stage palette, gold accent-2. One of six dept-* siblings sharing typography/forms/spacing; they differ only in accent columns, measured together in oklch 2026-09-28. Change a shared pointer on all six or none. Draft until seen rendered."
+    },
+    {
+      "slug": "dept-lx",
+      "name": "Department \u00b7 LX",
+      "status": "draft",
+      "color": "dept-lx-dark",
+      "alt-color": "dept-lx-light",
+      "typography": "sharp-racing",
+      "forms": "sharp",
+      "spacing": "database",
+      "intendedUse": "Production-department page look: lemon (greener than `warn`; light row deepens to olive for contrast) accent on the black-ground stage palette, gold accent-2. One of six dept-* siblings sharing typography/forms/spacing; they differ only in accent columns, measured together in oklch 2026-09-28. Change a shared pointer on all six or none. Draft until seen rendered."
     }
   ]
 }
