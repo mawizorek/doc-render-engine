@@ -72,6 +72,12 @@ in the build report. 🔴 FORM-ONLY: a shared VIEW ships a literal height, no sc
 compliance failure that looks like a working page, so it is reported. ⚠️ Host and
 scheme are checked; nothing here proves the form is active or still exists.
 
+🔴 MICROSOFT FORMS IS THE SECOND HOST (2026-09-28, the MEWP pre-use page). A
+plain frame: no CDN script, no `Program_ID=` check (a ClickUp idea), and
+`embed=true` forced on, because without it Microsoft serves an "open in a new
+tab" card instead of the form. ⚠️ An org-only form needs third-party cookies,
+so Safari/iPad can show a sign-in card where Chrome shows the form.
+
 ⚠️ THE FALLBACK LINK IS ALWAYS RENDERED -- an iframe prints blank, and on screen it
 answers "the form did not load."
 
@@ -111,6 +117,10 @@ _LEGAL_OPTS: tuple = ()
 #: ⚠️ A LITERAL BECAUSE A FORM HAS ONE HOME. A shared VIEW does not, so `views.py`
 #: reads its allow-list from the instance config. Do not unify these.
 _FORM_HOST = "https://forms.clickup.com/"
+
+#: 🔴 THE SECOND HOME: Microsoft Forms. The allow-list argument above holds: no
+#: script of ours or theirs runs on this page for it, only a cross-origin frame.
+_MS_HOSTS = ("https://forms.office.com/", "https://forms.cloud.microsoft/")
 
 #: ClickUp's own embed helper. What `clickup-dynamic-height` needs.
 _FORM_SCRIPT = "https://app-cdn.clickup.com/assets/js/forms-embed/v1.js"
@@ -311,6 +321,17 @@ def _entry(src, slot):
     return ("", "", "", True, "")
 
 
+def _ms_src(url: str) -> str:
+    """A Microsoft Forms link in its embeddable spelling.
+
+    ⚠️ `origin=QRCode` is dropped so web submissions stop counting as scans.
+    """
+    url = re.sub(r"&origin=[^&#]*", "", url)
+    if "embed=true" not in url:
+        url += ("&" if "?" in url else "?") + "embed=true"
+    return url
+
+
 def _html(src, slot, opts=None) -> str:
     opts = opts or {}
     entry = _entry(src, slot)
@@ -330,10 +351,11 @@ def _html(src, slot, opts=None) -> str:
         )
 
     url, text, fold, reloadable, raw_height = entry
-    if not url.startswith(_FORM_HOST):
+    ms = url.startswith(_MS_HOSTS)
+    if not ms and not url.startswith(_FORM_HOST):
         state.note(
             "dead_links",
-            src + ": `forms: " + slot + "` must be a " + _FORM_HOST
+            src + ": `forms: " + slot + "` must be a " + _FORM_HOST + " or Microsoft Forms"
             + " address (found '" + url + "'). NOT embedded -- this element runs "
             "a third-party script in the reader's browser, so the host is an "
             "allow-list rather than a scheme check.",
@@ -342,12 +364,12 @@ def _html(src, slot, opts=None) -> str:
         # EXISTS, so an author reading the page has every reason to believe the
         # embed is working and merely slow.
         return _dead(
-            "form slot '" + slot + "' is not a " + _FORM_HOST + " address, so it "
+            "form slot '" + slot + "' is not a " + _FORM_HOST + " or Microsoft Forms address, so it "
             "was not embedded. This element runs a third-party script, so the "
             "host is an allow-list."
         )
 
-    if "Program_ID=" not in url:
+    if not ms and "Program_ID=" not in url:
         state.note(
             "notes",
             src + ": `forms: " + slot + "` carries no `Program_ID=` parameter. "
@@ -358,7 +380,9 @@ def _html(src, slot, opts=None) -> str:
 
     label = text or "Open this form in a new tab"
     frame = (
-        '<iframe class="clickup-embed clickup-dynamic-height" src="' + _esc(url)
+        '<iframe class="'
+        + ("dr-form__ms" if ms else "clickup-embed clickup-dynamic-height")
+        + '" src="' + _esc(_ms_src(url) if ms else url)
         + '" onwheel="" width="100%" height="100%" title="' + _esc(label)
         + '" style="background: transparent; border: 1px solid #ccc; '
         "min-height: " + _FORM_MIN_HEIGHT + ';"></iframe>'
@@ -458,7 +482,9 @@ def on_page_markdown(markdown, page, config, files):
 
     out = sub_outside_code(_FORM, swap, markdown)
     if embedded:
-        out += '\n\n<script async src="' + _FORM_SCRIPT + '"></script>\n'
+        # ⚠️ The CDN helper is ClickUp's: a Microsoft-only page skips it.
+        if "clickup-embed" in out:
+            out += '\n\n<script async src="' + _FORM_SCRIPT + '"></script>\n'
         out += "\n" + _RESET_CSS + "\n"
     if reloadable:
         out += "\n" + _RESET_JS + "\n"
