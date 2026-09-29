@@ -1,9 +1,10 @@
-"""Stage 05b -- flow strips, embedded completion forms, live worksheets, the chain
-index, the PROGRAM PACKET, and BINDERS.
+"""Stage 05b -- flow strips, embedded completion forms, live worksheets, launcher
+cards, the chain index, the PROGRAM PACKET, and BINDERS.
 
-SIX MODULES, ONE REGISTRATION:
+SEVEN MODULES, ONE REGISTRATION:
 
     docrender/tally.py       on_page_markdown   `!!! tally "name"` -> a worksheet
+    docrender/cards.py       on_page_markdown   `!!! cards` -> a Material card grid
     docrender/forms.py       on_page_markdown   `!!! form "slot"` -> the embed
     docrender/chainlist.py   on_page_markdown   `!!! chain` -> an ordered index
     docrender/packet.py      on_page_markdown   `!!! export` -> the button
@@ -18,6 +19,11 @@ SIX MODULES, ONE REGISTRATION:
 and forms live here. It is the same body-directive job as its neighbours, and a new
 stage would mean editing `mkdocs.yml` (see the packet paragraph below). Its argued
 contract is `specs/tally.md`.
+
+⭐ `cards.py` (2026-09-28) IS HERE BECAUSE IT IS THE SAME BODY-DIRECTIVE JOB and a
+new stage means editing `mkdocs.yml`. It runs AFTER hook 03, so it reads resolved
+links and must resolve a bare `@id` card itself, against `state.PAGES`, recording
+the edge with `state.ref`. Its contract is `specs/cards.md`.
 
 🪦 IT WAS FIVE MODULES AND FIVE PACKET EVENTS UNTIL 2026-08-31. `packetbuild.py` is
 retired into `packet.py`, and the packet dropped `on_files` (it minted a generated
@@ -53,7 +59,7 @@ the honest home for it: one more voice in a file that already exists to compose
 several. A binder is a program page too, so it lives here on the same argument.
 
 ⚠️ ORDER INSIDE THE MARKDOWN COMPOSITION IS FREE TODAY AND IS NOT GUARANTEED TO STAY
-SO. `!!! tally`, `!!! form`, `!!! chain` and `!!! export` are disjoint patterns and
+SO. `!!! tally`, `!!! cards`, `!!! form`, `!!! chain` and `!!! export` are disjoint patterns and
 none emits another's syntax, so none can consume another's output. ⭐ A worksheet's
 Send button finds its form IN THE BROWSER, after both have rendered, so tally running
 first is a choice, not a dependency. 🚨 If any ever emits a `!!!` block, this order
@@ -99,12 +105,13 @@ written, so **every packet PDF would vanish from the next deploy and every expor
 button would 404.** Same shape as 03c and 03d.
 """
 
-from docrender import binder, chainlist, forms, packet, program, tally
+from docrender import binder, cards, chainlist, forms, packet, program, tally
 
 
 def on_page_markdown(markdown, page, config, files):
-    """All four body directives, in one registration. See the red block above."""
+    """All five body directives, in one registration. See the red block above."""
     markdown = tally.on_page_markdown(markdown, page, config, files)
+    markdown = cards.on_page_markdown(markdown, page, config, files)
     markdown = forms.on_page_markdown(markdown, page, config, files)
     markdown = chainlist.on_page_markdown(markdown, page, config, files)
     return packet.on_page_markdown(markdown, page, config, files)
