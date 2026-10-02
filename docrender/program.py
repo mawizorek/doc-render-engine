@@ -10,11 +10,27 @@ docrender/forms.py. This module owns what a flow LOOKS like and, since
 A post-mortem goes to the DL; the rule it produced goes to the call site.
 
 =============================================================================
-🔴 ONE NAVIGATION SURFACE PER PAGE
+🔴 TWO SURFACES, TWO JOBS: THE PILL IS FOR CLICKING, THE STRIP IS FOR READING
 =============================================================================
-A page in a flow gets strips AND `footer` appended to `page.meta['hide']`, so
-Material's prev/next never draws beside them. The hand-typed `hide: footer` rule
-(J19) is now automatic; pages that still carry it are harmless.
+(program-dl D2, 2026-10-02, reverses D1's one-surface rule.) Every strip carries
+a PILL: `‹ Last` / `Next ›`, position: fixed under the top-right toolbar, so the
+Next button sits on the SAME PIXEL on every page and a reader can click through a
+program without moving the mouse. A footer strip moves with article length; that
+was the defect. The strip at the foot stays as the reference (program, step,
+titles, "Also part of") but is one tight row.
+
+  * Next is the RIGHTMOST button and the pill is right-anchored with fixed-width
+    buttons, so Next/Finish/Start never shift. A missing Last renders greyed,
+    never removed: removing it would not move Next, but it would make the pill
+    change shape under the cursor.
+  * Detail lives in the hover title + aria-label, not on the button.
+  * Under 600px the pill docks BOTTOM-right instead: the thumb zone, and a
+    top pill sat on the page title. Still fixed, still the same spot.
+  * The pill sits INSIDE its strip, so the strip selection below hides it for
+    free. No script: only the first strip's pill shows. A member pill outranks a
+    start pill (`:has`), so a hub that is also a step shows one pill.
+  * Material's `navigation.footer` is still suppressed: `footer` is appended to
+    `page.meta['hide']`, J19's hand-typed rule made automatic.
 
 =============================================================================
 ⭐ THE SERVER RENDERS EVERY STRIP; THE BROWSER PICKS ONE (program-dl D1)
@@ -33,9 +49,10 @@ first in-page anchor click and did nothing for sidebar arrivals. Now:
 
 ⭐ FACES. A `chain: "@target"` page walks the target's list without owning its
 buttons. Member pages render ONE strip for the target, carrying its faces as
-`data-dr-faces`; under a face the script swaps the program/finish links to the
-face hub, rewrites `via=`, and on an `app` face adds `html.dr-app` -- so the app
-binder stays an app all the way through, from one list.
+`data-dr-faces`; under a face the script swaps the program/finish links (pill
+included) to the face hub, rewrites `via=`, and on an `app` face adds
+`html.dr-app` -- so the app binder stays an app all the way through, from one list.
+⚠️ Hover titles keep the TARGET's name under a face. Cosmetic, known.
 
 ⚠️ The chrome.CSS block is inlined ONLY on pages whose flows have an app face,
 and is inert until the script sets the class.
@@ -92,13 +109,33 @@ def _href(page, here, via, frag="") -> str:
     return relative_url(_url(page), here) + q + frag
 
 
-def _card(cls, href, direction, title) -> str:
-    """The button anatomy: a direction word over the destination title."""
+def _link(cls, href, text, tip) -> str:
+    """One tight foot link. The full sentence rides in the hover title."""
     return (
-        '<a class="' + cls + '" href="' + _esc(href) + '">'
-        '<span class="dr-flow__dir">' + _esc(direction) + "</span>"
-        '<span class="dr-flow__title">' + _esc(title) + "</span></a>"
+        '<a class="' + cls + '" href="' + _esc(href) + '" title="' + _esc(tip) + '">'
+        + text + "</a>"
     )
+
+
+def _btn(cls, href, label, tip) -> str:
+    """One pill button. No href = greyed placeholder that keeps the shape."""
+    if href is None:
+        return '<span class="dr-pill__btn ' + cls + ' is-off" aria-hidden="true">' + label + "</span>"
+    return (
+        '<a class="dr-pill__btn ' + cls + '" href="' + _esc(href) + '" title="'
+        + _esc(tip) + '" aria-label="' + _esc(tip) + '">' + label + "</a>"
+    )
+
+
+def _pill(name, last, nxt) -> str:
+    return (
+        '<span class="dr-flow__pill" role="group" aria-label="' + _esc(name)
+        + ' \u00b7 quick navigation">' + last + nxt + "</span>"
+    )
+
+
+_LAST = "\u2039 Last"
+_NEXT = "Next \u203a"
 
 
 def _where(name, hub, here, via, detail) -> str:
@@ -110,7 +147,7 @@ def _where(name, hub, here, via, detail) -> str:
     else:
         who = '<span class="dr-flow__program">' + _esc(name) + "</span>"
     step = (' <span class="dr-flow__step">' + _esc(detail) + "</span>") if detail else ""
-    return '<p class="dr-flow__where">' + who + step + "</p>"
+    return '<span class="dr-flow__where">' + who + step + "</span>"
 
 
 def _open(flow_id, name, extra="", faces=None) -> str:
@@ -137,6 +174,9 @@ def _faces_for(flow_src, faces_of, by_src, here) -> dict:
     return out
 
 
+_GAP = '<span class="dr-flow__gap"></span>'
+
+
 def _member(flow_src, ids, at, page, by_id, by_src, faces) -> str:
     """One strip on a page that IS a step. Lone step: no count, keep Finish (J23)."""
     here = _url(page)
@@ -148,26 +188,44 @@ def _member(flow_src, ids, at, page, by_id, by_src, faces) -> str:
         i = live.index(ids[at])
     except (ValueError, IndexError):
         i = at
-    detail = "" if len(live) < 2 else "step " + str(i + 1) + " of " + str(len(live))
+    n = len(live)
+    detail = "" if n < 2 else str(i + 1) + "/" + str(n)
 
-    moves = []
+    def tip(word, title, step):
+        return word + ": " + title + " (" + name + (", step " + str(step) + " of " + str(n) if n > 1 else "") + ")"
+
     if i > 0:
         prev = by_id[live[i - 1]]
-        moves.append(_card("dr-flow__prev", _href(prev, here, fid), "\u2190 Previous", _title(_src(prev), prev)))
-    if i + 1 < len(live):
+        ph, pt = _href(prev, here, fid), _title(_src(prev), prev)
+        foot_prev = _link("dr-flow__prev", ph, "\u2190 " + _esc(pt), tip("Last", pt, i))
+        pill_prev = _btn("dr-pill__prev", ph, _LAST, tip("Last", pt, i))
+    else:
+        foot_prev, pill_prev = _GAP, _btn("dr-pill__prev", None, _LAST, "")
+
+    if i + 1 < n:
         nxt = by_id[live[i + 1]]
-        moves.append(_card("dr-flow__next", _href(nxt, here, fid), "Next \u2192", _title(_src(nxt), nxt)))
+        nh, nt = _href(nxt, here, fid), _title(_src(nxt), nxt)
+        foot_next = _link("dr-flow__next", nh, _esc(nt) + " \u2192", tip("Next", nt, i + 2))
+        pill_next = _btn("dr-pill__next", nh, _NEXT, tip("Next", nt, i + 2))
     elif hub is not None:
         # THE END AIMS AT THE FORM: landing on it is the point (J20).
         slot = forms.first_slot(_meta(flow_src))
         frag = ("#" + forms.slot_anchor(slot)) if slot else ""
-        moves.append(_card("dr-flow__end", _href(hub, here, fid, frag), "Finish \u2713", name))
+        eh = _href(hub, here, fid, frag)
+        foot_next = _link(
+            "dr-flow__end", eh,
+            'Finish <span class="dr-flow__title">' + _esc(name) + "</span> \u2713",
+            "Finish: back to " + name,
+        )
+        pill_next = _btn("dr-pill__fin", eh, "Finish \u2713", "Finish: back to " + name)
     else:
-        moves.append('<span class="dr-flow__end dr-flow__end--dead">End of this program</span>')
+        foot_next = '<span class="dr-flow__end dr-flow__end--dead">End</span>'
+        pill_next = _btn("dr-pill__next", None, "End", "")
 
     return (
-        _open(fid, name, "", faces) + _where(name, hub, here, fid, detail)
-        + '<p class="dr-flow__move">' + "".join(moves) + "</p></nav>"
+        _open(fid, name, "", faces) + _pill(name, pill_prev, pill_next)
+        + '<p class="dr-flow__move">' + foot_prev + _where(name, hub, here, fid, detail)
+        + foot_next + "</p></nav>"
     )
 
 
@@ -180,11 +238,14 @@ def _start(flow_src, ids, page, by_id) -> str:
     fid = _id(flow_src)
     name = _title(flow_src, page)
     first = by_id[live[0]]
+    fh, ft = _href(first, here, fid), _title(_src(first), first)
     detail = str(len(live)) + (" step" if len(live) == 1 else " steps")
+    t = "Start: " + ft + " (" + name + ", " + detail + ")"
     return (
-        _open(fid, name, "dr-flow--start") + _where(name, None, here, fid, detail)
-        + '<p class="dr-flow__move">'
-        + _card("dr-flow__next", _href(first, here, fid), "Start \u2192", _title(_src(first), first))
+        _open(fid, name, "dr-flow--start")
+        + _pill(name, _btn("dr-pill__prev", None, _LAST, ""), _btn("dr-pill__next", fh, "Start \u203a", t))
+        + '<p class="dr-flow__move">' + _GAP + _where(name, None, here, fid, detail)
+        + _link("dr-flow__next", fh, "Start: " + _esc(ft) + " \u2192", t)
         + "</p></nav>"
     )
 
@@ -207,7 +268,7 @@ _FOOT_JS = (
     "f=n.getAttribute('data-dr-flow');x=null;try{x=JSON.parse(n.getAttribute('data-dr-faces')||'null')}catch(e){}"
     "if(v&&(f===v||(x&&x[v]))){hit=n;if(f!==v){a=n.querySelectorAll('a');"
     "for(j=0;j<a.length;j++)a[j].href=a[j].href.replace('via='+f,'via='+v);"
-    "a=n.querySelectorAll('.dr-flow__program,.dr-flow__end');"
+    "a=n.querySelectorAll('.dr-flow__program,.dr-flow__end,.dr-pill__fin');"
     "for(j=0;j<a.length;j++){if(a[j].tagName==='A')a[j].href=x[v].u;"
     "if(/program/.test(a[j].className))a[j].textContent=x[v].n;"
     "else{var t=a[j].querySelector('.dr-flow__title');if(t)t.textContent=x[v].n}}}"
@@ -217,35 +278,44 @@ _FOOT_JS = (
     "if(hit)hit.className+=' is-via'}catch(e){}})();"
 )
 
+_RULE = "var(--dr-border,var(--md-default-fg-color--lightest))"
 _CSS = """
 html.dr-flowjs .dr-flows .dr-flow:not(.dr-flow--start):not(.is-via){display:none}
-.dr-flows{margin:2.5rem 0 0;padding-top:1.2rem;border-top:1px solid var(--dr-border,var(--md-default-fg-color--lightest))}
-.dr-flow+.dr-flow{margin-top:1.1rem;padding-top:1.1rem;border-top:1px dashed var(--dr-border,var(--md-default-fg-color--lightest))}
+.dr-flows{margin:2rem 0 0;padding-top:.7rem;border-top:1px solid RULE}
+.dr-flow+.dr-flow{margin-top:.55rem;padding-top:.55rem;border-top:1px dashed RULE}
 html.dr-flowjs .dr-flow.is-via{border-top:0;padding-top:0;margin-top:0}
-html.dr-flowjs .dr-flow--start~.dr-flow.is-via{margin-top:1.1rem;padding-top:1.1rem;border-top:1px dashed var(--dr-border,var(--md-default-fg-color--lightest))}
-.dr-flow__where{margin:0 0 .6rem;font-size:.72rem;line-height:1.4;letter-spacing:.02em;color:var(--md-default-fg-color--light)}
+html.dr-flowjs .dr-flow--start~.dr-flow.is-via{margin-top:.55rem;padding-top:.55rem;border-top:1px dashed RULE}
+.md-typeset .dr-flow__move{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:.6rem;margin:0;font-size:.7rem;line-height:1.3}
+.md-typeset .dr-flow__move>a{display:block;min-width:0;max-width:100%;padding:.28rem .55rem;border:1px solid var(--dr-border,var(--md-default-fg-color--lighter));border-radius:.3rem;color:var(--md-default-fg-color--light);font-weight:600;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-typeset .dr-flow__prev{justify-self:start}
+.md-typeset .dr-flow__next,.md-typeset .dr-flow__end{justify-self:end;text-align:right}
+.md-typeset .dr-flow__next{border-color:var(--dr-accent,var(--md-accent-fg-color));color:var(--md-default-fg-color)}
+.md-typeset .dr-flow__move>a:hover{border-color:var(--dr-accent,var(--md-accent-fg-color));color:var(--md-default-fg-color)}
+.md-typeset .dr-flow__end{border-color:var(--dr-good,#2e9d5b);color:var(--md-default-fg-color)}
+.md-typeset .dr-flow__move>a.dr-flow__end:hover{border-color:var(--dr-good,#2e9d5b);background:var(--dr-good,#2e9d5b);color:var(--dr-on-accent,#fff)}
+.md-typeset .dr-flow__end--dead{justify-self:end;opacity:.6}
+.dr-flow__where{justify-self:center;white-space:nowrap;font-size:.66rem;letter-spacing:.02em;color:var(--md-default-fg-color--light)}
 .md-typeset .dr-flow__program{font-weight:700;color:var(--md-default-fg-color--light)}
 .md-typeset a.dr-flow__program:hover{color:var(--dr-accent,var(--md-typeset-a-color))}
-.dr-flow__step{display:inline-block;margin-left:.45rem;padding:.05rem .4rem;border-radius:.6rem;background:var(--dr-surface-3,var(--md-code-bg-color));font-size:.66rem;font-weight:600;white-space:nowrap}
-.md-typeset .dr-flow__move{display:flex;gap:.6rem;margin:0}
-.md-typeset .dr-flow__move>*{flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:center;min-height:2.9rem;padding:.5rem .85rem;border:1px solid var(--dr-border,var(--md-default-fg-color--lighter));border-radius:.4rem;line-height:1.25;text-decoration:none;color:var(--md-default-fg-color)}
-.md-typeset .dr-flow__dir{font-size:.64rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
-.md-typeset .dr-flow__title{font-size:.8rem;font-weight:600;overflow-wrap:anywhere}
-.md-typeset .dr-flow__next,.md-typeset .dr-flow__end{text-align:right}
-.md-typeset .dr-flow__prev{background:transparent;color:var(--md-default-fg-color--light)}
-.md-typeset .dr-flow__prev:hover{border-color:var(--dr-accent,var(--md-typeset-a-color));color:var(--dr-accent,var(--md-typeset-a-color))}
-.md-typeset .dr-flow__next{border-color:var(--dr-accent,var(--md-accent-fg-color));background:var(--dr-accent,var(--md-accent-fg-color));color:var(--dr-on-accent,var(--md-accent-bg-color,#fff))}
-.md-typeset .dr-flow__next:hover{filter:brightness(1.1);color:var(--dr-on-accent,var(--md-accent-bg-color,#fff))}
-.md-typeset .dr-flow__end{border-color:var(--dr-good,#2e9d5b);color:var(--dr-good,#2e9d5b);background:transparent}
-.md-typeset a.dr-flow__end:hover{background:var(--dr-good,#2e9d5b);color:var(--dr-on-accent,#fff)}
-.md-typeset .dr-flow--start .dr-flow__next{text-align:center}
-.md-typeset .dr-flow__end--dead{opacity:.6;text-align:center}
-.dr-flows__part{display:none;margin:.9rem 0 0;font-size:.72rem;color:var(--md-default-fg-color--light)}
+.dr-flow__step{margin-left:.35rem;font-variant-numeric:tabular-nums;opacity:.8}
+.dr-flows__part{display:none;margin:.45rem 0 0;text-align:center;font-size:.64rem;color:var(--md-default-fg-color--light)}
 html.dr-flowjs .dr-flows--many .dr-flows__part{display:block}
 .md-typeset .dr-flows__part a{margin-left:.4rem;font-weight:600}
 .md-typeset .dr-flows__part a.is-via{display:none}
-@media screen and (max-width:599px){.md-typeset .dr-flow__move{flex-direction:column-reverse}.md-typeset .dr-flow__move>*{text-align:left}}
-"""
+@media screen and (max-width:599px){.md-typeset .dr-flow__move{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.dr-flow__where{grid-column:1/-1;grid-row:1}}
+.dr-flow__pill{position:fixed;top:3.4rem;right:.6rem;z-index:4;display:flex;gap:.25rem;padding:.25rem;border-radius:2rem;background:var(--dr-surface-2,var(--dr-surface-raised,var(--md-default-bg-color)));box-shadow:0 .1rem .5rem rgba(0,0,0,.3)}
+.md-typeset .dr-pill__btn{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:4.3rem;height:1.9rem;border:1px solid var(--dr-border,var(--md-default-fg-color--lighter));border-radius:1.6rem;background:transparent;color:var(--md-default-fg-color);font-size:.66rem;font-weight:700;letter-spacing:.03em;line-height:1;text-decoration:none;user-select:none}
+.md-typeset a.dr-pill__btn:hover{border-color:var(--dr-accent,var(--md-accent-fg-color));color:var(--md-default-fg-color)}
+.md-typeset .dr-pill__next:not(.is-off),.md-typeset a.dr-pill__next:hover{border-color:var(--dr-accent,var(--md-accent-fg-color));background:var(--dr-accent,var(--md-accent-fg-color));color:var(--dr-on-accent,var(--md-accent-bg-color,#fff))}
+.md-typeset a.dr-pill__next:hover{filter:brightness(1.1)}
+.md-typeset .dr-pill__fin,.md-typeset a.dr-pill__fin:hover{border-color:var(--dr-good,#2e9d5b);color:var(--dr-good,#2e9d5b)}
+.md-typeset .dr-pill__btn.is-off{opacity:.35;cursor:default}
+.md-typeset a.dr-pill__btn:focus-visible{outline:2px solid var(--dr-accent,var(--md-accent-fg-color));outline-offset:2px}
+html:not(.dr-flowjs) .dr-flows .dr-flow~.dr-flow .dr-flow__pill{display:none}
+html.dr-flowjs .dr-flows:has(.dr-flow.is-via) .dr-flow--start .dr-flow__pill{display:none}
+@media screen and (max-width:599px){.dr-flow__pill{top:auto;bottom:.8rem;right:.8rem}.dr-flows{padding-bottom:3rem}}
+@media print{.dr-flow__pill{display:none!important}}
+""".replace("RULE", _RULE)
 
 
 def _strips(page, files):
@@ -325,7 +395,8 @@ def on_page_content(html, page, config, files):
     """Context script + style at the top, strips at the foot, footer hidden.
 
     Runs BEFORE hook 06 so the strips sit above the edit line. The head block
-    goes FIRST so `html.dr-app` lands before the content paints.
+    goes FIRST so `html.dr-app` lands before the content paints. The pill is
+    position: fixed, so its place in the DOM does not decide where it draws.
     """
     head, foot = _strips(page, files)
     if not foot:
