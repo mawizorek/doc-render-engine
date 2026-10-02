@@ -70,3 +70,56 @@ hides strips on paper anyway), progress/completion state.
 - Rewritten hrefs become absolute (the script assigns `a.href`). Cosmetic.
 - A page two binders both list still draws both strips server-side; only one shows.
   That is the design, not a leftover.
+
+---
+
+## D2 · THE PILL IS FOR CLICKING, THE STRIP IS FOR READING (2026-10-02)
+
+> Michael: *"I'd like to be able to leave my mouse in one spot and click 'next'
+> repeatedly as I go through the pages."* · *"the footer position adjusts based on the
+> length of the article."* · *"I don't need to see 'Next in program' or specific part
+> names constantly. Perhaps those details could appear if I hover."* · *"It is still
+> important to have that information available somewhere on the page."* · then:
+> *"Build it, but slim down the text and information in the footer."*
+
+### What was wrong
+
+D1 put the only control at the FOOT of the article, so its screen position was a
+function of article length. Reading a binder meant hunting for the button on every
+page. D1 solved WHICH strip shows; nothing addressed WHERE the control sits.
+
+### ✅ The ruling (Mira seated, Dexter built; Frank: FOLD-IN, same module, zero new keys)
+
+- **A pill per strip: `‹ Last` · `Next ›`, `position: fixed`** at `top 3.4rem /
+  right .6rem`, directly under the `chrome: app` toolbar pill and under Material's
+  2.4rem header on full-chrome pages. ⭐ Fixed, not merely "at the top": anything
+  above an in-flow control (back link, title, lede) varies per page too.
+- **Next never moves.** Fixed-width buttons, right-anchored pill, Next rightmost;
+  Start and Finish ✓ take Next's slot; a missing Last is greyed, never removed.
+  Verified headless at 1100px: Next/Start/Finish at the same rect (997,73, w86) on
+  the hub, a middle step and the last step.
+- **Detail on hover** (`title` + `aria-label`): *"Next: Lighting Sheet (SM Binder,
+  step 3 of 3)"*.
+- **The foot strip stays, as one row:** `← prev title` | `Program 2/3` |
+  `next title →`. Direction words, filled cards and the step chip removed.
+- **Selection is free.** The pill lives inside its `<nav>`, so D1's `is-via` hiding
+  hides it too. No script: first strip's pill only. A member pill outranks a start
+  pill via `:has`.
+- **Under 600px the pill docks bottom-right** (the thumb zone; top-right sat on the
+  page title). Never prints.
+
+### 🔴 This REVERSES D1's "one navigation surface per page," and says so
+
+D1's rule was aimed at Material's footer duplicating the strip: two surfaces doing
+the SAME job. This is two surfaces doing DIFFERENT jobs, control vs reference.
+⚑ **The defect D1 fixed was duplication, not plurality.** Material's footer is still
+suppressed.
+
+### ⚠️ Known edges
+
+- On mid-width screens with full chrome the pill can overlap the top of the right
+  TOC sidebar or the first line of wide content. It has its own ground and shadow.
+- Hover titles keep the TARGET's name under a face; the face swap rewrites hrefs and
+  visible text, not titles. Cosmetic.
+- Keyboard ←/→ deliberately NOT bound: it would fight text inputs and tabs. Tab
+  order reaches the pill at the foot of the content, where it sits in the DOM.
