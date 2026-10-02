@@ -15,7 +15,8 @@ WHAT `app` TAKES AWAY, on screen only: the tabs, both sidebars (so the nav
 drawer and the table of contents), search, the site title and logo, the
 footer and its prev/next, breadcrumbs, back-to-top, the edit line and the
 buildstamp at the foot. WHAT IT KEEPS: the letterhead at the top, the content,
-the light/dark switch and the print button, which float top right as a pill.
+the light/dark switch, the print button and (on a program page) the docked
+Last/Next icons from program.py, which float top right as a pill.
 
 Print is untouched. print-chrome.css already strips all of this on paper, so
 an app page prints exactly like any other page.
@@ -76,7 +77,7 @@ html.dr-app .md-header {
   box-shadow: 0 .1rem .5rem rgba(0,0,0,.25);
 }
 html.dr-app .md-header__inner { padding: 0 .3rem; height: 2.4rem; }
-html.dr-app .md-header__inner > :not(.md-header__option):not(.dr-printctl__trigger) {
+html.dr-app .md-header__inner > :not(.md-header__option):not(.dr-printctl__trigger):not(.dr-flow__pill) {
   display: none !important;
 }
 html.dr-app .md-main__inner { margin-top: 1.2rem; }

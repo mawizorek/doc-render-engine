@@ -123,3 +123,40 @@ suppressed.
   visible text, not titles. Cosmetic.
 - Keyboard ←/→ deliberately NOT bound: it would fight text inputs and tabs. Tab
   order reaches the pill at the foot of the content, where it sits in the DOM.
+
+---
+
+## D3 · THE PILL WAS SLOP; THE CONTROL BELONGS TO THE HEADER (2026-10-02, same day)
+
+> Michael, on the first live render: *"the pills look like ai rendered slop widget.
+> fucking gross."* Screenshot: the fixed pill sitting on the TOC heading.
+
+### What was wrong
+
+D2 drew a NEW object (rounded pill, shadow, filled accent button, text labels) and
+floated it over the page. It was stable, which was the requirement, and it read as
+a widget bolted onto someone else's interface, which was the failure. The "known
+edge" D2 wrote down (overlapping the TOC on mid-width full-chrome pages) was the
+first thing he saw. ⚑ **A known edge on the most common layout is not an edge.**
+
+### ✅ The ruling
+
+- **Two Material header icons**, chevron-left / chevron-right (Finish = check),
+  built as `md-header__button md-icon`: the same object as the light/dark switch
+  and the print button, inheriting their size, colour and spacing.
+- **The foot script docks the active strip's pair as the LAST child of
+  `.md-header__inner`.** The header is the one surface that never moves, and
+  last child makes Next the rightmost control. Verified headless at 1100px on full
+  chrome (Next at 1055,4 on hub / step 1 / step 2 / last step) and `chrome: app`
+  (1041,16 on all four).
+- **`chrome.py` exempts `.dr-flow__pill`** from the app-chrome hide rule, so the
+  icons join the floating app pill instead of vanishing.
+- **Undocked = invisible.** No script or no header leaves the foot strip as the only
+  control, which is the D1 page.
+- The fixed position, the bottom-right mobile dock and the text labels are gone.
+
+### ⚠️ Known edges
+
+- A thin divider separates the pair from the theme/print icons. If it reads as
+  furniture, it is one rule.
+- Hover titles under a face still carry the target's name (unchanged from D2).
