@@ -12,23 +12,22 @@ A post-mortem goes to the DL; the rule it produced goes to the call site.
 =============================================================================
 🔴 TWO SURFACES, TWO JOBS: THE PILL IS FOR CLICKING, THE STRIP IS FOR READING
 =============================================================================
-(program-dl D2, 2026-10-02, reverses D1's one-surface rule.) Every strip carries
-a PILL: `‹ Last` / `Next ›`, position: fixed under the top-right toolbar, so the
-Next button sits on the SAME PIXEL on every page and a reader can click through a
-program without moving the mouse. A footer strip moves with article length; that
-was the defect. The strip at the foot stays as the reference (program, step,
-titles, "Also part of") but is one tight row.
+(program-dl D2 + D3, 2026-10-02, reverses D1's one-surface rule.) Every strip
+carries two HEADER ICONS, chevron-left / chevron-right, built as Material's own
+`md-header__button md-icon` so they are the same object as the light/dark switch
+and the print button, not a widget beside them. The foot script DOCKS the active
+strip's pair as the LAST child of `.md-header__inner`, so Next is the rightmost
+control in a header that never moves: a reader clicks through a program without
+moving the mouse. A footer strip moves with article length; that was the defect.
+The strip at the foot stays as the reference, one tight row.
 
-  * Next is the RIGHTMOST button and the pill is right-anchored with fixed-width
-    buttons, so Next/Finish/Start never shift. A missing Last renders greyed,
-    never removed: removing it would not move Next, but it would make the pill
-    change shape under the cursor.
-  * Detail lives in the hover title + aria-label, not on the button.
-  * Under 600px the pill docks BOTTOM-right instead: the thumb zone, and a
-    top pill sat on the page title. Still fixed, still the same spot.
-  * The pill sits INSIDE its strip, so the strip selection below hides it for
-    free. No script: only the first strip's pill shows. A member pill outranks a
-    start pill (`:has`), so a hub that is also a step shows one pill.
+  * D2 shipped a floating fixed pill and Michael killed it on sight (D3): it sat
+    on the TOC and read as a bolted-on widget. Header icons replace it.
+  * A missing Last renders greyed, never removed, so Next never shifts. Start and
+    Finish (a check) take Next's slot.
+  * Detail lives in the hover title + aria-label, never on the button.
+  * Undocked icons never show: no script, or no header, means the foot strip is
+    the only control, which is the D1 page exactly.
   * Material's `navigation.footer` is still suppressed: `footer` is appended to
     `page.meta['hide']`, J19's hand-typed rule made automatic.
 
@@ -117,13 +116,22 @@ def _link(cls, href, text, tip) -> str:
     )
 
 
-def _btn(cls, href, label, tip) -> str:
-    """One pill button. No href = greyed placeholder that keeps the shape."""
+#: Material Design Icons paths (the set Material for MkDocs already ships).
+_SVG = {
+    "prev": "M15.41 16.58 10.83 12l4.58-4.59L14 6l-6 6 6 6z",
+    "next": "M8.59 16.58 13.17 12 8.59 7.41 10 6l6 6-6 6z",
+    "fin": "M21 7 9 19l-5.5-5.5 1.41-1.41L9 16.17 19.59 5.59z",
+}
+
+
+def _btn(cls, href, icon, tip) -> str:
+    """One header icon, Material's own button anatomy. No href = greyed placeholder."""
+    svg = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + _SVG[icon] + '"/></svg>'
     if href is None:
-        return '<span class="dr-pill__btn ' + cls + ' is-off" aria-hidden="true">' + label + "</span>"
+        return '<span class="md-header__button md-icon dr-pill__btn ' + cls + ' is-off" aria-hidden="true">' + svg + "</span>"
     return (
-        '<a class="dr-pill__btn ' + cls + '" href="' + _esc(href) + '" title="'
-        + _esc(tip) + '" aria-label="' + _esc(tip) + '">' + label + "</a>"
+        '<a class="md-header__button md-icon dr-pill__btn ' + cls + '" href="' + _esc(href)
+        + '" title="' + _esc(tip) + '" aria-label="' + _esc(tip) + '">' + svg + "</a>"
     )
 
 
@@ -134,8 +142,8 @@ def _pill(name, last, nxt) -> str:
     )
 
 
-_LAST = "\u2039 Last"
-_NEXT = "Next \u203a"
+_LAST = "prev"
+_NEXT = "next"
 
 
 def _where(name, hub, here, via, detail) -> str:
@@ -217,10 +225,10 @@ def _member(flow_src, ids, at, page, by_id, by_src, faces) -> str:
             'Finish <span class="dr-flow__title">' + _esc(name) + "</span> \u2713",
             "Finish: back to " + name,
         )
-        pill_next = _btn("dr-pill__fin", eh, "Finish \u2713", "Finish: back to " + name)
+        pill_next = _btn("dr-pill__fin", eh, "fin", "Finish: back to " + name)
     else:
         foot_next = '<span class="dr-flow__end dr-flow__end--dead">End</span>'
-        pill_next = _btn("dr-pill__next", None, "End", "")
+        pill_next = _btn("dr-pill__next", None, "next", "")
 
     return (
         _open(fid, name, "", faces) + _pill(name, pill_prev, pill_next)
@@ -243,7 +251,7 @@ def _start(flow_src, ids, page, by_id) -> str:
     t = "Start: " + ft + " (" + name + ", " + detail + ")"
     return (
         _open(fid, name, "dr-flow--start")
-        + _pill(name, _btn("dr-pill__prev", None, _LAST, ""), _btn("dr-pill__next", fh, "Start \u203a", t))
+        + _pill(name, _btn("dr-pill__prev", None, _LAST, ""), _btn("dr-pill__next", fh, "next", t))
         + '<p class="dr-flow__move">' + _GAP + _where(name, None, here, fid, detail)
         + _link("dr-flow__next", fh, "Start: " + _esc(ft) + " \u2192", t)
         + "</p></nav>"
@@ -275,7 +283,9 @@ _FOOT_JS = (
     "a=w.querySelectorAll('.dr-flows__part a[data-via=\"'+f+'\"]');for(j=0;j<a.length;j++)a[j].className+=' is-via'}}"
     "if(!hit&&first){hit=first;a=w.querySelectorAll('.dr-flows__part a[data-via=\"'+first.getAttribute('data-dr-flow')+'\"]');"
     "for(j=0;j<a.length;j++)a[j].className+=' is-via'}"
-    "if(hit)hit.className+=' is-via'}catch(e){}})();"
+    "if(hit)hit.className+=' is-via';"
+    "var h=document.querySelector('.md-header__inner'),p=(hit&&hit.querySelector('.dr-flow__pill'))||w.querySelector('.dr-flow--start .dr-flow__pill');"
+    "if(h&&p){h.appendChild(p);d.className+=' dr-pill-docked'}}catch(e){}})();"
 )
 
 _RULE = "var(--dr-border,var(--md-default-fg-color--lightest))"
@@ -303,17 +313,13 @@ html.dr-flowjs .dr-flows--many .dr-flows__part{display:block}
 .md-typeset .dr-flows__part a{margin-left:.4rem;font-weight:600}
 .md-typeset .dr-flows__part a.is-via{display:none}
 @media screen and (max-width:599px){.md-typeset .dr-flow__move{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.dr-flow__where{grid-column:1/-1;grid-row:1}}
-.dr-flow__pill{position:fixed;top:3.4rem;right:.6rem;z-index:4;display:flex;gap:.25rem;padding:.25rem;border-radius:2rem;background:var(--dr-surface-2,var(--dr-surface-raised,var(--md-default-bg-color)));box-shadow:0 .1rem .5rem rgba(0,0,0,.3)}
-.md-typeset .dr-pill__btn{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:4.3rem;height:1.9rem;border:1px solid var(--dr-border,var(--md-default-fg-color--lighter));border-radius:1.6rem;background:transparent;color:var(--md-default-fg-color);font-size:.66rem;font-weight:700;letter-spacing:.03em;line-height:1;text-decoration:none;user-select:none}
-.md-typeset a.dr-pill__btn:hover{border-color:var(--dr-accent,var(--md-accent-fg-color));color:var(--md-default-fg-color)}
-.md-typeset .dr-pill__next:not(.is-off),.md-typeset a.dr-pill__next:hover{border-color:var(--dr-accent,var(--md-accent-fg-color));background:var(--dr-accent,var(--md-accent-fg-color));color:var(--dr-on-accent,var(--md-accent-bg-color,#fff))}
-.md-typeset a.dr-pill__next:hover{filter:brightness(1.1)}
-.md-typeset .dr-pill__fin,.md-typeset a.dr-pill__fin:hover{border-color:var(--dr-good,#2e9d5b);color:var(--dr-good,#2e9d5b)}
-.md-typeset .dr-pill__btn.is-off{opacity:.35;cursor:default}
-.md-typeset a.dr-pill__btn:focus-visible{outline:2px solid var(--dr-accent,var(--md-accent-fg-color));outline-offset:2px}
-html:not(.dr-flowjs) .dr-flows .dr-flow~.dr-flow .dr-flow__pill{display:none}
-html.dr-flowjs .dr-flows:has(.dr-flow.is-via) .dr-flow--start .dr-flow__pill{display:none}
-@media screen and (max-width:599px){.dr-flow__pill{top:auto;bottom:.8rem;right:.8rem}.dr-flows{padding-bottom:3rem}}
+.dr-flow__pill{display:none}
+.md-header__inner>.dr-flow__pill{display:flex;align-items:center;order:99;margin-left:.2rem;padding-left:.2rem;border-left:1px solid var(--md-default-fg-color--lightest)}
+.md-header__inner>.dr-flow__pill .dr-pill__btn{margin:0 .05rem;color:inherit}
+.md-header__inner>.dr-flow__pill a.dr-pill__btn:hover{opacity:.7}
+.md-header__inner>.dr-flow__pill .dr-pill__btn.is-off{opacity:.3;cursor:default}
+.md-header__inner>.dr-flow__pill .dr-pill__fin{color:var(--dr-good,#2e9d5b)}
+.md-header__inner>.dr-flow__pill a.dr-pill__btn:focus-visible{outline:2px solid var(--dr-accent,var(--md-accent-fg-color));outline-offset:-2px}
 @media print{.dr-flow__pill{display:none!important}}
 """.replace("RULE", _RULE)
 
