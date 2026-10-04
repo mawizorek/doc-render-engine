@@ -241,20 +241,28 @@ _PACKET_ASSETS = ("packet.css", "print-packet.css")
 #: `.task-list-*` rules matching nothing.
 _TASKLIST_ASSETS = ("tasklist.css",)
 
-#: THE PRINT MENU + THE COMPOSER (BUILD 8 Feature B; BUILD 11 phase 1; 2026-09-28).
-#: The header printer icon's panel (margins in inches, text size) and the
-#: full-screen composer that stitches several pages into one printable document.
-#: Specs: specs/print-control-dl.md, specs/print-compose.md.
+#: THE PRINT MENU + THE COMPOSER + COPY AS TEXT (BUILD 8 Feature B; BUILD 11
+#: phase 1; copytext 2026-10-03). The header printer icon's panel (margins in
+#: inches, text size), the full-screen composer that stitches several pages into
+#: one printable document, and the preview bar's clipboard copy of that same
+#: stitched document. Specs: specs/print-control-dl.md, specs/print-compose.md
+#: (§9 is the copy).
 #:
 #: 🔴 printctl.js ENFORCES THE 1.5in INLINE BUDGET (left + right) so a printed data
 #: table never crosses the 640px list-mode threshold -- the fourth place that
-#: number is load-bearing (print.css's `@page` is the third).
+#: number is load-bearing (print.css's `@page` is the third). ⭐ copytext.js is the
+#: FIFTH: below that measure a table cannot survive, so the plain rung emits list
+#: mode rather than inventing a plain-text table format.
 #:
-#: Position FREE (D8): every selector is .dr-printctl* / .dr-compose*. The runtime
-#: <style> goes last in <head>. Script order is free: printctl.js looks the
-#: composer up at click time. ⚠️ UNCONDITIONAL (D3): every page can be printed.
+#: Position FREE (D8): every selector is .dr-printctl* / .dr-compose* /
+#: .dr-copytext*. The runtime <style> goes last in <head>. Script order is free:
+#: printctl.js looks the composer up at click time, and copytext.js finds the
+#: preview bar by OBSERVING for it rather than at load -- which is also why
+#: copytext needs no edit to printcompose.js, a file already at the read ceiling.
+#: ⚠️ UNCONDITIONAL (D3): every page can be printed.
 _PRINTCTL_ASSETS = (
     "printctl.css", "printctl.js", "printcompose.css", "printcompose.js",
+    "copytext.css", "copytext.js",
 )
 
 
@@ -279,7 +287,8 @@ def hand_written_css() -> tuple[str, ...]:
     beside it is exhaustive: a bare count here would rot the way every
     hand-maintained total in this repo has. ⭐ `print-md-bridge.css` (08-31) needed
     no edit here at all -- it joined an EXISTING group, which is the payoff for
-    walking groups rather than filenames.
+    walking groups rather than filenames. ⭐ `copytext.css` (10-03) is the second
+    one to need no edit, same reason.
 
     ⚠️ It guards against a forgotten GROUP. Nothing guards against a forgotten
     FILE, and an unregistered sheet is invisible here whether the omission was
