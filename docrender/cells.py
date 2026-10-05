@@ -167,6 +167,7 @@ _ATTR = re.compile(r'([A-Za-z][\w-]*)="([^"]*)"')
 #: is whether the value can ever originate in the TSV rather than in a hook -- if it
 #: can, it does not belong in this list.
 _ATTR_ALLOW = ("data-gloss", "data-role-print")
+_ENTITY = re.compile(r"&(?:#[0-9]+|#x[0-9A-Fa-f]+|[A-Za-z][A-Za-z0-9]+);")
 
 
 def _classes(attrs: str) -> str:
@@ -176,7 +177,7 @@ def _classes(attrs: str) -> str:
     function silently dropped everything else for as long as everything else did not
     exist. `_allowed_attrs` is the other half; a caller needs both.
     """
-    found = _CLASS.findall(attrs or "")
+    found = _CLASS.findall(_ATTR.sub("", attrs or ""))
     if not found:
         return ""
     return ' class="' + html.escape(" ".join(found), quote=True) + '"'
@@ -196,7 +197,7 @@ def _allowed_attrs(attrs: str) -> str:
     out = []
     for key, value in _ATTR.findall(attrs or ""):
         if key in _ATTR_ALLOW:
-            out.append(" " + key + '="' + html.escape(value, quote=True) + '"')
+            out.append(" " + key + '="' + html.escape(html.unescape(value), quote=True) + '"')
     return "".join(out)
 
 
@@ -234,6 +235,9 @@ def _inline(text: str) -> str:
     )
     text = _EM.sub(lambda m: park("<em>" + _inline(m.group("text")) + "</em>"), text)
 
+    # Auto titles contain entities on purpose. Preserve them as text, never
+    # decode before the markup passes (which would activate escaped HTML).
+    text = _ENTITY.sub(lambda m: park(m.group(0)), text)
     text = html.escape(text)
     return _SLOT_BACK.sub(lambda m: parked[int(m.group(1))], text)
 
