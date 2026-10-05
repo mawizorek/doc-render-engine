@@ -3,6 +3,11 @@
 Run: python -m unittest discover -s tests -v
 """
 
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -313,6 +318,44 @@ class AutoLabelTests(unittest.TestCase):
         self.assertIsNone(a.get("style"))
         self.assertIsNone(a.get("onclick"))
         self.assertGreaterEqual(len(state.REPORT["notes"]), 2)
+
+    def test_chromium_keyboard_focus_and_theme_color(self):
+        chrome = shutil.which("google-chrome") or shutil.which("chromium")
+        if not chrome:
+            self.skipTest("Chromium is required for the browser-only check")
+        css = (Path(__file__).resolve().parents[1] / "assets/gloss.css").read_text()
+        link = self.render("[->](@course-intro-to-lx){color=accent}")
+        fixture = (
+            '<!doctype html><meta charset="utf-8"><style>'
+            ':root{--dr-accent:rgb(20,100,180);--dr-ink:rgb(30,30,30);'
+            '--dr-surface-2:rgb(240,240,240);--dr-border:rgb(90,90,90)}'
+            + css + '</style><main class="md-typeset" style="padding:120px">'
+            + link + '</main><pre id="result"></pre><script>'
+            'const a=document.querySelector("a"); a.focus();'
+            'setTimeout(()=>{document.querySelector("#result").textContent=JSON.stringify({'
+            'focus:document.activeElement===a,visible:a.matches(":focus-visible"),'
+            'opacity:getComputedStyle(a,"::after").opacity,color:getComputedStyle(a).color,'
+            'name:a.getAttribute("aria-label"),outline:getComputedStyle(a).outlineStyle'
+            '});},500);</script>'
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "fixture.html"
+            path.write_text(fixture)
+            result = subprocess.run(
+                [chrome, "--headless", "--no-sandbox", "--disable-gpu",
+                 "--virtual-time-budget=1500", "--dump-dom", path.as_uri()],
+                capture_output=True, text=True, timeout=30, check=True,
+            )
+        import re
+        match = re.search(r'<pre id="result">([^<]+)</pre>', result.stdout)
+        self.assertIsNotNone(match, result.stderr[-2000:])
+        data = json.loads(match.group(1))
+        self.assertTrue(data["focus"])
+        self.assertTrue(data["visible"])
+        self.assertEqual(data["opacity"], "1")
+        self.assertEqual(data["color"], "rgb(20, 100, 180)")
+        self.assertEqual(data["outline"], "solid")
+        self.assertEqual(data["name"], "Introduction to Lighting for the Stage")
 
 
 if __name__ == "__main__":
