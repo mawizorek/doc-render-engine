@@ -429,7 +429,7 @@ def on_page_markdown(markdown, page, config, files):
         if not hit:
             state.note("dead_links", src + ": no page with id '" + token + "'")
             state.ref(src_id, token, "page", token, False)
-            return _dead(label, "no page yet with id: " + token) + opts
+            return _dead(label, "!" + token) + opts
 
         state.ref(src_id, token, "page", token, True)
         label = page_label(label, hit, token, src)
