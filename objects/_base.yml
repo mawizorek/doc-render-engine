@@ -32,6 +32,13 @@ requires:
   - status
   - summary
 optional:
+  - gloss        # Optional hover text on links TO this page. Not a second lede.
+                 # Explicit text wins; an empty string suppresses summary reuse.
+  - gloss_from_summary # Boolean, default false. Reuse summary when gloss is absent/null.
+                 # Resolved once by linklabels.entity_gloss in the published map.
+                 # Plain page links never acquire printed parentheticals; marker
+                 # links retain their existing print_gloss/no-print behavior.
+                 # Icon/link authoring examples: docrender/linklabels.py.
   - revised      # when this was last true.
                  #
                  # ⭐ IT RENDERS AS OF 2026-08-07, AND UNTIL THEN IT DID NOT.
@@ -76,7 +83,7 @@ optional:
                  #
                  # ⭐ THE NAME CHANGE WIDENS WHAT BELONGS HERE, and that is the
                  # point rather than a side effect. `also_known_as` could only
-                 # honestly hold ALIASES -- other names for the same thing.
+                 # honestly hold ALIASES -- names for the same thing.
                  # `keywords` also holds the words somebody would SEARCH for
                  # that are not names at all: a lighting page wanting `LX` and
                  # `electrics`. The rendered label moved with it for exactly
@@ -157,8 +164,8 @@ optional:
 # breaks the shared paragraph on the paste -- and breaks it as a dead reference
 # on a page that otherwise looks completely fine.
 #
-# So a slot is a FIELD, visible to the type spec and reportable at build, for
-# the same reason the lede became one.
+# So a slot is a FIELD, visible to the type spec and reportable at build, for the
+# same reason the lede became one.
 #
 # ══════════════════════════════════════════════════════════════════════════════
 # ⭐ AN EMPTY LIST MEANS UNRESTRICTED. RULED 2026-08-06 BY MICHAEL: "empty means
@@ -192,7 +199,7 @@ optional:
 # as making `summary` required: not a regression, a worklist.
 #
 # ~~⚠️ EMPTY HERE ON PURPOSE. A slot legal on every page in the family is legal
-# in places it makes no sense (a procedure does not have an inventory). Declare
+# places it makes no sense (a procedure does not have an inventory). Declare
 # slots on the TYPE that needs them. A one-line global list was offered and
 # rejected; so was "declared slots plus page-local extras", which would have
 # reopened the free-naming hole through a side door.~~
