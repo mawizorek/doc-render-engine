@@ -8,6 +8,10 @@
     [fkCal](@rel:table-events)             a relationship, styled as schema
     [the TD](@role:technical-director)     a production role, glossed on hover
     [the front panel](@img:h5-front)       an image anywhere in this site
+    [](@main-stage)                       inherit the page title at build time
+
+Empty page/peer labels inherit titles; explicit labels stay verbatim. Anchors keep
+the page title. Reserved-prefix handlers keep their own label rules.
 
 Moving the file, renaming its folder, or retitling the page cannot break an inbound
 link, because none of those things is what the link points at. Set `id:` once and never
@@ -189,6 +193,7 @@ import urllib.request
 from pathlib import Path
 
 from . import prefixes, state
+from .linklabels import page_label
 from .util import relative_url, sub_outside_code
 
 #: ⚠️ THE `opts` GROUP IS OPTIONAL AND MUST STAY OPTIONAL. It captures the author's
@@ -224,7 +229,7 @@ def _dead(label: str, reason: str) -> str:
     """A span, deliberately. Marked as broken, impossible to click."""
     return (
         '<span class="docrender-dead" title="' + html.escape(reason, quote=True) + '">'
-        + html.escape(label) + "</span>"
+        + html.escape(label or reason) + "</span>"
     )
 
 
@@ -413,6 +418,7 @@ def on_page_markdown(markdown, page, config, files):
                 state.ref(src_id, token, "peer", rest, False)
                 return _dead(label, "not found in " + prefix + ": " + rest) + opts
             state.ref(src_id, token, "peer", rest, True)
+            label = page_label(label, hit, token, src)
             base = str(peer.get("base_url", "")).rstrip("/")
             return (
                 "[" + label + "](" + base + "/" + str(hit.get("url", "")) + anchor
@@ -426,6 +432,7 @@ def on_page_markdown(markdown, page, config, files):
             return _dead(label, "no page yet with id: " + token) + opts
 
         state.ref(src_id, token, "page", token, True)
+        label = page_label(label, hit, token, src)
         # Resolved against THIS page, never from a separator count. The root index
         # page reports its url as `./` and broke that arithmetic.
         target = relative_url(str(hit.get("url", "")), page.file.url)
