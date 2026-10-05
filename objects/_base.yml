@@ -32,6 +32,13 @@ requires:
   - status
   - summary
 optional:
+  - gloss        # Optional hover text on links TO this page. Not a second lede.
+                 # Explicit text wins; an empty string suppresses summary reuse.
+  - gloss_from_summary # Boolean, default false. Reuse summary when gloss is absent/null.
+                 # Resolved once by linklabels.entity_gloss in the published map.
+                 # Plain page links never acquire printed parentheticals; marker
+                 # links retain their existing print_gloss/no-print behavior.
+                 # Icon/link authoring examples: docrender/linklabels.py.
   - revised      # when this was last true.
                  #
                  # ⭐ IT RENDERS AS OF 2026-08-07, AND UNTIL THEN IT DID NOT.

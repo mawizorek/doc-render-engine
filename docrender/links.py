@@ -10,8 +10,8 @@
     [the front panel](@img:h5-front)       an image anywhere in this site
     [](@main-stage)                       inherit the page title at build time
 
-Empty page/peer labels inherit titles; explicit labels stay verbatim. Anchors keep
-the page title. Reserved-prefix handlers keep their own label rules.
+Page labels, icon shortcuts and hover text: see linklabels.py.
+Reserved-prefix handlers keep their own label rules.
 
 Moving the file, renaming its folder, or retitling the page cannot break an inbound
 link, because none of those things is what the link points at. Set `id:` once and never
@@ -193,7 +193,7 @@ import urllib.request
 from pathlib import Path
 
 from . import prefixes, state
-from .linklabels import page_label
+from .linklabels import entity_gloss, page_link
 from .util import relative_url, sub_outside_code
 
 #: ⚠️ THE `opts` GROUP IS OPTIONAL AND MUST STAY OPTIONAL. It captures the author's
@@ -253,7 +253,7 @@ def on_files(files, config):
             # ONE IS "". Those are different states downstream and collapsing
             # them here would make one unreachable: absent print_gloss means
             # "print the gloss", empty means "print nothing". Do not add `or ""`.
-            "gloss": meta.get("gloss"),
+            "gloss": entity_gloss(meta, f.src_uri),
             "print_gloss": meta.get("print_gloss"),
         }
 
@@ -418,12 +418,9 @@ def on_page_markdown(markdown, page, config, files):
                 state.ref(src_id, token, "peer", rest, False)
                 return _dead(label, "not found in " + prefix + ": " + rest) + opts
             state.ref(src_id, token, "peer", rest, True)
-            label = page_label(label, hit, token, src)
             base = str(peer.get("base_url", "")).rstrip("/")
-            return (
-                "[" + label + "](" + base + "/" + str(hit.get("url", "")) + anchor
-                + "){ .docrender-xref }" + opts
-            )
+            return page_link(label, hit, token, src,
+                             base + "/" + str(hit.get("url", "")) + anchor, opts, peer=True)
 
         hit = state.PAGES.get(token)
         if not hit:
@@ -432,10 +429,9 @@ def on_page_markdown(markdown, page, config, files):
             return _dead(label, "!" + token) + opts
 
         state.ref(src_id, token, "page", token, True)
-        label = page_label(label, hit, token, src)
         # Resolved against THIS page, never from a separator count. The root index
         # page reports its url as `./` and broke that arithmetic.
         target = relative_url(str(hit.get("url", "")), page.file.url)
-        return "[" + label + "](" + target + anchor + ")" + opts
+        return page_link(label, hit, token, src, target + anchor, opts)
 
     return sub_outside_code(_LINK, replace, markdown)
