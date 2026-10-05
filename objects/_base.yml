@@ -83,7 +83,7 @@ optional:
                  #
                  # ⭐ THE NAME CHANGE WIDENS WHAT BELONGS HERE, and that is the
                  # point rather than a side effect. `also_known_as` could only
-                 # honestly hold ALIASES -- names for the same thing.
+                 # honestly hold ALIASES -- other names for the same thing.
                  # `keywords` also holds the words somebody would SEARCH for
                  # that are not names at all: a lighting page wanting `LX` and
                  # `electrics`. The rendered label moved with it for exactly
@@ -164,8 +164,8 @@ optional:
 # breaks the shared paragraph on the paste -- and breaks it as a dead reference
 # on a page that otherwise looks completely fine.
 #
-# So a slot is a FIELD, visible to the type spec and reportable at build, for the
-# same reason the lede became one.
+# So a slot is a FIELD, visible to the type spec and reportable at build, for
+# the same reason the lede became one.
 #
 # ══════════════════════════════════════════════════════════════════════════════
 # ⭐ AN EMPTY LIST MEANS UNRESTRICTED. RULED 2026-08-06 BY MICHAEL: "empty means
@@ -199,7 +199,7 @@ optional:
 # as making `summary` required: not a regression, a worklist.
 #
 # ~~⚠️ EMPTY HERE ON PURPOSE. A slot legal on every page in the family is legal
-# places it makes no sense (a procedure does not have an inventory). Declare
+# in places it makes no sense (a procedure does not have an inventory). Declare
 # slots on the TYPE that needs them. A one-line global list was offered and
 # rejected; so was "declared slots plus page-local extras", which would have
 # reopened the free-naming hole through a side door.~~
