@@ -327,7 +327,7 @@ class AutoLabelTests(unittest.TestCase):
         link = self.render("[->](@course-intro-to-lx){color=accent}")
         fixture = (
             '<!doctype html><meta charset="utf-8"><style>'
-            ':root{--dr-accent:rgb(20,100,180);--dr-ink:rgb(30,30,30);'
+            ':root{--dr-motion-fast:0s;--dr-accent:rgb(20,100,180);--dr-ink:rgb(30,30,30);'
             '--dr-surface-2:rgb(240,240,240);--dr-border:rgb(90,90,90)}'
             + css + '</style><main class="md-typeset" style="padding:120px">'
             + link + '</main><pre id="result"></pre><script>'
@@ -350,6 +350,7 @@ class AutoLabelTests(unittest.TestCase):
         match = re.search(r'<pre id="result">([^<]+)</pre>', result.stdout)
         self.assertIsNotNone(match, result.stderr[-2000:])
         data = json.loads(match.group(1))
+        print("::notice::Browser focus state: " + json.dumps(data))
         self.assertTrue(data["focus"])
         self.assertTrue(data["visible"])
         self.assertEqual(data["opacity"], "1")
