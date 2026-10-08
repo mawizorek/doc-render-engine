@@ -1,11 +1,18 @@
 # Sign layout — `type: sign`
 
-**State:** ✅ DECISION-COMPLETE, NOT YET BUILT · scoped + ruled 2026-10-08 · 🚫 no build number, deliberately (see the index's numbering debt). ⏳ **Blocked on §7 step 1: the paper test.**
+**State:** ✅ BUILT 2026-10-08 · `docrender/sign.py` + `objects/sign.yml` + `theme/canonical/frames.tsv`, first page `uritp-docs` `sign-backstage-access` · 🚫 no build number, deliberately (see the index's numbering debt). ⏳ **NOT paper-verified: §7 step 1 (Chrome + Safari on Letter) is still owed.**
 **Decision history:** doc-render-engine (repo) — Decision Log, ClickUp.
 
-> Michael, 2026-10-08, handing over `CAST AND CREW ONLY.pdf`: *"what we're aiming to replace...."* Then: spec it first. Then: **all seven recommendations accepted** (`sign_accept_all`).
+> Michael, 2026-10-08, handing over `CAST AND CREW ONLY.pdf`: *"what we're aiming to replace...."* Then: spec it first. Then: **all seven recommendations accepted** (`sign_accept_all`). Then: *"update to the new color pallete and ship the spec."* Built ahead of the paper test on that instruction.
 
 The goal is to retire hand-laid sign files (InDesign-style PDFs) in favour of **rendered pages that print as the sign.** First customer: `uritp-docs` `REPO_PAGES/sign-backstage-access.md`. Second, already live and different in shape: `REPO_PAGES/sign-content-disclosure.md` (body paragraphs, an italic show title).
+
+### 🛠️ As built (read `docrender/sign.py` docstring for the authority)
+
+- The sheet is a card at `aspect-ratio: 8.5 / 11`, with every length in `--u = 100cqi / 612` (one source pt, scaled to the card's width; fallback `1pt` where container queries are absent). 🔴 **This is the §6 `@page` answer:** the sheet scales to whatever printable box the browser gives it instead of assuming the full 8.5 × 11 in, so it cannot spill onto a second page.
+- In print only `.dr-sign` is shown and the `@page` margin boxes are cleared (R5). The screen header and the print menu stay.
+- Frame colours read from `frames.tsv` by `frame:` slug, live vs vendored per `source.tsv`. Source Serif 4 linked on sign pages only (R4).
+- Composed in the existing `06_pagefoot` shim (no `mkdocs.yml` registration, no `assets.py` sheet).
 
 <p><br/></p>
 
@@ -108,14 +115,14 @@ Checked 2026-10-08 against the University of Rochester Brand Center ([color syst
 - ⚠️ Consequence, stated so it is not a surprise on paper: the rendered sign's navy is **darker** than the old printed one. That is the brand moving, not the engine drifting.
 
 ```
-frames.tsv row (proposed):  uritp · #DA0206 13pt · #001E5F 13pt · #FFD82B 8pt
+frames.tsv row (shipped, maw-themes #17):  uritp · #DA0206 13pt · #001E5F 13pt · #FFD82B 8pt
 ```
 
 <p><br/></p>
 
 ## 💣 §6 — Risks and edge cases, stated before anything is built
 
-- 🔴 **`@page` margins are browser-dependent** (`printctl.js` header says so plainly). If a browser ignores `@page`, a frame sized to the sheet spills onto a SECOND sheet, and a two-page sign is a failed sign. The frame must be sized against the content box with an honest fallback, and **only a paper test settles it.**
+- 🔴 **`@page` margins are browser-dependent** (`printctl.js` header says so plainly). If a browser ignores `@page`, a frame sized to the sheet spills onto a SECOND sheet, and a two-page sign is a failed sign. The frame must be sized against the content box with an honest fallback, and **only a paper test settles it.** ✅ Built answer: the container-unit scaling above. ⏳ Still only paper settles it.
 - ⚠️ **The browser's own "Headers and footers"** will print a URL and date over the frame unless unticked. The print panel already tells readers; a sign page should say it louder.
 - ⚠️ **`print-flow.css`'s `display: revert !important`** has beaten plain display rules in this family twice. Any hide rule here carries `!important` from the start.
 - ⚠️ **Overflow cannot be detected at build time.** At 72 pt on a ~7 in measure a line holds roughly 12-13 capitals, which "CAST AND / CREW ONLY" fits and a longer message will not. Honest limit: the print panel's text-size dial already scales a sign down. 🚫 No auto-fit script in v1.
@@ -128,7 +135,7 @@ frames.tsv row (proposed):  uritp · #DA0206 13pt · #001E5F 13pt · #FFD82B 8pt
 
 1. ⏳ **A hand-built HTML sheet, before any engine code.** ✅ BUILT 2026-10-08 as a standalone file (logo extracted from the source PDF, R2 colours, Source Serif 4 from Google Fonts, `@page { margin: 0 }`, fixed 8.5 × 11 in sheet). Verified in WeasyPrint: ONE sheet, every text line at the source's exact pt position (274 / 326 / 432 / 518). 🔴 **WeasyPrint honours `@page`, which is exactly the thing browsers may not — so that result proves the geometry, NOT the risk.** Owed: Michael prints it from Chrome AND Safari on Letter. Pass = one sheet, frame intact, colours present, no browser furniture; record which margin setting passed.
 2. ✅ R2 colours confirmed against the brand guide (§5).
-3. Then `sign.yml` + `frames.tsv` + the injected style + the font, and convert `sign-backstage-access` as the first page.
+3. ✅ BUILT 2026-10-08: `sign.yml` + `frames.tsv` + the injected style + the font, and `sign-backstage-access` converted as the first page. Paper test (step 1) now runs against the LIVE page rather than the hand-built sheet.
 
 <p><br/></p>
 
