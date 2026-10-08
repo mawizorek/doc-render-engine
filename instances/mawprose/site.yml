@@ -51,6 +51,17 @@ theme: database
 
 edit_links: true
 
+# ⭐ THE PRINTED LETTERHEAD (declared 2026-10-08). Same feature and same rules as
+# instances/uritp/site.yml: the value is the STEM of an image filename in the
+# CONTENT repo, resolved through the `@img:` index. ✅ VERIFIED PRESENT BEFORE
+# DECLARING: `maw-prose-mark.svg` at the root of mawizorek/maw-prose (Vertex
+# Vera, drawn to the `database` theme's mercedes palette). 🔴 A second file with
+# the stem `maw-prose-mark` anywhere in that tree disables the mark -- replace,
+# never add beside it. ⚠️ This is the PRINTED header only; the on-screen header
+# icon has no per-site key in the engine today.
+print:
+  logo: maw-prose-mark
+
 # 🔴 SCOPE WARNING - READ BEFORE `mode:publish`.
 #
 # maw-prose is a PUBLIC repository and it holds MORE than the theatre work:
