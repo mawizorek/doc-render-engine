@@ -47,6 +47,29 @@ under html.dr-app.
 Also sets the two meta tags that make "Add to Home Screen" on a phone open the
 page standalone, with no browser bar. That is the whole trick of feeling like
 an app, and it costs two lines.
+
+=========================================================================
+`hide: header` -- THE WHOLE BAR GONE (2026-10-08)
+=========================================================================
+> Michael: *"hide the header entirely and just directly insert the logo
+> centered at the top of the page"* -- the uritp backstage sign.
+
+🔴 MATERIAL IGNORES `header` IN `hide:`. specs/chrome.md already proved the
+header block is gated by NOTHING, at any version, so before this the value
+parsed, matched no template branch, and did nothing with no report. It is
+honoured HERE, on the existing `hide:` list, rather than as a new `chrome:`
+value, because `hide:` is where an author already says what to remove and
+`navigation`/`toc`/`footer` sit right beside it.
+
+⚠️ IT TAKES EVERYTHING IN THE BAR: site title, logo link home, search, the
+light/dark switch and the print icon. That is the ask ("entirely"); `chrome:
+app` is the answer for a page that wants to KEEP the switch and print. A
+reader can still print with the browser's own Print command.
+
+⭐ SCREEN ONLY. print-chrome.css already removes the header on paper, so a
+second print rule would be a second claimant on one fact. Same page-scoped
+<style> mechanism as `app`, same fail-open: a page that cannot be marked
+keeps its header and is reported, never broken.
 """
 
 from __future__ import annotations
@@ -86,31 +109,62 @@ html.dr-app .md-content__inner { margin: 0 1rem; padding-top: .8rem; }
 }
 """
 
+# `hide: header`. Same isolation rule as CSS: all of it under its own class.
+NOHEADER_CSS = """
+@media screen {
+html.dr-noheader .md-header { display: none !important; }
+}
+"""
+
 META = (
     '<meta name="apple-mobile-web-app-capable" content="yes">'
     '<meta name="mobile-web-app-capable" content="yes">'
 )
 
 
-def _mark(output: str) -> str:
+def _mark(output: str, cls: str = "dr-app") -> str:
     m = _HTML.search(output)
     if not m:
         return output
     tag = m.group(0)
     c = _CLASS.search(tag)
     if c:
-        new = tag[: c.start(1)] + (c.group(1) + " dr-app").strip() + tag[c.end(1):]
+        new = tag[: c.start(1)] + (c.group(1) + " " + cls).strip() + tag[c.end(1):]
     else:
-        new = tag[:-1] + ' class="dr-app">'
+        new = tag[:-1] + ' class="' + cls + '">'
     return output[: m.start()] + new + output[m.end():]
 
 
+def _head(output: str, block: str) -> str:
+    i = output.lower().rfind("</head>")
+    if i == -1:
+        return output
+    return output[:i] + block + output[i:]
+
+
+def _hides_header(meta) -> bool:
+    hide = meta.get("hide") or []
+    if isinstance(hide, str):
+        hide = [hide]
+    return any(str(h).strip().lower() == "header" for h in hide)
+
+
 def on_post_page(output, page, config):
-    want = (getattr(page, "meta", None) or {}).get("chrome")
+    meta = getattr(page, "meta", None) or {}
+    src = getattr(getattr(page, "file", None), "src_uri", "?")
+
+    if _hides_header(meta):
+        # Fail open, same as `app`: an unmarkable page keeps its header.
+        try:
+            output = _mark(output, "dr-noheader")
+            output = _head(output, '<style id="dr-chrome-noheader">' + NOHEADER_CSS + "</style>")
+        except Exception as e:  # pragma: no cover
+            state.note("notes", "hide: header failed on " + src + ": " + repr(e))
+
+    want = meta.get("chrome")
     if not want:
         return output
     want = str(want).strip().lower()
-    src = getattr(getattr(page, "file", None), "src_uri", "?")
     if want not in BUILT:
         why = "spec only (specs/chrome.md)" if want in SPEC_ONLY else "unknown value"
         state.note("notes", "chrome: " + want + " on " + src + " is " + why + "; full chrome kept")
@@ -118,10 +172,7 @@ def on_post_page(output, page, config):
     # Fail open: a page that cannot be marked keeps its chrome, never breaks.
     try:
         output = _mark(output)
-        block = META + '<style id="dr-chrome-app">' + CSS + "</style>"
-        i = output.lower().rfind("</head>")
-        if i != -1:
-            output = output[:i] + block + output[i:]
+        output = _head(output, META + '<style id="dr-chrome-app">' + CSS + "</style>")
     except Exception as e:  # pragma: no cover
         state.note("notes", "chrome: app failed on " + src + ": " + repr(e))
     return output
