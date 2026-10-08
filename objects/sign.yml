@@ -1,0 +1,20 @@
+# A sign. A page that prints AS the sheet it describes: a door sign, a content
+# disclosure, a restricted-access notice.
+#
+# It earns a type by page.yml's own rule -- it has a way of drawing (a framed,
+# one-sheet card; docrender/sign.py) and one field. Spec: specs/sign-layout.md.
+#
+#   ## kicker      any number, all one size, caps
+#   # message      the big words, caps
+#   paragraphs     body copy for disclosure-style signs
+#
+# ⚠️ Capitals come from CSS; write the words in sentence case.
+# ⚠️ Print furniture (letterhead, revised / posted-by, page numbers) is forced
+# off on paper. On screen the page keeps its header and print menu.
+
+type: sign
+label: Sign
+extends: _base
+optional:
+  - frame        # a slug in maw-themes vectors/frames.tsv. Absent = no frame.
+                 # An unknown slug draws frameless and is reported.
