@@ -51,14 +51,19 @@ theme: database
 
 edit_links: true
 
+# ⭐ THE SCREEN HEADER MARK + FAVICON (declared 2026-10-08). docrender/sitemark.py.
+# Same stem contract as `print: logo:` below and `@img:`. Absent means
+# Material's default icon. ⚠️ This is the SCREEN only; paper strips the header.
+logo: maw-prose-mark
+
 # ⭐ THE PRINTED LETTERHEAD (declared 2026-10-08). Same feature and same rules as
 # instances/uritp/site.yml: the value is the STEM of an image filename in the
 # CONTENT repo, resolved through the `@img:` index. ✅ VERIFIED PRESENT BEFORE
 # DECLARING: `maw-prose-mark.svg` at the root of mawizorek/maw-prose (Vertex
 # Vera, drawn to the `database` theme's mercedes palette). 🔴 A second file with
 # the stem `maw-prose-mark` anywhere in that tree disables the mark -- replace,
-# never add beside it. ⚠️ This is the PRINTED header only; the on-screen header
-# icon has no per-site key in the engine today.
+# never add beside it. ⚠️ This is the PRINTED header only; the screen header is
+# the `logo:` key above.
 print:
   logo: maw-prose-mark
 
