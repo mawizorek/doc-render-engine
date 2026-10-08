@@ -1,9 +1,9 @@
 # Sign layout — `type: sign`
 
-**State:** ⚠️ SCOPED, NOT GREENLIT · 2026-10-08 · 🚫 no build number, deliberately (see the index's numbering debt).
+**State:** ✅ DECISION-COMPLETE, NOT YET BUILT · scoped + ruled 2026-10-08 · 🚫 no build number, deliberately (see the index's numbering debt). ⏳ **Blocked on §7 step 1: the paper test.**
 **Decision history:** doc-render-engine (repo) — Decision Log, ClickUp.
 
-> Michael, 2026-10-08, handing over `CAST AND CREW ONLY.pdf`: *"what we're aiming to replace...."* Then: spec it first.
+> Michael, 2026-10-08, handing over `CAST AND CREW ONLY.pdf`: *"what we're aiming to replace...."* Then: spec it first. Then: **all seven recommendations accepted** (`sign_accept_all`).
 
 The goal is to retire hand-laid sign files (InDesign-style PDFs) in favour of **rendered pages that print as the sign.** First customer: `uritp-docs` `REPO_PAGES/sign-backstage-access.md`. Second, already live and different in shape: `REPO_PAGES/sign-content-disclosure.md` (body paragraphs, an italic show title).
 
@@ -22,7 +22,7 @@ Read with `pdfplumber` off the file Michael attached. US Letter, **612 × 792 pt
 | Yellow | 0 / 10.2 / 100 / 0 | `#FFE500` | 43, 43, 527 × 705 | ~8 pt |
 | White field | 0 / 0 / 0 / 0 | `#FFFFFF` | 51, 51, 510 × 690 | — |
 
-🔴 **The sRGB column is a NAIVE conversion** (no ICC profile). It is close, not authoritative. These are almost certainly the University of Rochester brand red / blue / dandelion; **confirm against the brand guide before any value becomes a token** (ruling R2).
+**Layout** (top edge of each element, pt from the top of the sheet): logo 86 (431 pt wide, centred) · kicker lines 274 and 326 · message lines 432 and 518.
 
 **Type**, by font name embedded in the PDF:
 
@@ -70,7 +70,7 @@ frame: uritp
 
 ## ⚙️ §3 — What `type: sign` draws
 
-1. **One sheet.** Letter portrait. The frame fills the printable area; content sits vertically centred inside it with the logo pinned to the top.
+1. **One sheet.** Letter portrait. The frame fills the printable area; content sits inside it at the §1 positions with the logo pinned to the top.
 2. **The frame**, as nested BORDERS, never backgrounds. ⚠️ Browsers drop background colour on print by default; borders print. Plus `print-color-adjust: exact` on the frame, the precedent `qr.css` and the `!!! danger` border already use.
 3. **Print furniture off**: letterhead, revised / posted-by, page numbers. A sign is not a document. 🔴 **The SCREEN header and the print menu stay** — the lesson of PR #277, where hiding the header from frontmatter took the print menu with it.
 4. **On screen, a sheet-shaped card**: the framed page at `aspect-ratio: 8.5 / 11`, forced light inside the card even in dark mode, because it is paper. What you see is the sign you print.
@@ -81,22 +81,35 @@ frame: uritp
 
 - ✅ **A real type: `objects/sign.yml`.** `page.yml`'s own rule: *"A type earns its existence by having fields or a way of drawing."* A sign has a way of drawing and one field (`frame:`). Not a `chrome:` value: `chrome:` is about the site's skin around a page, and a sign changes the page itself.
 - ✅ **CSS injected page-scoped**, on the `chrome.py` precedent (a `<style>` only the asking page pays for). 🔴 **Not a registered sheet:** `docrender/assets.py` is past the read ceiling and its split is standing debt in the index. A new registered asset would block on that split.
-- ⚠️ **The font.** `docrender/fonts.py` (stage 04c) fetches the families an INSTANCE's typography row names. A sign needs Source Serif 4 on sign pages only. Either a small page-scoped fetch beside the injected CSS, or a typography row. Ruling R4.
-- ⚠️ **The frame palette.** Recommend a tiny vocabulary file, `maw-themes` `vectors/frames.tsv` (`slug · band colours · band widths`), so `frame: uritp` is a NAME. 🚫 **Not new columns in `colors.tsv`**: those are theme-wide properties across ~60 rows, and a frame is not a property of a theme. Ruling R3.
+- ✅ **The font: page-scoped** (R4). `docrender/fonts.py` (stage 04c) fetches the families an INSTANCE's typography row names; Source Serif 4 is fetched beside the injected CSS on sign pages only, and no typography row changes.
+- ✅ **The frame palette: `maw-themes` `vectors/frames.tsv`** (R3) — `slug · band colours · band widths`, so `frame: uritp` is a NAME. 🚫 **Not new columns in `colors.tsv`**: those are theme-wide properties across ~60 rows, and a frame is not a property of a theme.
 
 <p><br/></p>
 
-## ⚖️ §5 — Rulings needed before code
+## ⚖️ §5 — Rulings (all seven recommendations accepted, Michael, 2026-10-08)
 
-| # | Question | Recommendation |
+| # | Question | ✅ Ruled |
 |---|---|---|
 | R1 | `type: sign` vs `chrome: sign` vs a class | **`type: sign`** (§4) |
-| R2 | Frame colours: brand guide values vs the sampled ones above | **Brand guide**, sampled values as the fallback |
-| R3 | Frame home: `frames.tsv` in maw-themes vs inline in `sign.yml` | **`frames.tsv`**: one row today, a name tomorrow |
-| R4 | Source Serif 4, loaded only on sign pages? | **Yes, page-scoped** |
-| R5 | Print furniture FORCED off on signs, or default-off with the print panel able to turn it back on | **Forced off.** Default-off-with-override needs print-control.md Part A (per-page defaults), which is not built |
-| R6 | Letter only, or A4 as well | **Letter only.** Every sign in hand is Letter, and A4 doubles the frame geometry |
-| R7 | Screen view: framed sheet card vs plain centred page | **Sheet card** (§3.4) |
+| R2 | Frame colours: brand guide vs the sampled ones | **Brand guide first, sampled as the fallback** — resolved below |
+| R3 | Frame home | **`maw-themes` `vectors/frames.tsv`** |
+| R4 | Source Serif 4 | **Page-scoped, sign pages only** |
+| R5 | Print furniture on signs | **Forced off.** Default-off-with-override would need print-control.md Part A (not built) |
+| R6 | Paper sizes | **Letter only** |
+| R7 | Screen view | **Framed sheet card** (§3.4) |
+
+### 🔴 R2, resolved — and the source PDF turned out to be on the OLD palette
+
+Checked 2026-10-08 against the University of Rochester Brand Center ([color system](https://brand.rochester.edu/visual-identity/color-system/)) and the archived 2010 graphic standards.
+
+- **The source PDF's navy (CMYK 100/57/0/38) and yellow (0/10/100/0) are EXACTLY the legacy 2010 palette:** PMS 541 (`#00467F`) and PMS 109 (`#FFDD00`). The sign was made to a standard UR has since replaced.
+- **The current brand (refreshed Oct 2025):** **URochester Navy `#001E5F`** (PMS 2748 C) and **Dandelion Yellow `#FFD82B`** (PMS Yellow C). Under R2 these WIN.
+- 🔴 **The red is NOT a UR brand colour** — neither palette carries it. It is the URITP logo's "theatre" red. So the fallback applies: **sampled `#DA0206`**, owned by URITP, not UR.
+- ⚠️ Consequence, stated so it is not a surprise on paper: the rendered sign's navy is **darker** than the old printed one. That is the brand moving, not the engine drifting.
+
+```
+frames.tsv row (proposed):  uritp · #DA0206 13pt · #001E5F 13pt · #FFD82B 8pt
+```
 
 <p><br/></p>
 
@@ -107,15 +120,15 @@ frame: uritp
 - ⚠️ **`print-flow.css`'s `display: revert !important`** has beaten plain display rules in this family twice. Any hide rule here carries `!important` from the start.
 - ⚠️ **Overflow cannot be detected at build time.** At 72 pt on a ~7 in measure a line holds roughly 12-13 capitals, which "CAST AND / CREW ONLY" fits and a longer message will not. Honest limit: the print panel's text-size dial already scales a sign down. 🚫 No auto-fit script in v1.
 - ⚠️ **The content-disclosure sign** has an italic `h2` show title and two paragraphs. It must fit the same frame. It is the second test page, not an afterthought.
-- ⚠️ **The `[…]{.align-center}` work from today** (align.css) becomes unnecessary on sign pages. It stays correct everywhere else; nothing is removed.
+- ⚠️ **The `{.align-center}` work from today** (align.css) becomes unnecessary on sign pages. It stays correct everywhere else; nothing is removed.
 
 <p><br/></p>
 
 ## ✅ §7 — Pre-build proof, cheapest first
 
-1. 🔴 **A hand-built HTML sheet, before any engine code.** Nested borders, Source Serif 4, the two type sizes. Print it from Chrome AND Safari on Letter. Pass = one sheet, frame intact, colours present, no browser furniture. This answers §6's first risk for the price of one file.
-2. Confirm R2's colours against the brand guide.
-3. Then `sign.yml` + the injected style + the font, and convert `sign-backstage-access` as the first page.
+1. ⏳ **A hand-built HTML sheet, before any engine code.** ✅ BUILT 2026-10-08 as a standalone file (logo extracted from the source PDF, R2 colours, Source Serif 4 from Google Fonts, `@page { margin: 0 }`, fixed 8.5 × 11 in sheet). Verified in WeasyPrint: ONE sheet, every text line at the source's exact pt position (274 / 326 / 432 / 518). 🔴 **WeasyPrint honours `@page`, which is exactly the thing browsers may not — so that result proves the geometry, NOT the risk.** Owed: Michael prints it from Chrome AND Safari on Letter. Pass = one sheet, frame intact, colours present, no browser furniture; record which margin setting passed.
+2. ✅ R2 colours confirmed against the brand guide (§5).
+3. Then `sign.yml` + `frames.tsv` + the injected style + the font, and convert `sign-backstage-access` as the first page.
 
 <p><br/></p>
 
