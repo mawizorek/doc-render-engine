@@ -255,14 +255,14 @@ _TASKLIST_ASSETS = ("tasklist.css",)
 #: mode rather than inventing a plain-text table format.
 #:
 #: Position FREE (D8): every selector is .dr-printctl* / .dr-compose* /
-#: .dr-copytext*. The runtime <style> goes last in <head>. Script order is free:
-#: printctl.js looks the composer up at click time, and copytext.js finds the
-#: preview bar by OBSERVING for it rather than at load -- which is also why
-#: copytext needs no edit to printcompose.js, a file already at the read ceiling.
+#: .dr-copytext*. The runtime <style> goes last in <head>. Script order is free
+#: but one belt: printdial.js + printfurn.js (split from printctl.js 10-07) sit
+#: BEFORE it, though it reads both at DOMContentLoaded and guards every call.
+#: The composer is found at click time; copytext.js OBSERVES for its bar.
 #: ⚠️ UNCONDITIONAL (D3): every page can be printed.
 _PRINTCTL_ASSETS = (
-    "printctl.css", "printctl.js", "printcompose.css", "printcompose.js",
-    "copytext.css", "copytext.js",
+    "printctl.css", "printdial.js", "printfurn.js", "printctl.js",
+    "printcompose.css", "printcompose.js", "copytext.css", "copytext.js",
 )
 
 
