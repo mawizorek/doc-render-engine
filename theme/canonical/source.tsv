@@ -81,6 +81,17 @@
 # with different content, the transposition that made the colour table clueless.
 # That is the only history of this design system's decisions the engine holds.
 #
+# 2026-10-08  NEW VECTOR frames.tsv, f0b2547, 87 B, 1 row. Sign frames for
+#             `type: sign` (specs/sign-layout.md R3, docrender/sign.py), born
+#             from Michael's CAST AND CREW ONLY sign (maw-themes PR #17). The
+#             one row is three nested bands in sheet points: outer red 13 (the
+#             URITP logo red, sampled from the source PDF -- NOT a UR brand
+#             colour), middle URochester Navy 13, inner Dandelion Yellow 8 --
+#             both from the 2025 UR brand guide, which REPLACED the 2010
+#             PMS 541 / 109 the source sign was printed in. Vendored and
+#             upstream are the same blob, verified by content address.
+#             ⚠️ Not a theme property: no join points at it. A page names a row
+#             directly with `frame:`, so vectors.known() never reads this file.
 # 2026-09-28  DEPARTMENT THEMES, AND ALL FIVE FALLBACKS CAUGHT UP IN ONE PASS.
 #             colors e3819e3 -> 48a0982, 8,433 -> 11,304 B, 41 -> 55 rows.
 #             themes.json 7711cab -> 46d4c2a, 12 -> 21 joins. typography
@@ -217,3 +228,4 @@ canonical/themes.json	mawizorek/maw-themes	registry/_themes.json	46d4c2a393f9a44
 canonical/typography.tsv	mawizorek/maw-themes	vectors/typography.tsv	ef003991bc720f5baea54e7ca4c5abc8cc68d02a	1306	2026-09-28	7 SHARED entities on their own slugs. Joined by pointer -- editing one moves every theme pointing at it. WARNING the three FONT columns do not render: nothing in this engine fetches a webfont. See assets/type.css.
 canonical/forms.tsv	mawizorek/maw-themes	vectors/forms.tsv	5b7864500a1b0717b8f039643f0523d269c6939d	1543	2026-09-28	6 SHARED entities. Radii, border weight, gradient angle, shadows, elevation, motion.
 canonical/spacing.tsv	mawizorek/maw-themes	vectors/spacing.tsv	7345616c726c28c8dd343c15cdc0b998c318f2e7	291	2026-09-28	7 SHARED entities. Touch target, cell and card padding, three gaps.
+canonical/frames.tsv	mawizorek/maw-themes	vectors/frames.tsv	f0b25479f546c4a91d2766d335d93527e8198c93	87	2026-10-08	Sign frames, read by docrender/sign.py via vectors.entity(). Named directly by a page's `frame:`; no join points here. Three bands per row, widths in SHEET points.
