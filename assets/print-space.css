@@ -36,9 +36,7 @@
  * PLACEMENT WORTH ARGUING. `text-align: justify` does not change a letterform; it
  * distributes a line's slack into the WORD SPACES. That is a spacing decision on
  * the HORIZONTAL axis, and every other rule in this file is a spacing decision on
- * the vertical one. One subject, two axes. ~~`hyphens: auto` rides with it because
- * it is the mechanism that keeps that distribution from producing rivers.~~
- * 🪦 `hyphens: auto` RETIRED 2026-10-08 -- see §9 for why justify stays alone.
+ * the vertical one. One subject, two axes. (`hyphens: auto` retired 2026-10-08, §9.)
  *
  * =========================================================================
  * 🔴 THE SECTION NUMBERS TRAVELLED WITH THE SECTIONS. DO NOT RENUMBER THEM.
@@ -213,34 +211,19 @@
    * above it stretched -- the "rivers" of white that make bad justified type worse
    * to read than ragged type. **Ship both or neither.**~~
    *
-   * =======================================================================
-   * 🪦 `hyphens: auto` RETIRED 2026-10-08. JUSTIFY STAYS, AUTO-HYPHENATION GOES.
-   * =======================================================================
-   * > Michael: *"i also don't really liek seeing hyphenatied words at print"*
+   * 🪦 RETIRED 2026-10-08 (Michael: *"i also don't really liek seeing hyphenatied
+   * words at print"*). "Both or neither" is a NARROW-measure rule; this sheet runs
+   * ~100 chars/line (honest limit, below), enough word spaces to absorb a pushed
+   * word. DELETED, not set to `manual`: that is the initial value, so writing it
+   * is a dead control; `&shy;` still works. ⚠️ Unmeasured on paper, the first
+   * print verifies. Rivers → `text-wrap: pretty`, not `auto` back.
    *
-   * ⭐ "BOTH OR NEITHER" WAS A NARROW-MEASURE ARGUMENT AND THIS SHEET HAS A WIDE
-   * ONE. The honest limit at the foot of this section puts the line at ~100
-   * characters; a justified line that long has ~15 word spaces to absorb one pushed
-   * word, so the stretch per space stays small and rivers stay mild. The 45-75
-   * character book measure that rule assumed is the one this group deliberately
-   * refused. The struck paragraph is kept because it is right ON ITS MEASURE.
-   *
-   * ✅ DELETED, NOT SET TO `manual`. `manual` is the CSS initial value and nothing
-   * else in the print group sets `hyphens`, so writing it would be a DEAD CONTROL
-   * -- the rendering it produces is the rendering we get without it. An author who
-   * wants one specific break still has `&shy;`, which the initial value honours.
-   *
-   * 🚩 IF RIVERS DO APPEAR, the fix is `text-wrap: pretty` or a measure change, not
-   * quietly restoring `auto` -- that is Michael's call on a printed sheet. ⚠️ NOT
-   * YET MEASURED ON PAPER: this ships on reasoning, and the first print after the
-   * build is the verification.
-   *
-   * ~~⚠️ AND IT DEPENDS ON A `lang` ATTRIBUTE THIS REPO DOES NOT DECLARE.~~ MOOT
-   * since the retirement above; kept because it bites again if `auto` returns. A
-   * browser cannot hyphenate a language nobody named; `hyphens: auto` on an
-   * unlabelled document silently does nothing at all. MkDocs writes `<html lang>`
-   * from `theme.language`, which defaults to `en` -- so it worked BY INHERITANCE
-   * rather than by anything stated here.
+   * ⚠️ (MOOT while `auto` is retired.) AND IT DEPENDS ON A `lang` ATTRIBUTE THIS
+   * REPO DOES NOT DECLARE. A browser
+   * cannot hyphenate a language nobody named; `hyphens: auto` on an unlabelled
+   * document silently does nothing at all. MkDocs writes `<html lang>` from
+   * `theme.language`, which defaults to `en` -- so this works today BY
+   * INHERITANCE rather than by anything stated here.
    *
    * 🔴 THE `:not()` IS A BUG FIX, AND THE PROSE BELOW IT WAS ALREADY LYING.
    * `buildstamp.py` emits the corner mark as a `<p class="buildstamp">`, and
@@ -285,9 +268,7 @@
    *
    * ✅ AND IT TAKES `hyphens: auto` OFF THE TAG WITH IT, WHICH IS A BONUS RATHER
    * THAN A SIDE EFFECT: an email address is not prose and must never be broken
-   * across lines by a hyphen a reader might type. (2026-10-08: now true of every
-   * paragraph, since `auto` is gone; the exclusion still earns its place for
-   * `text-align`.)
+   * across lines by a hyphen a reader might type.
    *
    * ✅ MEASURED BEFORE AND AFTER, in the engine that renders paper. Before: both
    * lines flush left at x=628.0, the name ending 15.4px short of the measure.
