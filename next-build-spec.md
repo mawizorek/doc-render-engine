@@ -25,7 +25,8 @@
 | [`qr-codes.md`](specs/qr-codes.md) | BUILD 6 | 2026-08-21 | ⚠️ SCOPED, NOT GREENLIT |
 | [`repo-onboarding.md`](specs/repo-onboarding.md) | 🚫 **none, deliberately** | — | ⚠️ not read this pass |
 | [`scoped-theme.md`](specs/scoped-theme.md) | BUILD 3 | 2026-08-07 | ✅ report page SHIPPED 08-07 · ⭐ **page-level `theme:` BUILT 2026-09-28** in [`docrender/pagetheme.py`](docrender/pagetheme.py), by a DIFFERENT mechanism than the spec's §4 (read the module docstring, not §4, for how it works; §4 stays the price list for a shared-sheet version) · folder inheritance NOT built |
-| [`sign-layout.md`](specs/sign-layout.md) | 🚫 **none, deliberately** | 2026-10-08 | ✅ BUILT 2026-10-08 in [`docrender/sign.py`](docrender/sign.py) · live on `uritp-docs` `sign-backstage-access` · 2025 UR palette · ⏳ NOT paper-verified (Chrome + Safari owed, §7.1) |
+| [`sign-editor.md`](specs/sign-editor.md) | 🚫 **none, deliberately** | 2026-10-09 | ⚠️ SCOPED, NOT GREENLIT · in-page layout sandbox on `type: sign` (parent layer = frame + logo; positioned text blocks in frontmatter) · 8 rulings + a prototype paper test before code |
+| [`sign-layout.md`](specs/sign-layout.md) | 🚫 **none, deliberately** | 2026-10-08 | ✅ BUILT 2026-10-08 in [`docrender/sign.py`](docrender/sign.py) · 2025 UR palette · 🔴 first page deleted by Michael 10-08 (layout too rigid); the type stays as `sign-editor.md`'s parent layer · ⏳ NOT paper-verified |
 | [`tally.md`](specs/tally.md) | 🚫 **none, deliberately** | 2026-09-28 | ✅ BUILT 2026-09-28 · one live example (`uritp-docs` `app/app-box-office.md`) |
 | [`view-embed.md`](specs/view-embed.md) | BUILD 7 ⚠️ | 2026-08-28 | ✅ SHIPPED 2026-08-30 |
 | [`view-snapshot.md`](specs/view-snapshot.md) | 🚫 **none, deliberately** | 2026-10-06 | ⚠️ SCOPED, NOT GREENLIT · two spikes + four Michael rulings before code · ships `clickuppull.py`, which the report-renderer build reuses |
