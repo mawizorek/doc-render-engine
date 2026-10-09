@@ -1,9 +1,9 @@
 # Sign editor — an in-page layout sandbox for `type: sign`
 
-**State:** ⚠️ SCOPED, NOT GREENLIT · 2026-10-09 · 🚫 no build number, deliberately (index numbering debt). **Eight rulings below before code.**
+**State:** ✅ DECISION-COMPLETE, NOT YET BUILT · R1–R8 accepted 2026-10-09 (`sign_editor_accept_proto`) · ⏳ **§7.1 prototype BUILT, awaiting Michael's layout + paper test** · 🚫 no build number, deliberately (index numbering debt).
 **Builds on:** [`sign-layout.md`](sign-layout.md) (BUILT 2026-10-08, `docrender/sign.py`). **Decision history:** doc-render-engine (repo) — Decision Log, ClickUp.
 
-> Michael, 2026-10-08, after the first rendered backstage sign: *"That looked like shit, so I deleted it."* Then: embed DesignCraft's text editor *"on top of a sign layout sandbox… define a border and the logo while still having control over text placement, size or content."* Then: *"can it be part of a page defined as type sign? … defining a parent page."* Then: `sign_editor_spec`.
+> Michael, 2026-10-08, after the first rendered backstage sign: *"That looked like shit, so I deleted it."* Then: embed DesignCraft's text editor *"on top of a sign layout sandbox… define a border and the logo while still having control over text placement, size or content."* Then: *"can it be part of a page defined as type sign? … defining a parent page."* Then: `sign_editor_spec`. 2026-10-09: all eight rulings accepted.
 
 <p><br/></p>
 
@@ -56,6 +56,7 @@ summary: Backstage door sign, cast and crew only.
 - **Parent layer = `frame:` + `logo:`**, drawn by the engine, locked by default. Unlockable in the editor to move/resize the logo; never hand-drawn.
 - **No `blocks:` → v1 behaviour** (headings flow). Nothing already published changes; `sign-content-disclosure` keeps working.
 - `case: upper` is CSS, so the stored text stays sentence case (v1 rule, kept).
+- ⚠️ The prototype's Copy layout emits the authoritative shape (adds `x` on `logo:`, `tracking`, `font`, `ink`, and layers top-of-stack first). Where it differs from the sketch above, **the prototype output wins** once Michael signs off a layout.
 
 <p><br/></p>
 
@@ -83,9 +84,9 @@ Opened by **Edit sign** on the page (R2). Screen only; never prints.
 
 <p><br/></p>
 
-## ⚖️ §5 — Rulings needed (recommendation first)
+## ⚖️ §5 — Rulings (all eight accepted, Michael, 2026-10-09)
 
-| # | Question | ⭐ Recommend | Why |
+| # | Question | ✅ Ruled | Why |
 |---|---|---|---|
 | R1 | Embed DesignCraft vs own editor | **Own editor, DesignCraft's model** | §1: not embeddable, no control channel, raster output |
 | R2 | Who sees **Edit sign** | **Only with `?edit` in the URL** | Public site; a reader at the door should see a sign, not a toolbar. Not security, just clutter |
@@ -111,8 +112,8 @@ Opened by **Edit sign** on the page (R2). Screen only; never prints.
 
 ## ✅ §7 — Proof, cheapest first
 
-1. **A standalone prototype HTML file** (no engine): frame + logo + three draggable blocks + layers panel + Copy layout + print. Michael lays out the backstage sign himself and prints it. Pass = he would hang it.
-2. Rulings R1–R8.
+1. ✅ **BUILT 2026-10-09: the Sign Lab prototype** (ClickUp artifact "Sign Lab", no engine): locked parent (frame at the source PDF's measured bands, 2025 UR palette, logo), draggable / resizable text blocks with snapping, layers panel (rename, drag reorder, hide, lock, non-printing), inspector, undo / redo, browser draft autosave, Copy layout, Letter print of the sheet only. Verified on screen in a headless browser (select, snapped drag, off-field warning, YAML export). ⏳ **Owed: Michael lays out the backstage sign himself and prints it. Pass = he would hang it.** ⚠️ Printing from inside ClickUp's artifact frame is itself untested; if it misbehaves, that is the frame, and the engine page will not have it.
+2. ✅ Rulings R1–R8.
 3. Engine: blocks renderer in `sign.py`, `signedit.js`, `sheets.tsv`; rebuild `sign-backstage-access` from the YAML Michael copied in step 1.
 
 <p><br/></p>
