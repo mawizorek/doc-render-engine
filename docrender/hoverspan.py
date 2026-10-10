@@ -17,10 +17,14 @@ only copy is this one.
 The link form matches ABSOLUTE `http(s)://` and `mailto:` targets only. That is
 the whole @-link refusal, and it is structural rather than a check: links.py runs
 at 03, BEFORE this, and has already turned `[x](@id)` into a RELATIVE href, so a
-page link can never match here. It stays plain markdown, and the leftover
-`{hover=...}` is reported with a pointer to `gloss:`. Peer links resolve to
-absolute URLs but always carry links.py's own brace first, so they cannot match
-either. Images (`![...]`) are excluded.
+page link can never match here. Peer links resolve to absolute URLs but always
+carry links.py's own brace first, so they cannot match either. Images (`![...]`)
+are excluded.
+
+A REFUSED BRACE IS DROPPED, not left. On a page link, peer link or image the
+`{hover=...}` is reported with a pointer to `gloss:` and REMOVED, so the result is
+a plain link. Left in place, attr_list applies it as a junk `hover="..."` attribute
+on the `<a>` (seen live 2026-10-10, gh-pages eff2ae2).
 
 Emitted as a finished `<a>`, not an attr_list brace: attr_list cannot carry a
 quote inside a value, and nothing in this engine decorates a plain external link
@@ -75,13 +79,15 @@ _HOVER_LINK = re.compile(
 
 #: Near-misses worth a report line rather than a silent literal brace.
 _NEAR = re.compile(r"(?<!\\)\[[^\]\n]+\]\{[ \t]*\.?hover\b[^}\n]*\}")
+#: A well-formed hover brace, quoted string and all (so a `}` inside it is safe).
+_BRACE = r"(?P<brace>\{[ \t]*hover[ \t]*=[ \t]*(?:" + _STR + r")(?:[ \t]+print)?[ \t]*\})"
 #: A hover left on a link this module did not take: a page link (relative after
-#: links.py), a peer link (links.py's `{ .docrender-xref }` sits in between), an
-#: `@url:` that resolved with a brace. Escaped links are the author's business.
+#: links.py), a peer link (links.py's `{ .docrender-xref }` sits in between, and is
+#: kept), an `@url:` that resolved with a brace. Escaped links are the author's business.
 _ON_LINK = re.compile(
-    r"(?<![\\!])\[[^\]\n]*\]\([^)\n]*\)(?:\{[^}\n]*\})?\{[ \t]*hover[ \t]*="
+    r"(?P<keep>(?<![\\!])\[[^\]\n]*\]\([^)\n]*\)(?:\{[^}\n]*\})?)" + _BRACE
 )
-_ON_IMAGE = re.compile(r"!\[[^\]\n]*\]\([^)\n]*\)(?:\{[^}\n]*\})?\{[ \t]*hover[ \t]*=")
+_ON_IMAGE = re.compile(r"(?P<keep>!\[[^\]\n]*\]\([^)\n]*\)(?:\{[^}\n]*\})?)" + _BRACE)
 
 
 def _attr(value: str) -> str:
@@ -157,17 +163,17 @@ def convert(markdown: str, src: str = "?", headings_ok: bool = False) -> str:
     sub_outside_code(_NEAR, near, out)
 
     def onlink(m):
-        state.note("notes", src + ": hover= ignored on a page or peer link (hover-inline R2). "
+        state.note("notes", src + ": hover= dropped from a page or peer link (hover-inline R2). "
                    + "Put gloss: on the destination page instead; hover= works on plain text "
                    + "and on https:// / mailto: links.")
-        return m.group(0)
-    sub_outside_code(_ON_LINK, onlink, out)
+        return m.group("keep")
+    out = sub_outside_code(_ON_LINK, onlink, out)
 
     def onimage(m):
-        state.note("notes", src + ": hover= is not supported on images; use the figure "
-                   + "caption, or put hover on the words beside it.")
-        return m.group(0)
-    sub_outside_code(_ON_IMAGE, onimage, out)
+        state.note("notes", src + ": hover= dropped from an image (not supported); use the "
+                   + "figure caption, or put hover on the words beside it.")
+        return m.group("keep")
+    out = sub_outside_code(_ON_IMAGE, onimage, out)
     return out
 
 
