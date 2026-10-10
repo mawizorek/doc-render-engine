@@ -8,10 +8,10 @@ argument lives there; this file states the contract.
     Keys	[Theatre Administrator](@role:theatre-administrator)		sign out at the desk
 
 Everything a page body can say inline, a cell can say: confidence markers, `@` page
-and peer references, `@term:`, `@role:` and `@data:` references, `**bold**`,
-`*emphasis*` and `code`. What renders in prose renders in a cell, and it renders
-IDENTICALLY, because this module hands the cell to the same two hooks the page body
-goes through.
+and peer references, `@term:`, `@role:` and `@data:` references, inline hover text
+(`[Text]{hover="..."}`), `**bold**`, `*emphasis*` and `code`. What renders in prose
+renders in a cell, and it renders IDENTICALLY, because this module hands the cell to
+the same hooks the page body goes through.
 
 
 WHY THIS EXISTS AT ALL -- IT WAS ALREADY HAPPENING, BADLY
@@ -53,6 +53,11 @@ so they are reusable as-is on any fragment. That matters more than tidiness:
     unconfirmed sitewide" stay answerable without this module knowing they exist.
 
 A second copy of any of that is the defect this whole engine keeps writing down.
+
+`hoverspan.convert` joins them (2026-10-09) and runs FIRST: its quotes must still be
+quotes, and it emits a finished `<span>` that `_inline` parks as a tag. So a hover
+never passes through `_classes` / `_ATTR_ALLOW` below, which is the whole reason it
+works in a table where the first role gloss did not.
 
 
 WHAT IT DOES OWN: INLINE MARKDOWN, AND ONLY THE INLINE PART
@@ -127,7 +132,7 @@ from __future__ import annotations
 import html
 import re
 
-from . import links, markers
+from . import hoverspan, links, markers
 
 #: `[text](url)` with an optional attr_list block, which is what links.py emits for a
 #: cross-site or @term: reference. The attrs are carried through as real classes.
@@ -253,6 +258,11 @@ def render(cell: str, page, config=None, files=None) -> str:
     text = str(cell)
     if not text.strip():
         return ""
+    if "hover" in text:
+        # FIRST: the quotes in {hover="..."} must still be quotes. A cell is never a
+        # heading, so the heading guard is off. specs/hover-inline.md.
+        src = getattr(getattr(page, "file", None), "src_uri", "?")
+        text = hoverspan.convert(text, src, headings_ok=True)
     if "@" in text or "](" in text:
         text = links.on_page_markdown(text, page, config, files)
     if "{" in text:
@@ -269,9 +279,15 @@ def plain(cell: str) -> str:
 
     THE BRACE STRIP IS WHAT KEEPS THAT TRUE FOR ATTRIBUTES TOO, and it needed no
     change for BUILD 9: the whole block goes, so a gloss attribute never reaches a
-    comparison, exactly as a class never did.
+    comparison, exactly as a class always was.
+
+    HOVER SPANS GO FIRST, AND WHOLE. The generic brace strip stops at the first `}`,
+    and a hover STRING may legally contain one, so `[12]{hover="a } b"}` would leave
+    ` b"}` behind. Reducing the span to its text first means `[12]{hover="..."}`
+    sorts and sums as 12, with no brackets and no tail.
     """
     text = str(cell)
+    text = hoverspan._HOVER.sub(lambda m: m.group("text"), text)
     # Marker and attr blocks go entirely; a link or emphasis keeps its LABEL.
     text = re.sub(r"\{[^}\n]*\}", "", text)
     text = _LINK.sub(lambda m: m.group("text"), text)
