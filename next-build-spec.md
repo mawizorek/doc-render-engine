@@ -19,7 +19,7 @@
 | [`dialect-clean.md`](specs/dialect-clean.md) | BUILD 1 | 2026-08-04 | ⚠️ SCOPED, NOT GREENLIT |
 | [`draft-watermark.md`](specs/draft-watermark.md) | BUILD 4 ⚠️ | 2026-08-16 | ⚠️ SCOPED, NOT GREENLIT |
 | [`flow-context.md`](specs/flow-context.md) + [`program-dl`](docrender/program-dl.md) | 🚫 **none, deliberately** | 2026-09-28 | ✅ BUILT 2026-09-28 · faces (`chain: "@id"`), one strip per page by `?via=`, footer auto-hide · `promote.py` deleted, `flow.css` split to embeds only |
-| [`hover-inline.md`](specs/hover-inline.md) | 🚫 **none, deliberately** | 2026-10-09 | ✅ DECISION-COMPLETE, NOT YET BUILT · R1–R7 accepted 2026-10-09 · `[Text]{hover="…"}` on plain text + external links, reusing the gloss popup; refused on `@`-links |
+| [`hover-inline.md`](specs/hover-inline.md) | 🚫 **none, deliberately** | 2026-10-09 | ✅ BUILT 2026-10-10 in [`docrender/hoverspan.py`](docrender/hoverspan.py) · part 1 text spans + TSV cells (#287), part 2 external links + `@`/image refusals + R7 `title=` report (#288) · test page `uritp-docs` `REPO_PAGES/test-hover-inline.md` (unlisted) · ⏳ phone tap + part-2 print unverified |
 | [`hover-text.md`](specs/hover-text.md) + [`-dl`](specs/hover-text-dl.md) | BUILD 9 | 2026-08-30 | ✅ DECISION-COMPLETE, NOT YET BUILT · ⚠️ **likely stale:** `assets/gloss.css` + `linklabels.py` ship the popup at HEAD (noted 2026-10-09, unverified) |
 | [`print-control.md`](specs/print-control.md) + [`-dl`](specs/print-control-dl.md) | BUILD 8 | 2026-08-30 | ⭐ B (reader print menu) BUILT 2026-09-28 · A (per-page defaults) not built |
 | [`print-identity.md`](specs/print-identity.md) | BUILD 5 ⚠️ | 2026-08-19 | ⭐ PARTLY SHIPPED |
