@@ -301,8 +301,16 @@
    * that no longer exists is a declaration that can never be observed. ⚑ Same
    * family as the chevron rule that could not match and the `.buildstamp` revival
    * that could never win: *a rule is only as real as the state it is allowed to
-   * observe.* Deleted rather than left as a harmless spare. */
+   * observe.* Deleted rather than left as a harmless spare.
+   *
+   * 🔴 `thead th:first-child` IS NAMED ON ITS OWN, AND IT WAS MISSING UNTIL
+   * 2026-10-10. data.css pins the corner cell with its own rule at (0,2,2); the
+   * plain `thead th` reset here is (0,1,2), so the corner LOST and stayed sticky.
+   * On paper that printed the ITEM header on top of the table's LAST row (Michael's
+   * print preview: ITEM over "Glow, 1"") and left its header slot blank. ⚑ A reset
+   * has to name every selector the sticky rule was written with, not the family. */
   .dr-data__table thead th,
+  .dr-data__table thead th:first-child,
   .dr-data__table tbody td:first-child,
   .dr-data__caption,
   .dr-data__section-label {
