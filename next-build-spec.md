@@ -10,7 +10,7 @@
 
 | File in [`specs/`](specs/) | claims | Scoped | State |
 |---|---|---|---|
-| [`authoring-lint.md`](specs/authoring-lint.md) | 🚫 **none, deliberately** | 2026-10-09 | ⚠️ SCOPED, NOT GREENLIT · symptom scan on rendered HTML + 3 source checks → new `authoring` report bucket · born from the `uritp-docs` #205/#206 sweep · 4 rulings before code |
+| [`authoring-lint.md`](specs/authoring-lint.md) | 🚫 **none, deliberately** | 2026-10-09 | ✅ DECISION-COMPLETE, NOT YET BUILT · rulings 1–4 accepted 2026-10-09 (DL J32) · symptom scan on rendered HTML + 3 source checks → `authoring` (finding) + `authoring_notes` (inventory) buckets · born from the `uritp-docs` #205/#206 sweep |
 | [`build-report.md`](specs/build-report.md) | BUILD 2 | 2026-08-06 | 🔴 **PARTLY SHIPPED** — Pieces A and C are live; B unverified |
 | [`cards.md`](specs/cards.md) | 🚫 **none, deliberately** | 2026-09-28 | ✅ BUILT 2026-09-28 · live on the `uritp-docs` `app/` hubs |
 | [`chrome.md`](specs/chrome.md) | BUILD 5 ⚠️ | 2026-08-18 | ⚠️ SCOPED, NOT GREENLIT |
