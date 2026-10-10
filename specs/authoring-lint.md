@@ -1,6 +1,6 @@
 # Authoring lint: catch prose that won't render the way it was written
 
-⚠️ **SCOPED, NOT GREENLIT.** 2026-10-09. Indexed from [`next-build-spec.md`](../next-build-spec.md). No build number, per that file's standing recommendation.
+✅ **DECISION-COMPLETE, NOT YET BUILT.** Scoped 2026-10-09 (PR #285). All four rulings were accepted the same night, as recommended (Decision Log **J32**). Indexed from [`next-build-spec.md`](../next-build-spec.md). No build number, per that file's standing recommendation.
 
 > Michael, 2026-10-09, after a checkbox list inside a callout printed as literal `- [ ]`: *"check for other prose to css faults in the docs."* Then, once the sweep and the fixes landed: *"how do we keep this from piling up again?"*
 
@@ -52,7 +52,7 @@ Scan text nodes **outside `<pre>`, `<code>` and the report's own block**:
 | `ghost-tag` | an element whose tag name is **not a real HTML element** and not one this engine emits | `<true>`, `<defintinely ...>`, `<Base Production>`: swallowed text |
 | `code-list` | an indented-code `<pre><code>` (no fence class) whose first line starts `- ` or `* ` | a list that became a code box |
 | `conflict` | a line that is exactly `=======`, or starts `<<<<<<< ` / `>>>>>>> ` | merge markers |
-| `run-on` | `<p>` or `<li>` text containing a newline followed by `[a-z]\. ` or `[ivx]+\. ` | lettered sub-steps folded into one paragraph |
+| `run-on` | `<p>` or `<li>` text containing a newline followed by `[a-z]\. ` or `[ivx]+\. ` | lettered sub-steps folded into one paragraph. **Inventory, not a finding (ruling 3)** |
 
 ⭐ **Why this beats a source lint:** `dead-quote` fires on the 4-space version and stays silent on the 3-space version *because that is what the parser did*. Both of tonight's wrong fixes would have been caught by the next build, rather than by luck.
 
@@ -74,11 +74,16 @@ Three faults leave no fingerprint, because the parser "succeeds" at the wrong th
 
 ## Where it reports
 
-A new bucket `authoring` in the build report: **a finding, not inventory**. Every entry is a page rendering differently from how it was written.
+**Two buckets**, because rulings 1 and 3 put two kinds of entry in inventory:
+
+| Bucket | Kind | Holds |
+|---|---|---|
+| `authoring` | **finding** | every check except `run-on`. A page rendering differently from how it was written |
+| `authoring_notes` | **inventory** | `run-on` hits, plus one line per page that opted out (`lint: off` or a named list), so turning a check off is always visible and never silent |
 
 Entry shape: `<src path>:<line or ~> · <check id> · <the offending text, ≤80 chars>`. Layer 1 has no source line, so it reports the nearest heading instead: `cards.md § Shape`.
 
-⚠️ **TWO EDITS, SAME COMMIT, PER `report.py`'s OWN WARNING.** Declare the bucket in `state.reset()` and label it in `report._LABELS`. A bucket declared in one and not the other is collected all build and printed nowhere. Place it **after `dead_links`**, because a glued list often explains a dead link below it (cause before symptom).
+⚠️ **THREE EDITS, SAME COMMIT, PER `report.py`'s OWN WARNING.** Declare both buckets in `state.reset()`, label both in `report._LABELS`, and add `authoring_notes` to `report._INVENTORY`. A bucket declared in one place and not the other is collected all build and printed nowhere. An inventory bucket left out of `_INVENTORY` makes every build look unclean forever, which is the `nav_default` lesson. Place `authoring` **after `dead_links`**, because a glued list often explains a dead link below it (cause before symptom). `authoring_notes` goes beside the other inventory buckets.
 
 🚫 **Never fails the build.** Warn-never-die, same as every other content finding. `strict: false` stays.
 
@@ -90,10 +95,10 @@ Entry shape: `<src path>:<line or ~> · <check id> · <the offending text, ≤80
 |---|---|
 | **NEW** `docrender/lint.py` | both layers, the allow-list, the opt-out reader |
 | **NEW** `hooks/0Xx_lint.py` | shim. Its slot is free (see Layer 2), but it must import **both** `on_page_content` and `on_page_markdown` — the `hooks/07` cautionary tale |
-| `docrender/state.py` | declare `authoring` |
-| `docrender/report.py` | label `authoring` |
+| `docrender/state.py` | declare `authoring` + `authoring_notes` |
+| `docrender/report.py` | label both; add `authoring_notes` to `_INVENTORY` |
 | `mkdocs.yml` | one registration line |
-| `template-docs` `authoring/writing.md` | **one rule in the authoring guide:** *a list needs a blank line above it.* That one bug was over a third of the real faults. Same session, per CALLOUTS.md's "the last row does not derive from the first" |
+| `template-docs` `authoring/writing.md` | **one rule in the authoring guide:** *a list needs a blank line above it.* That one bug was over a third of the real faults. Also document `lint:` (ruling 1). Same session, per CALLOUTS.md's "the last row does not derive from the first" |
 
 🚫 No file sizes quoted, per this repo's standing lesson. Measure at HEAD when you act.
 
@@ -112,16 +117,18 @@ Fixtures live in `tests/lint/`, rendered through **Python-Markdown with this rep
 - a lone `~70%` (fine: subscript needs a closing `~` and no spaces)
 - a fenced block quoting `- [ ]` and `!!! tip` (fine: inside `<pre>`)
 
+Plus one fixture per ruling: a `lint: off` page that lands in `authoring_notes` and not in `authoring`, and a `run-on` page whose build still reports clean.
+
 🔴 **The fixture suite is the spec's real deliverable.** A check that has never seen its own false positive will produce one.
 
 ---
 
-## ⏳ Rulings needed
+## ✅ Rulings (Michael, 2026-10-09: all four accepted as recommended, Decision Log J32)
 
-1. **Opt-out for specimen pages.** `01-utility/callouts.md`, `markers.md` and the authoring pages show broken syntax on purpose. **Recommend:** frontmatter `lint: off` (whole page) or `lint: [ghost-tag]` (named checks). Reported as inventory, so an opt-out is visible and never silent.
-2. **First build is loud.** Six sites, never linted, will print a backlog on the first run (uritp-docs is mostly clean after #206). **Recommend:** ship it loud. A finding that is real is not noise, and a grace period is a switch nobody turns off.
-3. **Does `run-on` belong?** Lettered steps folding into a paragraph is ugly, not broken, and the fix (hard breaks) is a style choice inside verbatim imports. **Recommend:** keep it, but as **inventory**, so it is listed without making a build unclean.
-4. **Peer sites.** `maw-prose`, `template-docs`, `theatre-docs`, `hml-docs` build through the same engine. **Recommend:** they get it for free, because the hook is engine-side. Nothing to opt into.
+1. **Opt-out for specimen pages.** `01-utility/callouts.md`, `markers.md` and the authoring pages show broken syntax on purpose. → Frontmatter `lint: off` turns off the whole page, and `lint: [ghost-tag]` turns off named checks. Every opt-out is listed in `authoring_notes`, so it is visible and never silent.
+2. **First build is loud.** Six sites, never linted, will print a backlog on the first run (uritp-docs is mostly clean after #206). → Ship it loud. A finding that is real is not noise, and a grace period is a switch nobody turns off.
+3. **`run-on` stays, as inventory.** Lettered steps folding into a paragraph is ugly, not broken, and the fix (hard breaks) is a style choice inside verbatim imports. → Listed in `authoring_notes`, and it never makes a build unclean.
+4. **Peer sites.** `maw-prose`, `template-docs`, `theatre-docs`, `hml-docs` build through the same engine. → They get it for free, because the hook runs in the engine. Nothing to opt into.
 
 ## 🅿️ Futures (not in v1)
 
