@@ -279,10 +279,15 @@ def plain(cell: str) -> str:
 
     THE BRACE STRIP IS WHAT KEEPS THAT TRUE FOR ATTRIBUTES TOO, and it needed no
     change for BUILD 9: the whole block goes, so a gloss attribute never reaches a
-    comparison, exactly as a class always was. A hover span works the same way: its
-    `{hover=...}` block is stripped and `[Text]` keeps... see the note below.
+    comparison, exactly as a class always was.
+
+    HOVER SPANS GO FIRST, AND WHOLE. The generic brace strip stops at the first `}`,
+    and a hover STRING may legally contain one, so `[12]{hover="a } b"}` would leave
+    ` b"}` behind. Reducing the span to its text first means `[12]{hover="..."}`
+    sorts and sums as 12, with no brackets and no tail.
     """
     text = str(cell)
+    text = hoverspan._HOVER.sub(lambda m: m.group("text"), text)
     # Marker and attr blocks go entirely; a link or emphasis keeps its LABEL.
     text = re.sub(r"\{[^}\n]*\}", "", text)
     text = _LINK.sub(lambda m: m.group("text"), text)
