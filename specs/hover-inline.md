@@ -1,9 +1,9 @@
 # Inline hover text — `[Text]{hover="…"}`
 
-**State:** ⚠️ SCOPED, NOT GREENLIT · 2026-10-09 · 🚫 no build number, deliberately (index numbering debt). **Seven rulings below before code.**
+**State:** ✅ DECISION-COMPLETE, NOT YET BUILT · R1–R7 accepted 2026-10-09 (`hover_inline_accept`) · 🚫 no build number, deliberately (index numbering debt).
 **Builds on:** the gloss popup in [`assets/gloss.css`](../assets/gloss.css) and [`docrender/linklabels.py`](../docrender/linklabels.py). **Sibling, not a reopening, of** [`hover-text.md`](hover-text.md). **Decision history:** doc-render-engine (repo) — Decision Log, ClickUp.
 
-> Michael, 2026-10-09: *"do i have custom hover text definable anywhere? like [text](@) syntax but with like [Text]{.hover="This is a tooltip."} for custom hover text definable inline?"* Then: `hover_inline_spec`.
+> Michael, 2026-10-09: *"do i have custom hover text definable anywhere? like [text](@) syntax but with like [Text]{.hover="This is a tooltip."} for custom hover text definable inline?"* Then: `hover_inline_spec`. Then: all seven recommendations accepted.
 
 <p><br/></p>
 
@@ -34,6 +34,8 @@ Call is [the quarter-hour]{hover="15 minutes before places, not before curtain."
 
 Read the [house rules](https://example.org/rules){hover="Opens the venue PDF."} first.
 
+[Places]{hover="Everyone in position for the top of show." print}   printed as an italic parenthesis (R3)
+
 \[literal]{hover="kept as typed"}            escaped, not converted
 ```
 
@@ -46,18 +48,19 @@ Read the [house rules](https://example.org/rules){hover="Opens the venue PDF."} 
 
 ## ⚙️ §4 — Mechanism
 
-- **NEW `docrender/hoverspan.py`, `on_page_markdown`**, composed into an existing shim (no `mkdocs.yml` registration). One regex outside code: `\[(text)\]\{\s*hover=("…"|'…')\s*\}` **not followed by `(`**, so it can never touch link syntax.
-- **Emits raw inline HTML:** `<span class="dr-gloss dr-hover" data-gloss="…" aria-description="…" tabindex="0">Text</span>`. Markdown inside the span still renders (Python-Markdown processes text between inline tags).
+- **NEW `docrender/hoverspan.py`, `on_page_markdown`**, composed into an existing shim (no `mkdocs.yml` registration). One regex outside code: `\[(text)\]\{\s*hover=("…"|'…')\s*(print)?\s*\}` **not followed by `(`**, so it can never touch link syntax.
+- **Emits raw inline HTML:** `<span class="dr-gloss dr-hover" data-gloss="…" aria-description="…" tabindex="0">Text</span>` (+ `data-role-print="…"` when `print` is set). Markdown inside the span still renders (Python-Markdown processes text between inline tags).
 - ⭐ **Raw HTML is why TSV cells work for free.** `cells.py` trusts typed HTML tags and only narrows ATTRIBUTE lists on link braces (`_classes`, hover-text §15) — the exact trap that made the role gloss vanish in tables. A pre-built span never passes through `_classes`. `cells.render` must call `hoverspan` the same way it calls `links` / `markers`.
-- **`gloss.css`:** widen `a.dr-gloss` → `.dr-gloss` for the box, hover and `:focus-visible` rules; add a dotted-underline affordance on `span.dr-hover` only (R5). The span needs `tabindex="0"` because it is not focusable (the buildstamp precedent the sheet's header cites).
+- **`gloss.css`:** widen `a.dr-gloss` → `.dr-gloss` for the box, hover and `:focus-visible` rules (add `:focus` for tap, R6); add a dotted-underline + `cursor: help` affordance on `span.dr-hover` only (R5). The span needs `tabindex="0"` because it is not focusable (the buildstamp precedent the sheet's header cites). The existing `[data-role-print]` print rule covers R3 unchanged.
 - **Links (R2):** external URL links route through the same brace: `hover=` becomes `data-gloss` + `.dr-gloss` on the `<a>`. On an `@`-link it is **reported and ignored**.
+- **`title=` on page links (R7):** still passed through; each use gets a report line pointing at `gloss:`.
 - **Report:** count per page; malformed braces (`hover` with no closing quote, `.hover=` typo) reported by name, never silently printed as literal braces.
 
 <p><br/></p>
 
-## ⚖️ §5 — Rulings needed (recommendation first)
+## ⚖️ §5 — Rulings (all seven accepted, Michael, 2026-10-09)
 
-| # | Question | ⭐ Recommend | Why |
+| # | Question | ✅ Ruled | Why |
 |---|---|---|---|
 | R1 | Syntax | **`[Text]{hover="…"}`** | Reads like attr_list, distinct from `title=`, and `.hover=` (Michael's sketch) is a class, not a value |
 | R2 | Where it is legal | **Plain text + external URL links. Refused (reported) on `@`-links** | §2: `@`-links already have a single claimant, `gloss:` |
@@ -81,10 +84,10 @@ Read the [house rules](https://example.org/rules){hover="Opens the venue PDF."} 
 
 ## ✅ §7 — Build order
 
-1. Rulings R1–R7.
+1. ✅ Rulings R1–R7.
 2. `hoverspan.py` (text spans) + `gloss.css` selector widening + affordance. One test page in `uritp-docs` with prose, a list, a callout and a TSV cell.
 3. `cells.py` hook-up.
-4. External-link half in `links.py` (R2), then the `@`-link report.
+4. External-link half in `links.py` (R2), then the `@`-link and `title=` report lines (R7).
 5. Chrome hover, keyboard Tab, phone tap, and print preview (R3 flag on and off).
 
 <p><br/></p>

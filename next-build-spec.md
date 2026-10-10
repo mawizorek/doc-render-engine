@@ -18,7 +18,7 @@
 | [`dialect-clean.md`](specs/dialect-clean.md) | BUILD 1 | 2026-08-04 | ⚠️ SCOPED, NOT GREENLIT |
 | [`draft-watermark.md`](specs/draft-watermark.md) | BUILD 4 ⚠️ | 2026-08-16 | ⚠️ SCOPED, NOT GREENLIT |
 | [`flow-context.md`](specs/flow-context.md) + [`program-dl`](docrender/program-dl.md) | 🚫 **none, deliberately** | 2026-09-28 | ✅ BUILT 2026-09-28 · faces (`chain: "@id"`), one strip per page by `?via=`, footer auto-hide · `promote.py` deleted, `flow.css` split to embeds only |
-| [`hover-inline.md`](specs/hover-inline.md) | 🚫 **none, deliberately** | 2026-10-09 | ⚠️ SCOPED, NOT GREENLIT · `[Text]{hover="…"}` on plain text + external links, reusing the gloss popup; refused on `@`-links · 7 rulings before code |
+| [`hover-inline.md`](specs/hover-inline.md) | 🚫 **none, deliberately** | 2026-10-09 | ✅ DECISION-COMPLETE, NOT YET BUILT · R1–R7 accepted 2026-10-09 · `[Text]{hover="…"}` on plain text + external links, reusing the gloss popup; refused on `@`-links |
 | [`hover-text.md`](specs/hover-text.md) + [`-dl`](specs/hover-text-dl.md) | BUILD 9 | 2026-08-30 | ✅ DECISION-COMPLETE, NOT YET BUILT · ⚠️ **likely stale:** `assets/gloss.css` + `linklabels.py` ship the popup at HEAD (noted 2026-10-09, unverified) |
 | [`print-control.md`](specs/print-control.md) + [`-dl`](specs/print-control-dl.md) | BUILD 8 | 2026-08-30 | ⭐ B (reader print menu) BUILT 2026-09-28 · A (per-page defaults) not built |
 | [`print-identity.md`](specs/print-identity.md) | BUILD 5 ⚠️ | 2026-08-19 | ⭐ PARTLY SHIPPED |
@@ -26,7 +26,7 @@
 | [`qr-codes.md`](specs/qr-codes.md) | BUILD 6 | 2026-08-21 | ⚠️ SCOPED, NOT GREENLIT |
 | [`repo-onboarding.md`](specs/repo-onboarding.md) | 🚫 **none, deliberately** | — | ⚠️ not read this pass |
 | [`scoped-theme.md`](specs/scoped-theme.md) | BUILD 3 | 2026-08-07 | ✅ report page SHIPPED 08-07 · ⭐ **page-level `theme:` BUILT 2026-09-28** in [`docrender/pagetheme.py`](docrender/pagetheme.py), by a DIFFERENT mechanism than the spec's §4 (read the module docstring, not §4, for how it works; §4 stays the price list for a shared-sheet version) · folder inheritance NOT built |
-| [`sign-editor.md`](specs/sign-editor.md) | 🚫 **none, deliberately** | 2026-10-09 | ⚠️ SCOPED, NOT GREENLIT · in-page layout sandbox on `type: sign` (parent layer = frame + logo; positioned text blocks in frontmatter) · 8 rulings + a prototype paper test before code |
+| [`sign-editor.md`](specs/sign-editor.md) | 🚫 **none, deliberately** | 2026-10-09 | ✅ DECISION-COMPLETE, NOT YET BUILT · R1–R8 accepted 2026-10-09 · §7.1 prototype BUILT (ClickUp artifact "Sign Lab") · ⏳ Michael's layout + paper test owed before engine code |
 | [`sign-layout.md`](specs/sign-layout.md) | 🚫 **none, deliberately** | 2026-10-08 | ✅ BUILT 2026-10-08 in [`docrender/sign.py`](docrender/sign.py) · 2025 UR palette · 🔴 first page deleted by Michael 10-08 (layout too rigid); the type stays as `sign-editor.md`'s parent layer · ⏳ NOT paper-verified |
 | [`tally.md`](specs/tally.md) | 🚫 **none, deliberately** | 2026-09-28 | ✅ BUILT 2026-09-28 · one live example (`uritp-docs` `app/app-box-office.md`) |
 | [`view-embed.md`](specs/view-embed.md) | BUILD 7 ⚠️ | 2026-08-28 | ✅ SHIPPED 2026-08-30 |
