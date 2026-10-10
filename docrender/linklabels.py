@@ -17,6 +17,12 @@ Peer links use the peer's published index and its existing cache freshness rules
 
 Ordinary links do not gain printed glosses. Marker links retain their existing
 print_gloss/no-print behavior, consuming the same resolved page-map gloss.
+
+Inline hover (specs/hover-inline.md): `{title="..."}` on a page link still passes
+through, but is REPORTED (R7) with a pointer to `gloss:`, because it is the
+browser tooltip gloss.css refuses (no touch, no keyboard). `{hover="..."}` on a
+page link is skipped here in silence: docrender/hoverspan.py reports it once, with
+the reason, so the author is not told the same thing twice.
 """
 
 import html
@@ -33,6 +39,7 @@ ICONS = {"->": "→", "<-": "←", "^^": "↑", "vv": "↓", "*": "★", "!": "�
 COLORS = frozenset(("accent", "accent-2", "accent-deep", "text", "text-soft",
                     "good", "warn", "bad"))
 _ATTR_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
+_TITLE_OPT = re.compile(r"(?<![\w-])title\s*=")
 
 
 def entity_gloss(meta: dict, source: str):
@@ -97,6 +104,13 @@ def _attr(value) -> str:
 
 def page_link(label, target, token, source, href, opts="", peer=False):
     """Finish an already-resolved page link; never performs a second lookup."""
+    # R7: checked HERE, before the fast path below, because that path appends
+    # `opts` untouched and never parses it -- a check inside the attribute loop
+    # would only ever see the titles on links that also happen to be decorated.
+    if opts and _TITLE_OPT.search(opts):
+        state.note("notes", source + ": title= on a link to @" + token + " shows the "
+                   + "browser's own tooltip (no touch, no keyboard). For the styled hover, "
+                   + "put gloss: on the destination page (hover-inline R7). Kept as written.")
     shortcut = label.strip()
     icon = ICONS.get(shortcut)
     if shortcut in ICONS.values():
@@ -121,6 +135,9 @@ def page_link(label, target, token, source, href, opts="", peer=False):
             else:
                 state.note("notes", source + ": color=" + value
                            + " ignored; icon colors: " + ", ".join(sorted(COLORS)) + ".")
+        elif key == "hover":
+            # Reported once, with the reason, by hoverspan (03b). Dropped here.
+            continue
         elif (_ATTR_NAME.fullmatch(key)
               and (key in ("id", "title", "target", "rel")
                    or key.startswith("aria-") or key.startswith("data-"))):
