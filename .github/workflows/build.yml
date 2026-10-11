@@ -193,6 +193,9 @@ jobs:
           - instance: hml
             repo: mawizorek/hml-docs
             publisher: matrix
+          - instance: mawprose
+            repo: mawizorek/maw-prose
+            publisher: matrix
     name: ${{ matrix.instance }}
 
     # =====================================================================
@@ -266,7 +269,7 @@ jobs:
           # missing from DOCRENDER_TOKEN and nothing about the build is wrong.
           #
           # ⚠️ FOURTH INSTANCE, DIFFERENT SHAPE, 2026-08-18: the `||` fallback
-          # below means an EMPTY or WRONGLY-SCOPED secret does not fail loudly.
+          # below means an EMPTY or WRONGLY-SCOPED secret does not error loudly.
           # It hands the checkout `github.token`, which can only see THIS repo,
           # and the error becomes `remote: Write access to repository not
           # granted` + 403 -- which reads as a permission problem on the content
@@ -380,7 +383,6 @@ jobs:
           # original version set these and then ran mkdocs in the same step
           # without them. Every page shipped stamped `local`, which is exactly
           # the "is this the latest push?" signal the stamp exists to give.
-          # Found on the first live build, 2026-08-03.
           cd "${{ github.workspace }}/content"
           export DOCRENDER_COMMIT_SHA="$(git rev-parse HEAD)"
           export DOCRENDER_COMMIT_SUBJECT="$(git log -1 --pretty=%s)"
