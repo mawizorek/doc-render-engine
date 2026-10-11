@@ -1,6 +1,6 @@
 # `@fmp:` — a FileMaker name written once, rendered everywhere
 
-⚠️ **SCOPED, NOT GREENLIT.** Indexed from `next-build-spec.md`. Born on the URITP Budget notes build (`uritp-docs` `uritp-budget/`), session task in ClickUp: *Dexter + Fiona ↔ Frank · FileMaker XML → compact app-state render*.
+✅ **DECISION-COMPLETE, NOT YET BUILT.** R1–R5 accepted as recommended 2026-10-11 (DL J33). Indexed from `next-build-spec.md`. Born on the URITP Budget notes build (`uritp-docs` `uritp-budget/`), session task in ClickUp: *Dexter + Fiona ↔ Frank · FileMaker XML → compact app-state render*.
 
 > Michael, 2026-10-11 (paraphrased): an update to schema or field names must not scatter through too many notes.
 
@@ -46,9 +46,9 @@ On every page under a catalog, scan prose and code spans for any `current` or re
 
 That turns "search the folder for the old name" into a list the build hands you. It also makes migration incremental: existing pages keep working and get a to-do list.
 
-## Rulings needed (recommendations in bold)
+## Rulings (all accepted as recommended, 2026-10-11, DL J33)
 
-| # | Question | Recommend |
+| # | Question | Ruled |
 |---|---|---|
 | R1 | Prefix word | **`@fmp:`**. `@name:` is generic enough to collide with a future non-FileMaker use. |
 | R2 | Catalog location | **Nearest ancestor `NAMES.tsv`**, filename fixed. |
