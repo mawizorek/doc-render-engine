@@ -14,6 +14,7 @@
 | [`build-report.md`](specs/build-report.md) | BUILD 2 | 2026-08-06 | 🔴 **PARTLY SHIPPED** — Pieces A and C are live; B unverified |
 | [`cards.md`](specs/cards.md) | 🚫 **none, deliberately** | 2026-09-28 | ✅ BUILT 2026-09-28 · live on the `uritp-docs` `app/` hubs |
 | [`chrome.md`](specs/chrome.md) | BUILD 5 ⚠️ | 2026-08-18 | ⚠️ SCOPED, NOT GREENLIT |
+| [`clickup-mirror.md`](specs/clickup-mirror.md) | 🚫 **none, deliberately** | 2026-10-11 | ⚠️ SCOPED, NOT GREENLIT · two directions: mirror from `/doc-index.json` every build (disposable, regenerated) + write-back as a **PR only, never `main`** · `id` refused unconditionally; blob-SHA drift refusal instead of last-write-wins · R1–R5 owed · third caller of `clickuppull.py` (`view-snapshot.md` §5) · DL `Q2`/`J5` |
 | [`cols.md`](specs/cols.md) | BUILD 7 ⚠️ | 2026-08-31 | ⚠️ SCOPED, NOT GREENLIT |
 | [`contacts.md`](specs/contacts.md) | BUILD 11 | 2026-08-31 | ⚠️ SCOPED, NOT GREENLIT |
 | [`dialect-clean.md`](specs/dialect-clean.md) | BUILD 1 | 2026-08-04 | ⚠️ SCOPED, NOT GREENLIT |
@@ -61,7 +62,9 @@
 2. `qr-codes.md` §5 ruling 6 adds a report bucket that lands in `sizecheck.py` or in `report.py` depending on where the report lives — ✅ **now decided by Piece C having shipped: it is `report.py`.**
 3. The print leading change, the letterhead and the QR block are **three claimants on the vertical space of printed sheet one.** Whichever lands last re-previews the others.
 
-## 🅿️ Standing debt
+⚠️ **`view-snapshot.md` → `clickup-mirror.md`: a shared module, not a dependency.** Both read ClickUp through `clickuppull.py`, which `view-snapshot.md` §5 ships. Whichever lands first writes it; the second one is a caller and adds no client of its own. 🚫 A second ClickUp client is a named road not taken in both files.
+
+## 🅿 Standing debt
 
 1. 🔴 **The numbering.** Named above. One ruling, then either every spec drops its number or a check enforces uniqueness. **Nothing else in this file can be trusted to stay true while two specs can share a name.**
 2. **`_LABELS` matches in both `report.py` and `sizecheck.py`** at HEAD, which `build-report.md` forbade in bold. ⚠️ **That is a grep, not a finding** — read both before concluding.
