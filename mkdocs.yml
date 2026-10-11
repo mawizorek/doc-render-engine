@@ -329,6 +329,14 @@ markdown_extensions:
 #      on_page_markdown, so links.py at 03 cannot see a half-built index no
 #      matter where this line sits. It is here because 01e and 01f read as one
 #      feature -- 01e wraps a captioned image, 01f knows where the image is.
+#   02b claims `@fmp:` (a FileMaker name written once in an app's NAMES.tsv) AND
+#      scans each page for those names typed by hand (2026-10-11, specs/fmp-names.md).
+#      🔴 ITS POSITION IS NOT FREE, unlike 03c and 03d. The claim is position-free
+#      (import time), but the scan is `on_page_markdown` and must read each page
+#      BEFORE 03 rewrites `@fmp:` references into names. Registered after 03, it
+#      reports its own output as hand-typed names on every page.
+#      🚨 AND ITS PRESENCE IS NOT OPTIONAL: remove this line and every `@fmp:` on
+#      every site renders as "unknown peer site: fmp". See hooks/02b_fmpnames.py.
 #   03 resolves links -> 03b renders marker SPANS. Marker syntax and link syntax
 #      are different patterns, but running the id resolver first keeps its output
 #      out of the marker pattern's way: a resolved marker link emits a two-class
@@ -474,6 +482,7 @@ hooks:
   - hooks/01e_figure.py
   - hooks/01f_images.py
   - hooks/02_visibility.py
+  - hooks/02b_fmpnames.py
   - hooks/03_links.py
   - hooks/03b_markers.py
   - hooks/03c_markerlinks.py
