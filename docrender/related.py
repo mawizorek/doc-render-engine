@@ -71,12 +71,77 @@ the whole list would vanish. Publication is links.py's call and it already makes
 it loudly.
 
 =============================================================================
+PER-EDGE LOCAL TEXT: `- id: text`, AND WHY NOT THE DESTINATION'S `gloss:`
+=============================================================================
+Michael, 2026-10-11: *"this is why I want the feature to do custom local related
+text but you were skimping on that feature for built in details."*
+
+⭐ THE MIGRATION IS WHAT PROVED IT, AND IT WAS NOT A PREFERENCE. Sweeping the
+thirteen `## Related` blocks in `template-docs` found 38 entries, and 25 OF THEM
+CARRIED A TRAILING NOTE. Moving the ids into a bare list would have deleted two
+thirds of the content of the blocks it replaced, and called it a migration.
+
+🔴 `linklabels.py` ALREADY OFFERS `gloss:` AND `gloss_from_summary:`, AND
+REACHING FOR THOSE FIRST WAS THE WRONG INSTINCT -- it answered "what is already
+built" instead of "what is being said." A gloss belongs to the DESTINATION and
+says one thing on every page that links it. These notes belong to the SOURCE and
+say why THIS page is pointing THERE. The repo's own content proves the two are
+not the same field:
+
+  * `markers.md` describes Routers as *"the other inline tool, for routing rather
+    than confidence"*. `routers.md` describes Markers as *"the other inline tool,
+    for confidence rather than routing"*. ⚑ THE SAME EDGE, WRITTEN IN OPPOSITE
+    DIRECTIONS. No single gloss on either destination can say both, and a gloss
+    that tried would be wrong on one of the two pages.
+  * `frontmatter` is pointed at by four pages and described four ways: *"the
+    header contract, and the away-from-the-page rule"*, *"the block at the top,
+    and what may go in it"*, *"where required fields are declared"*, *"where
+    `status:` lives"*. Each is correct for its own page. Flattening them to one
+    destination gloss loses four true statements to keep one.
+
+⚠️ AND THIS DOES NOT RE-OPEN hoverspan.py R2, WHICH REFUSES `{hover=}` ON A PAGE
+LINK AS *"a second copy free to drift"*. That refusal is sound because a hover on
+a page link restates the destination's `summary:` -- two copies of one fact, and
+the copy rots. There is no first copy here. The destination's `summary:`
+describes the page; this describes the RELATION, which no other field in the
+engine holds. ⚑ Drift needs two statements of the same fact, and a relation
+asserted by one page is not a fact the destination ever stated.
+
+THE SHAPE. A single-key mapping per entry, because YAML already has one:
+
+    related:
+      - frontmatter: the header contract, and the away-from-the-page rule
+      - writing: the inline syntax in full
+      - audit
+
+⭐ BARE STRINGS STILL PARSE, MIXED LISTS PARSE, and a list with no notes renders
+BYTE-IDENTICAL output to what it rendered before this change. That is the whole
+reason for choosing the mapping over an `- id:` / `- text:` pair or an inline
+`id | text` separator: 23 pages in `uritp-docs` are already on the bare form and
+none of them had to be touched. ⚠️ Quote the text if it contains a colon --
+`- links: "`@data:` mentions, and every other reference form"` -- which is YAML's
+rule, not ours, and the one real sharp edge in the syntax.
+
+IT RENDERS AS A PARENTHETICAL, STILL ONE `<p>`, STILL ONE ELEMENT. 🚫 The
+obvious alternative -- switch to a bulleted list once any entry carries text --
+was considered and refused twice over. It would rebuild the `## Related` SECTION
+this field exists to retire, three lines below the end of the document; and a
+nested `<ul>` inside a `markdown="1"` block needs its own per-child attributes
+under `md_in_html`, which this engine has never shipped and would be discovered
+broken in a published build rather than here. ⚠️ Named as a known cost: a long
+note on six entries makes a long line, and it cannot be given its own
+typography until `assets.py` is split -- same limit as the next paragraph.
+
+=============================================================================
 ⚠️ WHAT IT DELIBERATELY DOES NOT DO
 =============================================================================
 🚫 **NOT SYMMETRIC.** `A related: [B]` does not put A on B's page. Inverting the
 graph is exactly what `/doc-refs.json` already publishes (`referenced_by`), and
 rendering the inverse would mean a page's foot changing because somebody edited a
-different file -- which no author could predict and no diff would show.
+different file -- which no author could predict and no diff would show. ⭐ The
+per-edge text above is the second argument for this, arriving seven weeks later:
+the note is written FROM one side, so an inverted edge would print a sentence
+about the wrong page.
 
 🚫 **NO DEDUPE AGAINST THE BODY.** `_child_list` skips children the prose already
 links, and that is right for a generated INVENTORY: the list is whatever is left
@@ -107,8 +172,8 @@ from .util import slug_title
 _LABEL = "Related"
 
 
-def _ids(value) -> list[str]:
-    """Normalise the field to a list of ids, in declared order.
+def _entries(value) -> list[tuple[str, str]]:
+    """Normalise the field to `(id, local_text)` pairs, in declared order.
 
     ORDER IS PRESERVED AND NOT SORTED. `keywords:` is a bag of search terms and
     `_child_list` sorts to agree with the sidebar, but this is a sequence an
@@ -118,17 +183,51 @@ def _ids(value) -> list[str]:
     A leading `@` is stripped so both `policy-fire` and `@policy-fire` work; the
     field's own note says *ids, not paths*, and somebody pasting from a link is
     the obvious way the sigil arrives.
+
+    ⭐ FOUR SHAPES PARSE, AND THE PAIR IS THE POINT: a bare string, a list of
+    bare strings, a list of single-key mappings, and any mix of the last two.
+    Every entry comes back as a pair, with `""` for the ones that carry no text,
+    so one code path serves both forms and the old form cannot take a different
+    route through `render`.
+
+    ⚠️ A MULTI-KEY MAPPING IS READ AS SEVERAL ENTRIES RATHER THAN REFUSED. The
+    only way to type one is to forget a dash, and the forgiving reading loses
+    nothing while refusing it would silently drop a real link. Same posture as
+    accepting the bare string: strictness here buys a support question.
     """
     if value in (None, "", [], {}):
         return []
-    raw = value.split(",") if isinstance(value, str) else list(value)
-    out, seen = [], set()
+    if isinstance(value, str):
+        raw: list = value.split(",")
+    elif isinstance(value, dict):
+        raw = [value]
+    else:
+        raw = list(value)
+
+    out: list[tuple[str, str]] = []
+    seen: set[str] = set()
     for item in raw:
-        pid = str(item).strip().lstrip("@")
-        if pid and pid not in seen:
+        pairs = list(item.items()) if isinstance(item, dict) else [(item, "")]
+        for key, text in pairs:
+            pid = str(key).strip().lstrip("@")
+            if not pid or pid in seen:
+                continue
             seen.add(pid)
-            out.append(pid)
+            # Collapse whitespace: YAML folds a wrapped value onto one line with
+            # a newline, and these notes wrap in the source blocks they came from.
+            out.append((pid, " ".join(str(text or "").split())))
     return out
+
+
+def _ids(value) -> list[str]:
+    """Just the ids, for the places that only need to know WHICH pages.
+
+    `check()` reports a page carrying both the field and a body heading and names
+    the ids it found; the local text is not its business. Kept as a named wrapper
+    rather than inlined so the report's phrasing cannot drift from the renderer's
+    parse.
+    """
+    return [pid for pid, _ in _entries(value)]
 
 
 def _title(page_id: str) -> str:
@@ -155,19 +254,32 @@ def render(value) -> str:
     has ended. The hand-typed blocks it replaces were `## Related` headings with
     bullets, which is precisely why they looked like a section.
 
+    ⭐ LOCAL TEXT IS A PARENTHETICAL INSIDE THAT SAME LINE, and the parentheses
+    are load-bearing rather than decorative: the separator between entries is a
+    comma, several of these notes contain commas, and without a bracket the
+    reader cannot tell where one entry stops. 🚫 Do not "tidy" them into an
+    em dash or a colon for the same reason.
+
     ⚠️ `markdown="1"` IS LOAD-BEARING. Without it Python-Markdown treats the
     contents of a raw HTML block as literal text, and every `[Title](@id)` inside
     would ship to the reader as source. Same reason `lede.render` carries it, and
     it only works because `md_in_html` is enabled in mkdocs.yml -- which
     figure.py's comment already flags as load-bearing rather than convenience.
+    ⭐ It now also carries the notes themselves, so inline code and emphasis
+    inside a note render as markdown and not as source.
     """
-    ids = _ids(value)
-    if not ids:
+    entries = _entries(value)
+    if not entries:
         return ""
-    links = ["[" + _title(pid) + "](@" + pid + ")" for pid in ids]
+    parts = []
+    for pid, text in entries:
+        part = "[" + _title(pid) + "](@" + pid + ")"
+        if text:
+            part += " (" + text + ")"
+        parts.append(part)
     return (
         '<p class="dr-related" markdown="1">' + _LABEL + ": "
-        + ", ".join(links) + "</p>"
+        + ", ".join(parts) + "</p>"
     )
 
 
@@ -178,6 +290,12 @@ def check(src: str, meta: dict, body: str, note) -> None:
     only copy, so a page carrying both prints its related links twice. Reported,
     never rewritten -- the body block may hold prose the field cannot ('Part of
     X' is a sentence, not a link list), so deleting it is the author's call.
+
+    ⚠️ THE 'PROSE THE FIELD CANNOT HOLD' ESCAPE NARROWED ON 2026-10-11. A
+    trailing note per entry now moves into the field with its link, so a block of
+    `- [Title](@id) -- why` bullets no longer has anything the field cannot take.
+    What is left is genuinely only full sentences and paragraphs. ⚑ The report
+    still does not rewrite, because telling the two apart is reading, not matching.
 
     ⚠️ A HEADING IS THE SIGNAL, NOT THE WORD. `_REVISED_LINE` next door is
     anchored for exactly this reason: matching "related" anywhere on a line would
@@ -212,5 +330,7 @@ def check(src: str, meta: dict, body: str, note) -> None:
         "body_related",
         src + ': related pages are still in the BODY -- "' + heading + '". Move '
         "the ids into `related:` and delete the block. The engine draws them at "
-        "the foot, resolved by id, so a link cannot rot when a page moves.",
+        "the foot, resolved by id, so a link cannot rot when a page moves. A "
+        "trailing note per bullet comes too, as `- id: why this page points "
+        "there`.",
     )
