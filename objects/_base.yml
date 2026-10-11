@@ -11,6 +11,14 @@
 #           forgets it does not build. Nothing goes public by accident.
 #   summary THE LEDE. One or two lines: what this is and who needs it.
 #
+# ⚠️ ONLY ONE OF THE FOUR IS A GATE, AND IT IS `status`. Membership in
+# `requires:` below buys a line in the build report, nothing more -- objects.py
+# collects every missing required field into `missing_required` and publishes
+# the page anyway (module posture: "warn, never die"). `status` stops a page
+# from its OWN check, further down objects.py, because an unreadable status is
+# a page of unknown visibility and that is the one thing this engine will not
+# guess at.
+#
 # ⭐ WHY summary IS REQUIRED (added 2026-08-03). It used to be "whatever
 # paragraph happens to sit under the H1", which meant it was defined three
 # times in three languages -- the stylesheet, this engine, and Material's
@@ -24,15 +32,23 @@
 # regression. Nothing fails; the build warns and publishes. See
 # docrender/lede.py for why there is deliberately no positional fallback.
 #
-# 🔴 AND THE README DISAGREES WITH THIS FILE ABOUT IT, FOUND 2026-10-10.
-# README.md says every page must have `id`, `title`, `status` -- three, not
-# four. template-docs/authoring/index.md agrees with THIS file ("every page
-# needs `status` and `summary`"), so the count is 2-1 and the README is the
-# outlier. Flagged rather than fixed: which file is authoritative about the
-# contract is Michael's to rule, and a passing commit is not allowed to settle
-# it by side effect. Live counter-example in the tree, siding with the README:
-# uritp-docs/doc-specs/index.md carries no `summary`. Open as Q-block material
-# on the Authoring Contract decision log.
+# ⭐ AND THAT LAST SENTENCE IS THE WHOLE RULING, MADE EXPLICIT 2026-10-11 BY
+# MICHAEL: "Summaries should not break the build if they do not exist. They
+# should be required in the sense that the renderer publishes a report saying
+# that every page wants one, but not having one should not break the build."
+# So `summary` STAYS in `requires:` and that is the implementation, not a
+# compromise: this list is how a page gets named in the report, and naming is
+# the entire ask. 🚫 Do not move it to `optional:` -- `optional` is merged and
+# never read (see the note at the foot), so demoting it would silence the
+# report the ruling exists to produce.
+#
+# 🪦 WHICH RETIRES A CONTRADICTION THAT WAS NEVER ONE. A documentation review
+# on 2026-10-10 found README.md requiring three fields against this file's four,
+# called the count 2-1 and the README the outlier. Both files were right about
+# different questions: the README was counting GATES, this file lists what every
+# page OWES. The README now says which it means, in §3. The live case that
+# looked like a counter-example is just the worklist: uritp-docs/doc-specs/
+# index.md carries no `summary`, reports, and publishes.
 
 type: _base
 label: Page
@@ -40,7 +56,7 @@ requires:
   - id
   - title
   - status
-  - summary
+  - summary      # REPORTED, never a gate. Ruled 2026-10-11; see the header.
 optional:
   - gloss        # Optional hover text on links TO this page. Not a second lede.
                  # Explicit text wins; an empty string suppresses summary reuse.
@@ -79,18 +95,37 @@ optional:
                  # than type-checking, but they are not the same value and a
                  # quoted `"2026-08-07"` is the way to keep it text.
   - order        # sort weight in the sidebar. Absent sorts alphabetically.
-  - theme        # skin override. A page beats its folder on LOOK.
+  - theme        # skin override, and the LAST word on look for one page.
                  #
-                 # 🔴 THREE SOURCES, THREE ANSWERS, FOUND 2026-10-10. README.md
-                 # says "There is no `theme:` key, and there never has been."
-                 # template-docs/authoring/frontmatter.md shows `theme: utility`
-                 # as an optional field. next-build-spec.md marks page-level
-                 # theme BUILT 2026-09-28 (specs/scoped-theme.md), with folder
-                 # inheritance not built. Forbidden, optional and shipped are
-                 # not the same instruction, and an author cannot act on any of
-                 # them. NOT resolved here -- flagged on the Authoring Contract
-                 # decision log, because picking a winner in a contract dispute
-                 # is not something a declaration commit gets to do quietly.
+                 # ⭐ RULED 2026-10-11 BY MICHAEL, AND IT IS SETTLED: "It is a
+                 # per-repo theme and we know this; that is not new. Theme is
+                 # just able to override that per page." The normal home for a
+                 # theme is the instance's site.yml; this key is the per-page
+                 # exception; both are legal at once and always were.
+                 # 🚫 CLOSED. Do not reopen it, do not re-flag it, do not ask
+                 # again -- that re-asking is itself what got ruled on.
+                 #
+                 # ⚠️ AND IT WILL BE USED PER PAGE, FOR A STRUCTURAL REASON:
+                 # "Theme probably shouldn't be used per page, but I am going to
+                 # because we are losing folder inheritance." The flattening
+                 # into one REPO_PAGES folder removes the level a folder theme
+                 # would have lived on, so per-page use is not a shortcut around
+                 # folder inheritance -- it is what is left of it.
+                 #
+                 # 🪦 THE THREE-WAY DISAGREEMENT FOUND 2026-10-10 IS CLOSED.
+                 # README.md said "There is no `theme:` key, and there never has
+                 # been"; template-docs/authoring/frontmatter.md listed it as
+                 # optional; next-build-spec.md marked page-level theme BUILT
+                 # 2026-09-28. The last two were right and the README was two
+                 # weeks stale: docrender/pagetheme.py ships this key by running
+                 # the site's own build_css() with the page's declaration
+                 # swapped in and inlining the result as the last sheet on that
+                 # page. README corrected in §3, §4a and §7.
+                 #
+                 # ⚠️ "A page beats its FOLDER on look" was this line's old
+                 # claim and the folder half is still spec, as pagetheme.py says
+                 # of itself. Under the flattening there is nothing left for it
+                 # to be built for, so the claim is dropped rather than chased.
   - router       # a soft code that routes someone to this page if they know it.
                  # Mechanism and limits: docrender/router.py, and
                  # template-docs/authoring/routers.md for the author-facing

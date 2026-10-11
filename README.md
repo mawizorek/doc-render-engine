@@ -41,6 +41,7 @@ docrender/              THE APP. Knows nothing about any particular site.
   theme.py              stage 04: tokens from TSV to CSS properties.
   assets.py             stage 05: publish files from OUTSIDE the doc tree.
   pagefoot.py           stage 06: the edit link.
+  pagetheme.py          stage 06b: a PAGE's own `theme:`, inlined last.
   buildstamp.py         stage 07: is this page the latest push?
   sizecheck.py          stage 08: size budget, LEAK SCAN, build report.
   docindex.py           stage 09: /doc-index.json, the cross-site contract.
@@ -94,12 +95,34 @@ revised: 2026-08
 ---
 ```
 
-`id`, `title` and `status` are required on every page. **A page with no status
-does not build**, which is how nothing reaches the public web because someone
-forgot a line.
+`id`, `title` and `status` are required on every page, and **`status` is the
+only field in the contract that stops a page**: a page with no status does not
+build, which is how nothing reaches the public web because someone forgot a
+line. Everything else is reported and published.
 
-🚫 **There is no `theme:` key, and there never has been.** `theme/themes.tsv`
-claimed one until 2026-08-07; see §4a.
+⭐ **`summary:` is WANTED on every page and gates nothing** *(ruled 2026-10-11,
+Michael: "Summaries should not break the build if they do not exist. They
+should be required in the sense that the renderer publishes a report saying
+that every page wants one, but not having one should not break the build.")* It
+sits in `objects/_base.yml`'s `requires:` list, and that list is a REPORT list
+rather than a gate — `objects.py` names every missing required field in the
+build report and publishes the page anyway. ⚑ **So this file and `_base.yml`
+were never actually in conflict about `summary`; they were counting different
+things.** A review on 2026-10-10 read this section's three fields against that
+file's four and called the README the outlier, 2-1. This paragraph is the line
+that says which count is which: three GATE, four are OWED.
+
+⭐ **`theme:` is a PER-REPO setting with a per-page override** *(ruled
+2026-10-11)*. The theme a page wears is one line in its site's `site.yml` (§4a),
+and that is the normal answer for every page in the repo. A page may name its
+own `theme:` and wins on look — `docrender/pagetheme.py` has honoured that
+since 2026-09-28. ~~"There is no `theme:` key, and there never has been."~~ —
+struck 2026-10-11, and struck rather than deleted because it was true of this
+engine until the day it shipped, which is exactly how three files ended up
+giving an author three different answers. ⚠️ **Per-FOLDER theme is NOT built
+and is not coming**: the content trees are flattening into one `REPO_PAGES`
+folder, so there is no folder level left to inherit from, and per-page is what
+remains of that inheritance.
 
 ### `nav:` — what a FOLDER does in the sidebar *(2026-08-05)*
 
@@ -237,13 +260,17 @@ random requires. `theme.build_css()` runs two or three times, and rolling there
 would give the two colour schemes different themes AND break the generated
 stylesheet's content fingerprint. The docstring has the whole argument.
 
-🚫 **It is the WHOLE SITE, for ONE build. There is no per-page or per-folder
-theme, and `theme/themes.tsv` claimed there was until 2026-08-07.** Nothing ever
-read that key: `build_css()` takes no arguments, its output is linked as a
-single site-wide `tokens.css`, and its selectors are `:root` plus the two
-document-level scheme attributes. A scoped theme is a change to the theme spine
-rather than a variable read — scoped, not greenlit, as `next-build-spec.md`
-BUILD 3.
+**This box is the WHOLE SITE, for ONE build**, and it is a different lever from
+a page naming its own theme. 🪦 **This paragraph used to deny page-level theme
+outright, and page-level theme shipped 2026-09-28.** ~~"There is no per-page or
+per-folder theme… a scoped theme is a change to the theme spine rather than a
+variable read — scoped, not greenlit, as `next-build-spec.md` BUILD 3."~~ —
+struck 2026-10-11. `docrender/pagetheme.py` got there by a route the spec never
+priced: it runs the site's **own** `build_css()` a second time with the page's
+declaration swapped in and inlines the result as the last sheet on that page.
+No second emitter, no scoped selectors, no specificity escalation — it wins on
+source order. ⚠️ **Per-FOLDER theme is still not built**, which is why
+`_base.yml` no longer claims "a page beats its folder on look".
 
 ### 4b. Publishing from a terminal *(2026-08-07)*
 
@@ -304,10 +331,16 @@ not evidence a thing exists; it is one unverified claim, copied.**
     `docrender/` and it has been decorative for some time.** Stated rather than
     quietly raised: a limit four files break is not a limit, and either the
     number is wrong or the files need splitting. Neither is a one-line fix.
+  - 🔴 **RE-MEASURED 2026-10-10: TEN FILES ARE OVER IT**, `qr.py` the largest at
+    29,915. The curve went the direction an unenforced limit always goes, and
+    the count has not been checked against `sizecheck.py`'s own threshold since.
 - **Warn, never die**, for everything else. v1 built with `--strict` and one
   typo froze the entire live site twice in forty minutes while Pages kept
   serving a stale commit. Broken things render as visible markers and appear in
   the report; the deploy continues.
+  - ⭐ **This is why a missing `summary:` is a report line and not a failure**
+    (§3). The one hard gate on a page is `status:`, and it gates because an
+    unknown publication state is the only error here worse than publishing.
 
 ---
 
@@ -398,13 +431,18 @@ live in a variable; that would put the routine's shape in two places again.
   `unlisted` with a loud warning. Shipping a gate that looks like access
   control but is not is worse than shipping none, because people put things
   behind it. See `docrender/visibility.py`.
-- **A theme is a property of the SITE, not of a page or a folder.** One build
-  emits one stylesheet, linked from every page, scoped to `:root` and the two
-  document-level scheme attributes. §4a's override changes which theme, never
-  how many. ~~`theme/themes.tsv`: "a page or folder can override with `theme:`
-  in frontmatter"~~ — **struck 2026-08-07, never true, nothing ever read that
-  key.** Recorded rather than deleted because it was read as a feature and
-  planned against, which is what a promised extension point costs.
+- **A theme is a property of the REPO, and a PAGE may override it** *(ruled
+  2026-10-11)*. The site's `site.yml` names the theme every page under it wears;
+  a page naming its own `theme:` gets its own stylesheet inlined last on that
+  page, which beats both the site theme and the instance's `theme.css`
+  (`docrender/pagetheme.py`, shipped 2026-09-28). §4a's one-build override is a
+  third and separate lever: it changes which theme the whole site wears for one
+  run. 🪦 This entry read *"not of a page or a folder"* until 2026-10-11, and
+  struck `theme/themes.tsv`'s frontmatter promise as **"never true, nothing ever
+  read that key"** — the promise was EARLY, not false, and the correction
+  outlived the thing it was correcting by six weeks. ⚠️ **Per-FOLDER theme
+  remains unbuilt and is now moot**: the content trees are flattening into one
+  `REPO_PAGES` folder, so per-page is what is left of folder inheritance.
 - **One `nav: expanded` anywhere turns `navigation.prune` off for the whole
   site.** Not a bug and not negotiable: a pruned nav renders no children for
   any section the reader is not already inside, so expanding one would open an
