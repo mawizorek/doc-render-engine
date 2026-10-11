@@ -1,6 +1,6 @@
 # `!!! layout` — draw a FileMaker layout from its objects catalog
 
-⚠️ **SCOPED, NOT GREENLIT.** Indexed from `next-build-spec.md`. Same origin as `fmp-names.md`.
+✅ **DECISION-COMPLETE, NOT YET BUILT.** R1–R4 accepted as recommended 2026-10-11 (DL J33). Indexed from `next-build-spec.md`. Same origin as `fmp-names.md`.
 
 > Michael, 2026-10-11: *"If this is how you want to communicate schemas to me, we have to build our renderer to create them rather than providing loose collections of artifacts."*
 
@@ -50,9 +50,9 @@ Each `header:` / `body:` / `footer:` line is one grid row in that part. Area nam
 
 New page type with `data_slots: [objects]`. Side effect, free: the `layout` marker's name now matches a type, so `markerlinks.py`'s type check switches on for `@layout:` links without a code change.
 
-## Rulings needed (recommendations in bold)
+## Rulings (all accepted as recommended, 2026-10-11, DL J33)
 
-| # | Question | Recommend |
+| # | Question | Ruled |
 |---|---|---|
 | R1 | Neutral wireframe or painted in the layout's theme | **Neutral in v1.** Painting means resolving FMP theme vectors into page CSS, and that's `scoped-theme.md` territory. |
 | R2 | Geometry | **Areas only, no pixel coordinates.** The DDR has no geometry (STATE says so); inventing coordinates would be a claim the file can't back. |
