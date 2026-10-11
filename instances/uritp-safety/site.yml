@@ -57,14 +57,11 @@ content_branch: main
 # check is not a courtesy -- the resolver reads slugs FIRST, so an alias equal
 # to another site's slug silently publishes the wrong site.
 #
-# ⚠️ AND AS OF 2026-10-11 A SIBLING DOES DECLARE IT, which does NOT break the
-# sentence above but narrows it. `instances/uritp/site.yml` now carries
-# `peers: { safety: ... }`, so `safety` is a PEER PREFIX on that site as well as
-# an alias here. The two namespaces are separate -- `publish` resolves aliases,
-# `links.py` resolves peer prefixes -- and the word was chosen there precisely
-# because it is the one this site already answers to. 🚩 What is no longer true
-# is that it is unclaimed: renaming this alias now also means editing that
-# peer block, or every `@safety:` link in the other tree stops resolving.
+# ⚠️ UNCLAIMED STOPPED BEING TRUE ON 2026-10-11. `instances/uritp/site.yml` now
+# uses `safety` as a PEER PREFIX (separate namespace from aliases, and chosen
+# there because it is the word this site already answers to). 🚩 Renaming this
+# alias now means editing that peer block too, or every `@safety:` link in the
+# other tree stops resolving.
 aliases: [safety, uritp-safety-docs, "URITP Safety"]
 
 # =============================================================================
@@ -347,35 +344,28 @@ edit_links: false
 # page needing something from `uritp-docs` is a signal that the thing has not
 # been filtered yet, not a signal that it needs a link.
 #
-# =============================================================================
-# ⭐ AND AS OF 2026-10-11 THE TRAFFIC RUNS THE OTHER WAY. THE REFUSAL STANDS.
-# =============================================================================
-# `instances/uritp/site.yml` now declares `peers: { safety: ... }`, on Michael's
-# ruling: *"so how would i call out something in the safety repo from the uritp
-# docs repo? i want to do more of this instead of adding the full link."*
+# ⭐ AND AS OF 2026-10-11 THE TRAFFIC RUNS THE OTHER WAY, ON MICHAEL'S RULING:
+# *"so how would i call out something in the safety repo from the uritp docs
+# repo? i want to do more of this instead of adding the full link."*
+# `instances/uritp/site.yml` now declares `peers: { safety: ... }`.
 #
 # ⭐ THAT IS THE SAME FILTER RUNNING FORWARDS, which is why it needed no argument
-# while the reverse needs this paragraph. A workshop page pointing at the adopted
+# while the reverse needs this paragraph: a workshop page pointing at the adopted
 # standard is the workshop deferring to the finished thing. The refusal above is
-# about the opposite move and is UNCHANGED. 🚫 Do not read a declared peer over
-# there as a reason to add one here, and do not "tidy" the asymmetry: the
-# asymmetry IS the filter.
+# about the opposite move and is UNCHANGED. 🚫 A declared peer over there is not a
+# reason to add one here, and the asymmetry is not untidiness -- it IS the filter.
 #
-# 🔴 WHAT IT COSTS THIS TREE, AND IT IS THE PART WORTH KNOWING HERE: **this
-# site's page ids are now load-bearing for another site's build.** A renamed id,
-# a page dropped to `status: hidden`, or a deleted file renders a broken
-# reference in `uritp-docs` -- reported THERE, under "Cross-site index problems",
-# and visible nowhere on this site at all.
+# 🔴 WHAT IT COSTS THIS TREE: **this site's page ids are now load-bearing for
+# another site's build.** A renamed id, a page dropped to `status: hidden` or a
+# deleted file renders a broken reference in `uritp-docs` -- reported THERE,
+# under "Cross-site index problems", and visible nowhere on this site.
 #
-# ⚡ And resolution is at BUILD time against this site's published
-# `doc-index.json`, so the breakage does not appear when the id changes; it
-# appears whenever `uritp` next builds, which may be days later and in somebody
-# else's session. `instances/uritp/xref-cache.json` holds the last known good
-# index, which is exactly why that file is committed.
-#
-# ⚠️ THIS DOES NOT LOOSEN THE CONTENT LAW AT THE TOP OF THIS FILE. Agents still
-# read and audit this tree and never commit to it. An inbound link is not a
-# reason to edit a page here; it is a reason to be careful about renaming one.
+# ⚡ Resolution is at BUILD time against this site's published `doc-index.json`,
+# so the breakage does not appear when the id changes; it appears whenever
+# `uritp` next builds, possibly days later in somebody else's session.
+# `instances/uritp/xref-cache.json` holds the last known good index, which is
+# exactly why that file is committed. An inbound link is not a reason to edit a
+# page here; it is a reason to be careful about renaming one.
 
 # NO `routes.yml` in this folder, and the engine is fine with that: `_uses_router`
 # reads the file if it exists and answers False when it does not, so neither
