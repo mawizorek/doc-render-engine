@@ -1,6 +1,6 @@
 # `@fmp:` — a FileMaker name written once, rendered everywhere
 
-✅ **DECISION-COMPLETE, NOT YET BUILT.** R1–R5 accepted as recommended 2026-10-11 (DL J33). Indexed from `next-build-spec.md`. Born on the URITP Budget notes build (`uritp-docs` `uritp-budget/`), session task in ClickUp: *Dexter + Fiona ↔ Frank · FileMaker XML → compact app-state render*.
+✅ **BUILT 2026-10-11** in [`docrender/fmpnames.py`](../docrender/fmpnames.py) via [`hooks/02b_fmpnames.py`](../hooks/02b_fmpnames.py) (#300, tests in `tests/test_fmpnames.py`). ⏳ **Not yet run on a real `uritp-docs` publish.** R1–R5 accepted as recommended 2026-10-11 (DL J33). Indexed from `next-build-spec.md`. Born on the URITP Budget notes build (`uritp-docs` `uritp-budget/`), session task in ClickUp: *Dexter + Fiona ↔ Frank · FileMaker XML → compact app-state render*.
 
 > Michael, 2026-10-11 (paraphrased): an update to schema or field names must not scatter through too many notes.
 
@@ -58,10 +58,18 @@ That turns "search the folder for the old name" into a list the build hands you.
 
 ## Build notes
 
-- New module `docrender/fmpnames.py`, claims `@fmp:` at import with `anchors=True, opts=True` (prefixes.py ladder). Hook slot after `03c_markerlinks`.
+- New module `docrender/fmpnames.py`, claims `@fmp:` at import with `anchors=True, opts=True` (prefixes.py ladder).
 - Reads catalogs in `on_files`, never at import (prefixes.py timing rule).
 - `markers.py` is at the size ceiling: import `table()` and `LINK_CLASS` only, same seam `markerlinks.py` uses.
 - Nothing here can fail a build.
+
+### ⚠️ As built, where it differs from the text above (the code wins)
+
+1. **Hook slot is `02b`, before `03_links`, not after `03c_markerlinks`.** The drift scan has to see raw markdown, before link rewriting turns `@fmp:` refs into HTML and hides what was hand-spelled. Resolution still goes through the shared prefix ladder, so order does not change what renders.
+2. **Drift lines land in the existing `notes` bucket, prefixed `names:`**, not a new `names` bucket. A new bucket costs edits in both `state.reset` and `report._LABELS`; one prefix costs neither. Promote it when the line count justifies its own heading.
+3. **`kind` is inferred from the key letter** (`t f c r s l v g`) when the column is blank; a written `kind` that disagrees with the letter is reported.
+4. **`new` renders soft and shows `proposed`** (the name being introduced), rather than the bare `tbc` shape.
+5. ⚠️ **Known gap, unguarded:** a key whose last segment is a data/image suffix (e.g. `f.x.md`) is refused by `links.py`'s token rule before this module sees it. Don't key that way.
 
 ## 🅿️ Futures
 
