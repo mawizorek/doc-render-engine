@@ -301,8 +301,50 @@ sections:
 # The cross-site contract, pointed at a site that is ACTUALLY LIVE. This is the
 # first real test of `@peer:id` against a published doc-index.json rather than
 # against a hypothetical.
+#
+# =============================================================================
+# ⭐ `safety` ADDED 2026-10-11, ON MICHAEL'S RULING
+# =============================================================================
+# > *"so how would i call out something in the safety repo from the uritp docs
+# > repo? i want to do more of this instead of adding the full link."*
+#
+# The mechanism was already built and already INLINE; the only missing piece was
+# this line. `[the lockout policy](@safety:policy-lockout)` now resolves by id,
+# is checked at build, and wears the `.docrender-xref` arrow -- replacing a
+# pasted absolute URL, which is checked by nothing and dies silently when the far
+# end moves.
+#
+# ⭐ THE PREFIX IS A NAME THAT SITE ALREADY ANSWERS TO rather than a new coinage:
+# `safety` is the first entry in its own `aliases:` list, chosen there because it
+# is "what anybody will actually type." ⚠️ A peer slug may not collide with a
+# marker link prefix (`rel`, `calc`, `vl`, `script`, `layout`, `alias`, `term`,
+# `data`, `img`) -- the prefix wins and every link to that peer stops resolving.
+# Checked: no collision, and the list GROWS with a data edit, so re-check before
+# adding a peer rather than assuming.
+#
+# 🔴 THE PEERING IS ONE-DIRECTIONAL ON PURPOSE AND MUST STAY THAT WAY.
+# `instances/uritp-safety/site.yml` carries a written refusal of the reverse, and
+# it is a judgement rather than an oversight: a page THERE pointing back here
+# would send *"a reader who came for the adopted standard into the draft it was
+# filtered out of. That is the one direction this repo exists to prevent."*
+#
+# 🚫 SO DO NOT MAKE THIS MUTUAL TO TIDY THE ASYMMETRY. The asymmetry IS the
+# filter. This direction is workshop -> adopted standard, which is the filter
+# running the right way round; the other is the filter running backwards. The
+# same file adds the corollary: a safety page needing something from here is a
+# signal that the thing has not been filtered yet, not a signal that it needs a
+# link.
+#
+# ⚠️ AND IT MAKES THAT REPO'S PAGE IDS LOAD-BEARING FOR THIS BUILD, which is a
+# new constraint on a tree agents may never commit to. A renamed or unpublished
+# id over there renders a broken reference HERE, reported under "Cross-site index
+# problems" rather than on that site at all. ⚡ Resolution is at BUILD time
+# against its published `doc-index.json`, so a rename stays wrong until this site
+# rebuilds; `xref-cache.json` holds the last known good index, which is why it is
+# committed.
 peers:
   template: https://mawizorek.github.io/doc-render-engine/
+  safety: https://mawizorek.github.io/uritp-safety/
 
 # Full leak scan, no opt-out. "uritp" is a proper noun that appears nowhere in
 # the engine's code, objects, theme or assets, so the check is both safe to run
