@@ -58,6 +58,9 @@ The other chains:
   declaration on a hidden page is still broken.
 - `02` prunes before `03` indexes, because otherwise a link to a hidden page
   resolves cleanly to a URL that 404s for every reader.
+- `02b` scans each page for hand-typed FileMaker names before `03` rewrites
+  `@fmp:` references into names. After `03`, it would report its own output on
+  every page. The `@fmp:` claim itself is position-free (import time).
 - `01d` emits marker syntax before `03b` renders it, or the token audit page
   ships its specimens as literal text.
 - `09` runs last because it describes the finished site.
