@@ -23,6 +23,16 @@
 # they all carry their lede positionally. That is the migration worklist, not a
 # regression. Nothing fails; the build warns and publishes. See
 # docrender/lede.py for why there is deliberately no positional fallback.
+#
+# 🔴 AND THE README DISAGREES WITH THIS FILE ABOUT IT, FOUND 2026-10-10.
+# README.md says every page must have `id`, `title`, `status` -- three, not
+# four. template-docs/authoring/index.md agrees with THIS file ("every page
+# needs `status` and `summary`"), so the count is 2-1 and the README is the
+# outlier. Flagged rather than fixed: which file is authoritative about the
+# contract is Michael's to rule, and a passing commit is not allowed to settle
+# it by side effect. Live counter-example in the tree, siding with the README:
+# uritp-docs/doc-specs/index.md carries no `summary`. Open as Q-block material
+# on the Authoring Contract decision log.
 
 type: _base
 label: Page
@@ -70,6 +80,36 @@ optional:
                  # quoted `"2026-08-07"` is the way to keep it text.
   - order        # sort weight in the sidebar. Absent sorts alphabetically.
   - theme        # skin override. A page beats its folder on LOOK.
+                 #
+                 # 🔴 THREE SOURCES, THREE ANSWERS, FOUND 2026-10-10. README.md
+                 # says "There is no `theme:` key, and there never has been."
+                 # template-docs/authoring/frontmatter.md shows `theme: utility`
+                 # as an optional field. next-build-spec.md marks page-level
+                 # theme BUILT 2026-09-28 (specs/scoped-theme.md), with folder
+                 # inheritance not built. Forbidden, optional and shipped are
+                 # not the same instruction, and an author cannot act on any of
+                 # them. NOT resolved here -- flagged on the Authoring Contract
+                 # decision log, because picking a winner in a contract dispute
+                 # is not something a declaration commit gets to do quietly.
+  - router       # a soft code that routes someone to this page if they know it.
+                 # Mechanism and limits: docrender/router.py, and
+                 # template-docs/authoring/routers.md for the author-facing
+                 # version. Soft, never a lock.
+                 #
+                 # ⭐ DECLARED 2026-10-10 ON MICHAEL'S RULING: "anything that is
+                 # purely per-page would get added to the front matter, so
+                 # routers are front matter." The key is per-page by nature --
+                 # one code, one destination -- so there is nowhere else it
+                 # could honestly live.
+                 #
+                 # ⚠️ AND IT WAS THE `data:` DEFECT AGAIN, EXACTLY. router.py
+                 # has honoured this key since it shipped, routers.md teaches it
+                 # to authors, and uritp-docs/doc-specs/index.md runs `router:
+                 # pm` live -- while NO type had ever declared it. That is the
+                 # first of the two directions of drift named under `data:`
+                 # below: the engine honouring an undeclared key. Found by a
+                 # documentation review reading the tree against the contract,
+                 # not by anything in the build.
   - related      # ids, not paths
   - xref         # peer:id references to sibling sites
   - source       # where the facts came from
@@ -120,6 +160,17 @@ optional:
                  # nothing. Both are the declaration and the behaviour drifting
                  # apart, and neither is visible from the page.
                  #
+                 # 🔴 THE FIRST DIRECTION HAPPENED AGAIN AND WENT UNCAUGHT FOR
+                 # LONGER: `router:` was live in the engine, in the authoring
+                 # docs and in a content repo, and undeclared here until
+                 # 2026-10-10. Two instances of one shape means the gap is
+                 # structural, not an oversight -- nothing reconciles this list
+                 # against the keys the modules actually read, and nothing can,
+                 # because `optional` is never loaded (see below). The honest
+                 # fix is a build-time sweep of frontmatter keys against the
+                 # union of every type's lists, reporting both directions.
+                 # Candidate home: specs/authoring-lint.md.
+                 #
                  # WHICH slots are legal is `data_slots` below, per type.
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -140,6 +191,15 @@ optional:
 # `reference`, whatever it is genuinely about, which frontmatter.md explicitly
 # blesses -- therefore still sets the site-wide sidebar default while carrying a
 # type that never lists the key. The type system cannot see that relationship.
+#
+# ⚠️ AND THE SIDEBAR IS ABOUT TO MATTER LESS, WHICH CHANGES WHAT THIS KEY IS
+# FOR RATHER THAN RETIRING IT (2026-10-10, Michael). The content trees are being
+# FLATTENED -- pages consolidating into one REPO_PAGES folder addressed by slug
+# id, with layout coming from the renderer and binder specs "as opposed to using
+# GitHub document trees", explicitly to stop maintaining so many index files.
+# A key whose entire subject is what a FOLDER does in the sidebar has fewer
+# folders to speak for every week. 🚫 Not deprecated and not touched: nothing
+# has retired index pages, and guessing at that would be worse than waiting.
 #
 # ⚠️ Nothing in this file or index.yml VALIDATES any of it. objects.py checks
 # `requires` and never reads `optional`, so these lists are the record a reader
