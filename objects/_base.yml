@@ -111,6 +111,29 @@ optional:
                  # documentation review reading the tree against the contract,
                  # not by anything in the build.
   - related      # ids, not paths
+                 #
+                 # ⭐ AND SINCE 2026-10-11 AN ENTRY MAY CARRY ITS OWN TEXT, as a
+                 # single-key mapping. Both forms parse, in any mix:
+                 #
+                 #     related:
+                 #       - frontmatter: the header contract, and the
+                 #           away-from-the-page rule
+                 #       - audit
+                 #
+                 # The text says why THIS page points THERE, and is rendered as
+                 # a parenthetical after the link. 🚫 It is NOT the destination's
+                 # `gloss:` above and must not be folded into it: a gloss
+                 # belongs to the page being linked and says one thing
+                 # everywhere, while this belongs to the relation and differs
+                 # per source. Proof in template-docs -- markers.md calls
+                 # Routers "the other inline tool, for routing rather than
+                 # confidence" and routers.md calls Markers "the other inline
+                 # tool, for confidence rather than routing". Same edge,
+                 # opposite directions, one destination gloss cannot say both.
+                 #
+                 # ⚠️ QUOTE THE TEXT IF IT CONTAINS A COLON. YAML's rule, not
+                 # ours, and the one sharp edge in the syntax. Reader, the
+                 # argument and the refused alternatives: docrender/related.py.
   - xref         # peer:id references to sibling sites
   - source       # where the facts came from
   - keywords     # other words for this thing: [genie, personnel lift, MEWP]
@@ -173,9 +196,9 @@ optional:
                  #
                  # WHICH slots are legal is `data_slots` below, per type.
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # 🚫 `nav:` IS NOT HERE, AND THE ABSENCE IS THE DECLARATION.
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 #
 # It lives on `index.yml` alone, because what a folder does in the sidebar is a
 # fact about the FOLDER and the index page is the only page that can speak for
@@ -206,9 +229,9 @@ optional:
 # consults, not a gate. Said plainly because a declaration that looks like
 # enforcement is worse than an honest gap.
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # DATA SLOTS -- the vocabulary of table names a page may carry.
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 #
 #     data:
 #       inventory_table:
@@ -227,10 +250,10 @@ optional:
 # So a slot is a FIELD, visible to the type spec and reportable at build, for
 # the same reason the lede became one.
 #
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # ⭐ AN EMPTY LIST MEANS UNRESTRICTED. RULED 2026-08-06 BY MICHAEL: "empty means
 # anything goes."
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 #
 # A type declaring NO slots accepts ANY slot name. A type declaring some accepts
 # ONLY those. So `data_slots` is opt-IN to the closed vocabulary, not a wall that
