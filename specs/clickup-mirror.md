@@ -1,6 +1,6 @@
 # ClickUp mirror + strict write-back: the frontmatter you can see in a table view
 
-⚠️ **SCOPED 2026-10-11, NOT GREENLIT.** No build number, deliberately — see the numbering debt in [`../next-build-spec.md`](../next-build-spec.md). Decision history: **Authoring Contract (doc standard) — Decision Log**, `Q2` and `J5`.
+⚠️ **SCOPED 2026-10-11. DECISION-COMPLETE, NOT YET BUILT.** No build number, deliberately — see the numbering debt in [`../next-build-spec.md`](../next-build-spec.md). Decision history: **Authoring Contract (doc standard) — Decision Log**, `Q2`, `J5` and `J6`.
 
 🔴 **READ THIS FIRST: the one thing that makes a write-back safe is that it never writes to a branch anybody is serving.** Every write-back run opens a **pull request**. A run that goes wrong is an open PR with a diff in it; a run that goes wrong against `main` is indistinguishable from a run that went right. That is the entire safety argument, and every gate below is downstream of it.
 
@@ -34,7 +34,7 @@ and the amendment that turned this from a read-only mirror into a build:
 
 **Everything else — repo only, mirrored read-only.** `gloss`, `keywords`, `router`, `related`, `xref`, `data`, `order`, `indexed`, `revised`, `source`. Each is a judgment about one page, made by whoever is looking at that page.
 
-**`repo` — a mirror COLUMN, not a frontmatter key.** Michael wants it to sort by. It is derivable from which repo the file came from, so putting it in the file would be a value with two homes and no author. 🚫 Does not go in the contract.
+**`repo` — a mirror COLUMN, not a frontmatter key.** Michael wants it to sort by. It is derivable from which repo the file came from, so putting it in the file would be a value with two homes and no author. 🚫 Does not go in the contract. Ruled, `R3`.
 
 ## §4 The mirror
 
@@ -52,7 +52,7 @@ One ClickUp task per page. **Matched on `id`**, never on title and never on path
 4. **Surgical edits.** Rewrite the one `key: value` line inside the frontmatter block. 🚫 Never re-serialise the YAML — a round-trip through a YAML dumper reorders keys and strips every comment, and in this repo the comments are the documentation. Never touch the body. A key that is absent is inserted in the contract's declared order.
 5. **Blank never deletes.** An empty ClickUp field means *no opinion*, never *remove the key*. Deleting a key is a file edit.
 6. **Manual trigger only.** Same posture as `publish.yml`. 🚫 No cron, no on-change automation: this is the Derived Field Pattern's `Q2` (*what re-drives it*) across a runtime boundary, and that question has failed on four separate instances on that page, every time by a re-driver scoped to fewer events than the value had sources.
-7. **`status` gets no special case, because the PR already is one.** It is the engine's only hard gate and a bad value publishes work nobody cleared — but nothing reaches a built site until somebody merges, so the review IS the gate. ⚠️ Worth stating because it is the one key where "the PR catches it" is load-bearing rather than belt-and-braces.
+7. **A run that changes `status` says so in the PR TITLE**, not only in the diff. Ruled `R4`; reasoning there.
 
 ## §6 Gates before merge, each one empirical
 
@@ -74,7 +74,7 @@ One ClickUp task per page. **Matched on `id`**, never on title and never on path
 
 🔴 **The write-back is not a convenience, it is what keeps the ZIP guarantee true.** The moment a title is edited in ClickUp and the PR is never run, the file is stale and that green button hands somebody an old document. A read-only mirror has no such exposure. **Choosing to allow ClickUp edits is choosing to owe the write-back**, and an unrun write-back is a slow leak in §1 of the README rather than a missing nicety.
 
-⚠️ **`theme`-in-ClickUp-only makes the published look depend on ClickUp being readable at build time.** Fallback is graceful and must be: unreachable means the repo default renders, with a report line. 🚫 It must never fail the build — same posture as everything else in this engine.
+⚠️ **`theme`-in-ClickUp-only makes the published look depend on ClickUp being readable at build time.** Fallback is graceful and must be: unreachable means the repo default renders, with a report line. 🚫 It must never fail the build — same posture as everything else in this engine. Ruled `R5`.
 
 ⚠️ **Between a ClickUp edit and a merged PR, one value has two homes.** That window is unavoidable and it is *visible*, which is the only reason it is acceptable: an open PR is a thing you can see, unlike a sync that has not fired.
 
@@ -88,17 +88,43 @@ New `docrender/mirror.py` with a `docrender/mirror-dl.md` sidecar from day one �
 
 `report.py` gains a `mirror` bucket: every page mirrored, every file refused for drift, every key written.
 
-## §9 Rulings owed before code
+## §9 Rulings, RESOLVED 2026-10-11
 
-**R1.** Does the file carry a `cu:` pointer to its ClickUp task (Michael's draft shows `cu: MAW-2486`), or does the mirror hold the mapping? A `cu:` key is self-describing and survives a repo move; it is also a key that means nothing to a reader of the page, which is the test `frontmatter.md` applies to every field. **Recommend: no `cu:` key. Match on `id`,** which is already permanent and already the link contract.
+⚠️ **Ruled by Brain on Michael's explicit delegation** (*"Resolve the questions."*, 2026-10-11 17:31 ET). Each one states its reasoning so he can reverse any of them in a line. Two go against the recommendation that was on the table.
 
-**R2.** `header_info` is a NET-NEW key. It needs declaring in `objects/_base.yml`, legal values fixing, and an author-facing entry in `frontmatter.md`. What does it control, exactly — the rendered title block, the lede, or both?
+### R1 — 🚫 NO `cu:` KEY. The write-back matches on `id`.
 
-**R3.** Confirm `repo` is a mirror column only, per §3.
+His draft showed `cu: MAW-2486` in the frontmatter. **Refused**, and the reason generalises past this key: `id` is already permanent, already the inbound-link contract, and already the mirror's match key, so a `cu:` key is a **second join key for one relationship** — and two keys for one relationship is a thing that can disagree with itself. The Budget Code Mapper already ruled this shape once: *one* durable join key, *"match, never duplicate on re-import."*
 
-**R4.** Confirm `status` belongs on the write-back allowlist at all. §5.7 argues the PR covers it; the conservative alternative is leaving it repo-only.
+⭐ **The principle worth keeping: a derived pointer lives on the DISPOSABLE side, never in the durable source.** The mirror task carries the page's `id`; the page does not carry the task's. The mirror is regenerated every build and can be rebuilt from nothing, so a wrong pointer there costs one build. A wrong pointer committed into a content repo costs a migration.
 
-**R5.** Confirm the `theme`-unreachable fallback is *repo default renders plus a report line*, never a failed build.
+⚠️ Secondary, and it would have bitten eventually: a ClickUp task can be deleted and recreated, which silently invalidates a `cu:` value in a tracked file — the exact *"renamed key"* failure `objects.py` keeps a `_LEGACY_KEYS` list to catch, except unreportable, because nothing in the engine would know the id had gone stale.
+
+### R2 — `header_info` is a VISIBILITY SWITCH over the title and the lede TOGETHER. Legal values `shown` (default) and `hidden`.
+
+Michael answered this himself in the same draft and it is worth quoting, because it settles what the key is NOT: *"so the choice is actual whether to hide/show the title&summary versus what that content is."* So it controls **display, never content**, and it governs both as one unit — a page rendering a lede with no title above it is a layout nobody asked for.
+
+🔴 **AND IT MUST NOT TOUCH SEARCH OR `/doc-index.json`.** This is the `indexed:` trap arriving on a new key: three things in this engine are called an index, and `indexed: false` already means *only* the parent page's contents list. `header_info: hidden` means **one thing — the title block does not render on this page.** The `summary` still feeds the search result, still publishes to `/doc-index.json`, and still resolves `gloss_from_summary`. A key whose name sounds like metadata and whose effect is layout needs that said out loud, in `frontmatter.md`, before it ships.
+
+⚠️ Owed with it: a declaration in `objects/_base.yml`'s `optional:` list and an author-facing entry. 🚫 It must not ship as a key the engine honours and no type declares — that is the `data:` and `router:` defect, and it has now happened twice.
+
+### R3 — ✅ `repo` is a mirror COLUMN. Confirmed.
+
+It fails `frontmatter.md`'s own test in the most direct way available: **it is not a fact about the page at all**, it is a fact about where the page is stored. Every other key describes the document; this one describes the shelf. It is derivable from which repo the file came from, so writing it into the file creates a value with two homes and no author.
+
+### R4 — ✅ `status` GOES ON THE WRITE-BACK ALLOWLIST. 🔴 This reverses the earlier recommendation.
+
+The argument against it was real: `status` is the engine's only hard gate, and a bad value publishes work nobody cleared. **It loses anyway**, for a reason that only becomes obvious once the use case is named: *promoting a batch of pages from `hidden` to `public` from a table view is the single most likely reason to touch frontmatter from ClickUp at all.* Leaving `status` off the list makes the write-back a feature nobody reaches for, which means it does not get run, which — per §7 — is precisely how the ZIP guarantee rots.
+
+⭐ **The PR gate is genuinely sufficient here and it is worth being explicit about why.** Nothing reaches a built site until a human merges. A bad `status` in an open PR has published nothing. That is a stronger protection than an allowlist omission, because an omission can be edited away by anybody in one line while the merge step cannot.
+
+⚠️ **One new gate, added with the ruling:** a run that changes any `status` **names it in the PR title**, not only in the diff. A status flip is the only change in the allowed set that alters what the public can see, and a diff is something you have to open. Cheap, and it makes the one dangerous case the loudest thing about the run.
+
+### R5 — ✅ `theme` unreachable renders the repo default plus a report line. Never a failed build. Confirmed.
+
+Anything else creates a new coupling where a ClickUp outage takes down a documentation site, which is strictly worse than a page wearing the wrong skin for an afternoon. Matches the engine's founding posture after `--strict` froze the live site twice in forty minutes.
+
+⚠️ **The report line must name the page AND say why**, e.g. *"site theme used: ClickUp unreachable."* "Graceful" and "silent" are not the same thing, and a page quietly rendering a theme nobody chose is how the original three-way `theme` contradiction went unnoticed for two weeks.
 
 ## §10 Out of v1
 
@@ -115,3 +141,5 @@ Body content from ClickUp · the `!!! summary` callout whose content lives in th
 **A second ClickUp API client.** `view-snapshot.md` §9.
 
 **Committing the mirror as JSON in the repo.** A second claimant on `/doc-index.json`, which is the defect that retired `roster.json`, `registry.json` and `app-index.md`.
+
+**A `cu:` frontmatter pointer.** `R1`.
