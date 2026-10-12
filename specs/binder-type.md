@@ -1,6 +1,6 @@
 # binder type: a collection, split from program
 
-🚫 **Claims no build number, deliberately** (see `next-build-spec.md`). ⚠️ **SCOPED, NOT GREENLIT.** Workshop 2026-10-11 (Frank, Beckett, Rhys, Cleo, Finn, Skye, Enzo, Dexter, Anna), transcript on the ClickUp Agent Activity Board task *"Maestro Mira (Opus 5) · Workshop — binder vs program: the split, and bundles of programs · Oct 11"*. Supersedes `print-compose.md` §6 P1 and P2 once built.
+🚫 **Claims no build number, deliberately** (see `next-build-spec.md`). ✅ **DECISION-COMPLETE, NOT YET BUILT.** Every owed ruling landed 2026-10-11 (Michael, §10). Workshop 2026-10-11 (Frank, Beckett, Rhys, Cleo, Finn, Skye, Enzo, Dexter, Anna), transcript on the ClickUp Agent Activity Board task *"Maestro Mira (Opus 5) · Workshop — binder vs program: the split, and bundles of programs · Oct 11"*. Supersedes `print-compose.md` §6 P1 and P2 once built.
 
 > Michael, 2026-10-11: *"what if i want to assemble a bundle of programs. like the scene shop technical director should have a binder of programs or one off policies or pages that are relevant to them. wonder if we can develop the split?"*
 
@@ -17,6 +17,8 @@
 Why a type and not a flag (Frank): the test for a new type is BEHAVIOUR, not name. A training and a program behave identically, which is why `type: flow` was refused. A binder and a program do not: one owns a reading order and draws a strip on every member, the other must never touch either. A flag that switches off half a type is worse than a type. `binder.py`'s own docstring pre-authorised this: *"If a binder ever needs to be print-only, that is a new type, not a flag on this one."*
 
 ## §2 Author surface
+
+⚠️ **Illustrative.** The Scene Shop TD binder was an example, not an owed page (Michael, 2026-10-11).
 
     ---
     id: binder-scene-shop-td
@@ -63,7 +65,7 @@ No new key. `chain:` is the one list and `nav.declared()` the one resolver, now 
 
 **B10 · Leak and emptiness rules are inherited unchanged.** Public members only, refused and named. Zero resolved members means not offered and reported.
 
-**B11 · Cross-site: OPEN.** Chains resolve per site. `uritp-docs` and `uritp-safety` build separately, so a binder can bundle only pages built on its own site. `xref`/`@peer:id` bundling is OUT of v1. ⏳ **Michael's ruling owed:** which site hosts the Scene Shop TD binder.
+**B11 · Cross-site: RULED, same-site only in v1.** Chains resolve per site; a binder bundles only pages built on its own site. No host decision is owed, because the TD binder was an example (Michael, 2026-10-11). `xref`/`@peer:id` bundling stays OUT of v1 and is named in §4.
 
 **B12 · "Copy as binder" emits `type: binder`.** `assets/printcompose.js` currently emits `type: program` + `binder: true`; it is a GENERATOR of the old shape and ships in the same PR (Enzo).
 
@@ -74,6 +76,7 @@ No new key. `chain:` is the one list and `nav.declared()` the one resolver, now 
 3. Expanding index pages.
 4. Per-role sites or sidebars.
 5. Auto-building any binder's list. Michael authors it.
+6. Cross-site bundling (B11).
 
 ## §5 Touch list (Finn)
 
@@ -87,37 +90,45 @@ No new key. `chain:` is the one list and `nav.declared()` the one resolver, now 
 8. `nav._stragglers`: skip binders, which cross folders by design (Enzo).
 9. `specs/authoring-lint.md`: add the type before that build, not after.
 
-## §6 Proposed classification (NOT RULED)
+## §6 Classification (RULED 2026-10-11)
 
-By §1's test. Each is Michael's call; the build flips nothing without it (Rhys).
+> Michael: *"propsoe clasifaitons hold"*
 
-- `uritp-docs` **binder-events**: binder (one guide per event, consulted when it comes up).
-- `uritp-docs` **binder-front-of-house-procedures**: binder. Box office policies are reference; FOH training already exists as `uritp-safety` program-foh-safety (ITPSAFE-1337), which is a chapter candidate only if B11 resolves.
-- `uritp-docs` **binder-show-program-playbill**: binder (a working tool). ⚠️ "show program" collides with the type name.
+By §1's test. Content changes ride the migration PRs after the engine lands, never before (a `type: binder` page on today's engine fails validation).
+
+- `uritp-docs` **binder-events**: binder.
+- `uritp-docs` **binder-front-of-house-procedures**: binder. Box office policies are reference. FOH training is `uritp-safety` program-foh-safety (ITPSAFE-1337), on the other site, so it is NOT a chapter here (B11).
+- `uritp-docs` **binder-show-program-playbill**: binder. ⚠️ "show program" collides with the type name.
 - `uritp-docs` **binder-inventories**: binder.
-- `uritp-docs` **program-psm-calling-station**: binder (reference at the station).
-- `uritp-docs` **program-asl-interpretted-performance**: program if a completion form is added, else binder.
+- `uritp-docs` **program-psm-calling-station**: binder (reference at the station). Slug keeps `program-`; slugs are immutable ids, so the mismatch is reported, not renamed.
+- `uritp-docs` **program-asl-interpretted-performance**: program if a completion form is added, else binder. Stays `type: program` until Michael adds a form or says otherwise.
 - `uritp-safety` **binder-emergency-handbook-spac**: PROGRAM (completion form ITPSAFE-1336). Drops the flag; slug stays.
 - `uritp-safety` **program-foh-safety**: program (form ITPSAFE-1337, packet). Drops the flag.
 - `uritp-safety` **binder-put-in-rehearsal**: binder.
 
 ## §7 Migration worklist (from code search, not a census)
 
-- `binder: true` on `type: program`: the eight files in §6 carrying it.
-- `binder: true` on `type: page`, already ignored by the engine today: `uritp-docs` event-tech-setup, event-tech-pre-flow, event-tech-sessions, event-dress-rehearsal, event-rehearsal-last-todd; `uritp-safety` program-emergency-response. Meaning unknown; Michael to say.
-- `binder: false`: `uritp-docs` program-asl-interpretted-performance, program-psm-calling-station.
-- ⚠️ A search for the WORD binder in `uritp-safety` also hit `app/index.md`, `index.md`, program-spac-access, program-rehearsal-proper-attire, program-general-safety-lx, program-general-safety-rehearsals, policy-documentation-pipeline. Not read; key vs prose unverified.
+- `binder: true` on `type: program`: the files in §6 carrying it. Binders switch type; programs drop the key.
+- `binder: true` on `type: page`: **REMOVE (Michael, 2026-10-11: *"bidner true can be remobved"*).** `uritp-docs` event-tech-setup, event-tech-pre-flow, event-tech-sessions, event-dress-rehearsal, event-rehearsal-last-todd; `uritp-safety` program-emergency-response. The engine already ignores them, so this cleanup can ship before the engine build.
+- `binder: false`: `uritp-docs` program-asl-interpretted-performance, program-psm-calling-station. Remove.
+- ⚠️ A search for the WORD binder in `uritp-safety` also hit `app/index.md`, `index.md`, program-spac-access, program-rehearsal-proper-attire, program-general-safety-lx, program-general-safety-rehearsals, policy-documentation-pipeline. Not read; key vs prose unverified. The migration PR reads each before touching it.
 
 ## §8 Not verified
 
 - `binder-show-program-playbill` chains `report-people-production`; its `views:` key is `report-people-production-staff`. Dead id or different namespaces; no build report read.
-- `binder-inventories`, `binder-events` vs `uritp-safety` first-aid overlap: not checked.
+- `binder-inventories`, `binder-events` vs `uritp-safety` first-aid overlap: not checked (now moot for prev/next under B5).
 - The composer itself has had no browser run since 2026-09-28 (`print-compose.md` §5).
 
 ## §9 Acceptance (Anna)
 
 1. Every live `binder:` key accounted for by name in the build report.
-2. Michael's per-page ruling on §6 recorded before any content file changes type.
+2. ✅ Michael's classification ruling recorded (§6).
 3. Test build: a binder reuses a General Safety policy; that policy keeps the PROGRAM's strip and navigation, and the binder's contents show it once.
 4. A binder naming a program, a face, an index, a binder and a dead id: expands, expands, stays single, refused, reported.
 5. B12 generator fix in the same PR as B1.
+
+## §10 Rulings log
+
+- 2026-10-11 · B11: the TD binder was *"an example"*; no host owed; v1 same-site only.
+- 2026-10-11 · §7: `binder: true` on pages *"can be removed"*.
+- 2026-10-11 · §6: *"proposed classifications hold"*.
