@@ -128,6 +128,14 @@ those pages' buttons, and a face claiming them second would only produce the
 Workshop 2026-09-28 (Frank: FOLD-IN, no new key). Spec: `specs/flow-context.md`.
 ⚠️ An alias of an alias is refused and reported: one hop, so a face always
 names the list it walks.
+
+=============================================================================
+📚 `type: binder` IS ABSENT FROM `declared()` BY CONSTRUCTION (2026-10-11)
+=============================================================================
+A binder speaks `chain:` but is a COLLECTION, not a path (`specs/binder-type.md`
+B5). `_apply` and `program.py` both read `declared()`, so skipping binders here
+is the whole navigation rule: no consumer has to remember it. Its resolver,
+expansion and reporting live in `docrender/collection.py`.
 """
 
 from __future__ import annotations
@@ -142,7 +150,13 @@ from . import state
 #: explicitly blesses, and navstate already reads the site root's `nav:` by
 #: filename for exactly this reason. A folder index typed `venue` still owns its
 #: folder's order.
+#:
+#: 🚫 `binder` IS NOT HERE ON PURPOSE. It speaks `chain:` too, but it owns a
+#: COLLECTION, not an ordering; `collection.binders()` is its resolver.
 _CHAIN_TYPES = ("index", "program")
+
+#: The collection type. `specs/binder-type.md`.
+BINDER = "binder"
 
 
 def _pages_in_order(items, out):
@@ -156,6 +170,15 @@ def _pages_in_order(items, out):
 
 def _meta(src):
     return state.BY_SRC.get(src, {}) or {}
+
+
+def _type(meta) -> str:
+    return str((meta or {}).get("type") or "").strip().lower()
+
+
+def is_binder(meta) -> bool:
+    """`type: binder`. Public: binder.py and packet.py ask the same question."""
+    return _type(meta) == BINDER
 
 
 def _folder(src):
@@ -207,7 +230,7 @@ def _owns_ordering(src, meta) -> bool:
     """May this page declare a `chain:`? See `_CHAIN_TYPES`."""
     if src.rsplit("/", 1)[-1] == "index.md":
         return True
-    return str((meta or {}).get("type") or "").strip().lower() in _CHAIN_TYPES
+    return _type(meta) in _CHAIN_TYPES
 
 
 def _alias_want(meta) -> str:
@@ -223,12 +246,12 @@ def aliases() -> dict:
     lists = {}
     for src, meta in state.BY_SRC.items():
         raw = (meta or {}).get("chain")
-        if isinstance(raw, list) and _owns_ordering(src, meta):
+        if isinstance(raw, list) and _owns_ordering(src, meta) and not is_binder(meta):
             lists[str((meta or {}).get("id") or "").strip()] = src
     out = {}
     for src, meta in state.BY_SRC.items():
         want = _alias_want(meta)
-        if want and _owns_ordering(src, meta) and lists.get(want):
+        if want and _owns_ordering(src, meta) and not is_binder(meta) and lists.get(want):
             out[src] = lists[want]
     return out
 
@@ -241,12 +264,15 @@ def declared(report: bool = True) -> dict:
     parsers for one vocabulary is the defect this repo keeps killing. It passes
     `report=False` so the complaints are written once, by the stage that owns
     the decision.
+
+    🚫 BINDERS ARE SKIPPED HERE, SILENTLY, because `binders()` owns and reports
+    them. See the docstring: this is how a binder stays out of navigation.
     """
     out: dict = {}
     pending: dict = {}
     for src, meta in state.BY_SRC.items():
         raw = (meta or {}).get("chain")
-        if raw is None:
+        if raw is None or is_binder(meta):
             continue
         if _alias_want(meta):
             if _owns_ordering(src, meta):
@@ -274,10 +300,21 @@ def declared(report: bool = True) -> dict:
                     src + " declares `chain:`, which is legal only on a page "
                     "that OWNS AN ORDERING -- a folder `index.md`, or a page "
                     "typed " + " / ".join("`" + t + "`" for t in _CHAIN_TYPES)
-                    + ". IGNORED, nothing was reordered.",
+                    + " -- or COLLECTS one, `type: binder`. IGNORED, nothing "
+                    "was reordered.",
                 )
             continue
-        ids = [str(i).strip().lstrip("@") for i in raw if str(i).strip()]
+        if report and any(isinstance(i, dict) for i in raw):
+            state.note(
+                "missing_required",
+                src + " `chain:` carries a `section:` entry, which is legal on "
+                "`type: binder` only. The entry is IGNORED; the ids around it "
+                "still wire.",
+            )
+        ids = [
+            str(i).strip().lstrip("@") for i in raw
+            if not isinstance(i, dict) and str(i).strip()
+        ]
         if ids:
             out[src] = ids
 
@@ -291,7 +328,8 @@ def declared(report: bool = True) -> dict:
                     "dead_links",
                     src + " declares `chain: \"@" + want + "\"`, and `" + want
                     + "` is not a page with a LIST `chain:` (an alias of an alias "
-                    "is refused). IGNORED -- this page walks nothing.",
+                    "is refused, and so is a binder). IGNORED -- this page walks "
+                    "nothing.",
                 )
             continue
         out[src] = list(out[target])
