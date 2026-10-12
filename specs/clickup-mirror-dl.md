@@ -201,3 +201,93 @@ Three consequences, all in the parent §4:
    create. 36 rows against 607 files in `uritp-docs` means the first run there
    creates hundreds of tasks, and a ClickUp task is harder to unwind than a
    branch.
+
+---
+
+## §D G0, RUN 2026-10-11: the measurement, and the prerequisite it found
+
+Michael, 2026-10-11: *"Run the eight template-docs acceptance tests"*. Criteria
+1–8 are all blocked — `clickuppull.py`, `mirror.py` and the write-back workflow
+do not exist, so there is nothing to run them against. **G0 is not blocked**, and
+it had never been run.
+
+One HTTP GET: `https://mawizorek.github.io/doc-render-engine/doc-index.json`.
+
+### ❌ Result: FAILED. Five keys, not seventeen.
+
+Every page entry carries exactly:
+
+```json
+{ "id": "frontmatter", "type": "page", "title": "Frontmatter",
+  "url": "authoring/frontmatter/", "status": "public" }
+```
+
+🔴 **`summary` IS NOT IN IT**, and that is the one that decides the gate. It is
+on the write-back allowlist (§3), it is the text a search result shows, and it is
+the field whose entire justification is that it has to exist AWAY from the page.
+Also absent: `order`, `revised`, `keywords`, `related`, `theme`, `gloss`,
+`indexed`, `source`, `data`, `router`.
+
+⭐ **So the mirror cannot be built from this file as published, and the fix is
+exactly what the gate said it would be:** widen `docindex.py` first, do not add a
+second extraction. That is now deliverable #1, ahead of `clickuppull.py`.
+
+⚠️ A caveat to carry into that work: a published key is a PUBLIC key. This file
+is served to anybody with the URL, and so is every sibling's. Widening it to
+carry `summary` is harmless — a lede is already on the page — but the same
+reasoning does not automatically extend to every field somebody later wants in a
+table view.
+
+### 🔴 And the file's own header was the bigger finding
+
+```
+"built": "2026-08-03T17:27:02Z",
+"engine_ref": "995448504f8da70409a9e092ed208a7bccd83623"
+```
+
+**The engine's gold-standard site has not been published since 3 August.** It
+lists **16 pages**; the repo carries **26 files with an `id:`**. The ten absent:
+
+`audit` · `authoring-images` · `callouts` · `data-tables` · `how-this-works` ·
+`markers` · `publishing` · `routers` · and the two `_template.md` placeholders
+(`kebab-case-forever`, `template`).
+
+⚡ **Eight of those are real pages that have never been published**, including
+`audit` — which `authoring/index.md` names under *"Start here"* — and
+`publishing`, the page that explains how to publish. The whole site is also
+missing the `related:` migration merged earlier the same day (#36).
+
+⚑ **A site that exists to prove the spec by building was two months behind the
+spec.** Its own `site.yml` says it *"breaks first and loudest, before any site
+with readers"*, and the same file already records the 2026-08-05 occasion when it
+broke first and SILENTLY instead. This is the third-party version of that: not
+broken, just not run. **Being the canary is not the same as being watched.**
+
+### What it changes in the pilot
+
+1. **Publish `template` before any mirror run.** Otherwise the first run creates
+   16 rows and silently omits ten pages, and nobody would notice from the
+   ClickUp side.
+2. **Criterion 2 was wrong as written** — *"tasks created equals files carrying
+   an `id:`"*. The mirror sources from `/doc-index.json`, so the denominator is
+   PUBLISHED pages. As written, a perfectly correct run reporting 16 against 26
+   files would have been recorded as a failure.
+3. ⭐ **The phantom-row worry resolves itself, in the mirror's favour.** The two
+   `_template.md` files carry ids (`kebab-case-forever`, `template`) and would
+   have produced junk rows under a file-walking design — the rival spec's
+   registration path had exactly that hole. Sourcing from the published index
+   means an unpublished file cannot create a row at all.
+4. **A free G7 fixture is already in the tree.** `_template.md` carries
+   `status: hidden | unlisted | public` and
+   `type: page | index | venue | space | standard | procedure | reference` as
+   literal strings — valid YAML, in neither vocabulary, and exactly the shape
+   the enum refusal has to catch. ⚠️ It also still teaches `xref:`, which is
+   read by nothing.
+
+### The method note worth keeping
+
+⚑ **A published artifact is a measurement surface, and this one answered a gate
+in a single unauthenticated GET.** The mirror had been designed against
+`/doc-index.json` across two sessions by two different sessions of mine, and
+neither had looked at it. 🚫 Do not scope a feature against a published file
+without fetching the file.
