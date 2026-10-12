@@ -43,7 +43,7 @@ and the amendment that turned this from a read-only mirror into a build:
 
 ## §4 The mirror
 
-Source is `/doc-index.json`, already published every build by `docindex.py` (stage 09). 🔴 **G0 RAN AND FAILED — it does not carry what this spec needs. See §6.**
+Source is `/doc-index.json`, published every build by `docindex.py` (stage 09). 🔴 **G0 RAN AND FAILED — §6.**
 
 One ClickUp task per page. **Matched on `id`**, never on title and never on path — titles repeat and paths move, which is the whole reason `id` exists.
 
@@ -66,7 +66,7 @@ One ClickUp task per page. **Matched on `id`**, never on title and never on path
 
 ## §6 Gates before merge, each one empirical
 
-**❌ G0 — RUN 2026-10-11, FAILED.** `/doc-index.json` carries **five** keys per page: `id`, `type`, `title`, `url`, `status`. §3 wants roughly seventeen, and **`summary` is among the missing** — an allowlisted write-back field, and the one whose entire purpose is to exist away from the page. 🔴 **Widening `docindex.py` is now deliverable #1, ahead of `clickuppull.py`.** Full measurement, and a prerequisite it turned up for §12: [dl §D](clickup-mirror-dl.md).
+**❌ G0 — RUN 2026-10-11, FAILED.** `/doc-index.json` carries **five** keys per page: `id`, `type`, `title`, `url`, `status`. §3 wants roughly seventeen, and **`summary` is among the missing** — an allowlisted write-back field. 🔴 **Widening `docindex.py` is now deliverable #1, ahead of `clickuppull.py`.** Measurement and the prerequisite it turned up: [dl §D](clickup-mirror-dl.md).
 
 **G1 — THE COLON, and this one has already drawn blood.** A summary typed in ClickUp containing `: ` must survive ClickUp → file → render. The YAML colon trap killed four course pages in `uritp-docs`, documented on `template-docs/authoring/data-tables.md`. Quote on write or refuse the value; **never emit a bare colon.** ⚠️ Widened 2026-10-11: YAML also reserves a leading backtick and a leading `@` at the head of a plain scalar, and three `related:` notes hit exactly that in the #36 migration. Quote on any of the three.
 
@@ -178,22 +178,20 @@ Body content from ClickUp · the `!!! summary` callout whose content lives in th
 
 > Michael, 2026-10-11: *"let's plan to test the sync with templates"*
 
-🔴 **PREREQUISITE, FOUND BY RUNNING G0: PUBLISH `template` FIRST.** Its live index was built **2026-08-03** and lists **16 pages against 26 files carrying an `id:`**. A mirror run today would create 16 rows and silently skip ten, `audit` among them — the page the authoring index tells people to start with. [dl §D](clickup-mirror-dl.md).
-
-Same pilot repo as the `related:` migration (#36), and the reasons are stronger here.
+🔴 **PREREQUISITE FROM G0: PUBLISH `template` FIRST.** Its live index was built **2026-08-03** and lists **16 pages against 26 files carrying an `id:`** — a run today creates 16 rows and skips ten, `audit` among them. [dl §D](clickup-mirror-dl.md).
 
 * ⭐ **Zero rows carry `Repo: template-docs`**, so a first run is a pure CREATE on a tree nobody reads rather than a merge into 24 hand-maintained `uritp-safety` rows. The dangerous path gets exercised where it is cheap.
-* Already a `Repo` dropdown option. **30 markdown files, zero PII, no readers** — the engine's own gold standard.
-* ⚠️ **4 of the 30 carry no `id:` and are the point:** `README.md` (no frontmatter), `theatre/index.md` and `theatre/stage-management/index.md` (**zero-byte**), `theatre/stage-management/callboard-headers.md` (body only). Each must be **refused by name** if it ever reaches the pull.
+* Already a `Repo` option. **30 markdown files, zero PII, no readers** — the engine's own gold standard.
+* ⚠️ **4 of the 30 carry no `id:` and are the point:** `README.md` (no frontmatter), `theatre/index.md` and `theatre/stage-management/index.md` (**zero-byte**), `theatre/stage-management/callboard-headers.md` (body only). Each must be **refused by name** if it reaches the pull.
 
 ### Pass criteria, in order
 
 1. **Dry run writing nothing**, reporting what it WOULD create per page.
-2. Tasks created equals **pages in `/doc-index.json`** — corrected 2026-10-11, this said *"files carrying an `id:"`* and would have failed a correct run. ⭐ Consequence: the two `_template.md` placeholders cannot make phantom rows, because they are never published.
+2. Tasks created equals **pages in `/doc-index.json`** — corrected 2026-10-11 from *"files carrying an `id:`"*, which would have failed a correct run. ⭐ So the two `_template.md` placeholders cannot make phantom rows: they are never published.
 3. **Re-run: zero created, zero changed, no PR.** Idempotency is the thing most likely to be wrong.
 4. Change one `title` in ClickUp → write-back → the PR touches exactly one line of one file, and the H1 mismatch is reported.
 5. Edit that file on `main` first, then write-back: **drift refusal fires**, the file is absent from the PR, the report names it (G4).
-6. Set a row's `PageStatus` to `draft` → **the value is refused and reported** (G7). File untouched, page still builds. ⭐ A free second fixture sits in the tree: `_template.md` carries `status: hidden | unlisted | public` and `type: page | index | venue | ...` as literal strings, in neither vocabulary.
+6. Set a row's `PageStatus` to `draft` → **the value is refused and reported** (G7). File untouched, page still builds. ⭐ Free second fixture: `_template.md` carries its `status:` and `type:` as literal option-lists, in neither vocabulary.
 7. A summary with `: `, one with a leading backtick, one with an emoji: all round-trip byte-identical (G1, G2).
 8. ClickUp unreachable at build → site renders from file frontmatter, report says so, exit code 0.
 
