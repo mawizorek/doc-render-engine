@@ -11,7 +11,7 @@
 | File in [`specs/`](specs/) | claims | Scoped | State |
 |---|---|---|---|
 | [`authoring-lint.md`](specs/authoring-lint.md) | 🚫 **none, deliberately** | 2026-10-09 | ✅ DECISION-COMPLETE, NOT YET BUILT · rulings 1–4 accepted 2026-10-09 (DL J32) · symptom scan on rendered HTML + 3 source checks → `authoring` (finding) + `authoring_notes` (inventory) buckets · born from the `uritp-docs` #205/#206 sweep |
-| [`binder-type.md`](specs/binder-type.md) | 🚫 **none, deliberately** | 2026-10-11 | ✅ DECISION-COMPLETE, NOT YET BUILT · `type: binder` = a collection, split from `program` (a path) · reuses `chain:`, `binder:` flag retires · programs expand one level, sections as chain mappings, never touches prev/next · same-site only (B11) · classification + page-flag removal ruled 2026-10-11 (§10) · supersedes `print-compose.md` §6 P1/P2 once built |
+| [`binder-type.md`](specs/binder-type.md) | 🚫 **none, deliberately** | 2026-10-11 | ✅ BUILT 2026-10-11 · `type: binder` kept out of `nav.declared()`, resolved by NEW [`docrender/collection.py`](docrender/collection.py) · presets by kind, binder packets, binder contents with sections · `tests/test_binder.py` · ⚠️ separator SHEETS not built (§11) · ⏳ first real run = next publish; content migration (§6/§7) not started |
 | [`build-report.md`](specs/build-report.md) | BUILD 2 | 2026-08-06 | 🔴 **PARTLY SHIPPED** — Pieces A and C are live; B unverified |
 | [`cards.md`](specs/cards.md) | 🚫 **none, deliberately** | 2026-09-28 | ✅ BUILT 2026-09-28 · live on the `uritp-docs` `app/` hubs |
 | [`chrome.md`](specs/chrome.md) | BUILD 5 ⚠️ | 2026-08-18 | ⚠️ SCOPED, NOT GREENLIT |

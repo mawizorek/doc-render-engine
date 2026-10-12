@@ -1,0 +1,45 @@
+# A BINDER: the thing somebody KEEPS and consults, out of order, for a role or
+# an event. Spec: specs/binder-type.md (2026-10-11).
+#
+#   program  completed in order and PROVED (a completion form). A path.
+#   binder   kept and consulted. No sign-off. A collection.
+#
+# The test: does somebody sign at the end? Program. Does somebody grab it
+# mid-call to look something up? Binder. A page with a completion form is a
+# program by definition, whatever it is called.
+#
+# ⭐ A TYPE, NOT A FLAG (Fold-in Frank). A training and a program behave the
+# same, which is why `type: flow` was refused. A binder and a program do not:
+# one owns prev/next and draws a strip on every member, the other must never
+# touch either. The old `binder: true` flag retires into this type (B2) and is
+# reported until it is gone.
+#
+# 🔴 NEVER NAVIGATION. docrender/nav.py `declared()` skips binders, so a binder
+# cannot claim a page's prev/next or draw a flow strip on it. Members keep
+# their programs' navigation.
+
+type: binder
+label: Binder
+extends: _base
+optional:
+  - chain         # THE COLLECTION, same key as `program` and `index`, resolved
+                  # by docrender/collection.py `expanded()`:
+                  #
+                  #     chain:
+                  #       - section: "Safety"          # a separator (B6)
+                  #         subtitle: "Completed first"
+                  #       - program-general-safety     # expands one level (B3)
+                  #       - policy-ladders             # one page
+                  #
+                  # A PROGRAM id opens into [its own page, then its chain]; its
+                  # page is the section's tab sheet (B7). An INDEX id stays one
+                  # page. A BINDER id is refused (one hop). A page reached twice
+                  # stays at its first appearance and the repeat is reported.
+                  #
+                  # ⚠️ SAME SITE ONLY (B11). Ids resolve against this build.
+                  # 🚫 No string form: a face of or as a binder is out of v1.
+  - export        # `export: [packet]`, the same closed kinds as `program`
+                  # (docrender/packet.py `_KINDS`). Prints the binder page, then
+                  # the expanded list. Section SHEETS are not printed yet.
+  - links         # the `@url:` registry, page-local.
+renders: []

@@ -5,6 +5,11 @@ The `chain:` vocabulary and its resolver belong to docrender/nav.py; the flow st
 belongs to docrender/program.py; the embedded form to docrender/forms.py. This module
 declares the `export:` key, names the artifacts, and draws the button.
 
+📚 SINCE 2026-10-11 A `type: binder` MAY ASK FOR A PACKET TOO (`specs/binder-type.md`
+B8): same closed kinds, its member list from `collection.expanded()` -- an expanded program
+contributes its own page (the tab sheet) and then its chain. Section separator SHEETS
+are not printed yet; a section is a contents heading only.
+
 =============================================================================
 🪦 THE HTML PACKET PAGE IS GONE (2026-08-31), AND THE CULL IS THE FEATURE
 =============================================================================
@@ -70,7 +75,7 @@ from __future__ import annotations
 
 import html as _html
 
-from . import nav, state
+from . import collection, nav, state
 from .util import relative_url
 
 #: The export kinds this engine knows. A CLOSED SET, on the `markers._SHAPES`
@@ -81,6 +86,10 @@ from .util import relative_url
 #: in `objects/program.yml` is a promise no code checks, and validation of both the
 #: KEY and its VALUES has to happen right here or nowhere.
 _KINDS = ("packet",)
+
+#: The types that may export. `program` (a reading order) and, since 2026-10-11,
+#: `binder` (a collection).
+_EXPORTERS = ("program", nav.BINDER)
 
 
 def _esc(text) -> str:
@@ -150,28 +159,34 @@ def page_pdf_uri(page_url: str) -> str:
 
 
 def wanted(report: bool = False) -> dict:
-    """`{program_src: [chain ids]}` for every program asking for a packet.
+    """`{src: [page ids]}` for every program or binder asking for a packet.
 
-    ⭐ THE CHAIN COMES FROM `nav.declared()`, WHICH IS THE WHOLE POINT: one vocabulary,
-    one resolver, three consumers. A second parse of `chain:` here would be the defect
-    this repo has retired three manifests over, and `nav.py` already refused a
-    program-specific `steps:` on the same ground.
+    ⭐ THE LIST COMES FROM `nav.py`, WHICH IS THE WHOLE POINT: one vocabulary, one
+    resolver. A program reads `nav.declared()`; a binder reads `collection.expanded()`, whose
+    page entries are already deduplicated (first appearance wins) and whose section
+    entries are dropped here because a separator sheet has no URL yet. A second parse
+    of `chain:` here would be the defect this repo has retired three manifests over.
     """
     chains = nav.declared(report=False)
+    binds = collection.binders(report=False)
     out = {}
     for src, meta in state.BY_SRC.items():
         if "packet" not in kinds(meta or {}, src, report=report):
             continue
-        if str((meta or {}).get("type") or "").strip().lower() != "program":
+        kind = str((meta or {}).get("type") or "").strip().lower()
+        if kind not in _EXPORTERS:
             if report:
                 state.note(
                     "missing_required",
-                    src + " asks for `export: packet` and is not `type: program`."
-                    " IGNORED -- a packet is a program's reading order, so there"
-                    " is nothing for it to collect.",
+                    src + " asks for `export: packet` and is not `type: program` or"
+                    " `type: binder`. IGNORED -- a packet is a program's reading order"
+                    " or a binder's collection, so there is nothing for it to collect.",
                 )
             continue
-        ids = chains.get(src)
+        if kind == nav.BINDER:
+            ids = [e["id"] for e in collection.expanded(src) if "id" in e] if src in binds else []
+        else:
+            ids = chains.get(src)
         if not ids:
             if report:
                 state.note(
@@ -345,8 +360,9 @@ def on_page_markdown(markdown, page, config, files):
         state.note(
             "dead_links",
             (src or "a page") + " uses `!!! export` and has no packet to export"
-            " (needs `type: program`, an `export:` kind and a live `chain:`)."
-            " The directive is left as text rather than drawing a dead button.",
+            " (needs `type: program` or `type: binder`, an `export:` kind and a"
+            " live `chain:`). The directive is left as text rather than drawing a"
+            " dead button.",
         )
         return markdown
     here = getattr(getattr(page, "file", None), "url", "")
