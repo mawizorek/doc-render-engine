@@ -1,6 +1,6 @@
 # binder type: a collection, split from program
 
-🚫 **Claims no build number, deliberately** (see `next-build-spec.md`). ✅ **BUILT 2026-10-11** (§11 lists what shipped and what did not). Every owed ruling landed 2026-10-11 (Michael, §10). Workshop 2026-10-11 (Frank, Beckett, Rhys, Cleo, Finn, Skye, Enzo, Dexter, Anna), transcript on the ClickUp Agent Activity Board task *"Maestro Mira (Opus 5) · Workshop — binder vs program: the split, and bundles of programs · Oct 11"*. Supersedes `print-compose.md` §6 P1 and P2.
+🚫 **Claims no build number, deliberately** (see `next-build-spec.md`). ✅ **BUILT 2026-10-11** (§11 lists what shipped and what did not). ✅ **CONTENT MIGRATED 2026-10-12** (§12). Every owed ruling landed 2026-10-11 (Michael, §10). Workshop 2026-10-11 (Frank, Beckett, Rhys, Cleo, Finn, Skye, Enzo, Dexter, Anna), transcript on the ClickUp Agent Activity Board task *"Maestro Mira (Opus 5) · Workshop — binder vs program: the split, and bundles of programs · Oct 11"*. Supersedes `print-compose.md` §6 P1 and P2.
 
 > Michael, 2026-10-11: *"what if i want to assemble a bundle of programs. like the scene shop technical director should have a binder of programs or one off policies or pages that are relevant to them. wonder if we can develop the split?"*
 
@@ -95,7 +95,7 @@ No new key. `chain:` is the one list; `nav.declared()` resolves reading orders a
 
 > Michael: *"propsoe clasifaitons hold"*
 
-By §1's test. Content changes ride the migration PRs, now that the engine has landed.
+By §1's test. Applied 2026-10-12 (§12).
 
 - `uritp-docs` **binder-events**: binder.
 - `uritp-docs` **binder-front-of-house-procedures**: binder. FOH training is `uritp-safety` program-foh-safety (ITPSAFE-1337), on the other site, so it is NOT a chapter here (B11).
@@ -106,24 +106,26 @@ By §1's test. Content changes ride the migration PRs, now that the engine has l
 - `uritp-safety` **binder-emergency-handbook-spac**: PROGRAM (completion form ITPSAFE-1336). Drops the flag; slug stays.
 - `uritp-safety` **program-foh-safety**: program (form ITPSAFE-1337, packet). Drops the flag.
 - `uritp-safety` **binder-put-in-rehearsal**: binder.
+- `uritp-safety` **program-general-safety-lx**, **program-general-safety-rehearsals**: programs by the ⭐ rule (forms ITPSAFE-1287, 1335; both `export: [packet]`, so both stay in the print menu). Found by the migration read, 2026-10-12. Drop the flag.
+- `uritp-safety` **program-spac-access**: stays `type: program` (default, no ruling). ⚠️ No form and no packet, so with the flag gone it LEAVES the print menu. Owed: a form, `export: [packet]`, or reclassify as binder.
 
-## §7 Migration worklist (from code search, not a census)
+## §7 Migration worklist ✅ DONE 2026-10-12
 
 - `binder: true` on `type: program`: the files in §6 carrying it. Binders switch type; programs drop the key.
 - `binder: true` on `type: page`: **REMOVE (Michael, 2026-10-11).** `uritp-docs` event-tech-setup, event-tech-pre-flow, event-tech-sessions, event-dress-rehearsal, event-rehearsal-last-todd; `uritp-safety` program-emergency-response.
 - `binder: false`: `uritp-docs` program-asl-interpretted-performance, program-psm-calling-station. Remove.
-- ⚠️ A search for the WORD binder in `uritp-safety` also hit `app/index.md`, `index.md`, program-spac-access, program-rehearsal-proper-attire, program-general-safety-lx, program-general-safety-rehearsals, policy-documentation-pipeline. Not read; key vs prose unverified. The migration PR reads each before touching it.
+- ✅ The WORD-search hits in `uritp-safety` resolved by a code search for the KEY (`"binder:"`): only program-spac-access, program-general-safety-lx and program-general-safety-rehearsals carried it. `app/index.md`, `index.md`, program-rehearsal-proper-attire and policy-documentation-pipeline are prose or links; untouched.
 - ⭐ The build report now lists every remaining `binder:` key under `missing_required`, so the worklist is falsifiable after the first publish.
 
 ## §8 Not verified
 
-- `binder-show-program-playbill` chains `report-people-production`; its `views:` key is `report-people-production-staff`. Dead id or different namespaces; no build report read.
+- ✅ Resolved 2026-10-12: `binder-show-program-playbill` chains `report-people-production`, which exists as `REPO_PAGES/report-people-production.md`. Its `views:` key `report-people-production-staff` is the embed's own name, a separate namespace. Not a dead id.
 - No MkDocs build was run. `tests/test_binder.py` passes against the real module code with stub `state`/`util`; `node --check` passes on `printcompose.js`. First real run = next publish.
 - The composer itself has had no browser run since 2026-09-28 (`print-compose.md` §5).
 
 ## §9 Acceptance (Anna)
 
-1. Every live `binder:` key accounted for by name in the build report. ✅ Built (B2 report); needs a publish to read.
+1. Every live `binder:` key accounted for by name in the build report. ✅ Built (B2 report); needs a publish to read. After §12 the expected count is zero.
 2. ✅ Michael's classification ruling recorded (§6).
 3. ✅ Test: a binder reuses a program's policy; the policy keeps the PROGRAM's navigation, and the binder's contents show it once.
 4. ✅ Test: a binder naming a program, an index, a binder and a dead id: expands, stays single, refused, reported. ⚠️ A face member is not in the test.
@@ -134,6 +136,7 @@ By §1's test. Content changes ride the migration PRs, now that the engine has l
 - 2026-10-11 · B11: the TD binder was *"an example"*; no host owed; v1 same-site only.
 - 2026-10-11 · §7: `binder: true` on pages *"can be removed"*.
 - 2026-10-11 · §6: *"proposed classifications hold"*.
+- 2026-10-12 · §7: *"do the migration"*.
 
 ## §11 As built (2026-10-11) and the deviations
 
@@ -142,3 +145,13 @@ By §1's test. Content changes ride the migration PRs, now that the engine has l
 3. **Section SEPARATOR SHEETS are not built.** A section draws as a `####` contents heading on the binder page and is carried in `binders.json`, but neither the packet nor the composer prints a separator sheet yet: a sheet needs a URL or a client-side render. Named follow-up.
 4. **A face member of a binder** (a binder listing a program's `@` face) expands as the face's target because `declared()` returns the target's ids; untested.
 5. **`binder.py` refuses non-public members only for binder presets**; program presets are already refused-and-named by `packet.py`, so a second line would double the report.
+
+## §12 Content migration (2026-10-12)
+
+Frontmatter only. `uritp-docs` #226 (replaced #225, which conflicted with Michael's 00:26 move of four binders into `REPO_PAGES/BINDER/`); `uritp-safety` #21.
+
+- → `type: binder`: binder-events, binder-inventories, binder-show-program-playbill, binder-front-of-house-procedures (all now under `REPO_PAGES/BINDER/`), program-psm-calling-station, binder-put-in-rehearsal.
+- Programs, flag dropped: program-asl-interpretted-performance, binder-emergency-handbook-spac, program-foh-safety, program-general-safety-lx, program-general-safety-rehearsals, program-spac-access.
+- Pages, flag dropped: the five `uritp-docs` event-* pages, `uritp-safety` program-emergency-response.
+
+Seen, not touched: the ASL program's chain carries a stray `-  v` entry; binder-inventories chains `inventory-lx`, which is not in `uritp-docs` REPO_PAGES. Both will surface as dead ids in the first build report.
