@@ -11,6 +11,11 @@ owns one thing: drawing a chain as a list where an author asks for one.
 Michael: *"i want `!!! chain "index"` to be able to render ...an index... of the
 pages in that chain. a SIMPLE index."*
 
+📚 ON A `type: binder` (2026-10-11, `specs/binder-type.md`) the list is
+`collection.expanded()`: a `section:` entry draws as a `####` heading (subtitle in
+italics under it), and a program's members draw NESTED under that program's own
+line -- the program is a chapter (Cleo, B7). Still markdown, still no CSS.
+
 =============================================================================
 ⚠️ THE ARGUMENT IS AN ID, NOT A MODE WORD -- AND `"index"` WAS THE WRONG SPELLING
 =============================================================================
@@ -82,7 +87,7 @@ from __future__ import annotations
 
 import re
 
-from . import nav, state
+from . import collection, nav, state
 from .util import relative_url, sub_outside_code
 
 #: `!!! chain` alone on a line, with an OPTIONAL quoted owner id.
@@ -106,6 +111,17 @@ def _owner_of(want_id: str, chains: dict) -> str:
     return ""
 
 
+def _row(target, here, mine, pid) -> str:
+    """One `1. [title](url)` line; the current page is bold and unlinked."""
+    tsrc = getattr(target.file, "src_uri", "")
+    title = str(_meta(tsrc).get("title") or getattr(target, "title", "") or pid)
+    if tsrc == mine:
+        # THE CURRENT PAGE, UNLINKED. See the docstring.
+        return "1. **" + title + "**"
+    url = relative_url(getattr(target.file, "url", ""), here)
+    return "1. [" + title + "](" + url + ")"
+
+
 def _list(owner_src, ids, page, by_id) -> str:
     """The chain as an ordered markdown list.
 
@@ -117,22 +133,9 @@ def _list(owner_src, ids, page, by_id) -> str:
     """
     here = getattr(page.file, "url", "")
     mine = getattr(page.file, "src_uri", "")
-    rows = []
-
-    for pid in ids:
-        target = by_id.get(pid)
-        if target is None:
-            continue
-        tsrc = getattr(target.file, "src_uri", "")
-        title = str(
-            _meta(tsrc).get("title") or getattr(target, "title", "") or pid
-        )
-        if tsrc == mine:
-            # THE CURRENT PAGE, UNLINKED. See the docstring.
-            rows.append("1. **" + title + "**")
-        else:
-            url = relative_url(getattr(target.file, "url", ""), here)
-            rows.append("1. [" + title + "](" + url + ")")
+    rows = [
+        _row(by_id[pid], here, mine, pid) for pid in ids if by_id.get(pid) is not None
+    ]
 
     if not rows:
         state.note(
@@ -148,8 +151,47 @@ def _list(owner_src, ids, page, by_id) -> str:
     return "\n".join(rows)
 
 
+def _binder_list(owner_src, page, by_id) -> str:
+    """A binder's contents: section headings, chapters, nested members.
+
+    ⚠️ A NESTED LINE IS INDENTED FOUR SPACES, Python-Markdown's list rule. A member
+    whose program line did not resolve still draws, one level in -- a gap the
+    report already names, never a guess at a parent.
+    """
+    here = getattr(page.file, "url", "")
+    mine = getattr(page.file, "src_uri", "")
+    out, drew = [], 0
+    for e in collection.expanded(owner_src):
+        if "section" in e:
+            out.extend(["", "#### " + e["section"]])
+            if e.get("subtitle"):
+                out.extend(["", "*" + e["subtitle"] + "*"])
+            out.append("")
+            continue
+        target = by_id.get(e["id"])
+        if target is None:
+            continue
+        out.append(("    " if e.get("via") else "") + _row(target, here, mine, e["id"]))
+        drew += 1
+    if not drew:
+        state.note(
+            "missing_required",
+            mine + ": `!!! chain` found the binder `" + owner_src + "` resolving to "
+            "NO built pages, so nothing was drawn.",
+        )
+        return ""
+    return "\n".join(out).strip("\n")
+
+
 def _render(src, want, page, files) -> str:
     chains = nav.declared(report=False)
+    binds = collection.binders(report=False)
+
+    # 📚 A BINDER FIRST: its own page, or one named by id.
+    bowner = _owner_of(want, binds) if want else (src if src in binds else "")
+    if bowner:
+        return _binder_list(bowner, page, nav._built(files)[0])
+
     if not chains:
         state.note(
             "notes",
@@ -165,8 +207,9 @@ def _render(src, want, page, files) -> str:
                 "dead_links",
                 src + ': `!!! chain "' + want + '"` names `' + want + "`, which is "
                 "not the id of any page declaring a `chain:`. Nothing was drawn. "
-                "The argument is an ID (a program or a folder index), not a mode "
-                'word -- write `!!! chain` bare to draw this page\'s own chain.',
+                "The argument is an ID (a program, a binder or a folder index), "
+                'not a mode word -- write `!!! chain` bare to draw this page\'s '
+                "own chain.",
             )
             return ""
     elif src in chains:
