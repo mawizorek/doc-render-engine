@@ -15,7 +15,7 @@
 | [`build-report.md`](specs/build-report.md) | BUILD 2 | 2026-08-06 | 🔴 **PARTLY SHIPPED** — Pieces A and C are live; B unverified |
 | [`cards.md`](specs/cards.md) | 🚫 **none, deliberately** | 2026-09-28 | ✅ BUILT 2026-09-28 · live on the `uritp-docs` `app/` hubs |
 | [`chrome.md`](specs/chrome.md) | BUILD 5 ⚠️ | 2026-08-18 | ⚠️ SCOPED, NOT GREENLIT |
-| [`clickup-mirror.md`](specs/clickup-mirror.md) | 🚫 **none, deliberately** | 2026-10-11 | ⚠️ SCOPED, NOT GREENLIT · two directions: mirror from `/doc-index.json` every build (disposable, regenerated) + write-back as a **PR only, never `main`** · `id` refused unconditionally; blob-SHA drift refusal instead of last-write-wins · R1–R5 owed · third caller of `clickuppull.py` (`view-snapshot.md` §5) · DL `Q2`/`J5` |
+| [`clickup-mirror.md`](specs/clickup-mirror.md) + [`-dl`](specs/clickup-mirror-dl.md) | 🚫 **none, deliberately** | 2026-10-11 | ⚠️ SCOPED, NOT GREENLIT · two directions: mirror from `/doc-index.json` every build (disposable, regenerated) + write-back as a **PR only, never `main`** · `id` refused unconditionally; blob-SHA drift refusal instead of last-write-wins · ✅ **R1–R5 RESOLVED 2026-10-11** · 🔴 **G7 added 2026-10-11: ClickUp `PageStatus`/`PageType` are NOT the engine's `status`/`type`** (2 of 5 and 1 of 18 values overlap), so `R4`'s allowlisted `status` would have written `status: draft` into files — mapping TSV per axis, write-back refuses an unmapped value, render degrades green · destination list named: `>REPO_PAGES` (36 rows, 18 fields, **not greenfield**) · 🔴 pilot = `template-docs`, 8 pass criteria, nothing runs on `uritp-docs` until all pass · third caller of `clickuppull.py` (`view-snapshot.md` §5) · DL `Q2`/`J5`/`J6` |
 | [`cols.md`](specs/cols.md) | BUILD 7 ⚠️ | 2026-08-31 | ⚠️ SCOPED, NOT GREENLIT |
 | [`contacts.md`](specs/contacts.md) | BUILD 11 | 2026-08-31 | ⚠️ SCOPED, NOT GREENLIT |
 | [`dialect-clean.md`](specs/dialect-clean.md) | BUILD 1 | 2026-08-04 | ⚠️ SCOPED, NOT GREENLIT |
@@ -54,6 +54,8 @@
 
 🔴 **AND THE COPIES WENT STALE, WHICH IS THE ARGUMENT RATHER THAN THE TIDINESS.** The deleted BUILD 5 block stated that `assets.py` registers **five** print sheets and that `print-identity.css` *"does not exist, so the letterhead never landed."* At HEAD there are **nine `print-*.css` files on disk** and `print-identity.css` is **16,106 B**. `print-packet.md` had already corrected it to eight and 13,155 B, and **that correction is stale too.** ⚑ *Three claimants, three different numbers, none of them right.* **Read `docrender/assets.py` for the registered set and the directory for what is on disk. Never read a spec's file table, this file included.**
 
+⚠️ **A STATE CELL IS THE SAME HAZARD AT SMALLER SCALE, PROVED ON THIS FILE 2026-10-11.** The `clickup-mirror.md` row read *"R1–R5 owed"* while the spec it points at had carried those rulings as RESOLVED since it was scoped, the same day. A state cell is a second claimant on a fact the spec owns. 🚫 It stays anyway, because an index with no state is a list of filenames — but **read the spec, not the cell, before acting on one.**
+
 ## ✅ What the index DOES own, because it belongs to no single spec
 
 ⚠️ **`build-report.md` (BUILD 2) → `scoped-theme.md` (BUILD 3): the only hard dependency.** BUILD 3's report page is a second caller of the renderer Piece C extracts into `report.py`. Building 3 first meant writing that renderer twice. ✅ **Piece C shipped first, exactly as recommended**, so this dependency is satisfied rather than pending.
@@ -70,3 +72,4 @@
 1. 🔴 **The numbering.** Named above. One ruling, then either every spec drops its number or a check enforces uniqueness. **Nothing else in this file can be trusted to stay true while two specs can share a name.**
 2. **`_LABELS` matches in both `report.py` and `sizecheck.py`** at HEAD, which `build-report.md` forbade in bold. ⚠️ **That is a grep, not a finding** — read both before concluding.
 3. **The `assets.py` split**, still named in `view-embed.md` §3 against a size that has since changed by 12 KB.
+4. ⚠️ **The 22KB read ceiling has no check, and it bit twice in one session (2026-10-11).** `instances/uritp-safety/site.yml` reached 22,177 B and `specs/clickup-mirror.md` reached 24,765 B, both caught only because the write tool reports a size. A file past the ceiling cannot be read whole, and a file that cannot be read whole cannot be safely rewritten — which is how `util.py` lost `relative_url` and every build died on ImportError. `sizecheck.py` is the obvious home.
