@@ -36,8 +36,8 @@ and the amendment that turned this from a read-only mirror into a build:
 
 ⚠️ **TWO OF THOSE TEN NEED A CORRECTION, FOUND 2026-10-11 AFTER THIS LIST WAS WRITTEN.**
 
-* **`xref` is read by NOTHING** — declared in `objects/_base.yml`, consumed by no module. Fourth instance of this engine's declared-but-unread defect, after `revised:`, `related:` and `router:`. Every code reference to the word is `.docrender-xref` (the class on a peer LINK), `xref-cache.json` or the `stale_xref` bucket. 🚫 A mirror column for it must be **labelled dead**, or the mirror is what makes a dead key look alive. Cross-site refs are written inline as `[label](@peer:id)` and nowhere else.
-* **`related` is no longer a flat list of ids** (#294): an entry may carry its own text, and that text describes the RELATION rather than either page. ⚠️ A column that flattens it to ids is **lossy and would not say so**. Mirror the rendered string or omit the column.
+* **`xref` is read by NOTHING** — declared in `objects/_base.yml`, consumed by no module. Fourth instance of the declared-but-unread defect, after `revised:`, `related:` and `router:`. Every code reference to the word is `.docrender-xref` (the class on a peer LINK), `xref-cache.json` or the `stale_xref` bucket. 🚫 A mirror column for it must be **labelled dead**, or the mirror is what makes a dead key look alive. Cross-site refs are written inline as `[label](@peer:id)` and nowhere else.
+* **`related` is no longer a flat list of ids** (#294): an entry may carry its own text, describing the RELATION rather than either page. ⚠️ A column that flattens it to ids is **lossy and would not say so**. Mirror the rendered string or omit the column.
 
 **`repo` — a mirror COLUMN, not a frontmatter key.** Michael wants it to sort by. It is derivable from which repo the file came from, so putting it in the file would be a value with two homes and no author. 🚫 Does not go in the contract. Ruled, `R3`.
 
@@ -49,11 +49,11 @@ One ClickUp task per page. **Matched on `id`**, never on title and never on path
 
 🔴 **THE DESTINATION LIST, NAMED HERE BECAUSE IT WAS NOT (2026-10-11), AND IT IS NOT GREENFIELD.** `>REPO_PAGES`, list `901329123131`, folder `ADD JOINS`, space `MAW Documents`. Measured the same day: **36 rows, 18 custom fields**, already holding `PageID`, `PageStatus`, `PageType`, `Repo`, `FileType`, `✍️ Edit Link`, `🌐 Published Link`, `GitHub Folder Name`. By `Repo`: `uritp-safety` 24, `uritp-docs` 6, **unset 6**.
 
-⚡ **So the first run on a real tree is a MERGE into hand-maintained rows, not a create.** Three consequences, none optional:
+⚡ **So the first run on a real tree is a MERGE into hand-maintained rows, not a create.**
 
 1. The 6 rows with no `Repo` match no source tree. **Refuse by name**; never guess.
-2. A hand-typed `PageID` matching no file is an ORPHAN row — report it. Same shape as G5 arriving from the other side.
-3. 🔴 **Pilot first (§12).** 36 rows against 607 files in `uritp-docs` means the first run there creates hundreds of tasks.
+2. A hand-typed `PageID` matching no file is an ORPHAN row — report it. G5's shape from the other side.
+3. 🔴 **Pilot first (§12).** 36 rows against 607 files in `uritp-docs` means hundreds of tasks created on the first run there.
 
 🔴 **Mirror columns are overwritten every build, and the list description has to say so.** Anything typed into one is gone at the next build. That is not a bug to fix later; it is what makes the mirror trustworthy, and a user who has not been told is a user who will lose work exactly once. ⚠️ On this list that warning is overdue rather than pre-emptive: the hand-maintained values above are exactly what a first run would overwrite.
 
@@ -84,33 +84,17 @@ One ClickUp task per page. **Matched on `id`**, never on title and never on path
 
 **G6.** Two tasks claiming one `id`: refuse both and report, matching `objects.py`'s existing `duplicate_id` posture (*"links to it are a coin flip"*).
 
-### 🔴 G7 — THE TWO VOCABULARIES ARE NOT THE SAME VOCABULARY (added 2026-10-11)
-
-Read off the live field definitions on `>REPO_PAGES`, not inferred:
+**🔴 G7 — THE ENUMS ARE NOT THE SAME ENUMS** (added 2026-10-11, read off the live fields rather than inferred):
 
 ```
-ClickUp PageStatus     draft  private  public  closed  unlisted
-engine status:         hidden  unlisted  gated  public
-
-ClickUp PageType       policy program privilege handbook guide role
-                       course form index media "Checklist | Table"
-engine type:           page index venue space standard procedure reference
+ClickUp PageStatus   draft private public closed unlisted
+engine status:       hidden unlisted gated public
+ClickUp PageType     policy program privilege handbook guide role course
+                     form index media "Checklist | Table"
+engine type:         page index venue space standard procedure reference
 ```
 
-**`status` overlaps on two values of five. `type` overlaps on one word out of eighteen.** Two taxonomies wearing similar names: ClickUp's are EDITORIAL categories (what kind of document is this), the engine's are RENDER contracts (what does this page draw, what does it require).
-
-⚡ **AND `R4` WALKS STRAIGHT INTO IT.** That ruling puts `status` on the allowlist so a batch can be promoted from a table view — and the field anybody would reach for is `PageStatus`, whose first option is `draft`. `status:` is the engine's only hard gate with no default: a page carrying an unknown value **is not built**. So the single most likely first use of this feature writes `status: draft` into a batch of files, those pages vanish, and every `@id` pointing at them renders a dead reference on pages nobody edited.
-
-🔴 Already in the data rather than hypothetical: `policy-emergency-contacts` carries PageType **policy** and file `type: page`.
-
-**The rule:**
-
-1. **A mapping table per axis, as DATA, not code.** ClickUp value → engine value, one TSV each. Deterministic sort by key, frozen column order, refuse on drift — the free transfers already granted by the FMP law's external-data-store convention.
-2. **The write-back REFUSES an unmapped value** and reports the row. It does not pass it through and it does not guess `public`. §5 rule 8.
-3. **On the render side an unmapped `status` makes the page `unlisted` and the build stays green**; an unmapped `type` falls back to `page` and is reported, already `objects.py`'s behaviour. Michael: *"i don't want to delay builds, but you are constantly breaking builds just because we find something."*
-4. **`PageType` and `type:` may legitimately disagree forever.** Different questions, many-to-one, and the row keeps the richer value.
-
-🚩 OPEN: whether `>REPO_PAGES` grows a second column for the render contract so the row carries both. Cleaner, one more hand-maintained column. Not decided.
+`status` overlaps on 2 values of 5, `type` on 1 word of 18. ⚡ `R4` puts `status` on the allowlist and the field anybody reaches for is `PageStatus`, whose first option is `draft`; an unknown `status:` **is not built**, so the most likely first use of this feature makes a batch of pages vanish and every inbound `@id` dead. Already true in the data: `policy-emergency-contacts` is PageType **policy**, file `type: page`. **Four rules:** (1) a mapping TSV per axis, data not code, refuse on drift; (2) the write-back refuses an unmapped value and reports it; (3) render side, unmapped `status` → unlisted and unmapped `type` → `page`, build green either way; (4) `PageType` and `type:` may disagree forever, many-to-one. Argument: [dl §B](clickup-mirror-dl.md).
 
 ## §7 What this costs, stated as a trade
 
@@ -142,7 +126,7 @@ His draft showed `cu: MAW-2486` in the frontmatter. **Refused**, and the reason 
 
 ⚠️ Secondary, and it would have bitten eventually: a ClickUp task can be deleted and recreated, which silently invalidates a `cu:` value in a tracked file — the exact *"renamed key"* failure `objects.py` keeps a `_LEGACY_KEYS` list to catch, except unreportable, because nothing in the engine would know the id had gone stale.
 
-✅ **RE-TESTED AND UPHELD 2026-10-11** against a rival design built on the opposite answer. The counter-case and why it loses: [`clickup-mirror-dl.md`](clickup-mirror-dl.md) §A.
+✅ **RE-TESTED AND UPHELD 2026-10-11** against a rival design built on the opposite answer. The counter-case and why it loses: [dl §A](clickup-mirror-dl.md).
 
 ### R2 — `header_info` is a VISIBILITY SWITCH over the title and the lede TOGETHER. Legal values `shown` (default) and `hidden`.
 
@@ -192,7 +176,7 @@ Body content from ClickUp · the `!!! summary` callout whose content lives in th
 
 **A `cu:` frontmatter pointer.** `R1`.
 
-🔴 **A `page-registry.md` spec with ClickUp as the AUTHOR** — written 2026-10-11, withdrawn unmerged on three collisions with this file. Full account, because it was coherent and should not be re-walked: [`clickup-mirror-dl.md`](clickup-mirror-dl.md) §A.
+🔴 **A `page-registry.md` spec with ClickUp as the AUTHOR** — written 2026-10-11, withdrawn unmerged on three collisions with this file. Full account, because it was coherent and should not be re-walked: [dl §A](clickup-mirror-dl.md).
 
 ## §12 PILOT: `template-docs` first, and it is not optional
 
@@ -201,8 +185,7 @@ Body content from ClickUp · the `!!! summary` callout whose content lives in th
 Same pilot repo as the `related:` migration (#36), and the reasons are stronger here.
 
 * ⭐ **Zero rows carry `Repo: template-docs` today**, so the first run is a pure CREATE on a tree nobody reads, rather than a merge into 24 hand-maintained `uritp-safety` rows. The dangerous path gets exercised where it is cheap.
-* **Already a `Repo` dropdown option**, so no field edit to run it.
-* **30 markdown files, zero PII, no readers.** The engine's own gold standard.
+* **Already a `Repo` dropdown option**, so no field edit to run it. **30 markdown files, zero PII, no readers** — the engine's own gold standard.
 * ⚠️ **4 of the 30 are the edge cases and they are the point:** `README.md` (no frontmatter), `theatre/index.md` and `theatre/stage-management/index.md` (**zero-byte**), `theatre/stage-management/callboard-headers.md` (body only). Each must be **refused by name**. A mirror that invents a row for a zero-byte file is the failure this pilot exists to catch.
 
 ### Pass criteria, in order
