@@ -15,9 +15,12 @@
  *
  * LINK LAW (print-packet.md §3): ids -> sN-id; #frag -> #sN-frag; a page in the
  * stack -> #sM[-frag]; other relative href/src/srcset AND inline style url()
- * -> absolute. 🔴 The letterhead logo is an inline background-image with a
- * page-relative URL (buildstamp.py); unresolved, it points one level off and
- * prints a blank corner. Resolve BEFORE the cover clones the stamp.
+ * -> absolute. 🔴 input[name] -> sN-name; label[for] -> sN-for (radio groups
+ * are document-wide, so unnamespaced radios from different pages collide and
+ * only one tab set keeps its :checked state). The letterhead logo is an inline
+ * background-image with a page-relative URL (buildstamp.py); unresolved, it
+ * points one level off and prints a blank corner. Resolve BEFORE the cover
+ * clones the stamp.
  *
  * 📄 EACH ARTICLE KEEPS ITS LETTERHEAD AND FOOT; only screen-only
  * `.buildstamp--foot` is stripped. The cover borrows the first letterhead.
@@ -169,6 +172,19 @@
         if (stamp && !letterhead) letterhead = stamp.cloneNode(true);
         var sec = h("section", { "class": "dr-compose-sec", id: "s" + n });
         src.querySelectorAll("[id]").forEach(function (el) { el.id = "s" + n + "-" + el.id; });
+        // 🔴 RADIO GROUPS ARE DOCUMENT-WIDE. Every page's `=== "Tab"` set gets
+        // `name="__tabbed_1"` at build time, so stitching two pages with tabs puts
+        // two sets of radios in ONE group: only one radio across all pages can be
+        // :checked, and every other set's tab content vanishes. Namespacing `name`
+        // isolates each section's radio groups. `label[for]` must follow the `[id]`
+        // rename above, or clicking a tab label targets a nonexistent id and does
+        // nothing.
+        src.querySelectorAll("input[name]").forEach(function (el) {
+          el.setAttribute("name", "s" + n + "-" + el.getAttribute("name"));
+        });
+        src.querySelectorAll("label[for]").forEach(function (el) {
+          el.setAttribute("for", "s" + n + "-" + el.getAttribute("for"));
+        });
         src.querySelectorAll("[src]").forEach(function (el) {
           el.setAttribute("src", new URL(el.getAttribute("src"), page).href);
         });
