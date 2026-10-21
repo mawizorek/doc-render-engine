@@ -218,8 +218,16 @@ theme: uritp-safety
 # explicit print date is engine-owned furniture and lands on every site, per the
 # header/footer-content rule above. This block declares WHOSE the sheet is, never
 # what the stamp SAYS.
+#
+# ⭐ RUNNING HEADERS/FOOTERS (2026-10-21, Michael's ruling)
+# `running: true` enables runfoot.py's @page margin boxes: logo top-left,
+# site + period top-right, revised bottom-left, page N of M bottom-center,
+# posted-by bottom-right. Repeated on every printed page. Safe to enable:
+# worst case is duplication (in-flow + margin box), never absence.
+# Chrome 131+ (Nov 2024) required; well past that by Oct 2026.
 print:
   logo: logo-horizontal
+  running: true
 
 
 # =============================================================================
