@@ -3,12 +3,51 @@
  * Loaded LAST by assets.py, after all engine sheets and generated CSS.
  * A site retunes values from its own theme.css and never edits the
  * engine's assets/ files. See assets.py _plan() and site.yml.
- *
- * ⚠️ ENGINE-WIDE FIX PENDING. The rule below should eventually move
- * into the engine (data.css or base.css) so every site's spacing join
- * reaches standard markdown tables, not just this one. Until then this
- * is the correct per-site override.
  * ------------------------------------------------------------------ */
+
+/* ---------------------------------------------------------------------------
+ * THE DISPLAY FONT -- Archivo, for headings only
+ *
+ * type.css already wires h1-h3 to --dr-font-display, which for this site's
+ * typography entity is 'Archivo', system-ui, sans-serif. This @import makes
+ * the font AVAILABLE so the name resolves to a real face instead of falling
+ * through to system-ui.
+ *
+ * Body text stays system-ui: --dr-font-body is 'Inter', system-ui, sans-serif
+ * and Inter is deliberately not loaded. A safety site read on venue wifi
+ * should not block rendering on a body font; one display face for headings
+ * is the compromise.
+ *
+ * Three weights: 400 (normal text in a heading context), 600 (Material's
+ * h3 default), 700 (h1/h2 and the buildstamp site-id).
+ *
+ * ENGINE-WIDE FIX PENDING. The engine should eventually read the typography
+ * vector's font-display column and inject a <link> rather than relying on
+ * a per-site @import. Until then this is the correct per-site path.
+ * ------------------------------------------------------------------------ */
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&display=swap');
+
+/* ---------------------------------------------------------------------------
+ * BODY FONT SIZE -- 0.94rem per the uritp-safety typography vector
+ *
+ * Material's .md-typeset uses 0.8rem (12.8px). The canonical vector says
+ * 0.94rem (15.04px). That is a 17.5% increase on everything em-relative
+ * inside .md-typeset: headings, callouts, captions, inline prose.
+ *
+ * TSV data tables are UNAFFECTED: --dr-data-size is 0.80rem (root-relative,
+ * not typeset-relative). Markdown table padding uses absolute px from
+ * pad-cell/pad-card, so it stays tight.
+ *
+ * Michael's ruling (2026-10-21): set it now, get used to it.
+ *
+ * ENGINE-WIDE FIX PENDING (type.css documents this gap and its argument).
+ * The engine should wire this for all sites; it is deferred there because
+ * each site has a different fs-body and the cascade blast radius is wide.
+ * Here it is safe: one site, one ruling.
+ * ------------------------------------------------------------------------ */
+.md-typeset {
+  font-size: var(--dr-fs-body);
+}
 
 /* ---------------------------------------------------------------------------
  * STANDARD MARKDOWN TABLES -- the pipe tables an author writes
