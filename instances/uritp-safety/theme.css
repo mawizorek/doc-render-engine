@@ -28,26 +28,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&display=swap');
 
 /* ---------------------------------------------------------------------------
- * BODY FONT SIZE -- 0.94rem per the uritp-safety typography vector
+ * BODY FONT SIZE -- DEFERRED
  *
- * Material's .md-typeset uses 0.8rem (12.8px). The canonical vector says
- * 0.94rem (15.04px). That is a 17.5% increase on everything em-relative
- * inside .md-typeset: headings, callouts, captions, inline prose.
- *
- * TSV data tables are UNAFFECTED: --dr-data-size is 0.80rem (root-relative,
- * not typeset-relative). Markdown table padding uses absolute px from
- * pad-cell/pad-card, so it stays tight.
- *
- * Michael's ruling (2026-10-21): set it now, get used to it.
- *
- * ENGINE-WIDE FIX PENDING (type.css documents this gap and its argument).
- * The engine should wire this for all sites; it is deferred there because
- * each site has a different fs-body and the cascade blast radius is wide.
- * Here it is safe: one site, one ruling.
+ * The canonical vector says 0.94rem; Material uses 0.8rem. Wiring it makes
+ * everything em-relative 17.5% bigger, which was too aggressive on first
+ * test (Michael, 2026-10-21: "it's MASSIVE"). Parked until a middle-ground
+ * value (0.84-0.88rem range) is tested on a real page.
  * ------------------------------------------------------------------------ */
-.md-typeset {
-  font-size: var(--dr-fs-body);
-}
 
 /* ---------------------------------------------------------------------------
  * STANDARD MARKDOWN TABLES -- the pipe tables an author writes
