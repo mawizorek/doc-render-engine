@@ -28,13 +28,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&display=swap');
 
 /* ---------------------------------------------------------------------------
- * BODY FONT SIZE -- DEFERRED
+ * BODY FONT SIZE -- 0.85rem (compromise)
  *
- * The canonical vector says 0.94rem; Material uses 0.8rem. Wiring it makes
- * everything em-relative 17.5% bigger, which was too aggressive on first
- * test (Michael, 2026-10-21: "it's MASSIVE"). Parked until a middle-ground
- * value (0.84-0.88rem range) is tested on a real page.
+ * The canonical vector says 0.94rem (+17.5% over Material's 0.8rem), which
+ * was too aggressive (Michael: "it's MASSIVE"). 0.85rem is a 6.25% bump:
+ * noticeable comfort gain without the cascade shock. Everything em-relative
+ * inside .md-typeset grows proportionally.
+ *
+ * If this still feels wrong, the number is one line. The canonical 0.94rem
+ * is available as --dr-fs-body; this hardcodes a middle ground instead.
  * ------------------------------------------------------------------------ */
+.md-typeset {
+  font-size: 0.85rem;
+}
 
 /* ---------------------------------------------------------------------------
  * STANDARD MARKDOWN TABLES -- the pipe tables an author writes
