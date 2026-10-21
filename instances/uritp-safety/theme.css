@@ -1,0 +1,36 @@
+/* Per-site overrides for uritp-safety.
+ *
+ * Loaded LAST by assets.py, after all engine sheets and generated CSS.
+ * A site retunes values from its own theme.css and never edits the
+ * engine's assets/ files. See assets.py _plan() and site.yml.
+ *
+ * ⚠️ ENGINE-WIDE FIX PENDING. The rule below should eventually move
+ * into the engine (data.css or base.css) so every site's spacing join
+ * reaches standard markdown tables, not just this one. Until then this
+ * is the correct per-site override.
+ * ------------------------------------------------------------------ */
+
+/* ---------------------------------------------------------------------------
+ * STANDARD MARKDOWN TABLES -- the pipe tables an author writes
+ *
+ * THE TSV TABLE (data.css, .dr-data__table) ALREADY READS pad-cell/pad-card.
+ * A markdown table is a plain <table> with no class; Material styles it with
+ * ~15px vertical, ~20px horizontal, which lets a 9-row key list fill a page.
+ *
+ * THE FALLBACKS ARE MATERIAL'S LITERALS. A theme with no spacing join emits
+ * no primitives and a bare var() would collapse padding to zero. Material's
+ * own values serve: the worst case is the status quo, not a broken table.
+ *
+ * SELECTOR: :not([class]) matches only tables the AUTHOR wrote. Everything
+ * the engine generates carries a class (.dr-data__table, .dr-spec) and is
+ * not caught here.
+ *
+ * line-height is tightened to match the TSV table (1.35) rather than left at
+ * Material's body height (~1.6), because padding at 2px with line-height at
+ * 1.6 still lets each row tower over its content.
+ * ------------------------------------------------------------------------ */
+.md-typeset table:not([class]) th,
+.md-typeset table:not([class]) td {
+  padding: var(--dr-pad-cell, 0.9375em) var(--dr-pad-card, 1.25em);
+  line-height: 1.35;
+}
