@@ -17,49 +17,32 @@
  * and Inter is deliberately not loaded. A safety site read on venue wifi
  * should not block rendering on a body font; one display face for headings
  * is the compromise.
- *
- * Three weights: 400 (normal text in a heading context), 600 (Material's
- * h3 default), 700 (h1/h2 and the buildstamp site-id).
- *
- * ENGINE-WIDE FIX PENDING. The engine should eventually read the typography
- * vector's font-display column and inject a <link> rather than relying on
- * a per-site @import. Until then this is the correct per-site path.
  * ------------------------------------------------------------------------ */
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&display=swap');
 
 /* ---------------------------------------------------------------------------
- * BODY FONT SIZE -- 0.85rem (compromise)
+ * BODY FONT SIZE -- 0.85rem, SCREEN ONLY
  *
- * The canonical vector says 0.94rem (+17.5% over Material's 0.8rem), which
- * was too aggressive (Michael: "it's MASSIVE"). 0.85rem is a 6.25% bump:
- * noticeable comfort gain without the cascade shock. Everything em-relative
- * inside .md-typeset grows proportionally.
+ * Material defaults to 0.8rem (12.8px). 0.85rem (13.6px) is a 6.25% bump.
+ * The canonical vector says 0.94rem but that was too aggressive.
  *
- * If this still feels wrong, the number is one line. The canonical 0.94rem
- * is available as --dr-fs-body; this hardcodes a middle ground instead.
+ * SCOPED TO @media screen. Without the scope, this rule overrides
+ * print-type.css's 8.5pt print base because theme.css loads last.
+ * The print dial (--dr-print-base) owns paper; this owns the glass.
  * ------------------------------------------------------------------------ */
-.md-typeset {
-  font-size: 0.85rem;
+@media screen {
+  .md-typeset {
+    font-size: 0.85rem;
+  }
 }
 
 /* ---------------------------------------------------------------------------
  * STANDARD MARKDOWN TABLES -- the pipe tables an author writes
  *
- * THE TSV TABLE (data.css, .dr-data__table) ALREADY READS pad-cell/pad-card.
- * A markdown table is a plain <table> with no class; Material styles it with
- * ~15px vertical, ~20px horizontal, which lets a 9-row key list fill a page.
- *
- * THE FALLBACKS ARE MATERIAL'S LITERALS. A theme with no spacing join emits
- * no primitives and a bare var() would collapse padding to zero. Material's
- * own values serve: the worst case is the status quo, not a broken table.
- *
- * SELECTOR: :not([class]) matches only tables the AUTHOR wrote. Everything
- * the engine generates carries a class (.dr-data__table, .dr-spec) and is
- * not caught here.
- *
- * line-height is tightened to match the TSV table (1.35) rather than left at
- * Material's body height (~1.6), because padding at 2px with line-height at
- * 1.6 still lets each row tower over its content.
+ * Wires pad-cell/pad-card to author-written tables. The TSV data table
+ * (data.css, .dr-data__table) already reads these tokens. Material's
+ * default padding (~15px/20px) is replaced by the theme's spacing vector
+ * (2px/8px for uritp-safety).
  * ------------------------------------------------------------------------ */
 .md-typeset table:not([class]) th,
 .md-typeset table:not([class]) td {
