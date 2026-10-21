@@ -4,38 +4,6 @@
 # is where safety material is WORKED OUT, this one is where a finished page
 # arrives once Michael has decided a real person can act on it. Two audiences,
 # two repos, and they are not copies of each other.
-#
-# Michael, 2026-08-16: *"this is the final filter that is me taking what we
-# write in uritp-docs/safety and filtering it for real humans finally."*
-#
-# CONTENT LAW, and it lives in the content repo's own README as well: agents
-# READ and AUDIT this tree and never commit to it. A safety document somebody
-# acts on has to have been read by the person accountable for it.
-#
-# =============================================================================
-# 🔴 ONE STRAY CHARACTER ON LINE 1 KILLED EVERY BUILD (2026-08-16)
-# =============================================================================
-# This file shipped for about an hour reading `l# URITP SAFETY - the published`
-# on its first line -- a single `l` before the `#`, almost certainly a mobile
-# keyboard slip while opening the editor to change one word further down.
-#
-# ⚠️ A `#` IS ONLY A COMMENT AT LINE START OR AFTER WHITESPACE. With `l` in
-# front of it the whole line becomes a plain SCALAR, so the document opens as a
-# string and then meets `name:` fifteen lines later, which is a mapping. YAML
-# cannot be both, so `safe_load` RAISES rather than returning a partial config.
-#
-# ⚡ AND THE FAILURE LANDS NOWHERE NEAR THE EDIT. publish.yml's "Resolve the
-# site" step runs a bare `yaml.safe_load(...)['content_repo']` with no
-# try/except, so the traceback is about `content_repo` -- a line nobody touched
-# -- three steps before the render. build.yml fails the same way in its
-# matrix-agreement check. The person who changed a THEME gets an error about a
-# REPO, which is the most misleading shape a config error can take.
-#
-# ⚠️ NOTHING VALIDATES THIS FILE BEFORE A BUILD SPENDS A RUNNER ON IT. Both
-# workflows parse it inline, in shell, for one key. A cheap `yaml.safe_load` of
-# every instance as its own early step would name the file and the line instead
-# -- flagged here rather than built, because it is a workflow change and this
-# was a one-character fix on a live outage.
 
 name: URITP Safety
 description: Published safety policies, programs and privileges for URITP spaces.
@@ -49,12 +17,14 @@ aliases: [safety, uritp-safety-docs, "URITP Safety"]
 
 theme: uritp-safety
 
-# 🔴 RUNNING HEADERS/FOOTERS TESTED 2026-08-30 AND 2026-10-21, BROKEN BOTH TIMES.
-# @page margin boxes do not paint in Chrome. The hide rules fire anyway and
-# strip the in-flow letterhead. runfoot.py needs a real fix (JS detection or
-# restructured hide rules) before `running: true` can ship.
+# RUNNING HEADERS: enabled 2026-10-21 after the _HIDE_INFLOW fix in runfoot.py.
+# @page margin boxes paint on Chrome 131+ / Safari 18.2+. On non-supporting
+# browsers the in-flow letterhead stays (hide rules are gone). If you see
+# duplication on a supporting browser, use the print panel's Hide Header/Footer
+# toggles.
 print:
   logo: logo-horizontal
+  running: true
 
 owner:
   name: Michael A Wizorek
