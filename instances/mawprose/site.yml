@@ -38,11 +38,15 @@ content_branch: main
 # `prose` is here because it is what Michael will type and what the retired slug
 # was -- the same reasoning that keeps `oph` on the theatre instance.
 #
-# ⚠️ "mawster" and "production-mawster" resolve HERE rather than to a site of
-# their own. Production MAWster is an app FOLDER inside this content repo, and a
+# ⚠️ "mawnster" and "production-mawnster" resolve HERE rather than to a site of
+# their own. Production MAWnster is an app FOLDER inside this content repo, and a
 # name that reads like a site but is not one is exactly what somebody types six
 # months from now.
-aliases: [prose, maw-prose, "MAW Prose", prose-docs, mawster, production-mawster]
+#
+# `mawster` and `production-mawster` stay as RETIRED names: the app was renamed
+# MAWster -> MAWnster on 2026-11-13 (Michael), and a retired name is what a hand
+# types from memory. Same reasoning as `oph` above.
+aliases: [prose, maw-prose, "MAW Prose", prose-docs, mawnster, production-mawnster, mawster, production-mawster]
 
 # ONE LINE. `database` treats a table as the primary content rather than an
 # illustration of it - correct for a site whose real pages are FileMaker field

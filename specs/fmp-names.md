@@ -11,7 +11,7 @@
 FileMaker notes spell object names in prose: `[fkCal](@rel:table-events)`, `` `BudgetCode_YearConfig` ``. The **target** of a link is a stable page id; the **label** is a spelling. A rename leaves every label wrong and nothing reports it.
 
 - `@alias:` already exists (`theme/markers.tsv`) and points a RETIRED name at the live page. It fixes paperwork quoting an old name. It does not fix the prose.
-- `{.field}` has no prefix, so `@field:` links in `production-mawster` resolve to nothing today (`@field:table-global-use-variables#g_pkCurrentProduction` in `50-LAYOUTS/LAYOUTS.tsv`).
+- `{.field}` has no prefix, so `@field:` links in `production-mawnster` (folder renamed from `production-mawster` 2026-11-13) resolve to nothing today (`@field:table-global-use-variables#g_pkCurrentProduction` in `50-LAYOUTS/LAYOUTS.tsv`).
 - A FileMaker rename pass is a real, recurring event: `URITP Budget` has one pending across 31 tables (`uritp-budget/NAMES.tsv`).
 
 ## The shape
